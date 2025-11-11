@@ -198,7 +198,172 @@ The packaging script will:
 
 If validation fails, the script will report the errors and exit without creating a package. Fix any validation errors and run the packaging command again.
 
-### Step 6: Iterate
+### Step 6: Add to Plugin Marketplace (Optional)
+
+After packaging the skill, optionally add it to a Claude Code plugin marketplace for easy distribution and installation. This step is recommended when:
+- Sharing skills with a team or organization
+- Distributing multiple related skills together
+- Managing skill versions and updates
+- Publishing skills publicly
+
+Skip this step if distributing the skill as a standalone zip file.
+
+For comprehensive information about plugin marketplaces, refer to `references/plugin_marketplace_guide.md`.
+
+#### Understanding Plugin Marketplaces
+
+A plugin marketplace allows users to install skills via Claude Code's plugin system using commands like:
+```bash
+/plugin marketplace add username/repository
+/plugin install plugin-name@marketplace-name
+```
+
+Plugin marketplaces require:
+1. A `.claude-plugin/marketplace.json` file in the repository root
+2. A Git repository (GitHub, GitLab, etc.)
+3. Skills organized in the repository
+
+#### Marketplace Structure
+
+The marketplace.json defines:
+- **Marketplace metadata** - Name, owner, description, version
+- **Plugins** - Collections of related skills
+- **Skills** - Individual skill directories
+
+Example structure:
+```json
+{
+  "name": "my-marketplace",
+  "owner": {
+    "name": "Your Name",
+    "email": "email@example.com"
+  },
+  "metadata": {
+    "description": "Collection description",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "plugin-name",
+      "description": "Plugin description",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skill-one",
+        "./skill-two"
+      ]
+    }
+  ]
+}
+```
+
+#### Managing the Marketplace
+
+Use the `add_to_marketplace.py` script to manage the marketplace:
+
+**Initialize a new marketplace:**
+```bash
+scripts/add_to_marketplace.py init \
+  --name my-marketplace \
+  --owner-name "Your Name" \
+  --owner-email "email@example.com" \
+  --description "My skill collection"
+```
+
+**Create a new plugin with skills:**
+```bash
+scripts/add_to_marketplace.py create-plugin my-plugin \
+  "Plugin description" \
+  --skills ./skill-one ./skill-two ./skill-three
+```
+
+**Add a skill to existing plugin:**
+```bash
+scripts/add_to_marketplace.py add-skill my-plugin ./new-skill
+```
+
+**List marketplace contents:**
+```bash
+scripts/add_to_marketplace.py list
+```
+
+#### Publishing Workflow
+
+1. **Initialize marketplace** (if not already done):
+```bash
+scripts/add_to_marketplace.py init \
+  --name terminal-tools \
+  --owner-name "Your Name" \
+  --owner-email "you@example.com" \
+  --description "Terminal configuration tools"
+```
+
+2. **Create plugin or add skills**:
+```bash
+# Create new plugin
+scripts/add_to_marketplace.py create-plugin terminal-guru \
+  "Terminal diagnostics and configuration" \
+  --skills ./terminal-guru
+
+# Or add to existing plugin
+scripts/add_to_marketplace.py add-skill terminal-guru ./another-skill
+```
+
+3. **Commit and push to Git**:
+```bash
+git add .claude-plugin/ skill-name/
+git commit -m "Add skill-name to marketplace"
+git push
+```
+
+4. **Users can install**:
+```bash
+/plugin marketplace add username/repository
+/plugin install plugin-name@marketplace-name
+```
+
+#### Organizing Multiple Skills
+
+Common patterns for organizing skills in marketplaces:
+
+**Pattern 1: Single plugin with related skills**
+```
+.claude-plugin/marketplace.json
+├── Plugin: "development-tools"
+    ├── ./terminal-guru
+    ├── ./git-helper
+    └── ./code-reviewer
+```
+
+**Pattern 2: Multiple plugins by domain**
+```
+.claude-plugin/marketplace.json
+├── Plugin: "terminal-tools"
+│   ├── ./terminal-guru
+│   └── ./shell-config
+└── Plugin: "document-tools"
+    ├── ./pdf-tools
+    └── ./markdown-tools
+```
+
+**Pattern 3: Plugin per skill** (for unrelated skills)
+```
+.claude-plugin/marketplace.json
+├── Plugin: "terminal-guru"
+│   └── ./terminal-guru
+└── Plugin: "brand-guidelines"
+    └── ./brand-guidelines
+```
+
+#### Best Practices
+
+1. **Descriptive plugin names** - Use clear, searchable names
+2. **Meaningful descriptions** - Help users understand what the plugin provides
+3. **Logical grouping** - Group related skills into plugins
+4. **Version management** - Update marketplace version when adding/changing skills
+5. **README documentation** - Include installation instructions in repository README
+
+### Step 7: Iterate
 
 After testing the skill, users may request improvements. Often this happens right after using the skill, with fresh context of how the skill performed.
 
@@ -207,3 +372,4 @@ After testing the skill, users may request improvements. Often this happens righ
 2. Notice struggles or inefficiencies
 3. Identify how SKILL.md or bundled resources should be updated
 4. Implement changes and test again
+5. If published in marketplace, update version and push changes

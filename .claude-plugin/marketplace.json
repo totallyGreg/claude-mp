@@ -1,42 +1,30 @@
 {
-  "name": "anthropic-agent-skills",
+  "name": "totally-tools",
   "owner": {
-    "name": "Keith Lazuka",
-    "email": "klazuka@anthropic.com"
+    "name": "J. Greg Williams",
+    "email": "totallyGreg@gmail.com"
   },
   "metadata": {
-    "description": "Anthropic example skills",
-    "version": "1.0.0"
+    "description": "Development tools including terminal configuration and Helm chart development",
+    "version": "1.1.0"
   },
   "plugins": [
     {
-      "name": "document-skills",
-      "description": "Collection of document processing suite including Excel, Word, PowerPoint, and PDF capabilities",
+      "name": "terminal-guru",
+      "description": "Comprehensive terminal configuration, diagnostics, and troubleshooting including terminfo database management, Zsh autoload functions and fpath configuration, Unicode/UTF-8 character rendering, and TUI application support",
       "source": "./",
       "strict": false,
       "skills": [
-        "./document-skills/xlsx",
-        "./document-skills/docx",
-        "./document-skills/pptx",
-        "./document-skills/pdf"
+        "./terminal-guru"
       ]
     },
     {
-      "name": "example-skills",
-      "description": "Collection of example skills demonstrating various capabilities including skill creation, MCP building, visual design, algorithmic art, internal communications, web testing, artifact building, Slack GIFs, and theme styling",
+      "name": "helm-chart-developer",
+      "description": "Expert guidance for Helm chart development, testing, security, OCI registries, and Helm 4 features",
       "source": "./",
       "strict": false,
       "skills": [
-        "./skill-creator",
-        "./mcp-builder",
-        "./canvas-design",
-        "./algorithmic-art",
-        "./internal-comms",
-        "./webapp-testing",
-        "./artifacts-builder",
-        "./slack-gif-creator",
-        "./theme-factory",
-        "./brand-guidelines"
+        "./helm-chart-developer"
       ]
     }
   ]
