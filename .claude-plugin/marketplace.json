@@ -49,6 +49,20 @@
       "skills": [
         "./skills/skill-creator"
       ]
+    },
+    {
+      "name": "swift-dev",
+      "description": "Swift development expert for SwiftUI, iOS/macOS frameworks, Server-side Swift, and Objective-C migration",
+      "category": "development",
+      "version": "1.0.0",
+      "author": {
+        "name": "J. Greg Williams",
+        "email": "283704+totallyGreg@users.noreply.github.com"
+      },
+      "source": "./",
+      "skills": [
+        "./skills/swift-dev"
+      ]
     }
   ]
 }

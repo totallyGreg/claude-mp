@@ -1,0 +1,35 @@
+# Development and planning documents
+IMPROVEMENT_PLAN.md
+*.md.bak
+
+# Examples and test files
+examples/
+test/
+tests/
+
+# Build artifacts
+dist/
+build/
+*.zip
+
+# Version control
+.git/
+.gitignore
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
