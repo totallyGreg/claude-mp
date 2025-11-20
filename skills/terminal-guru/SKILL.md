@@ -1,13 +1,14 @@
 ---
 name: terminal-guru
-description: This skill should be used when configuring, diagnosing, fixing, or understanding Unix terminals, including terminfo database issues, shell configuration (especially Zsh autoload functions and fpath), Unicode/UTF-8 character rendering problems, TUI applications, and terminal emulator settings.
+description: This skill should be used when configuring, diagnosing, fixing, or understanding Unix terminals, including terminfo database issues, shell configuration (especially Zsh autoload functions and fpath), Unicode/UTF-8 character rendering problems, TUI applications, terminal emulator settings, and comprehensive zsh testing with isolated environments for performance optimization and plugin compatibility validation.
+version: 2.0.0
 ---
 
 # Terminal Guru
 
 ## Overview
 
-Configure, diagnose, and fix all aspects of Unix terminals, from low-level terminfo capabilities to high-level shell configurations. Handle Unicode/UTF-8 rendering issues, create and install Zsh autoload functions, troubleshoot terminal emulator problems, and optimize TUI (Text User Interface) applications.
+Configure, diagnose, test, and optimize all aspects of Unix terminals and zsh configurations. Provides comprehensive terminal diagnostics (terminfo, Unicode/UTF-8, locale), zsh configuration management (autoload functions, fpath), and Python-based testing framework for safe experimentation in isolated environments. Test display consistency, measure performance, validate plugin compatibility, and iteratively optimize configurations without affecting your working shell.
 
 ## When to Use This Skill
 
@@ -21,6 +22,10 @@ Use terminal-guru when users encounter:
 - Locale and encoding problems
 - Terminal emulator configuration
 - Character width and alignment issues
+- **Performance optimization needs (slow startup, plugin overhead)**
+- **Plugin configuration and compatibility testing**
+- **Safe testing of configuration changes before applying**
+- **Comparing different plugin managers or configurations**
 
 ## Core Capabilities
 
@@ -159,6 +164,77 @@ echo "café" | iconv -f UTF-8 -t UTF-8
 ```
 
 **When to use**: Users report garbled characters, emoji not rendering, box drawing broken, incorrect string lengths, or cursor misalignment.
+
+### 5. Testing and Optimization Framework (NEW in v2.0)
+
+For comprehensive testing, performance optimization, and safe configuration experimentation, use the Python-based testing framework. This framework creates isolated test environments where you can test changes without affecting the user's working shell.
+
+**Key innovation:** All test logic is implemented in Python rather than shell scripts, eliminating the circular dependency problem of "shell testing shell." Python observes zsh externally via subprocess/PTY, ensuring test infrastructure bugs cannot contaminate results.
+
+#### Creating Isolated Test Environments
+
+Create safe, isolated environments using ZDOTDIR for testing:
+
+```bash
+# Create isolated environment
+python3 scripts/environment_builder.py --create my-test
+
+# List all test environments
+python3 scripts/environment_builder.py --list
+
+# Remove test environment
+python3 scripts/environment_builder.py --cleanup /path/to/env
+```
+
+#### Running Comprehensive Tests
+
+Execute automated test suites in isolated environments:
+
+```bash
+# Run all test suites
+python3 scripts/terminal_test_runner.py --name my-test --suite all
+
+# Run specific test suite
+python3 scripts/terminal_test_runner.py --name perf-test --suite performance
+
+# Preserve environment for inspection
+python3 scripts/terminal_test_runner.py --name debug --preserve
+```
+
+**Test Suites:**
+- **Display Tests** - Line length accuracy, Unicode rendering, color support
+- **Performance Tests** - Startup time, command execution latency, profiling
+- **Plugin Tests** - Plugin detection, FPATH configuration, autoload mechanism
+
+#### Comparing Configurations
+
+Compare test results from different configurations:
+
+```bash
+# Run baseline
+python3 scripts/terminal_test_runner.py --name baseline
+
+# Modify config in test environment and re-run
+python3 scripts/terminal_test_runner.py --name optimized
+
+# Compare results
+python3 scripts/terminal_test_runner.py --compare \
+    ~/.terminal-guru/test-environments/baseline-*/results/all_results.json \
+    ~/.terminal-guru/test-environments/optimized-*/results/all_results.json
+```
+
+#### Testing Workflow
+
+1. **Create Environment** - Isolated ZDOTDIR with copy of user's config
+2. **Run Baseline Tests** - Identify current issues and performance
+3. **Apply Changes** - Modify config in isolated environment
+4. **Re-test** - Validate improvements
+5. **Compare Results** - Analyze before/after differences
+6. **Apply to Production** - Once validated, apply changes to real config
+
+**When to use**: Users want to optimize performance, test plugin changes, compare configurations, or safely experiment with config modifications.
+
+**Reference:** See `references/isolated_environments.md` for detailed guide on ZDOTDIR isolation and testing workflows.
 
 ## Diagnostic Workflow
 
@@ -471,13 +547,41 @@ This skill includes three comprehensive reference guides. Load these into contex
 4. Test: `echo "😀 🎉 ✨"`
 5. Refer to `references/unicode_troubleshooting.md` for emoji-specific issues
 
+### "My zsh startup is slow" (NEW in v2.0)
+1. Run performance tests: `python3 scripts/terminal_test_runner.py --name perf --suite performance`
+2. Check results: View `~/.terminal-guru/test-environments/perf-*/results/performance_results.json`
+3. Identify slow components from startup time measurements
+4. Apply optimizations (lazy loading, defer plugins, cache compinit)
+5. Re-test to verify improvements
+
+### "I want to test a config change safely" (NEW in v2.0)
+1. Create test environment: `python3 scripts/environment_builder.py --create test`
+2. Edit isolated config: `vim ~/.terminal-guru/test-environments/test-*/zdotdir/.zshrc`
+3. Run tests: `python3 scripts/terminal_test_runner.py --name test --suite all`
+4. If successful, apply changes to real ~/.zshrc
+5. If failed, just delete the test environment
+
+### "Compare oh-my-zsh vs zinit" (NEW in v2.0)
+1. Run baseline with oh-my-zsh: `python3 scripts/terminal_test_runner.py --name omz`
+2. Create test environment and convert to zinit
+3. Run tests with zinit: `python3 scripts/terminal_test_runner.py --name zinit`
+4. Compare: `python3 scripts/terminal_test_runner.py --compare omz.json zinit.json`
+5. Choose based on performance and compatibility results
+
 ## Resources
 
 ### scripts/
-- **`terminal_diagnostics.py`** - Comprehensive diagnostic tool for terminal, locale, and environment
+- **`terminal_diagnostics.py`** - Comprehensive diagnostic tool for terminal, locale, and environment (supports --json mode)
 - **`install_autoload.sh`** - Install Zsh autoload functions to correct fpath location
+- **`environment_builder.py`** - Create and manage isolated ZDOTDIR test environments (NEW v2.0)
+- **`terminal_test_runner.py`** - Run automated test suites in isolated environments (NEW v2.0)
+- **`tests/display_tests.py`** - Display consistency tests (Python-based) (NEW v2.0)
+- **`tests/performance_tests.py`** - Performance profiling and benchmarking (NEW v2.0)
+- **`tests/plugin_tests.py`** - Plugin compatibility testing (NEW v2.0)
+- **`analysis/output_analyzer.py`** - Analyze test results and generate recommendations (NEW v2.0)
 
 ### references/
 - **`terminfo_guide.md`** - Complete terminfo database reference and troubleshooting
 - **`zsh_configuration.md`** - Comprehensive Zsh configuration including autoload and fpath
 - **`unicode_troubleshooting.md`** - Unicode/UTF-8 character rendering and encoding issues
+- **`isolated_environments.md`** - Guide to ZDOTDIR isolation and testing workflows (NEW v2.0)

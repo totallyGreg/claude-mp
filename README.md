@@ -21,7 +21,7 @@ This marketplace currently includes:
 
 #### 🛠️ Skills (3)
 
-- **terminal-guru** - Terminal diagnostics, configuration, and troubleshooting
+- **terminal-guru** (v2.0) - Terminal diagnostics, testing, and optimization with isolated environments
 - **helm-chart-developer** - Helm chart development, testing, and security
 - **skill-creator** - Guide for creating custom Claude skills
 

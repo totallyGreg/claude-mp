@@ -6,7 +6,7 @@ Agent Skills extend Claude's capabilities with specialized knowledge and workflo
 ## Available Skills
 
 ### terminal-guru
-Terminal diagnostics, configuration, and troubleshooting expert. Handles terminfo databases, Zsh autoload functions, Unicode rendering, and TUI applications.
+**v2.0** - Terminal diagnostics, configuration, testing, and optimization expert. Provides comprehensive diagnostics (terminfo, Unicode, locale), Python-based testing framework with isolated environments (ZDOTDIR), performance profiling, and plugin compatibility validation. Safely test and optimize zsh configurations without affecting your working shell.
 
 **Installation:**
 ```bash
