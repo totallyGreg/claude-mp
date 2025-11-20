@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "claude-mp",
+  "name": "totally-tools",
   "version": "2.0.0",
-  "description": "Comprehensive marketplace for Claude extensions including skills, commands, agents, hooks, and MCP servers",
+  "description": "Totally Tools - a Playground for Claude extensions including skills, commands, agents, hooks, and MCP servers",
   "owner": {
     "name": "J. Greg Williams",
     "email": "283704+totallyGreg@users.noreply.github.com"
