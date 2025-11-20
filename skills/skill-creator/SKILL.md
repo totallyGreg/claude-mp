@@ -1,6 +1,7 @@
 ---
 name: skill-creator
 description: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
+version: 1.1.0
 license: Complete terms in LICENSE.txt
 ---
 
@@ -172,9 +173,62 @@ To complete SKILL.md, answer the following questions:
 2. When should the skill be used?
 3. In practice, how should Claude use the skill? All reusable skill contents developed above should be referenced so that Claude knows how to use them.
 
-### Step 5: Packaging a Skill
+### Step 5: Add to Plugin Marketplace (Recommended)
 
-Once the skill is ready, it should be packaged into a distributable zip file that gets shared with the user. The packaging process automatically validates the skill first to ensure it meets all requirements:
+Once the skill is ready and tested, add it to a Claude Code plugin marketplace for easy distribution and installation. This is the recommended approach for sharing skills within teams or publicly.
+
+Skip this step only if distributing the skill as a standalone zip file (see Step 6).
+
+For comprehensive information about plugin marketplaces, refer to `references/plugin_marketplace_guide.md`.
+
+#### Understanding Plugin Marketplaces
+
+A plugin marketplace allows users to install skills via Claude Code's plugin system using commands like:
+```bash
+/plugin marketplace add username/repository
+/plugin install plugin-name@marketplace-name
+```
+
+Plugin marketplaces require:
+1. A `.claude-plugin/marketplace.json` file in the repository root
+2. A Git repository (GitHub, GitLab, etc.)
+3. Skills organized in the repository
+
+#### Version Management
+
+**IMPORTANT:** When skills are updated with new versions in their SKILL.md frontmatter, the marketplace.json must be updated to reflect the new plugin version. This is handled automatically using the sync script:
+
+```bash
+# Sync all skill versions to marketplace
+python3 scripts/sync_marketplace_versions.py
+
+# Preview changes without saving
+python3 scripts/sync_marketplace_versions.py --dry-run
+```
+
+The sync script:
+- Reads the `version` field from each skill's SKILL.md frontmatter
+- Updates the corresponding plugin's `version` in marketplace.json
+- Reports all changes made
+
+**Git Pre-Commit Hook:** The repository can include a pre-commit hook that automatically runs the sync script before commits, ensuring marketplace versions always stay in sync with skill versions. The hook will:
+- Detect version mismatches before commits
+- Automatically update marketplace.json
+- Add the updated marketplace.json to the commit
+- Prevent commits if sync fails (can be bypassed with `git commit --no-verify`)
+
+To set up the pre-commit hook:
+```bash
+# Copy the pre-commit hook template (if provided in the marketplace)
+cp .git/hooks/pre-commit.sample .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+
+# Or the hook may already be installed in the repository
+```
+
+### Step 6: Packaging a Skill (Optional)
+
+For standalone distribution outside of a marketplace, package the skill into a distributable zip file. The packaging process automatically validates the skill first to ensure it meets all requirements:
 
 ```bash
 scripts/package_skill.py <path/to/skill-folder>
@@ -198,64 +252,50 @@ The packaging script will:
 
 If validation fails, the script will report the errors and exit without creating a package. Fix any validation errors and run the packaging command again.
 
-### Step 6: Add to Plugin Marketplace (Optional)
+**When to use packaging:**
+- Distributing a single skill to individual users
+- Sharing via email, Slack, or direct download
+- Testing installation without setting up a marketplace
+- Creating backup archives of skills
 
-After packaging the skill, optionally add it to a Claude Code plugin marketplace for easy distribution and installation. This step is recommended when:
-- Sharing skills with a team or organization
-- Distributing multiple related skills together
-- Managing skill versions and updates
-- Publishing skills publicly
-
-Skip this step if distributing the skill as a standalone zip file.
-
-For comprehensive information about plugin marketplaces, refer to `references/plugin_marketplace_guide.md`.
-
-#### Understanding Plugin Marketplaces
-
-A plugin marketplace allows users to install skills via Claude Code's plugin system using commands like:
-```bash
-/plugin marketplace add username/repository
-/plugin install plugin-name@marketplace-name
-```
-
-Plugin marketplaces require:
-1. A `.claude-plugin/marketplace.json` file in the repository root
-2. A Git repository (GitHub, GitLab, etc.)
-3. Skills organized in the repository
+**Note:** For team or public distribution, prefer adding skills to a marketplace (Step 5) instead of distributing zip files
 
 #### Marketplace Structure
 
 The marketplace.json defines:
 - **Marketplace metadata** - Name, owner, description, version
-- **Plugins** - Collections of related skills
+- **Plugins** - Collections of related skills with their own versions
 - **Skills** - Individual skill directories
 
 Example structure:
 ```json
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "my-marketplace",
+  "version": "2.0.0",
+  "description": "Collection description",
   "owner": {
     "name": "Your Name",
     "email": "email@example.com"
-  },
-  "metadata": {
-    "description": "Collection description",
-    "version": "1.0.0"
   },
   "plugins": [
     {
       "name": "plugin-name",
       "description": "Plugin description",
+      "category": "development",
+      "version": "1.0.0",
+      "author": {
+        "name": "Your Name",
+        "email": "email@example.com"
+      },
       "source": "./",
-      "strict": false,
-      "skills": [
-        "./skill-one",
-        "./skill-two"
-      ]
+      "skills": ["./skills/skill-one", "./skills/skill-two"]
     }
   ]
 }
 ```
+
+**Important:** Plugin versions should match the version in the skill's SKILL.md frontmatter. Use the sync script to keep these in sync automatically
 
 #### Managing the Marketplace
 
@@ -309,10 +349,16 @@ scripts/add_to_marketplace.py create-plugin terminal-guru \
 scripts/add_to_marketplace.py add-skill terminal-guru ./another-skill
 ```
 
-3. **Commit and push to Git**:
+3. **Sync versions and commit to Git**:
 ```bash
-git add .claude-plugin/ skill-name/
+# Sync versions from SKILL.md to marketplace.json
+python3 scripts/sync_marketplace_versions.py
+
+# Add and commit changes
+git add .claude-plugin/ skills/skill-name/
 git commit -m "Add skill-name to marketplace"
+# Note: If pre-commit hook is installed, version sync happens automatically
+
 git push
 ```
 
@@ -372,4 +418,13 @@ After testing the skill, users may request improvements. Often this happens righ
 2. Notice struggles or inefficiencies
 3. Identify how SKILL.md or bundled resources should be updated
 4. Implement changes and test again
-5. If published in marketplace, update version and push changes
+5. If published in marketplace:
+   - Update the `version` field in SKILL.md frontmatter (follow semantic versioning)
+   - Run sync script to update marketplace.json: `python3 scripts/sync_marketplace_versions.py`
+   - Commit and push changes (version sync happens automatically if pre-commit hook is installed)
+   - Users can update to the new version via `/plugin update`
+
+**Version Guidelines:**
+- **Patch** (1.0.0 → 1.0.1): Bug fixes, documentation updates, minor improvements
+- **Minor** (1.0.1 → 1.1.0): New features, new bundled resources, backward-compatible changes
+- **Major** (1.1.0 → 2.0.0): Breaking changes, major rewrites, changed workflow

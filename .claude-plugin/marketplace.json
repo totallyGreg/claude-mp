@@ -12,13 +12,15 @@
       "name": "terminal-guru",
       "description": "Terminal diagnostics and configuration expert for Unix systems",
       "category": "development",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
       "source": "./",
-      "skills": ["./skills/terminal-guru"]
+      "skills": [
+        "./skills/terminal-guru"
+      ]
     },
     {
       "name": "helm-chart-developer",
@@ -30,19 +32,23 @@
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
       "source": "./",
-      "skills": ["./skills/helm-chart-developer"]
+      "skills": [
+        "./skills/helm-chart-developer"
+      ]
     },
     {
       "name": "skill-creator",
       "description": "Guide for creating effective Claude skills with marketplace integration",
       "category": "development",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
       "source": "./",
-      "skills": ["./skills/skill-creator"]
+      "skills": [
+        "./skills/skill-creator"
+      ]
     }
   ]
 }
