@@ -1,54 +1,48 @@
 {
-  "schemaVersion": "1.0",
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "claude-mp",
-  "displayName": "Claude Marketplace - totally-tools",
   "version": "2.0.0",
   "description": "Comprehensive marketplace for Claude extensions including skills, commands, agents, hooks, and MCP servers",
   "owner": {
     "name": "J. Greg Williams",
-    "email": "283704+totallyGreg@users.noreply.github.com",
-    "url": "https://github.com/totallyGreg/claude-mp"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/totallyGreg/claude-mp"
+    "email": "283704+totallyGreg@users.noreply.github.com"
   },
   "plugins": [
     {
       "name": "terminal-guru",
-      "displayName": "Terminal Guru",
-      "version": "1.0.0",
       "description": "Terminal diagnostics and configuration expert for Unix systems",
-      "skills": [
-        {
-          "name": "terminal-guru",
-          "path": "skills/terminal-guru"
-        }
-      ]
+      "category": "development",
+      "version": "1.0.0",
+      "author": {
+        "name": "J. Greg Williams",
+        "email": "283704+totallyGreg@users.noreply.github.com"
+      },
+      "source": "./",
+      "skills": ["./skills/terminal-guru"]
     },
     {
       "name": "helm-chart-developer",
-      "displayName": "Helm Chart Developer",
-      "version": "1.0.0",
       "description": "Expert guide for Helm chart development, testing, and security",
-      "skills": [
-        {
-          "name": "helm-chart-developer",
-          "path": "skills/helm-chart-developer"
-        }
-      ]
+      "category": "development",
+      "version": "1.0.0",
+      "author": {
+        "name": "J. Greg Williams",
+        "email": "283704+totallyGreg@users.noreply.github.com"
+      },
+      "source": "./",
+      "skills": ["./skills/helm-chart-developer"]
     },
     {
       "name": "skill-creator",
-      "displayName": "Skill Creator",
-      "version": "1.0.0",
       "description": "Guide for creating effective Claude skills with marketplace integration",
-      "skills": [
-        {
-          "name": "skill-creator",
-          "path": "skills/skill-creator"
-        }
-      ]
+      "category": "development",
+      "version": "1.0.0",
+      "author": {
+        "name": "J. Greg Williams",
+        "email": "283704+totallyGreg@users.noreply.github.com"
+      },
+      "source": "./",
+      "skills": ["./skills/skill-creator"]
     }
   ]
 }
