@@ -1,0 +1,5 @@
+terminal-guru/
+helm-chart-developer/
+skill-creator/
+.claude-plugin/marketplace.json
+.gitignore

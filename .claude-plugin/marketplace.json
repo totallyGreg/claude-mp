@@ -1,30 +1,53 @@
 {
-  "name": "totally-tools",
+  "schemaVersion": "1.0",
+  "name": "claude-mp",
+  "displayName": "Claude Marketplace - totally-tools",
+  "version": "2.0.0",
+  "description": "Comprehensive marketplace for Claude extensions including skills, commands, agents, hooks, and MCP servers",
   "owner": {
     "name": "J. Greg Williams",
-    "email": "totallyGreg@gmail.com"
+    "email": "283704+totallyGreg@users.noreply.github.com",
+    "url": "https://github.com/totallyGreg/claude-mp"
   },
-  "metadata": {
-    "description": "Development tools including terminal configuration and Helm chart development",
-    "version": "1.1.0"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/totallyGreg/claude-mp"
   },
   "plugins": [
     {
       "name": "terminal-guru",
-      "description": "Comprehensive terminal configuration, diagnostics, and troubleshooting including terminfo database management, Zsh autoload functions and fpath configuration, Unicode/UTF-8 character rendering, and TUI application support",
-      "source": "./",
-      "strict": false,
+      "displayName": "Terminal Guru",
+      "version": "1.0.0",
+      "description": "Terminal diagnostics and configuration expert for Unix systems",
       "skills": [
-        "./terminal-guru"
+        {
+          "name": "terminal-guru",
+          "path": "skills/terminal-guru"
+        }
       ]
     },
     {
       "name": "helm-chart-developer",
-      "description": "Expert guidance for Helm chart development, testing, security, OCI registries, and Helm 4 features",
-      "source": "./",
-      "strict": false,
+      "displayName": "Helm Chart Developer",
+      "version": "1.0.0",
+      "description": "Expert guide for Helm chart development, testing, and security",
       "skills": [
-        "./helm-chart-developer"
+        {
+          "name": "helm-chart-developer",
+          "path": "skills/helm-chart-developer"
+        }
+      ]
+    },
+    {
+      "name": "skill-creator",
+      "displayName": "Skill Creator",
+      "version": "1.0.0",
+      "description": "Guide for creating effective Claude skills with marketplace integration",
+      "skills": [
+        {
+          "name": "skill-creator",
+          "path": "skills/skill-creator"
+        }
       ]
     }
   ]

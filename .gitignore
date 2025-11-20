@@ -1,2 +1,37 @@
-.DS_Store
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
 
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
+*.zip
+*.tar.gz
+
+# Environment
+.env
+.env.local
+
+# Node modules (if using JavaScript tools)
+node_modules/
+
+# Test coverage
+.coverage
+htmlcov/
