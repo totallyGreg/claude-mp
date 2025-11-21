@@ -4,7 +4,7 @@
 
 This document tracks improvements, enhancements, and future development plans for the skill-creator skill.
 
-## Recent Improvements
+## Recent Improvements (Completed)
 
 ### v1.1.0 - Marketplace Version Sync Automation (2025-11-20)
 
@@ -48,6 +48,276 @@ This document tracks improvements, enhancements, and future development plans fo
 - `.git/hooks/pre-commit` (new, repository root)
 
 ## Planned Improvements
+
+### Critical Priority - v1.2.0
+
+#### 1. Fix Script Path Detection (CRITICAL - Discovered 2025-11-20)
+
+**Problem:**
+- `add_to_marketplace.py` and `sync_marketplace_versions.py` fail when run from subdirectories
+- Scripts default to current directory (`.`) instead of auto-detecting repository root
+- Error: "Marketplace not initialized" when marketplace.json exists but script looks in wrong location
+- Confusing error messages don't indicate where the script is searching
+
+**Root Cause:**
+- Scripts use `Path(args.path).resolve()` with `--path` defaulting to `"."`
+- When run from `skills/skill-creator/scripts/`, they search for `.claude-plugin/marketplace.json` at:
+  ```
+  /path/to/repo/skills/skill-creator/scripts/.claude-plugin/marketplace.json
+  ```
+  Instead of actual location:
+  ```
+  /path/to/repo/.claude-plugin/marketplace.json
+  ```
+- No git repository root detection or parent directory traversal
+- Error occurs because `load_marketplace()` returns empty structure when file doesn't exist, then validation fails with misleading "not initialized" message
+
+**Impact:**
+- **Frequency:** HIGH - Users naturally run scripts from scripts/ directory following SKILL.md examples
+- **Severity:** HIGH - Scripts completely fail to work, requiring manual workarounds
+- **User Experience:** POOR - Cryptic errors, no indication of actual problem
+- **Workarounds Required:**
+  - Always run from repo root: `python3 skills/skill-creator/scripts/add_to_marketplace.py ...`
+  - Always specify `--path`: `python3 add_to_marketplace.py ... --path ../../../`
+  - Manually edit marketplace.json
+
+**Solution Implementation Plan:**
+
+**Priority 1 - CRITICAL: Add Repository Root Auto-Detection**
+
+Implement intelligent path resolution:
+
+```python
+def find_repo_root(start_path=None):
+    """Find repository root by searching for .git or .claude-plugin directory.
+
+    Args:
+        start_path: Starting directory (defaults to current directory)
+
+    Returns:
+        Path to repository root, or None if not found
+    """
+    if start_path is None:
+        start_path = Path.cwd()
+    else:
+        start_path = Path(start_path).resolve()
+
+    current = start_path
+
+    # Search up to 10 levels (prevent infinite loops)
+    for _ in range(10):
+        # Check for .git directory (most reliable)
+        if (current / ".git").exists():
+            return current
+
+        # Check for .claude-plugin directory
+        if (current / ".claude-plugin").exists():
+            return current
+
+        # Move to parent
+        parent = current.parent
+        if parent == current:  # Reached filesystem root
+            break
+        current = parent
+
+    return None
+
+def get_repo_root(args_path):
+    """Get repository root from args or auto-detect.
+
+    Args:
+        args_path: Path from command line args
+
+    Returns:
+        Resolved Path to repository root
+
+    Raises:
+        SystemExit if repository root cannot be determined
+    """
+    if args_path != ".":
+        # User explicitly provided path
+        repo_root = Path(args_path).resolve()
+        if not repo_root.exists():
+            print(f"❌ Error: Specified path does not exist: {repo_root}")
+            sys.exit(1)
+        return repo_root
+
+    # Try to auto-detect
+    repo_root = find_repo_root()
+    if repo_root is None:
+        print("❌ Error: Could not find repository root")
+        print("   Searched for .git or .claude-plugin directory in parent directories")
+        print("   Please run from within a repository or specify --path explicitly")
+        print(f"   Current directory: {Path.cwd()}")
+        sys.exit(1)
+
+    return repo_root
+```
+
+**Priority 2 - HIGH: Improve Error Messages**
+
+Add path information to all error messages:
+
+```python
+# For list command - when marketplace doesn't exist
+if not marketplace_path.exists():
+    print(f"❌ No marketplace found")
+    print(f"   Expected location: {marketplace_path}")
+    print(f"   Repository root: {repo_root}")
+    print(f"   Current directory: {Path.cwd()}")
+    print(f"\n   Run 'init' command first or specify correct --path")
+    return 1
+
+# For create-plugin command - when marketplace not initialized
+if not marketplace_data.get("name"):
+    print("❌ Marketplace not initialized or invalid")
+    print(f"   Checked location: {marketplace_path}")
+    if marketplace_path.exists():
+        print(f"   File exists but 'name' field is empty")
+        print(f"   Run 'init' command to initialize properly")
+    else:
+        print(f"   File not found - Run 'init' command first")
+    print(f"\n   Repository root: {repo_root}")
+    print(f"   Current directory: {Path.cwd()}")
+    return 1
+```
+
+**Priority 3 - MEDIUM: Add Verbose Mode**
+
+```python
+# Add to all subparsers
+parser.add_argument(
+    '--verbose', '-v',
+    action='store_true',
+    help='Show detailed path resolution information'
+)
+
+# In main(), after determining paths
+if args.verbose or not marketplace_path.exists():
+    print(f"🔍 Path Resolution:")
+    print(f"   Current working directory: {Path.cwd()}")
+    print(f"   Repository root (detected): {repo_root}")
+    print(f"   Marketplace file location: {marketplace_path}")
+    print(f"   File exists: {marketplace_path.exists()}")
+    print()
+```
+
+**Priority 3 - MEDIUM: Add Repository Structure Validation**
+
+```python
+def validate_repo_structure(repo_root, command):
+    """Validate repository structure for the given command."""
+    issues = []
+
+    # Check if .claude-plugin directory exists for non-init commands
+    if command != "init":
+        claude_plugin_dir = repo_root / ".claude-plugin"
+        if not claude_plugin_dir.exists():
+            issues.append(f".claude-plugin directory not found at {claude_plugin_dir}")
+
+    # Check if skills directory exists (warning only)
+    skills_dir = repo_root / "skills"
+    if not skills_dir.exists():
+        print(f"⚠️  Warning: 'skills' directory not found at {skills_dir}")
+        print(f"   This is unusual but not an error")
+
+    if issues:
+        print("❌ Repository structure validation failed:")
+        for issue in issues:
+            print(f"   • {issue}")
+        return False
+
+    return True
+```
+
+**Priority 2 - HIGH: Update Documentation**
+
+Update SKILL.md to explain auto-detection:
+
+```markdown
+### Managing the Marketplace
+
+Use the `add_to_marketplace.py` script to manage the marketplace.
+
+**Note:** These scripts can be run from any directory within your repository -
+they will automatically detect the repository root by searching for `.git` or
+`.claude-plugin` directories. Alternatively, specify `--path /path/to/repo` explicitly.
+
+**Examples:**
+
+```bash
+# Auto-detect repo root (works from any directory in repo)
+python3 skills/skill-creator/scripts/add_to_marketplace.py create-plugin my-plugin ...
+
+# From scripts directory
+cd skills/skill-creator/scripts
+python3 add_to_marketplace.py create-plugin my-plugin ...
+
+# With explicit path
+python3 add_to_marketplace.py create-plugin my-plugin ... --path /path/to/repo
+```
+```
+
+Create new `scripts/README.md`:
+
+```markdown
+# Skill Creator Scripts
+
+## Auto-Detection
+
+All scripts automatically detect the repository root by searching for:
+1. `.git` directory (git repository)
+2. `.claude-plugin` directory (marketplace directory)
+
+This allows you to run scripts from any directory within the repository.
+
+## Scripts
+
+### add_to_marketplace.py
+Manage marketplace plugins and skills.
+
+### sync_marketplace_versions.py
+Sync skill versions from SKILL.md to marketplace.json.
+
+### init_skill.py
+Initialize new skill structure.
+
+## Troubleshooting
+
+**Error: "Could not find repository root"**
+- Ensure you're running from within a git repository
+- Or specify `--path /path/to/repo` explicitly
+```
+
+**Files to Change:**
+- `scripts/add_to_marketplace.py` - Add auto-detection functions (Priority 1)
+- `scripts/sync_marketplace_versions.py` - Add auto-detection functions (Priority 1)
+- `SKILL.md` - Update documentation (Priority 2)
+- `scripts/README.md` - Create new file (Priority 2)
+
+**Testing Required:**
+- Run from repository root
+- Run from scripts/ directory
+- Run from skills/ directory
+- Run from random subdirectory
+- Run with explicit --path parameter
+- Run outside repository (should fail gracefully with clear error)
+- Run in repo without .claude-plugin (should fail for non-init commands)
+
+**Backward Compatibility:**
+- ✅ Fully backward compatible
+- ✅ Explicit `--path` parameter still works as before
+- ✅ Default behavior improves from "current directory" to "auto-detect"
+- ✅ No breaking changes to CLI interface
+
+**Success Criteria:**
+- Scripts work from any directory within repository
+- Clear, actionable error messages with path information
+- Verbose mode available for debugging
+- Documentation updated with examples
+- All existing functionality preserved
+
+---
 
 ### High Priority
 
@@ -209,6 +479,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.2.0 | TBD | Fix script path detection with repository root auto-detection and improved error messages |
 | 1.1.0 | 2025-11-20 | Added marketplace version sync automation with pre-commit hook |
 | 1.0.0 | Initial | Initial skill-creator implementation with packaging and marketplace support |
 
