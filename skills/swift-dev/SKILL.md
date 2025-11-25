@@ -1,7 +1,7 @@
 ---
 name: swift-dev
-description: Expert guidance for Swift development including SwiftUI, iOS/macOS frameworks, Server-side Swift, and Objective-C migration. Use when developing Swift applications, working with Apple frameworks, building server-side Swift apps, or migrating from Objective-C. Supports Swift 5.0+ with version annotations and live documentation fetching.
-version: 1.0.0
+description: Expert guidance for Swift development including SwiftUI, iOS/macOS frameworks, Server-side Swift, and Objective-C to Swift 6 migration. Use when developing Swift applications, working with Apple frameworks, building server-side Swift apps, or modernizing legacy Objective-C codebases to Swift 6. Supports Swift 5.0-6.0 with version annotations and live documentation fetching.
+version: 1.1.0
 ---
 
 # Swift Development Expert
@@ -427,6 +427,66 @@ class User: NSObject {
 }
 ```
 
+**Swift 6 Modernization:**
+
+Modern Swift 6 provides significant improvements over legacy Objective-C patterns. The migration goes beyond syntax translation to architectural improvements:
+
+**From GCD to Structured Concurrency:**
+```objc
+// Objective-C: Nested GCD for background work + UI update
+dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    id result = [self performWork];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.ui updateWithResult:result];
+    });
+});
+```
+
+```swift
+// Swift 6: Structured concurrency with Task and MainActor
+Task {
+    let result = await performWork()
+    await MainActor.run {
+        self.ui.update(with: result)
+    }
+}
+```
+
+**From thread locks to actors:**
+```objc
+// Objective-C: Manual synchronization
+@synchronized(self) {
+    [self.cache setObject:user forKey:userID];
+}
+```
+
+```swift
+// Swift 6: Actor provides automatic isolation
+actor UserCache {
+    private var cache: [String: User] = [:]
+
+    func store(_ user: User, for id: String) {
+        cache[id] = user  // Automatically thread-safe
+    }
+}
+```
+
+**From KVO to @Observable:**
+```objc
+// Objective-C: KVO setup
+[self.model addObserver:self forKeyPath:@"value" options:NSKeyValueObservingOptionNew context:NULL];
+```
+
+```swift
+// Swift 6: @Observable macro (Swift 5.9+)
+@Observable
+class Model {
+    var value: String = ""  // Automatically observable
+}
+```
+
+For comprehensive Swift 6 migration patterns with detailed before/after examples, see `objc_to_swift6_migration.md`.
+
 **Nullability and Optionals:**
 ```objc
 // Objective-C with nullability annotations
@@ -465,12 +525,36 @@ func fetchData(completion: @escaping (Result<String, Error>) -> Void) {
 ```
 
 **Migration Strategy:**
-1. Add nullability annotations to Objective-C headers
-2. Migrate model layer first (data structures, pure logic)
-3. Update view controllers incrementally
-4. Leverage Swift's type safety and optional handling
-5. Refactor to use Swift idioms (guard, if let, protocols)
-6. Consider protocol-oriented approach for testability
+
+**Phase 1: Assessment**
+- Run `scripts/migration_analyzer.py` on your codebase to identify migration opportunities
+- Identify high-priority modernization targets (concurrency patterns, KVO, NSNotificationCenter)
+- Add nullability annotations to remaining Objective-C headers
+
+**Phase 2: Foundation**
+- Migrate model layer first (data structures, pure logic)
+- Convert utilities and helper functions to Swift
+- Establish Swift coding patterns and style guide
+
+**Phase 3: Swift 6 Modernization**
+- Convert GCD patterns to Task-based structured concurrency
+- Replace @synchronized/NSLock with actors for thread safety
+- Migrate KVO to @Observable macro (Swift 5.9+) or Combine
+- Replace NSNotificationCenter with AsyncStream or Combine publishers
+
+**Phase 4: UI Layer**
+- Update view controllers incrementally
+- Apply MainActor to UI classes
+- Leverage SwiftUI where appropriate
+- Refactor delegate patterns to async/await where beneficial
+
+**Phase 5: Polish**
+- Apply Swift idioms (guard, if let, protocol-oriented design)
+- Enable complete concurrency checking (Swift 6)
+- Add Sendable conformance where needed
+- Comprehensive testing with strict concurrency mode
+
+For detailed migration patterns and code examples, see `objc_to_swift6_migration.md`.
 
 ## Response Guidelines
 
@@ -791,15 +875,15 @@ For detailed technical information, reference these documentation files in the `
 - **combine_framework.md**: Complete Combine guide with publishers, operators, and subscribers
 - **swift_package_manager.md**: SPM configuration, dependencies, and best practices
 - **objc_interop.md**: Objective-C bridging, migration strategies, and interoperability
+- **objc_to_swift6_migration.md**: Comprehensive guide for migrating legacy Objective-C patterns to Swift 6, including concurrency (GCD to Task, locks to actors), data flow (KVO to @Observable, NSNotificationCenter to AsyncStream), error handling, and API design patterns with detailed before/after examples
 - **server_side_frameworks.md**: Vapor, Swift NIO, and backend development guides
 - **testing_strategies.md**: XCTest, test doubles, UI testing, and TDD approaches
 
 ## Resources
 
 ### scripts/
-- **migration_analyzer.py**: Analyze Objective-C code for migration complexity
+- **migration_analyzer.py**: Analyze Objective-C code for Swift 6 migration opportunities. Detects legacy concurrency patterns (GCD, locks, NSOperation), data flow patterns (KVO, NSNotificationCenter), error handling (NSError**), and provides specific Swift 6 replacement recommendations
 - **swift_package_init.py**: Initialize Swift Package Manager projects
-- **dependency_checker.py**: Check Swift version compatibility for dependencies
 
 ### references/
 Detailed Swift language and framework documentation, server-side guides, and migration strategies.
