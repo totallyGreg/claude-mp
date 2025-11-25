@@ -6,6 +6,47 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ## Recent Improvements (Completed)
 
+### v1.3.0 - IMPROVEMENT_PLAN.md Standardization (2025-11-24)
+
+**Problem:**
+- Skills lacked standardized way to track improvements and version history
+- Design decisions not documented, making it hard for future maintainers to understand why changes were made
+- No central place for planning and tracking enhancements
+
+**Solution Implemented:**
+
+1. **Added IMPROVEMENT_PLAN.md to skill structure**
+   - Updated "Anatomy of a Skill" section in SKILL.md
+   - Documented purpose, structure, and benefits
+   - Added to recommended (not required) components
+
+2. **Updated init_skill.py to generate template**
+   - Comprehensive template with version history table
+   - Sections for completed/planned improvements by priority
+   - Enhancement requests and technical debt tracking
+   - Contributing guidelines
+
+3. **Integrated into workflow**
+   - Added to Step 7 (Iterate) workflow
+   - Document planned changes before implementation
+   - Move to completed after implementation
+   - Update version history with each release
+
+4. **Updated .skillignore documentation**
+   - Document that IMPROVEMENT_PLAN.md should be excluded from packages
+   - Keep in version control for historical reference
+
+**Impact:**
+- Better institutional knowledge capture
+- Clear improvement roadmap for each skill
+- Historical context for design decisions
+- Easier for new maintainers to understand skill evolution
+
+**Files Changed:**
+- `SKILL.md` - Added IMPROVEMENT_PLAN.md documentation in Anatomy, Step 3, and Step 7
+- `scripts/init_skill.py` - Generate IMPROVEMENT_PLAN.md template
+- `IMPROVEMENT_PLAN.md` - This entry
+
 ### v1.1.0 - Marketplace Version Sync Automation (2025-11-20)
 
 **Problem:**
@@ -479,7 +520,8 @@ Initialize new skill structure.
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 1.2.0 | TBD | Fix script path detection with repository root auto-detection and improved error messages |
+| 1.3.0 | 2025-11-24 | Added IMPROVEMENT_PLAN.md as standard skill component with template generation and workflow integration |
+| 1.2.0 | 2025-11-20 | Fixed script path detection with repository root auto-detection and improved error messages |
 | 1.1.0 | 2025-11-20 | Added marketplace version sync automation with pre-commit hook |
 | 1.0.0 | Initial | Initial skill-creator implementation with packaging and marketplace support |
 

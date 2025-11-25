@@ -1,7 +1,7 @@
 ---
 name: skill-creator
 description: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
-version: 1.2.0
+version: 1.3.0
 license: Complete terms in LICENSE.txt
 ---
 
@@ -34,6 +34,8 @@ skill-name/
 │   │   ├── name: (required)
 │   │   └── description: (required)
 │   └── Markdown instructions (required)
+├── IMPROVEMENT_PLAN.md (recommended)
+│   └── Version history, planned improvements, and design decisions
 └── Bundled Resources (optional)
     ├── scripts/          - Executable code (Python/Bash/etc.)
     ├── references/       - Documentation intended to be loaded into context as needed
@@ -43,6 +45,25 @@ skill-name/
 #### SKILL.md (required)
 
 **Metadata Quality:** The `name` and `description` in YAML frontmatter determine when Claude will use the skill. Be specific about what the skill does and when to use it. Use the third-person (e.g. "This skill should be used when..." instead of "Use this skill when...").
+
+#### IMPROVEMENT_PLAN.md (recommended)
+
+Living document tracking skill evolution, version history, and future improvements.
+
+- **When to include**: For all skills, especially those expected to evolve over time
+- **Purpose**: Historical context, planning documentation, design decision rationale
+- **Structure**:
+  - Version history with dates and descriptions
+  - Completed improvements with implementation details
+  - Planned improvements organized by priority
+  - Technical debt tracking
+  - Enhancement requests from users
+- **Benefits**:
+  - Provides context for why changes were made
+  - Helps future maintainers understand evolution
+  - Central place for planning and tracking improvements
+  - Captures institutional knowledge
+- **Note**: Should be excluded from skill packaging (add to .skillignore) but committed to version control
 
 #### Bundled Resources (optional)
 
@@ -148,6 +169,7 @@ The script:
 
 - Creates the skill directory at the specified path
 - Generates a SKILL.md template with proper frontmatter and TODO placeholders
+- Creates IMPROVEMENT_PLAN.md template for tracking skill evolution
 - Creates example resource directories: `scripts/`, `references/`, and `assets/`
 - Adds example files in each directory that can be customized or deleted
 
@@ -442,9 +464,12 @@ After testing the skill, users may request improvements. Often this happens righ
 1. Use the skill on real tasks
 2. Notice struggles or inefficiencies
 3. Identify how SKILL.md or bundled resources should be updated
-4. Implement changes and test again
-5. If published in marketplace:
+4. **Document planned changes in IMPROVEMENT_PLAN.md**
+5. Implement changes and test again
+6. **Update IMPROVEMENT_PLAN.md to move items from "Planned" to "Completed"**
+7. If published in marketplace:
    - Update the `version` field in SKILL.md frontmatter (follow semantic versioning)
+   - **Add version entry to IMPROVEMENT_PLAN.md with date and description**
    - Run sync script to update marketplace.json: `python3 scripts/sync_marketplace_versions.py`
    - Commit and push changes (version sync happens automatically if pre-commit hook is installed)
    - Users can update to the new version via `/plugin update`

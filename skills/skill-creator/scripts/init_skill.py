@@ -13,6 +13,7 @@ Examples:
 
 import argparse
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from utils import get_repo_root
@@ -188,6 +189,86 @@ Example asset files from other skills:
 Note: This is a text placeholder. Actual assets can be any file type.
 """
 
+IMPROVEMENT_PLAN_TEMPLATE = """# {skill_title} - Improvement Plan
+
+## Overview
+
+This document tracks improvements, enhancements, and future development plans for the {skill_name} skill.
+
+## Version History
+
+| Version | Date | Description |
+|---------|------|-------------|
+| 1.0.0 | {date} | Initial release |
+
+## Completed Improvements
+
+### v1.0.0 - Initial Release ({date})
+
+**Initial Features:**
+- TODO: Document initial capabilities
+- TODO: List key features implemented
+
+**Files Created:**
+- `SKILL.md` - Main skill definition
+- `scripts/` - Example scripts directory
+- `references/` - Example references directory
+- `assets/` - Example assets directory
+
+## Planned Improvements
+
+### High Priority
+
+#### TODO: Feature Name
+**Goal:** Brief description of what this improvement aims to achieve
+
+**Current Limitation:**
+- Describe what doesn't work well now
+
+**Proposed Solution:**
+- Outline the approach
+- Key implementation details
+- Files to modify
+
+**Success Criteria:**
+- How to measure if this is done correctly
+
+### Medium Priority
+
+TODO: Add medium priority improvements
+
+### Low Priority
+
+TODO: Add low priority improvements
+
+## Enhancement Requests
+
+*Track feature requests and suggestions from users here*
+
+## Technical Debt
+
+### Code Quality
+- TODO: Track code quality issues
+
+### Documentation
+- TODO: Track documentation gaps
+
+## Contributing
+
+To suggest improvements to this skill:
+
+1. Add enhancement requests to the "Enhancement Requests" section
+2. Discuss technical approaches in "Planned Improvements"
+3. Track implementation progress
+4. Update "Completed Improvements" when done
+
+## Notes
+
+- This improvement plan should be excluded from skill packaging (see .skillignore)
+- Update version history when making significant changes
+- Link to relevant issues/PRs in your repository if applicable
+"""
+
 
 def title_case_skill_name(skill_name):
     """Convert hyphenated skill name to Title Case for display."""
@@ -234,6 +315,22 @@ def init_skill(skill_name, skills_dir):
         print("✅ Created SKILL.md")
     except Exception as e:
         print(f"❌ Error creating SKILL.md: {e}")
+        return None
+
+    # Create IMPROVEMENT_PLAN.md from template
+    today = datetime.now().strftime('%Y-%m-%d')
+    improvement_plan_content = IMPROVEMENT_PLAN_TEMPLATE.format(
+        skill_name=skill_name,
+        skill_title=skill_title,
+        date=today
+    )
+
+    improvement_plan_path = skill_dir / 'IMPROVEMENT_PLAN.md'
+    try:
+        improvement_plan_path.write_text(improvement_plan_content)
+        print("✅ Created IMPROVEMENT_PLAN.md")
+    except Exception as e:
+        print(f"❌ Error creating IMPROVEMENT_PLAN.md: {e}")
         return None
 
     # Create resource directories with example files
