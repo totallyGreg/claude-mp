@@ -3,16 +3,19 @@
 Skill Initializer - Creates a new skill from template
 
 Usage:
-    init_skill.py <skill-name> --path <path>
+    init_skill.py <skill-name> [--path <path>] [--verbose]
 
 Examples:
-    init_skill.py my-new-skill --path skills/public
-    init_skill.py my-api-helper --path skills/private
-    init_skill.py custom-skill --path /custom/location
+    init_skill.py my-new-skill
+    init_skill.py my-api-helper --path /custom/location
+    init_skill.py custom-skill --verbose
 """
 
+import argparse
 import sys
 from pathlib import Path
+
+from utils import get_repo_root
 
 
 SKILL_TEMPLATE = """---
@@ -191,19 +194,19 @@ def title_case_skill_name(skill_name):
     return ' '.join(word.capitalize() for word in skill_name.split('-'))
 
 
-def init_skill(skill_name, path):
+def init_skill(skill_name, skills_dir):
     """
     Initialize a new skill directory with template SKILL.md.
 
     Args:
         skill_name: Name of the skill
-        path: Path where the skill directory should be created
+        skills_dir: Path to skills directory where skill will be created
 
     Returns:
         Path to created skill directory, or None if error
     """
     # Determine skill directory path
-    skill_dir = Path(path).resolve() / skill_name
+    skill_dir = skills_dir / skill_name
 
     # Check if directory already exists
     if skill_dir.exists():
@@ -271,27 +274,69 @@ def init_skill(skill_name, path):
 
 
 def main():
-    if len(sys.argv) < 4 or sys.argv[2] != '--path':
-        print("Usage: init_skill.py <skill-name> --path <path>")
-        print("\nSkill name requirements:")
-        print("  - Hyphen-case identifier (e.g., 'data-analyzer')")
-        print("  - Lowercase letters, digits, and hyphens only")
-        print("  - Max 40 characters")
-        print("  - Must match directory name exactly")
-        print("\nExamples:")
-        print("  init_skill.py my-new-skill --path skills/public")
-        print("  init_skill.py my-api-helper --path skills/private")
-        print("  init_skill.py custom-skill --path /custom/location")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description='Initialize a new skill with the standard structure. Auto-detects repository root.',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Skill name requirements:
+  - Hyphen-case identifier (e.g., 'data-analyzer')
+  - Lowercase letters, digits, and hyphens only
+  - Max 40 characters
+  - Must match directory name exactly
 
-    skill_name = sys.argv[1]
-    path = sys.argv[3]
+Examples:
+  # Auto-detect repo root, create skill in <repo>/skills/<skill-name>
+  %(prog)s my-new-skill
 
-    print(f"🚀 Initializing skill: {skill_name}")
-    print(f"   Location: {path}")
+  # With explicit repository path
+  %(prog)s my-api-helper --path /path/to/repo
+
+  # With verbose output to see path resolution
+  %(prog)s custom-skill --verbose
+"""
+    )
+
+    parser.add_argument('skill_name', help='Name of the skill to create')
+
+    parser.add_argument(
+        '--path',
+        default='.',
+        help='Repository root path (default: auto-detect)'
+    )
+
+    parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Show detailed path resolution information'
+    )
+
+    args = parser.parse_args()
+
+    # Determine repository root with auto-detection
+    repo_root = get_repo_root(args.path, verbose=args.verbose)
+    skills_dir = repo_root / "skills"
+
+    # Ensure skills directory exists
+    if not skills_dir.exists():
+        print(f"⚠️  Creating skills directory at: {skills_dir}")
+        try:
+            skills_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            print(f"❌ Error creating skills directory: {e}")
+            sys.exit(1)
+
+    if args.verbose:
+        print(f"🔍 Skill Creation:")
+        print(f"   Repository root: {repo_root}")
+        print(f"   Skills directory: {skills_dir}")
+        print(f"   Target skill directory: {skills_dir / args.skill_name}")
+        print()
+
+    print(f"🚀 Initializing skill: {args.skill_name}")
+    print(f"   Location: {skills_dir}")
     print()
 
-    result = init_skill(skill_name, path)
+    result = init_skill(args.skill_name, skills_dir)
 
     if result:
         sys.exit(0)

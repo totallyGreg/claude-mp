@@ -1,7 +1,7 @@
 ---
 name: skill-creator
 description: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
-version: 1.1.0
+version: 1.2.0
 license: Complete terms in LICENSE.txt
 ---
 
@@ -299,7 +299,32 @@ Example structure:
 
 #### Managing the Marketplace
 
-Use the `add_to_marketplace.py` script to manage the marketplace:
+Use the `add_to_marketplace.py` script to manage the marketplace.
+
+**Script Path Handling:**
+
+All scripts automatically detect the repository root by searching for `.git` or `.claude-plugin` directories in parent directories. This means you can run scripts from any directory within your repository without specifying `--path`.
+
+Examples:
+```bash
+# Auto-detect repo root (works from any directory in repo)
+python3 skills/skill-creator/scripts/add_to_marketplace.py list
+
+# From scripts directory
+cd skills/skill-creator/scripts
+python3 add_to_marketplace.py list
+
+# With explicit path (if auto-detection fails)
+python3 add_to_marketplace.py list --path /path/to/repo
+
+# With verbose output to see path resolution
+python3 add_to_marketplace.py list --verbose
+```
+
+**Troubleshooting:**
+- If you see "Could not find repository root", ensure you're running from within a git repository
+- Or specify `--path /path/to/repo` explicitly
+- Use `--verbose` flag to see detailed path resolution information
 
 **Initialize a new marketplace:**
 ```bash

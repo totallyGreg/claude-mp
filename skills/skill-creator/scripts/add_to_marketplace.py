@@ -15,6 +15,8 @@ import os
 import sys
 from pathlib import Path
 
+from utils import get_repo_root, print_verbose_info, validate_repo_structure
+
 
 def load_marketplace(marketplace_path):
     """Load existing marketplace.json or return empty structure."""
@@ -277,7 +279,12 @@ Examples:
         "--description", required=True, help="Marketplace description"
     )
     init_parser.add_argument(
-        "--path", default=".", help="Repository root path (default: current directory)"
+        "--path", default=".", help="Repository root path (default: auto-detect)"
+    )
+    init_parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Show detailed path resolution information"
     )
 
     # Create plugin command
@@ -286,7 +293,12 @@ Examples:
     create_parser.add_argument("description", help="Plugin description")
     create_parser.add_argument("--skills", nargs="+", required=True, help="Skill paths")
     create_parser.add_argument(
-        "--path", default=".", help="Repository root path (default: current directory)"
+        "--path", default=".", help="Repository root path (default: auto-detect)"
+    )
+    create_parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Show detailed path resolution information"
     )
 
     # Add skill command
@@ -296,13 +308,23 @@ Examples:
     add_parser.add_argument("plugin", help="Plugin name")
     add_parser.add_argument("skill", help="Skill path")
     add_parser.add_argument(
-        "--path", default=".", help="Repository root path (default: current directory)"
+        "--path", default=".", help="Repository root path (default: auto-detect)"
+    )
+    add_parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Show detailed path resolution information"
     )
 
     # List command
     list_parser = subparsers.add_parser("list", help="List all plugins and skills")
     list_parser.add_argument(
-        "--path", default=".", help="Repository root path (default: current directory)"
+        "--path", default=".", help="Repository root path (default: auto-detect)"
+    )
+    list_parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Show detailed path resolution information"
     )
 
     # Update metadata command
@@ -317,7 +339,12 @@ Examples:
         help="Auto-increment version (major, minor, or patch)",
     )
     update_parser.add_argument(
-        "--path", default=".", help="Repository root path (default: current directory)"
+        "--path", default=".", help="Repository root path (default: auto-detect)"
+    )
+    update_parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Show detailed path resolution information"
     )
 
     args = parser.parse_args()
@@ -326,9 +353,17 @@ Examples:
         parser.print_help()
         return 1
 
-    # Determine paths
-    repo_root = Path(args.path).resolve()
+    # Determine paths with auto-detection
+    repo_root = get_repo_root(args.path, verbose=args.verbose)
     marketplace_path = repo_root / ".claude-plugin" / "marketplace.json"
+
+    # Print verbose info if requested
+    if args.verbose:
+        print_verbose_info(repo_root, marketplace_path)
+
+    # Validate repository structure (skip for init command)
+    if args.command != "init" and not validate_repo_structure(repo_root, args.command):
+        return 1
 
     # Handle commands
     if args.command == "init":
@@ -350,8 +385,11 @@ Examples:
 
     elif args.command == "list":
         if not marketplace_path.exists():
-            print(f"❌ No marketplace found at {marketplace_path}")
-            print(f"   Run 'init' command first")
+            print(f"❌ No marketplace found")
+            print(f"   Expected location: {marketplace_path}")
+            print(f"   Repository root: {repo_root}")
+            print(f"   Current directory: {Path.cwd()}")
+            print(f"\n   Run 'init' command first or specify correct --path")
             return 1
 
         marketplace_data = load_marketplace(marketplace_path)
@@ -362,7 +400,15 @@ Examples:
 
         # Validate marketplace is initialized
         if not marketplace_data.get("name"):
-            print("❌ Marketplace not initialized. Run 'init' command first")
+            print("❌ Marketplace not initialized or invalid")
+            print(f"   Checked location: {marketplace_path}")
+            if marketplace_path.exists():
+                print(f"   File exists but 'name' field is empty")
+                print(f"   Run 'init' command to initialize properly")
+            else:
+                print(f"   File not found - Run 'init' command first")
+            print(f"\n   Repository root: {repo_root}")
+            print(f"   Current directory: {Path.cwd()}")
             return 1
 
         # Validate skills exist
@@ -376,7 +422,11 @@ Examples:
 
     elif args.command == "add-skill":
         if not marketplace_path.exists():
-            print(f"❌ No marketplace found at {marketplace_path}")
+            print(f"❌ No marketplace found")
+            print(f"   Expected location: {marketplace_path}")
+            print(f"   Repository root: {repo_root}")
+            print(f"   Current directory: {Path.cwd()}")
+            print(f"\n   Run 'init' command first or specify correct --path")
             return 1
 
         marketplace_data = load_marketplace(marketplace_path)
@@ -391,8 +441,11 @@ Examples:
 
     elif args.command == "update-metadata":
         if not marketplace_path.exists():
-            print(f"❌ No marketplace found at {marketplace_path}")
-            print(f"   Run 'init' command first")
+            print(f"❌ No marketplace found")
+            print(f"   Expected location: {marketplace_path}")
+            print(f"   Repository root: {repo_root}")
+            print(f"   Current directory: {Path.cwd()}")
+            print(f"\n   Run 'init' command first or specify correct --path")
             return 1
 
         marketplace_data = load_marketplace(marketplace_path)

@@ -17,6 +17,8 @@ import re
 import sys
 from pathlib import Path
 
+from utils import get_repo_root, print_verbose_info, validate_repo_structure
+
 
 def extract_frontmatter_version(skill_md_path):
     """Extract version from SKILL.md YAML frontmatter.
@@ -163,7 +165,7 @@ Examples:
     parser.add_argument(
         '--path',
         default='.',
-        help='Repository root path (default: current directory)'
+        help='Repository root path (default: auto-detect)'
     )
 
     parser.add_argument(
@@ -172,14 +174,33 @@ Examples:
         help='Show what would be updated without making changes'
     )
 
+    parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Show detailed path resolution information'
+    )
+
     args = parser.parse_args()
 
-    repo_root = Path(args.path).resolve()
+    # Determine paths with auto-detection
+    repo_root = get_repo_root(args.path, verbose=args.verbose)
     marketplace_path = repo_root / '.claude-plugin' / 'marketplace.json'
 
+    # Print verbose info if requested
+    if args.verbose:
+        print_verbose_info(repo_root, marketplace_path)
+
+    # Validate repository structure
+    if not validate_repo_structure(repo_root, 'sync'):
+        sys.exit(1)
+
     if not marketplace_path.exists():
-        print(f"❌ No marketplace found at {marketplace_path}")
-        print(f"   Run this script from a repository with .claude-plugin/marketplace.json")
+        print(f"❌ No marketplace found")
+        print(f"   Expected location: {marketplace_path}")
+        print(f"   Repository root: {repo_root}")
+        print(f"   Current directory: {Path.cwd()}")
+        print(f"\n   This script requires .claude-plugin/marketplace.json")
+        print(f"   Please run add_to_marketplace.py init first")
         return 1
 
     print(f"📦 Syncing versions for marketplace: {marketplace_path}")
