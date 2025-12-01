@@ -1,7 +1,7 @@
 ---
 name: skill-creator
 description: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
-version: 1.3.0
+version: 1.4.0
 license: Complete terms in LICENSE.txt
 ---
 
@@ -467,12 +467,23 @@ After testing the skill, users may request improvements. Often this happens righ
 4. **Document planned changes in IMPROVEMENT_PLAN.md**
 5. Implement changes and test again
 6. **Update IMPROVEMENT_PLAN.md to move items from "Planned" to "Completed"**
-7. If published in marketplace:
-   - Update the `version` field in SKILL.md frontmatter (follow semantic versioning)
-   - **Add version entry to IMPROVEMENT_PLAN.md with date and description**
-   - Run sync script to update marketplace.json: `python3 scripts/sync_marketplace_versions.py`
-   - Commit and push changes (version sync happens automatically if pre-commit hook is installed)
-   - Users can update to the new version via `/plugin update`
+7. If published in marketplace, follow the **Pre-Release Checklist** below
+
+**Pre-Release Checklist:**
+
+Before releasing a new version, ensure all steps are completed:
+
+- [ ] Implementation complete and tested
+- [ ] Move improvements from "Planned" to "Recent Improvements (Completed)" in IMPROVEMENT_PLAN.md
+- [ ] Add completion date to completed section header (e.g., `### v1.4.0 - Feature Name (2025-12-01)`)
+- [ ] **Replace "TBD" with actual date (YYYY-MM-DD) in IMPROVEMENT_PLAN.md version history table**
+- [ ] Update `version` field in SKILL.md frontmatter (follow semantic versioning)
+- [ ] Run validation: `python3 scripts/quick_validate.py --check-improvement-plan <skill-path>`
+- [ ] Fix any validation errors or warnings
+- [ ] Run sync script: `python3 scripts/sync_marketplace_versions.py` (if using marketplace)
+- [ ] Commit and push changes (version sync happens automatically if pre-commit hook is installed)
+
+After release, users can update via `/plugin update`
 
 **Version Guidelines:**
 - **Patch** (1.0.0 → 1.0.1): Bug fixes, documentation updates, minor improvements

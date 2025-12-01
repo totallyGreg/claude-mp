@@ -6,6 +6,51 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ## Recent Improvements (Completed)
 
+### v1.4.0 - IMPROVEMENT_PLAN.md Validation and Guidance (2025-12-01)
+
+**Problem:**
+The swift-dev skill v1.1.0 was completed with all implementation done, but the version history still showed "TBD" instead of the actual completion date. This indicated that while skill-creator instructs skills to update IMPROVEMENT_PLAN.md with dates, there was no validation to ensure this guidance was followed.
+
+**Solution Implemented:**
+
+1. **Enhanced Validation Script** (`scripts/quick_validate.py`):
+   - Added `validate_improvement_plan()` function to check IMPROVEMENT_PLAN.md completeness
+   - Detects "TBD" in version history for versions matching SKILL.md version (ERROR)
+   - Warns about "TBD" in planned/future versions (acceptable)
+   - Verifies SKILL.md version matches latest IMPROVEMENT_PLAN.md version
+   - Checks that version history dates are in chronological order
+   - Provides actionable error messages with file locations and line numbers
+   - New CLI flag: `--check-improvement-plan` for targeted validation
+
+2. **Enhanced SKILL.md Guidance** (Step 7: Iterate):
+   - Added comprehensive **Pre-Release Checklist** with 9 steps
+   - Emphasizes replacing "TBD" with actual date before release
+   - Includes validation step in release workflow
+   - Clear ordering: complete → document → validate → release
+
+3. **Reference Documentation** (`references/improvement_plan_best_practices.md`):
+   - Comprehensive guide (350+ lines) covering:
+     - Version history maintenance workflow
+     - TBD placeholder usage and when to replace
+     - Common pitfalls with examples and fixes
+     - Pre-release checklist
+     - Real examples from skill-creator itself
+   - Detailed workflow showing all phases: planning → implementation → completion → release
+
+**Meta-Validation:**
+Applied skill-creator to itself during implementation, demonstrating the self-referential nature of skill maintenance. skill-creator now follows and validates its own guidance.
+
+**Impact:**
+- Skills can now validate their IMPROVEMENT_PLAN.md completeness before release
+- Clear, actionable error messages guide developers to fix issues
+- Prevents releasing skills with incomplete version history
+- All future skills benefit from improved guidance and validation
+
+**Files Changed:**
+- `scripts/quick_validate.py` - Added IMPROVEMENT_PLAN.md validation logic (203 lines, +138)
+- `SKILL.md` - Updated Step 7 with pre-release checklist
+- `references/improvement_plan_best_practices.md` - New comprehensive guide
+
 ### v1.3.0 - IMPROVEMENT_PLAN.md Standardization (2025-11-24)
 
 **Problem:**
@@ -520,6 +565,7 @@ Initialize new skill structure.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.4.0 | 2025-12-01 | Added IMPROVEMENT_PLAN.md validation and guidance with enhanced validation script and best practices documentation |
 | 1.3.0 | 2025-11-24 | Added IMPROVEMENT_PLAN.md as standard skill component with template generation and workflow integration |
 | 1.2.0 | 2025-11-20 | Fixed script path detection with repository root auto-detection and improved error messages |
 | 1.1.0 | 2025-11-20 | Added marketplace version sync automation with pre-commit hook |

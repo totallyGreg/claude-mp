@@ -116,7 +116,7 @@ The skill's primary interface, `SKILL.md`, must be updated to surface these new 
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 1.1.0 | TBD | Enhanced Objective-C to Swift 6 migration support, including improved tooling and a dedicated migration guide. |
+| 1.1.0 | 2025-12-01 | Enhanced Objective-C to Swift 6 migration support, including improved tooling and a dedicated migration guide. |
 | 1.0.0 | Initial | Initial `swift-dev` skill with broad coverage of Swift development topics. |
 
 ## Contributing
