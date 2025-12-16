@@ -1,0 +1,57 @@
+formulas:
+  Mentioned In: file.backlinks.map(value.asFile())
+
+properties:
+  file.name:
+    displayName: Term
+  note.summary:
+    displayName: Summary
+  file.links:
+    displayName: Context
+  file.backlinks:
+    displayName: Used In
+  file.tags:
+    displayName: Tags
+
+views:
+  - type: table
+    name: Terms with Context
+    filters:
+      and:
+        - aliases == [this.file.name]
+        - file.path.startsWith("700 Notes")
+    order:
+      - file.name
+      - summary
+      - file.links
+      - file.backlinks
+    sort:
+      - property: note.summary
+        direction: DESC
+      - property: file.links
+        direction: DESC
+    columnSize:
+      file.name: 200
+      note.summary: 500
+      file.links: 200
+    rowHeight: tall
+
+  - type: table
+    name: All Terms
+    filters:
+      or:
+        - file.tags.contains("term")
+        - file.folder.containsAny("Terminology")
+    order:
+      - file.name
+      - summary
+      - file.backlinks
+    sort:
+      - property: file.backlinks
+        direction: DESC
+      - property: file.name
+        direction: ASC
+    columnSize:
+      file.name: 200
+      note.summary: 600
+    rowHeight: medium

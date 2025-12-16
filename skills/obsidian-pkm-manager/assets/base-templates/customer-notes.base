@@ -1,0 +1,73 @@
+formulas:
+  Days Since: Math.floor((now - file.ctime) / 86400000)
+
+properties:
+  file.name:
+    displayName: Note
+  note.customer:
+    displayName: Customer
+  file.tags:
+    displayName: Type
+  file.ctime:
+    displayName: Date
+  formula.Days Since:
+    displayName: Days Ago
+
+views:
+  - type: table
+    name: Customer Meetings
+    filters:
+      and:
+        - file.tags.contains("meeting")
+        - customer == [this.file.link]
+    order:
+      - file.name
+      - file.ctime
+      - file.tags
+    sort:
+      - property: file.ctime
+        direction: DESC
+    columnSize:
+      file.name: 300
+      file.ctime: 150
+    rowHeight: medium
+
+  - type: table
+    name: Customer Notes
+    filters:
+      and:
+        - customer == [this.file.link]
+        - file.folder.startsWith("Work")
+    order:
+      - file.name
+      - file.tags
+      - file.ctime
+    sort:
+      - property: file.ctime
+        direction: DESC
+    columnSize:
+      file.name: 300
+      file.tags: 150
+      file.ctime: 150
+    rowHeight: medium
+
+  - type: table
+    name: All Work Notes
+    filters:
+      or:
+        - file.folder.startsWith("Work")
+        - file.tags.contains("work")
+    order:
+      - file.name
+      - customer
+      - file.tags
+      - file.ctime
+    sort:
+      - property: file.ctime
+        direction: DESC
+    columnSize:
+      file.name: 250
+      note.customer: 150
+      file.tags: 120
+      file.ctime: 150
+    rowHeight: small

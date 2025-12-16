@@ -1,0 +1,72 @@
+formulas:
+  Days Ago: Math.floor((now - file.ctime) / 86400000)
+
+properties:
+  file.name:
+    displayName: Day
+  note.wins:
+    displayName: Wins
+  note.challenges:
+    displayName: Challenges
+  note.improvements:
+    displayName: Improvements
+  file.ctime:
+    displayName: Date
+
+views:
+  - type: table
+    name: This Week
+    filters:
+      and:
+        - file.tags.contains("daily")
+        - Week == [this.file.link]
+    order:
+      - file.name
+      - wins
+      - challenges
+      - improvements
+    sort:
+      - property: file.name
+        direction: ASC
+    columnSize:
+      file.name: 150
+      note.wins: 250
+      note.challenges: 250
+      note.improvements: 250
+    rowHeight: medium
+
+  - type: table
+    name: This Month
+    filters:
+      and:
+        - file.tags.contains("daily")
+        - Month == [this.file.link]
+    order:
+      - file.name
+      - wins
+      - challenges
+    sort:
+      - property: file.name
+        direction: ASC
+    columnSize:
+      file.name: 150
+      note.wins: 300
+      note.challenges: 300
+    rowHeight: small
+
+  - type: table
+    name: Today
+    filters:
+      and:
+        - file.ctime >= startOf('day')
+        - file.ctime <= endOf('day')
+        - not:
+            file.tags.contains("daily")
+    order:
+      - file.name
+      - file.tags
+      - file.ctime
+    sort:
+      - property: file.ctime
+        direction: DESC
+    rowHeight: small

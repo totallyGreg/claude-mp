@@ -1,0 +1,30 @@
+formulas:
+  Mentioned In: file.backlinks.map(value.asFile())
+
+properties:
+  file.name:
+    displayName: Related Note
+  file.tags:
+    displayName: Tags
+  file.ctime:
+    displayName: Created
+  file.mtime:
+    displayName: Modified
+
+views:
+  - type: table
+    name: Related Files
+    filters:
+      file.hasLink(this.file)
+    order:
+      - file.name
+      - file.tags
+      - file.mtime
+    sort:
+      - property: file.mtime
+        direction: DESC
+    columnSize:
+      file.name: 300
+      file.tags: 150
+      file.mtime: 150
+    rowHeight: medium
