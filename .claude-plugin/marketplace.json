@@ -77,6 +77,20 @@
       "skills": [
         "./skills/obsidian-pkm-manager"
       ]
+    },
+    {
+      "name": "omnifocus-manager",
+      "description": "OmniFocus task management and automation with database queries and JXA integration",
+      "category": "productivity",
+      "version": "1.0.0",
+      "author": {
+        "name": "J. Greg Williams",
+        "email": "283704+totallyGreg@users.noreply.github.com"
+      },
+      "source": "./",
+      "skills": [
+        "./skills/omnifocus-manager"
+      ]
     }
   ]
 }
