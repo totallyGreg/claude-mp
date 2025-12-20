@@ -8,12 +8,14 @@ version: 1.0.0
 
 ## Overview
 
-Enables comprehensive OmniFocus integration through two complementary approaches:
+Enables comprehensive OmniFocus integration through four complementary approaches, listed in order of preference:
 
-1. **Database Queries (Python)** - Read-only access for searching, analyzing, and reporting on OmniFocus data
-2. **Task Management (JavaScript/JXA)** - Full CRUD operations to create, update, complete, and delete tasks
+1. **Omni Automation (JavaScript)** - Native, cross-platform automation within OmniFocus (Mac + iOS)
+2. **JXA (JavaScript for Automation)** - Full query and management capabilities via OmniFocus AppleScript API (Mac only)
+3. **URL Scheme** - Simple task creation via omnifocus:// URLs (Mac + iOS)
+4. **Database Queries (Python)** - Read-only database access (Mac only, requires permissions)
 
-This hybrid approach provides both the power of direct database access for complex queries and the flexibility of the OmniFocus AppleScript API for task management.
+This multi-approach strategy provides security, cross-platform support, and comprehensive automation capabilities.
 
 ## When to Use This Skill
 
@@ -29,121 +31,167 @@ This hybrid approach provides both the power of direct database access for compl
 
 **Decision Tree:**
 
-1. **Is the user querying/reading data?**
-   - Finding tasks, searching, analyzing → Use `query_omnifocus.py` (Python)
-   - Generating reports, statistics → Use `query_omnifocus.py` (Python)
+1. **Does the user need cross-platform support (iOS/Mac)?**
+   - YES → Use Omni Automation (plug-ins or scripts)
+   - NO → Continue to step 2
 
-2. **Is the user creating/modifying data?**
-   - Creating new tasks → Use `manage_omnifocus.js` (JXA)
-   - Updating existing tasks → Use `manage_omnifocus.js` (JXA)
-   - Completing tasks → Use `manage_omnifocus.js` (JXA)
-   - Deleting tasks → Use `manage_omnifocus.js` (JXA)
+2. **Is this a reusable automation task?**
+   - YES → Create an Omni Automation plug-in
+   - NO → Continue to step 3
 
-## Querying OmniFocus Data
+3. **Is the user querying/reading data?**
+   - Finding tasks, searching, analyzing → Use `manage_omnifocus.js` query commands (JXA)
+   - Generating reports, statistics → Use `manage_omnifocus.js` query commands (JXA)
+   - Alternative: Use Omni Automation scripts for cross-platform compatibility
 
-Use `scripts/query_omnifocus.py` for all read-only operations.
+4. **Is the user creating/modifying data?**
+   - Simple task creation → Use omnifocus:// URL scheme (fastest, cross-platform)
+   - Complex task creation/updates → Use `manage_omnifocus.js` create/update commands (JXA)
+   - Alternative: Use Omni Automation for cross-platform or plug-in-based automation
 
-### Database Access
+5. **Last resort: Database queries**
+   - ONLY use `query_omnifocus.py` (Python) if JXA or Omni Automation cannot accomplish the task
+   - Requires full disk access permissions
+   - Read-only, Mac-only
 
-The Python script provides safe, read-only access to the OmniFocus SQLite database with automatic detection of OmniFocus 3 and 4 installations.
+## Omni Automation (Recommended)
 
-**Script location:** `scripts/query_omnifocus.py`
+Omni Automation is OmniFocus's modern, cross-platform automation framework. It's the preferred approach for most automation tasks.
 
-### Common Query Patterns
+### Why Omni Automation?
 
-#### List Active Tasks
-```bash
-python3 scripts/query_omnifocus.py --tasks --filter active
+- **Cross-platform:** Works on both Mac and iOS/iPadOS
+- **Secure:** No file system permissions required
+- **Native:** Runs directly within OmniFocus
+- **Reusable:** Create plug-ins that can be shared and reused
+- **Well-documented:** Comprehensive API and examples
+
+### Quick Examples
+
+**Query Today's Tasks:**
+```javascript
+(() => {
+    const doc = Application('OmniFocus').defaultDocument;
+    const tasks = doc.flattenedTasks();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    return tasks.filter(t =>
+        !t.completed() &&
+        t.dueDate() >= today &&
+        t.dueDate() < tomorrow
+    ).map(t => t.name());
+})();
 ```
 
-Returns all incomplete tasks that are available to work on (not blocked or deferred to future).
-
-#### Search for Tasks
-```bash
-python3 scripts/query_omnifocus.py --search "meeting"
+**Create a Task:**
+```javascript
+(() => {
+    const doc = Application('OmniFocus').defaultDocument;
+    const task = new Task("Buy groceries");
+    task.dueDate = new Date("2025-12-25");
+    task.flagged = true;
+    doc.inboxTasks.push(task);
+    return "Created: " + task.name();
+})();
 ```
 
-Searches task names and notes for the specified term. Useful when user asks "find tasks about X" or "what meetings do I have?"
+### Installing Example Plug-Ins
 
-#### Tasks Due Soon
-```bash
-python3 scripts/query_omnifocus.py --due-soon --days 7
-```
+The skill includes example plug-ins in the `examples/` directory:
 
-Shows tasks due within the next N days (default: 7). Perfect for "what's due this week?" queries.
+1. **Today's Tasks** - Shows tasks due or deferred to today
+   - Double-click `examples/TodaysTasks.omnifocusjs` to install
+   - Access via Tools → Today's Tasks
+
+For more examples and complete documentation, see:
+- **Reference:** `references/omni_automation.md`
+- **Examples:** `examples/README.md`
+- **Official Docs:** [omni-automation.com/omnifocus](https://omni-automation.com/omnifocus/)
+
+## Querying OmniFocus Data (JXA)
+
+Use `scripts/manage_omnifocus.js` for querying tasks on Mac via JXA (JavaScript for Automation).
+
+**Script location:** `scripts/manage_omnifocus.js`
+
+### Why JXA for Queries?
+
+- **Secure:** Uses OmniFocus AppleScript API (no file system permissions required)
+- **Complete:** Access to all task properties and metadata
+- **Fast:** Direct API access without database parsing
+- **Reliable:** Works across OmniFocus 3 and 4 without path detection issues
+
+### Common Query Commands
 
 #### Today's Tasks
 ```bash
-python3 scripts/query_omnifocus.py --today
+osascript -l JavaScript scripts/manage_omnifocus.js today
 ```
 
 Shows tasks due today or deferred until today. Use when user asks "what's on my agenda?" or "what should I do today?"
 
+**Output:** JSON with task details (name, project, due date, tags, etc.)
+
+#### List Active Tasks
+```bash
+osascript -l JavaScript scripts/manage_omnifocus.js list --filter active
+```
+
+Returns all incomplete tasks that are available to work on (not blocked or deferred to future).
+
+**Filters:** `active`, `completed`, `dropped`, `all`
+
+#### Tasks Due Soon
+```bash
+osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7
+```
+
+Shows tasks due within the next N days (default: 7). Perfect for "what's due this week?" queries.
+
 #### Flagged Tasks
 ```bash
-python3 scripts/query_omnifocus.py --flagged
+osascript -l JavaScript scripts/manage_omnifocus.js flagged
 ```
 
 Lists all flagged tasks. Use when user asks about priorities or important items.
 
-#### List Projects
+#### Search for Tasks
 ```bash
-python3 scripts/query_omnifocus.py --projects
+osascript -l JavaScript scripts/manage_omnifocus.js search --query "meeting"
 ```
 
-Shows all active projects with task counts. Can filter by folder:
-```bash
-python3 scripts/query_omnifocus.py --projects --folder "Work"
+Searches task names and notes for the specified term. Useful when user asks "find tasks about X" or "what meetings do I have?"
+
+### Output Format
+
+All query commands return JSON output:
+
+```json
+{
+  "success": true,
+  "count": 3,
+  "tasks": [
+    {
+      "id": "abc123",
+      "name": "Task name",
+      "project": "Project name",
+      "dueDate": "2025-12-20T17:00:00.000Z",
+      "flagged": false,
+      "tags": ["tag1", "tag2"],
+      "note": "Task notes"
+    }
+  ]
+}
 ```
 
-#### List Tags
-```bash
-python3 scripts/query_omnifocus.py --tags
-```
-
-Shows all available tags with task counts.
-
-### Output Formats
-
-**Human-readable (default):**
-```bash
-python3 scripts/query_omnifocus.py --tasks --filter active
-```
-
-**JSON output (for parsing/analysis):**
-```bash
-python3 scripts/query_omnifocus.py --tasks --filter active --json
-```
-
-Use JSON output when programmatically processing results or creating reports.
-
-### Advanced Queries
-
-For complex analysis, use custom SQL queries:
+Use `jq` or JSON parsing tools to format or filter the output:
 
 ```bash
-python3 scripts/query_omnifocus.py --custom-query "SELECT name, dateDue FROM Task WHERE flagged = 1"
+osascript -l JavaScript scripts/manage_omnifocus.js today | jq '.tasks[] | .name'
 ```
-
-Common custom query use cases:
-- Counting tasks by project
-- Finding overdue tasks
-- Analyzing completion rates
-- Custom filtering and grouping
-
-**Note:** Custom queries require knowledge of the OmniFocus database schema. Key tables include `Task`, `ProjectInfo`, `Folder`, and `Context`.
-
-### Database Location
-
-The script auto-detects the OmniFocus database. If auto-detection fails, specify manually:
-
-```bash
-python3 scripts/query_omnifocus.py --tasks --db-path "/path/to/OmniFocus.sqlite"
-```
-
-Typical locations:
-- OmniFocus 4: `~/Library/Group Containers/34YW5XSRB7.com.omnigroup.OmniFocus/com.omnigroup.OmniFocus4.MacOSX/OmniFocus.ofocus/OmniFocus.sqlite`
-- OmniFocus 3: `~/Library/Group Containers/34YW5XSRB7.com.omnigroup.OmniFocus/com.omnigroup.OmniFocus3.MacOSX/OmniFocus.ofocus/OmniFocus.sqlite`
 
 ## Managing OmniFocus Tasks
 
@@ -426,17 +474,28 @@ osascript -l JavaScript scripts/manage_omnifocus.js create \
 
 ### "What should I work on today?"
 
+**JXA (Recommended):**
 ```bash
-python3 scripts/query_omnifocus.py --today
+osascript -l JavaScript scripts/manage_omnifocus.js today
 ```
+
+**Omni Automation (Cross-platform):**
+- Install and run the Today's Tasks plug-in from `examples/TodaysTasks.omnifocusjs`
+- Or use the Omni Automation console with the script from `references/omni_automation.md`
 
 Follow up with flagged tasks if today's list is empty:
 ```bash
-python3 scripts/query_omnifocus.py --flagged
+osascript -l JavaScript scripts/manage_omnifocus.js flagged
 ```
 
 ### "Create a task for X"
 
+**URL Scheme (Fastest, cross-platform):**
+```bash
+open "omnifocus:///add?name=Task%20from%20conversation&note=Generated%20by%20Claude&autosave=true"
+```
+
+**JXA (More control):**
 ```bash
 osascript -l JavaScript scripts/manage_omnifocus.js create \
   --name "Task from conversation" \
@@ -446,19 +505,13 @@ osascript -l JavaScript scripts/manage_omnifocus.js create \
 ### "What's due this week?"
 
 ```bash
-python3 scripts/query_omnifocus.py --due-soon --days 7
+osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7
 ```
 
 ### "Find all tasks related to X project"
 
 ```bash
-python3 scripts/query_omnifocus.py --search "X project"
-```
-
-Or query by project:
-```bash
-python3 scripts/query_omnifocus.py --custom-query \
-  "SELECT name, dateDue FROM Task WHERE containingProjectInfo IN (SELECT pk FROM ProjectInfo WHERE name LIKE '%X project%')"
+osascript -l JavaScript scripts/manage_omnifocus.js search --query "X project"
 ```
 
 ### "Mark task Y as complete"
@@ -477,20 +530,40 @@ osascript -l JavaScript scripts/manage_omnifocus.js update \
 
 ## Important Notes
 
-### Database Access (Python)
+### Omni Automation
 
-- **Read-only:** The Python script never modifies the database
-- **Safe:** Querying while OmniFocus is running is safe
-- **Auto-detection:** Automatically finds OmniFocus 3 or 4 database
-- **Permissions:** May require granting Terminal full disk access in System Preferences
+- **Cross-platform:** Works on Mac, iOS, and iPadOS
+- **Secure:** No file system permissions required
+- **Plug-ins:** Reusable automation that can be shared
+- **Console:** Access via View → Automation → Console (⌃⌥⌘I)
+- **Well-documented:** Comprehensive API at omni-automation.com
 
-### JXA Task Management (JavaScript)
+### JXA (JavaScript for Automation)
 
+- **Mac only:** Uses AppleScript bridge
 - **Requires OmniFocus:** OmniFocus must be installed and accessible
 - **Permissions:** May require granting Terminal automation permissions
 - **Case-sensitive:** Project, folder, and tag names are case-sensitive
 - **Real-time:** Changes are immediate and permanent
 - **No undo:** Deletions cannot be reversed (consider completing instead)
+- **Both read and write:** Can query and modify tasks
+
+### URL Scheme
+
+- **Cross-platform:** Works on Mac and iOS
+- **Simple:** Great for quick task creation
+- **Limited:** Cannot query or modify existing tasks
+- **No permissions:** No special permissions required
+- **Autosave:** Use `autosave=true` for automated workflows
+
+### Database Access (Python) - Last Resort
+
+- **Use only when necessary:** JXA and Omni Automation should be preferred
+- **Read-only:** The Python script never modifies the database
+- **Permissions:** Requires granting Terminal full disk access
+- **Mac only:** Not available on iOS
+- **Path issues:** May fail to auto-detect database location
+- **Security risk:** Direct file system access
 
 ### Date Formats
 
@@ -513,38 +586,60 @@ First time running these scripts may prompt for permissions:
 
 ## Reference Documentation
 
-For detailed information about the omnifocus:// URL scheme (legacy approach, now superseded by JXA for most use cases):
+The skill includes comprehensive documentation for all automation approaches:
 
-**See:** `references/omnifocus_url_scheme.md`
+### Primary References (Recommended First)
 
-The URL scheme reference is maintained for compatibility and special cases, but JXA is preferred for task management.
+1. **`references/omni_automation.md`** - Complete Omni Automation guide
+   - Cross-platform JavaScript API
+   - Plug-in development
+   - Code examples and patterns
+   - Best practices
+
+2. **`scripts/manage_omnifocus.js`** - JXA automation tool (Mac)
+   - Query commands: today, list, due-soon, flagged, search
+   - Task management: create, update, complete, delete
+   - Full AppleScript API access
+   - JSON output
+
+3. **`references/omnifocus_url_scheme.md`** - URL scheme reference
+   - Quick task creation
+   - Cross-platform (Mac + iOS)
+   - No permissions required
+   - Cannot query existing tasks
+
+### Secondary References
+
+4. **`scripts/query_omnifocus.py`** - Database query tool (legacy)
+   - Use only when JXA/Omni Automation cannot accomplish the task
+   - Requires full disk access permissions
+   - May have path detection issues
+
+### Examples
+
+- **`examples/TodaysTasks.omnifocusjs`** - Example Omni Automation plug-in
+  - Install by double-clicking
+  - Shows today's tasks grouped by project
+  - Fully editable and customizable
+
+- **`examples/README.md`** - Plug-in installation and development guide
 
 ## Resources
 
-### scripts/
+All scripts include built-in help:
 
-- **query_omnifocus.py** - Database query tool (Python)
-  - Auto-detects OmniFocus database
-  - Supports multiple query types and custom SQL
-  - JSON and human-readable output
-
-- **manage_omnifocus.js** - Task management tool (JXA)
-  - Create, update, complete, delete tasks
-  - Full access to OmniFocus AppleScript API
-  - JSON output for all operations
-
-Both scripts include built-in help:
 ```bash
-python3 scripts/query_omnifocus.py --help
+# JXA help
 osascript -l JavaScript scripts/manage_omnifocus.js help
+
+# Python help (legacy)
+python3 scripts/query_omnifocus.py --help
 ```
 
-### references/
+### External Resources
 
-- **omnifocus_url_scheme.md** - Complete omnifocus:// URL scheme reference
-  - All URL parameters and syntax
-  - Examples for common patterns
-  - URL encoding guidelines
-  - Limitations and troubleshooting
-
-Consult when dealing with URL scheme integrations or web-based automation.
+- **Omni Automation:** [omni-automation.com/omnifocus](https://omni-automation.com/omnifocus/)
+- **Omni Automation Tutorial:** [omni-automation.com/omnifocus/tutorial](https://omni-automation.com/omnifocus/tutorial/)
+- **Omni Automation Plug-Ins:** [omni-automation.com/omnifocus/actions.html](https://omni-automation.com/omnifocus/actions.html)
+- **OmniFocus URL Schemes:** [support.omnigroup.com/omnifocus-url-schemes](https://support.omnigroup.com/omnifocus-url-schemes/)
+- **OmniFocus AppleScript:** [support.omnigroup.com/omnifocus-applescript](https://support.omnigroup.com/omnifocus-applescript/)

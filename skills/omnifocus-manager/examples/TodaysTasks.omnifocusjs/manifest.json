@@ -1,0 +1,19 @@
+{
+  "identifier": "com.example.todaystasks",
+  "version": "1.0.0",
+  "author": "Claude",
+  "description": "Show tasks that are due or deferred to today",
+  "label": "Today's Tasks",
+  "mediumLabel": "Today's Tasks",
+  "paletteLabel": "Today",
+  "image": "calendar.badge.clock",
+  "actions": [
+    {
+      "identifier": "showTodaysTasks",
+      "label": "Show Today's Tasks",
+      "mediumLabel": "Show Today's Tasks",
+      "paletteLabel": "Today's Tasks",
+      "image": "calendar.badge.clock"
+    }
+  ]
+}

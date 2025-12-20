@@ -13,6 +13,11 @@
  *     complete   Mark a task as complete
  *     delete     Delete a task
  *     info       Get task information
+ *     list       List tasks with optional filters
+ *     today      Show tasks due or deferred to today
+ *     due-soon   Show tasks due within N days
+ *     flagged    Show all flagged tasks
+ *     search     Search for tasks by name or note
  *
  * Examples:
  *     # Create a simple task
@@ -59,6 +64,16 @@ function run(argv) {
                 return deleteTask(app, args);
             case 'info':
                 return getTaskInfo(app, args);
+            case 'list':
+                return listTasks(app, args);
+            case 'today':
+                return getTodayTasks(app, args);
+            case 'due-soon':
+                return getDueSoon(app, args);
+            case 'flagged':
+                return getFlagged(app, args);
+            case 'search':
+                return searchTasks(app, args);
             case 'help':
                 return printHelp();
             default:
@@ -444,6 +459,188 @@ function getTaskInfo(app, args) {
 }
 
 /**
+ * List tasks with optional filters
+ */
+function listTasks(app, args) {
+    const doc = app.defaultDocument;
+    const tasks = doc.flattenedTasks();
+
+    let filteredTasks = [];
+    const filter = args.filter || 'active';
+
+    tasks.forEach(task => {
+        if (filter === 'all') {
+            filteredTasks.push(task);
+        } else if (filter === 'active' && !task.completed() && !task.dropped()) {
+            filteredTasks.push(task);
+        } else if (filter === 'completed' && task.completed()) {
+            filteredTasks.push(task);
+        } else if (filter === 'dropped' && task.dropped()) {
+            filteredTasks.push(task);
+        }
+    });
+
+    const taskList = filteredTasks.map(task => formatTaskInfo(task));
+
+    return JSON.stringify({
+        success: true,
+        count: taskList.length,
+        tasks: taskList
+    });
+}
+
+/**
+ * Get tasks due or deferred to today
+ */
+function getTodayTasks(app, args) {
+    const doc = app.defaultDocument;
+    const tasks = doc.flattenedTasks();
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+    const todayTasks = [];
+
+    tasks.forEach(task => {
+        if (task.completed() || task.dropped()) return;
+
+        const dueDate = task.dueDate();
+        const deferDate = task.deferDate();
+
+        const isDueToday = dueDate && dueDate >= todayStart && dueDate < todayEnd;
+        const isDeferredToday = deferDate && deferDate >= todayStart && deferDate < todayEnd;
+
+        if (isDueToday || isDeferredToday) {
+            todayTasks.push(task);
+        }
+    });
+
+    const taskList = todayTasks.map(task => formatTaskInfo(task));
+
+    return JSON.stringify({
+        success: true,
+        count: taskList.length,
+        tasks: taskList
+    });
+}
+
+/**
+ * Get tasks due within N days
+ */
+function getDueSoon(app, args) {
+    const doc = app.defaultDocument;
+    const tasks = doc.flattenedTasks();
+    const days = args.days ? parseInt(args.days) : 7;
+
+    const now = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + days);
+
+    const dueSoonTasks = [];
+
+    tasks.forEach(task => {
+        if (task.completed() || task.dropped()) return;
+
+        const dueDate = task.dueDate();
+        if (dueDate && dueDate >= now && dueDate <= futureDate) {
+            dueSoonTasks.push(task);
+        }
+    });
+
+    const taskList = dueSoonTasks.map(task => formatTaskInfo(task));
+
+    return JSON.stringify({
+        success: true,
+        count: taskList.length,
+        days: days,
+        tasks: taskList
+    });
+}
+
+/**
+ * Get all flagged tasks
+ */
+function getFlagged(app, args) {
+    const doc = app.defaultDocument;
+    const tasks = doc.flattenedTasks();
+
+    const flaggedTasks = [];
+
+    tasks.forEach(task => {
+        if (task.completed() || task.dropped()) return;
+
+        if (task.flagged()) {
+            flaggedTasks.push(task);
+        }
+    });
+
+    const taskList = flaggedTasks.map(task => formatTaskInfo(task));
+
+    return JSON.stringify({
+        success: true,
+        count: taskList.length,
+        tasks: taskList
+    });
+}
+
+/**
+ * Search for tasks by name or note
+ */
+function searchTasks(app, args) {
+    const doc = app.defaultDocument;
+    const tasks = doc.flattenedTasks();
+
+    if (!args.query) {
+        throw new Error('Search query is required (use --query)');
+    }
+
+    const searchTerm = args.query.toLowerCase();
+    const matchingTasks = [];
+
+    tasks.forEach(task => {
+        if (task.completed()) return;
+
+        const name = task.name() ? task.name().toLowerCase() : '';
+        const note = task.note() ? task.note().toLowerCase() : '';
+
+        if (name.includes(searchTerm) || note.includes(searchTerm)) {
+            matchingTasks.push(task);
+        }
+    });
+
+    const taskList = matchingTasks.map(task => formatTaskInfo(task));
+
+    return JSON.stringify({
+        success: true,
+        count: taskList.length,
+        query: args.query,
+        tasks: taskList
+    });
+}
+
+/**
+ * Format task information for output
+ */
+function formatTaskInfo(task) {
+    const project = task.containingProject();
+    const tags = task.tags().map(t => t.name());
+
+    return {
+        id: task.id(),
+        name: task.name(),
+        note: task.note(),
+        completed: task.completed(),
+        flagged: task.flagged(),
+        dueDate: task.dueDate() ? task.dueDate().toISOString() : null,
+        deferDate: task.deferDate() ? task.deferDate().toISOString() : null,
+        estimatedMinutes: task.estimatedMinutes(),
+        project: project ? project.name() : 'Inbox',
+        tags: tags
+    };
+}
+
+/**
  * Parse date string to Date object
  */
 function parseDate(dateStr) {
@@ -489,12 +686,22 @@ Usage:
     osascript -l JavaScript manage_omnifocus.js <action> [options]
 
 Actions:
-    create     Create a new task
-    update     Update an existing task
-    complete   Mark a task as complete
-    delete     Delete a task
-    info       Get task information
-    help       Show this help message
+    Task Management:
+      create     Create a new task
+      update     Update an existing task
+      complete   Mark a task as complete
+      delete     Delete a task
+      info       Get task information
+
+    Query Tasks:
+      list       List tasks with optional filters
+      today      Show tasks due or deferred to today
+      due-soon   Show tasks due within N days (default: 7)
+      flagged    Show all flagged tasks
+      search     Search for tasks by name or note
+
+    Other:
+      help       Show this help message
 
 Common Options:
     --name <name>          Task name
@@ -547,6 +754,26 @@ Examples:
 
     # Get task information
     osascript -l JavaScript manage_omnifocus.js info --name "Task name"
+
+    # List active tasks
+    osascript -l JavaScript manage_omnifocus.js list --filter active
+
+    # Show today's tasks
+    osascript -l JavaScript manage_omnifocus.js today
+
+    # Show tasks due in the next 7 days
+    osascript -l JavaScript manage_omnifocus.js due-soon --days 7
+
+    # Show all flagged tasks
+    osascript -l JavaScript manage_omnifocus.js flagged
+
+    # Search for tasks
+    osascript -l JavaScript manage_omnifocus.js search --query "meeting"
+
+Query Options:
+    --filter <status>      Filter tasks: active, completed, dropped, all (for list)
+    --days <N>             Number of days to look ahead (for due-soon, default: 7)
+    --query <text>         Search term (for search)
 `;
 
     return help;
