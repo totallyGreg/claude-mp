@@ -1,7 +1,7 @@
 ---
 name: skillsmith
 description: Guide for forging effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
-version: 1.4.0
+version: 1.5.0
 license: Complete terms in LICENSE.txt
 ---
 

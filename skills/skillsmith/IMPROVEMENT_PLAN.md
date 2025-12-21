@@ -8,8 +8,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 1.6.0 | TBD | Rename skill-creator to skillsmith |
-| 1.4.1 | 2025-12-20 | Documentation improvements: plan mode guidance, init_skill.py path clarification, IMPROVEMENT_PLAN.md cleanup |
+| 1.5.0 | 2025-12-20 | IMPROVEMENT_PLAN.md restructuring and rename to skillsmith |
 | 1.4.0 | 2025-12-01 | Added IMPROVEMENT_PLAN.md validation and guidance with enhanced validation script and best practices documentation |
 | 1.3.0 | 2025-11-24 | Added IMPROVEMENT_PLAN.md as standard skill component with template generation and workflow integration |
 | 1.2.0 | 2025-11-20 | Fixed script path detection with repository root auto-detection and improved error messages |
@@ -18,93 +17,6 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ## 🔮 Planned Improvements
 > Last Updated: 2025-12-20
-
-### High Priority - v1.6.0
-
-#### Rename skill-creator to skillsmith
-
-**Goal:** Rebrand skill to reflect customizations beyond original Claude examples
-
-**Rationale:**
-- Current name suggests generic template from Claude examples
-- Significant enhancements made (IMPROVEMENT_PLAN.md structure, validation, automation)
-- "skillsmith" better reflects the crafting/forging aspect of skill creation
-- Establishes unique identity separate from upstream examples
-
-**Scope of Changes:**
-
-1. **Directory Structure**
-   - Rename: `skills/skill-creator/` → `skills/skillsmith/`
-
-2. **SKILL.md Frontmatter**
-   - `name: skill-creator` → `name: skillsmith`
-   - Update description to reference "skillsmith"
-   - Version remains 1.4.0 (rename doesn't increment version)
-
-3. **Marketplace Configuration** (`.claude-plugin/marketplace.json`)
-   - Plugin name: `skill-creator` → `skillsmith`
-   - Skills path: `./skills/skill-creator` → `./skills/skillsmith`
-   - Update description if needed
-
-4. **Documentation Updates**
-   - `README.md`: Update skill name and references
-   - `skills/README.md`: Update installation command and references
-   - `paths-to-keep.txt`: Update directory name
-
-5. **Self-Referential Documentation**
-   - `IMPROVEMENT_PLAN.md`: Update title and all self-references
-   - `references/improvement_plan_best_practices.md`: Update example references
-   - `scripts/utils.py`: Update module docstring
-
-6. **SKILL.md Content**
-   - Update example commands showing script paths
-   - Update any inline references to skill-creator
-
-**Files to Modify (14 files):**
-- Directory rename: `skills/skill-creator/` → `skills/skillsmith/`
-- `skills/skillsmith/SKILL.md` - frontmatter name + path references
-- `skills/skillsmith/IMPROVEMENT_PLAN.md` - title + self-references
-- `skills/skillsmith/scripts/utils.py` - docstring
-- `skills/skillsmith/references/improvement_plan_best_practices.md` - example references
-- `.claude-plugin/marketplace.json` - plugin definition
-- `README.md` - skill list
-- `skills/README.md` - installation + references
-- `paths-to-keep.txt` - directory name
-
-**Migration Considerations:**
-
-1. **Backward Compatibility**
-   - Old installation command will break: `claude skill install totally-tools/skill-creator`
-   - New command: `claude skill install totally-tools/skillsmith`
-   - Document migration path for existing users
-
-2. **Git History**
-   - Use `git mv` to preserve file history
-   - Single atomic commit for all changes
-
-3. **Marketplace Transition**
-   - Update marketplace.json before syncing
-   - May need to deprecate old plugin or add redirect
-
-4. **Testing Checklist**
-   - Verify all scripts still run from new location
-   - Test skill installation from marketplace
-   - Validate SKILL.md renders correctly
-   - Check all documentation links
-
-**Success Criteria:**
-- All references updated consistently
-- No broken links in documentation
-- Scripts run from new directory location
-- Marketplace installation works with new name
-- Git history preserved for all files
-- No regression in functionality
-
-**Estimated Effort:** 1-2 hours
-**Risk Level:** Medium (many file changes, marketplace impact)
-**Breaking Change:** Yes (installation command changes)
-
----
 
 ### High Priority
 
@@ -256,6 +168,88 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ## ✅ Recent Improvements (Completed)
 > Sorted by: Newest first
+
+### v1.5.0 - IMPROVEMENT_PLAN.md Restructuring and Skillsmith Rename (2025-12-20)
+
+**Problem:**
+Two related issues needed addressing:
+
+1. **IMPROVEMENT_PLAN.md Structure**: The structure had least relevant info at top (completed improvements first) making it hard to quickly see version history and planned work.
+2. **Skill Naming**: The "skill-creator" name suggested a basic template from Claude examples, not reflecting the significant customizations and enhancements that had been added.
+
+**Solution Implemented:**
+
+**Part 1: IMPROVEMENT_PLAN.md Restructuring**
+
+1. **Updated Document Structure**:
+   - Reordered sections: Version History (top) → 🔮 Planned → Technical Debt → ✅ Completed (bottom)
+   - Most relevant information now at top
+   - Historical details at bottom
+   - Added emoji indicators: 🔮 for Planned, ✅ for Completed
+   - Added "Last Updated" timestamp to Planned Improvements section
+
+2. **Simplified Workflow** (`references/improvement_plan_best_practices.md`):
+   - Documented 5-step workflow: Cut → Update header → Paste at top → Update table → Enhance
+   - No complex reorganization needed when completing improvements
+   - Clear guidance on TBD usage and replacement
+   - Comprehensive examples showing all phases
+
+3. **Updated Template** (`scripts/init_skill.py`):
+   - New structure with version history first
+   - Emoji section indicators
+   - "Last Updated" timestamp placeholder
+
+**Part 2: Skillsmith Rename**
+
+1. **Directory and File Structure**:
+   - Renamed directory: `skills/skill-creator/` → `skills/skillsmith/` (using `git mv` to preserve history)
+   - Updated all file references consistently
+
+2. **SKILL.md Updates**:
+   - Frontmatter: `name: skill-creator` → `name: skillsmith`
+   - Updated description and all internal references
+   - Updated example script paths
+
+3. **Marketplace Configuration**:
+   - Plugin name: `skill-creator` → `skillsmith`
+   - Skills path: `./skills/skill-creator` → `./skills/skillsmith`
+   - Updated in `.claude-plugin/marketplace.json`
+
+4. **Documentation Updates**:
+   - `README.md`: Updated skill list and references
+   - `skills/README.md`: Updated installation command
+   - `paths-to-keep.txt`: Updated directory name
+
+5. **Self-Referential Documentation**:
+   - `IMPROVEMENT_PLAN.md`: Updated title and all references
+   - `references/improvement_plan_best_practices.md`: Updated examples
+   - `scripts/utils.py`: Updated docstring
+
+**Impact:**
+
+*IMPROVEMENT_PLAN.md Restructuring:*
+- Quick access to version history and current plans
+- Simpler workflow for completing improvements
+- Better information hierarchy (most relevant first)
+- Consistent structure across all skills using init_skill.py
+
+*Skillsmith Rename:*
+- Unique identity separate from Claude examples
+- Name reflects craftsmanship aspect ("forging" skills)
+- Breaking change: Installation command is now `claude skill install totally-tools/skillsmith`
+- Git history preserved for all files
+- All references updated consistently across 14 files
+
+**Files Changed:**
+- `skills/skillsmith/IMPROVEMENT_PLAN.md` - Restructured and updated title
+- `skills/skillsmith/SKILL.md` - Updated frontmatter name and version
+- `skills/skillsmith/scripts/init_skill.py` - New template structure
+- `skills/skillsmith/scripts/utils.py` - Updated docstring
+- `skills/skillsmith/references/improvement_plan_best_practices.md` - New workflow and examples
+- `.claude-plugin/marketplace.json` - Updated plugin name and version
+- `README.md` - Updated skill references
+- `skills/README.md` - Updated installation command
+- `paths-to-keep.txt` - Updated directory name
 
 ### v1.4.0 - IMPROVEMENT_PLAN.md Validation and Guidance (2025-12-01)
 
