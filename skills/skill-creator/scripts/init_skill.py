@@ -18,7 +18,6 @@ from pathlib import Path
 
 from utils import get_repo_root
 
-
 SKILL_TEMPLATE = """---
 name: {skill_name}
 description: [TODO: Complete and informative explanation of what the skill does and when to use it. Include WHEN to use this skill - specific scenarios, file types, or tasks that trigger it.]
@@ -201,7 +200,53 @@ This document tracks improvements, enhancements, and future development plans fo
 |---------|------|-------------|
 | 1.0.0 | {date} | Initial release |
 
-## Completed Improvements
+## 🔮 Planned Improvements
+> Last Updated: {date}
+
+### High Priority
+
+#### TODO: Feature Name
+**Goal:** Brief description of what this improvement aims to achieve
+
+**Problem:**
+- Describe what doesn't work well now
+
+**Proposed Solution:**
+- Outline the approach
+- Key implementation details
+
+**Files to Modify:**
+- List target files
+
+**Success Criteria:**
+- How to measure if this is done correctly
+
+### Medium Priority
+
+TODO: Add medium priority improvements
+
+### Low Priority
+
+TODO: Add low priority improvements
+
+---
+
+## Technical Debt
+
+### Code Quality
+- TODO: Track code quality issues
+
+### Documentation
+- TODO: Track documentation gaps
+
+## Enhancement Requests
+
+*Track feature requests and suggestions from users here*
+
+---
+
+## ✅ Recent Improvements (Completed)
+> Sorted by: Newest first
 
 ### v1.0.0 - Initial Release ({date})
 
@@ -215,44 +260,6 @@ This document tracks improvements, enhancements, and future development plans fo
 - `references/` - Example references directory
 - `assets/` - Example assets directory
 
-## Planned Improvements
-
-### High Priority
-
-#### TODO: Feature Name
-**Goal:** Brief description of what this improvement aims to achieve
-
-**Current Limitation:**
-- Describe what doesn't work well now
-
-**Proposed Solution:**
-- Outline the approach
-- Key implementation details
-- Files to modify
-
-**Success Criteria:**
-- How to measure if this is done correctly
-
-### Medium Priority
-
-TODO: Add medium priority improvements
-
-### Low Priority
-
-TODO: Add low priority improvements
-
-## Enhancement Requests
-
-*Track feature requests and suggestions from users here*
-
-## Technical Debt
-
-### Code Quality
-- TODO: Track code quality issues
-
-### Documentation
-- TODO: Track documentation gaps
-
 ## Contributing
 
 To suggest improvements to this skill:
@@ -260,19 +267,25 @@ To suggest improvements to this skill:
 1. Add enhancement requests to the "Enhancement Requests" section
 2. Discuss technical approaches in "Planned Improvements"
 3. Track implementation progress
-4. Update "Completed Improvements" when done
+4. When complete, follow the Planned → Completed workflow:
+   - Cut section from Planned Improvements
+   - Update header: "### v{{version}} - {{name}} ({{date}})"
+   - Paste at top of Recent Improvements (Completed)
+   - Update version history table with actual date
+   - Add implementation details
 
 ## Notes
 
 - This improvement plan should be excluded from skill packaging (see .skillignore)
-- Update version history when making significant changes
+- Update "Last Updated" timestamp in Planned Improvements when making changes
+- Update version history when releasing new versions
 - Link to relevant issues/PRs in your repository if applicable
 """
 
 
 def title_case_skill_name(skill_name):
     """Convert hyphenated skill name to Title Case for display."""
-    return ' '.join(word.capitalize() for word in skill_name.split('-'))
+    return " ".join(word.capitalize() for word in skill_name.split("-"))
 
 
 def init_skill(skill_name, skills_dir):
@@ -305,11 +318,10 @@ def init_skill(skill_name, skills_dir):
     # Create SKILL.md from template
     skill_title = title_case_skill_name(skill_name)
     skill_content = SKILL_TEMPLATE.format(
-        skill_name=skill_name,
-        skill_title=skill_title
+        skill_name=skill_name, skill_title=skill_title
     )
 
-    skill_md_path = skill_dir / 'SKILL.md'
+    skill_md_path = skill_dir / "SKILL.md"
     try:
         skill_md_path.write_text(skill_content)
         print("✅ Created SKILL.md")
@@ -318,14 +330,12 @@ def init_skill(skill_name, skills_dir):
         return None
 
     # Create IMPROVEMENT_PLAN.md from template
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = datetime.now().strftime("%Y-%m-%d")
     improvement_plan_content = IMPROVEMENT_PLAN_TEMPLATE.format(
-        skill_name=skill_name,
-        skill_title=skill_title,
-        date=today
+        skill_name=skill_name, skill_title=skill_title, date=today
     )
 
-    improvement_plan_path = skill_dir / 'IMPROVEMENT_PLAN.md'
+    improvement_plan_path = skill_dir / "IMPROVEMENT_PLAN.md"
     try:
         improvement_plan_path.write_text(improvement_plan_content)
         print("✅ Created IMPROVEMENT_PLAN.md")
@@ -336,24 +346,24 @@ def init_skill(skill_name, skills_dir):
     # Create resource directories with example files
     try:
         # Create scripts/ directory with example script
-        scripts_dir = skill_dir / 'scripts'
+        scripts_dir = skill_dir / "scripts"
         scripts_dir.mkdir(exist_ok=True)
-        example_script = scripts_dir / 'example.py'
+        example_script = scripts_dir / "example.py"
         example_script.write_text(EXAMPLE_SCRIPT.format(skill_name=skill_name))
         example_script.chmod(0o755)
         print("✅ Created scripts/example.py")
 
         # Create references/ directory with example reference doc
-        references_dir = skill_dir / 'references'
+        references_dir = skill_dir / "references"
         references_dir.mkdir(exist_ok=True)
-        example_reference = references_dir / 'api_reference.md'
+        example_reference = references_dir / "api_reference.md"
         example_reference.write_text(EXAMPLE_REFERENCE.format(skill_title=skill_title))
         print("✅ Created references/api_reference.md")
 
         # Create assets/ directory with example asset placeholder
-        assets_dir = skill_dir / 'assets'
+        assets_dir = skill_dir / "assets"
         assets_dir.mkdir(exist_ok=True)
-        example_asset = assets_dir / 'example_asset.txt'
+        example_asset = assets_dir / "example_asset.txt"
         example_asset.write_text(EXAMPLE_ASSET)
         print("✅ Created assets/example_asset.txt")
     except Exception as e:
@@ -364,7 +374,9 @@ def init_skill(skill_name, skills_dir):
     print(f"\n✅ Skill '{skill_name}' initialized successfully at {skill_dir}")
     print("\nNext steps:")
     print("1. Edit SKILL.md to complete the TODO items and update the description")
-    print("2. Customize or delete the example files in scripts/, references/, and assets/")
+    print(
+        "2. Customize or delete the example files in scripts/, references/, and assets/"
+    )
     print("3. Run the validator when ready to check the skill structure")
 
     return skill_dir
@@ -372,7 +384,7 @@ def init_skill(skill_name, skills_dir):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Initialize a new skill with the standard structure. Auto-detects repository root.',
+        description="Initialize a new skill with the standard structure. Auto-detects repository root.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Skill name requirements:
@@ -385,32 +397,53 @@ Examples:
   # Auto-detect repo root, create skill in <repo>/skills/<skill-name>
   %(prog)s my-new-skill
 
-  # With explicit repository path
+  # With explicit repository ROOT path (script appends /skills automatically)
   %(prog)s my-api-helper --path /path/to/repo
+  # Creates: /path/to/repo/skills/my-api-helper
+
+  # WRONG: Don't pass the skills directory - script adds it
+  # %(prog)s my-skill --path /path/to/repo/skills  ❌
+  # Would create: /path/to/repo/skills/skills/my-skill
 
   # With verbose output to see path resolution
   %(prog)s custom-skill --verbose
-"""
+""",
     )
 
-    parser.add_argument('skill_name', help='Name of the skill to create')
+    parser.add_argument("skill_name", help="Name of the skill to create")
 
     parser.add_argument(
-        '--path',
-        default='.',
-        help='Repository root path (default: auto-detect)'
+        "--path",
+        default=".",
+        help="Repository root path - NOT the skills directory (default: auto-detect). Script appends /skills automatically.",
     )
 
     parser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help='Show detailed path resolution information'
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Show detailed path resolution information",
     )
 
     args = parser.parse_args()
 
     # Determine repository root with auto-detection
     repo_root = get_repo_root(args.path, verbose=args.verbose)
+
+    # Warn if path ends with /skills (common mistake)
+    if args.path != "." and args.path.rstrip("/").endswith("/skills"):
+        print("⚠️  Warning: --path appears to end with '/skills'")
+        print(f"   The script automatically appends '/skills' to the repository root.")
+        print(f"   You provided: {args.path}")
+        print(f"   This will create: {repo_root / 'skills' / args.skill_name}")
+        print(f"   Did you mean to provide the repository root instead?")
+        print()
+        response = input("   Continue anyway? [y/N]: ").strip().lower()
+        if response not in ["y", "yes"]:
+            print("❌ Cancelled by user")
+            sys.exit(1)
+        print()
+
     skills_dir = repo_root / "skills"
 
     # Ensure skills directory exists

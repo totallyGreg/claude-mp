@@ -5,11 +5,19 @@
 The IMPROVEMENT_PLAN.md file is a living document that tracks your skill's evolution, planned improvements, and design decisions. It provides historical context for maintainers and helps organize development efforts.
 
 **Purpose:**
-- Track version history with dates and descriptions
-- Document completed improvements with implementation details
-- Plan future enhancements organized by priority
+- Track version history with dates and descriptions (most relevant - at top)
+- Plan future enhancements organized by priority (forward-looking)
+- Document completed improvements with implementation details (historical - at bottom)
 - Capture design decisions and rationale
 - Identify and track technical debt
+
+**Recommended Structure (most relevant first):**
+1. Overview
+2. Version History - Quick reference, always at top
+3. 🔮 Planned Improvements - What's coming next
+4. Technical Debt / Enhancement Requests - Informs future planning
+5. ✅ Recent Improvements (Completed) - Detailed history at bottom
+6. Contributing / Notes
 
 ## Version History Maintenance
 
@@ -76,23 +84,52 @@ Add a new version entry when you:
 
 **Rule:** If a version is in "Recent Improvements (Completed)", it MUST have an actual date in the version history table.
 
+## Planned → Completed Workflow
+
+When completing a planned improvement, follow this simple 5-step workflow:
+
+### Step 1: Cut from Planned Improvements
+Locate the entire section for the improvement in "🔮 Planned Improvements" and cut it.
+
+### Step 2: Update Header with Date
+Change the header format:
+- **From**: `### High Priority - v1.5.0: Feature Name`
+- **To**: `### v1.5.0 - Feature Name (2025-12-20)`
+
+### Step 3: Paste at Top of Completed
+Paste the section at the **TOP** of "✅ Recent Improvements (Completed)". This automatically maintains chronological order (newest first).
+
+### Step 4: Update Version History Table
+Find the version entry in the Version History table and replace "TBD" with the actual completion date:
+- **From**: `| 1.5.0 | TBD | Feature Name |`
+- **To**: `| 1.5.0 | 2025-12-20 | Feature Name |`
+
+### Step 5: Enhance with Implementation Details
+Update the content:
+- Change "**Proposed Solution:**" → "**Solution Implemented:**"
+- Change "**Files to Modify:**" → "**Files Changed:**"
+- Add "**Impact:**" section describing user-facing benefits
+
+**This workflow is intentionally simple**: cut, update header, paste at top, update table, enhance details. No complex reorganization needed.
+
 ### Workflow Example
 
 #### Phase 1: Planning
 ```markdown
-## Planned Improvements
-
-### High Priority - v1.5.0: Enhanced Validation
-
-**Goal:** Improve validation coverage
-...detailed plan...
-
 ## Version History
 
 | Version | Date | Description |
 |---------|------|-------------|
 | 1.5.0 | TBD | Enhanced validation coverage |  ← TBD is fine here
 | 1.4.0 | 2025-12-01 | Previous release |
+
+## 🔮 Planned Improvements
+> Last Updated: 2025-12-15
+
+### High Priority - v1.5.0: Enhanced Validation
+
+**Goal:** Improve validation coverage
+...detailed plan...
 ```
 
 #### Phase 2: Implementation
@@ -102,7 +139,20 @@ During implementation, the version stays in "Planned Improvements" with "TBD".
 Move to "Recent Improvements (Completed)":
 
 ```markdown
-## Recent Improvements (Completed)
+## Version History
+
+| Version | Date | Description |
+|---------|------|-------------|
+| 1.5.0 | TBD | Enhanced validation coverage |  ← Still TBD until release
+| 1.4.0 | 2025-12-01 | Previous release |
+
+## 🔮 Planned Improvements
+> Last Updated: 2025-12-15
+
+...future items...
+
+## ✅ Recent Improvements (Completed)
+> Sorted by: Newest first
 
 ### v1.5.0 - Enhanced Validation (2025-12-15)
 
@@ -111,30 +161,28 @@ Move to "Recent Improvements (Completed)":
 
 **Files Changed:**
 - scripts/validator.py
-
-## Planned Improvements
-
-...future items...
-
-## Version History
-
-| Version | Date | Description |
-|---------|------|-------------|
-| 1.5.0 | TBD | Enhanced validation coverage |  ← Still TBD until release
-| 1.4.0 | 2025-12-01 | Previous release |
 ```
 
 #### Phase 4: Release
 **Before updating SKILL.md version:**
 
-1. Replace "TBD" with completion date:
+1. Replace "TBD" with completion date in Version History table:
 ```markdown
+## Version History
+
 | Version | Date | Description |
 |---------|------|-------------|
 | 1.5.0 | 2025-12-15 | Enhanced validation coverage |  ← Date added!
+| 1.4.0 | 2025-12-01 | Previous release |
 ```
 
-2. Update SKILL.md frontmatter:
+2. Update "Last Updated" in Planned Improvements section:
+```markdown
+## 🔮 Planned Improvements
+> Last Updated: 2025-12-15
+```
+
+3. Update SKILL.md frontmatter:
 ```yaml
 ---
 name: my-skill
@@ -142,12 +190,12 @@ version: 1.5.0  ← Updated from 1.4.0
 ---
 ```
 
-3. Run validation:
+4. Run validation:
 ```bash
 python3 scripts/quick_validate.py --check-improvement-plan .
 ```
 
-4. Sync and commit
+5. Sync and commit
 
 ## Common Pitfalls
 
@@ -235,13 +283,19 @@ Completed all implementation...
 
 ## Pre-Release Checklist
 
-Before releasing a new version:
+Before releasing a new version, follow the Planned → Completed workflow:
 
 - [ ] Implementation complete and tested
-- [ ] Move improvements from "Planned" to "Completed" in IMPROVEMENT_PLAN.md
-- [ ] Add completion date to "Completed" section header
-- [ ] Replace "TBD" with actual date (YYYY-MM-DD) in version history table
-- [ ] Update version in SKILL.md frontmatter
+- [ ] **Cut** improvement section from "🔮 Planned Improvements"
+- [ ] **Update** header with completion date: `### v{version} - {name} (YYYY-MM-DD)`
+- [ ] **Paste** at TOP of "✅ Recent Improvements (Completed)"
+- [ ] **Enhance** content:
+  - Change "Proposed Solution" → "Solution Implemented"
+  - Change "Files to Modify" → "Files Changed"
+  - Add "Impact" section
+- [ ] **Update** version history table: Replace "TBD" with actual date (YYYY-MM-DD)
+- [ ] **Update** "Last Updated" in Planned Improvements section
+- [ ] **Update** version in SKILL.md frontmatter
 - [ ] Run validation: `python3 scripts/quick_validate.py --check-improvement-plan <skill-path>`
 - [ ] Fix any validation errors
 - [ ] Sync marketplace (if applicable): `python3 scripts/sync_marketplace_versions.py`
@@ -296,10 +350,24 @@ Skill is valid!
 
 ## Summary
 
-1. **Use TBD** for planned/in-progress versions
-2. **Replace TBD** when moving to completed AND before updating SKILL.md version
-3. **Validate before release** with `--check-improvement-plan`
-4. **Keep dates chronological** (newest first)
-5. **Follow the checklist** for every release
+### Key Principles
 
-This ensures your skill's development history is clear, complete, and consistent.
+1. **Structure**: Version History (top) → 🔮 Planned → Technical Debt → ✅ Completed (bottom)
+2. **Use TBD** for planned/in-progress versions in version history table
+3. **Follow 5-step workflow** when completing: Cut → Update header → Paste at top → Update table → Enhance
+4. **Replace TBD** when moving to completed AND before updating SKILL.md version
+5. **Update "Last Updated"** in Planned Improvements when making changes
+6. **Validate before release** with `--check-improvement-plan`
+7. **Keep dates chronological** (newest first in both table and completed section)
+8. **Use emoji indicators**: 🔮 for Planned, ✅ for Completed
+
+### Simple Workflow
+
+**Completing an improvement is intentionally simple:**
+- Cut from Planned Improvements
+- Update header with date
+- Paste at top of Recent Improvements (Completed)
+- Update version history table
+- Enhance with implementation details
+
+This ensures your skill's development history is clear, complete, and consistent, while making the transition from planned to completed straightforward.
