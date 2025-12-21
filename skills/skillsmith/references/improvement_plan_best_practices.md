@@ -14,10 +14,190 @@ The IMPROVEMENT_PLAN.md file is a living document that tracks your skill's evolu
 **Recommended Structure (most relevant first):**
 1. Overview
 2. Version History - Quick reference, always at top
-3. 🔮 Planned Improvements - What's coming next
+3. 🔮 Planned Improvements - What's coming next (tracked by NUMBER, not version)
 4. Technical Debt / Enhancement Requests - Informs future planning
-5. ✅ Recent Improvements (Completed) - Detailed history at bottom
+5. ✅ Recent Improvements (Completed) - Detailed history at bottom (tracked by VERSION)
 6. Contributing / Notes
+
+## Version Management Strategy
+
+### Key Principle: Planned by Number, Released by Version
+
+**IMPORTANT:** There's a critical distinction between planning and releasing:
+
+- **🔮 Planned Improvements**: Track by NUMBER (1, 2, 3...), organized by priority
+  - No version numbers assigned yet
+  - Flexible - can be reordered, combined, or split
+  - Example: "#### 1. Enhanced Skill Validation"
+
+- **✅ Recent Improvements (Completed)**: Track by VERSION (v1.5.0, v1.4.0...)
+  - Version assigned at release time
+  - Permanent - part of version history
+  - Example: "### v1.5.0 - Enhanced Skill Validation (2025-12-20)"
+
+**Why this matters:**
+- You might plan 5 improvements but not know which will be v1.6.0 vs v1.7.0
+- Some improvements might be combined into a single release
+- Others might be split across multiple releases
+- Version numbers are only assigned when you actually release
+
+### Version Decision Tree
+
+Before starting work, ask: **Does this work warrant a version bump?**
+
+```
+Does this change the skill's behavior or capabilities?
+│
+├─ NO → Just commit implementation
+│        - Documentation updates (unless substantial)
+│        - Internal refactoring (no user-facing changes)
+│        - Comment/formatting changes
+│        → No version change needed
+│
+└─ YES → Which type of change?
+         │
+         ├─ PATCH (1.4.0 → 1.4.1)
+         │  - Bug fixes
+         │  - Typo corrections
+         │  - Minor documentation improvements
+         │  → Increment patch version
+         │
+         ├─ MINOR (1.4.0 → 1.5.0)
+         │  - New features
+         │  - Enhancements to existing features
+         │  - Substantial documentation additions
+         │  → Increment minor version
+         │
+         └─ MAJOR (1.4.0 → 2.0.0)
+            - Breaking changes
+            - Skill renames
+            - Major restructuring
+            → Increment major version
+```
+
+### Two-Commit Strategy (Recommended)
+
+For any work that warrants a version bump, use this two-commit approach:
+
+#### Commit 1: Implementation Only
+
+```bash
+# 1. Add improvement to IMPROVEMENT_PLAN.md Planned section (by NUMBER)
+# Example: "#### 1. Enhanced Skill Validation"
+# NO version number assigned yet
+
+# 2. Implement the changes
+# Edit SKILL.md content, scripts, references, etc.
+
+# 3. Commit implementation (without version bump)
+git add skills/my-skill/
+git commit -m "feat: Add enhanced validation feature"
+
+# SKILL.md version stays at current (e.g., 1.4.0)
+# IMPROVEMENT_PLAN.md shows numbered planned improvement
+# Marketplace.json unchanged
+```
+
+#### Commit 2: Release (When Ready)
+
+```bash
+# 1. Decide on version number based on decision tree
+# Example: Enhanced validation is a new feature → v1.5.0 (minor)
+
+# 2. Follow pre-release checklist:
+
+# a) Move improvement from Planned to Completed in IMPROVEMENT_PLAN.md
+#    - Cut from "🔮 Planned Improvements" (numbered section)
+#    - Update header: "#### 1. Enhanced..." → "### v1.5.0 - Enhanced... (2025-12-20)"
+#    - Paste at TOP of "✅ Recent Improvements (Completed)"
+#    - Add to version history table: | 1.5.0 | 2025-12-20 | Description |
+
+# b) Update SKILL.md frontmatter version
+version: 1.5.0
+
+# c) Run validation
+python3 scripts/quick_validate.py --check-improvement-plan skills/my-skill
+
+# d) Sync marketplace (if using pre-commit hook, this happens automatically)
+python3 scripts/sync_marketplace_versions.py
+
+# 3. Commit release
+git add skills/my-skill/IMPROVEMENT_PLAN.md
+git add skills/my-skill/SKILL.md
+git add .claude-plugin/marketplace.json
+git commit -m "chore: Release my-skill v1.5.0"
+
+# 4. Push to remote
+git push
+```
+
+### Example: Full Workflow
+
+**Planning Phase:**
+```markdown
+## 🔮 Planned Improvements
+> Last Updated: 2025-12-20
+
+### High Priority
+
+#### 1. Enhanced Skill Validation
+**Goal:** Expand validation capabilities
+**Planned Features:**
+- Validate skill references
+- Check for broken links
+...
+```
+
+**After Implementation Commit:**
+- SKILL.md: `version: 1.4.0` (unchanged)
+- IMPROVEMENT_PLAN.md: Still shows "#### 1. Enhanced..." in Planned
+- Code changes committed
+
+**After Release Commit:**
+```markdown
+## Version History
+
+| Version | Date | Description |
+|---------|------|-------------|
+| 1.5.0 | 2025-12-20 | Enhanced skill validation |  ← Added
+| 1.4.0 | 2025-12-01 | Previous release |
+
+## 🔮 Planned Improvements
+> Last Updated: 2025-12-20
+
+### High Priority
+
+#### 2. Multi-Skill Version Management  ← Now #1 is gone
+...
+
+## ✅ Recent Improvements (Completed)
+> Sorted by: Newest first
+
+### v1.5.0 - Enhanced Skill Validation (2025-12-20)  ← Moved here
+
+**Goal:** Expand validation capabilities
+...
+```
+
+- SKILL.md: `version: 1.5.0` (updated)
+- marketplace.json: `version: 1.5.0` (synced)
+
+### Benefits of Two-Commit Strategy
+
+1. **Clear Separation**: Implementation vs release are distinct
+2. **Flexible Timing**: Can implement now, release later
+3. **Easy Rollback**: Can revert release commit without losing implementation
+4. **Batch Releases**: Combine multiple improvements into one release
+5. **Clean History**: Git history clearly shows what changed vs when it was released
+
+### When to Use Single Commit
+
+Single commit is acceptable for:
+- Trivial patches (typo fixes)
+- Urgent bug fixes that need immediate release
+- Very small improvements where implementation = release
+
+But when in doubt, use two commits.
 
 ## Version History Maintenance
 
@@ -51,14 +231,30 @@ Add a new version entry when you:
 
 ### TBD Placeholder Usage
 
-**Correct usage:**
+**RECOMMENDED: Don't use TBD at all**
+
+With the numbered approach for planned improvements, you typically don't need TBD:
+
 ```markdown
-## Planned Improvements
+## 🔮 Planned Improvements
+> Last Updated: 2025-12-20
 
-### High Priority - v1.5.0
+### High Priority
 
-...planned features...
+#### 1. Enhanced Skill Validation  ← No version number yet
+**Goal:** Expand validation capabilities
+...
 
+## Version History
+
+| Version | Date | Description |
+|---------|------|-------------|
+| 1.4.0 | 2025-12-01 | Current release |  ← No TBD needed
+```
+
+**If you must use TBD** (e.g., you've committed to a specific version for a planned feature):
+
+```markdown
 ## Version History
 
 | Version | Date | Description |
@@ -67,9 +263,9 @@ Add a new version entry when you:
 | 1.4.0 | 2025-12-01 | Completed feature |    ← Has date (released)
 ```
 
-**Incorrect usage:**
+**NEVER do this:**
 ```markdown
-## Recent Improvements (Completed)
+## ✅ Recent Improvements (Completed)
 
 ### v1.5.0 - Feature X Enhancement
 
@@ -86,31 +282,43 @@ Add a new version entry when you:
 
 ## Planned → Completed Workflow
 
-When completing a planned improvement, follow this simple 5-step workflow:
+When completing a planned improvement and releasing a new version, follow this workflow:
 
-### Step 1: Cut from Planned Improvements
-Locate the entire section for the improvement in "🔮 Planned Improvements" and cut it.
+### Step 1: Decide Version Number
+Use the Version Decision Tree to determine the appropriate version number based on the change type (patch/minor/major).
 
-### Step 2: Update Header with Date
+### Step 2: Cut from Planned Improvements
+Locate the entire numbered section for the improvement in "🔮 Planned Improvements" and cut it.
+
+### Step 3: Update Header with Version and Date
 Change the header format:
-- **From**: `### High Priority - v1.5.0: Feature Name`
-- **To**: `### v1.5.0 - Feature Name (2025-12-20)`
+- **From**: `#### 1. Enhanced Skill Validation` (numbered, no version)
+- **To**: `### v1.5.0 - Enhanced Skill Validation (2025-12-20)` (versioned with date)
 
-### Step 3: Paste at Top of Completed
+### Step 4: Paste at Top of Completed
 Paste the section at the **TOP** of "✅ Recent Improvements (Completed)". This automatically maintains chronological order (newest first).
 
-### Step 4: Update Version History Table
-Find the version entry in the Version History table and replace "TBD" with the actual completion date:
+### Step 5: Add to Version History Table
+Add the new version to the version history table:
+- **Add**: `| 1.5.0 | 2025-12-20 | Enhanced skill validation |`
+- Place at top of table (newest first)
+
+**Note:** If you previously added an entry with TBD, replace it:
 - **From**: `| 1.5.0 | TBD | Feature Name |`
 - **To**: `| 1.5.0 | 2025-12-20 | Feature Name |`
 
-### Step 5: Enhance with Implementation Details
+### Step 6: Enhance with Implementation Details
 Update the content:
 - Change "**Proposed Solution:**" → "**Solution Implemented:**"
 - Change "**Files to Modify:**" → "**Files Changed:**"
 - Add "**Impact:**" section describing user-facing benefits
 
-**This workflow is intentionally simple**: cut, update header, paste at top, update table, enhance details. No complex reorganization needed.
+### Step 7: Update SKILL.md and Sync
+- Update version in SKILL.md frontmatter
+- Run validation: `python3 scripts/quick_validate.py --check-improvement-plan`
+- Sync marketplace (automatic with pre-commit hook)
+
+**This workflow is intentionally simple**: decide version, cut, update header, paste at top, add to table, enhance details, update SKILL.md. No complex reorganization needed.
 
 ### Workflow Example
 
@@ -120,69 +328,77 @@ Update the content:
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 1.5.0 | TBD | Enhanced validation coverage |  ← TBD is fine here
-| 1.4.0 | 2025-12-01 | Previous release |
+| 1.4.0 | 2025-12-01 | Current release |  ← No future versions yet
 
 ## 🔮 Planned Improvements
 > Last Updated: 2025-12-15
 
-### High Priority - v1.5.0: Enhanced Validation
+### High Priority
+
+#### 1. Enhanced Skill Validation  ← Numbered, not versioned
 
 **Goal:** Improve validation coverage
-...detailed plan...
+**Planned Features:**
+- Validate skill references
+- Check for broken links
+...
 ```
 
 #### Phase 2: Implementation
-During implementation, the version stays in "Planned Improvements" with "TBD".
+During implementation:
+- Code changes are made
+- Improvement stays numbered in "Planned Improvements"
+- SKILL.md version stays at 1.4.0
+- Commit implementation: `git commit -m "feat: Add enhanced validation"`
 
-#### Phase 3: Completion
-Move to "Recent Improvements (Completed)":
+#### Phase 3: Release
+When ready to release, follow the 7-step workflow:
+
+1. **Decide version**: Enhanced validation is a new feature → v1.5.0 (minor bump)
+2. **Cut** numbered improvement from Planned section
+3. **Update header**: `#### 1. Enhanced...` → `### v1.5.0 - Enhanced... (2025-12-15)`
+4. **Paste** at top of Completed section
+5. **Add to version history** table
+6. **Enhance** with implementation details
+7. **Update SKILL.md** and sync
+
+**After release commit:**
 
 ```markdown
 ## Version History
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 1.5.0 | TBD | Enhanced validation coverage |  ← Still TBD until release
+| 1.5.0 | 2025-12-15 | Enhanced validation coverage |  ← Added
 | 1.4.0 | 2025-12-01 | Previous release |
 
 ## 🔮 Planned Improvements
 > Last Updated: 2025-12-15
 
-...future items...
+### High Priority
+
+#### 1. Multi-Skill Version Management  ← Next improvement (renumbered from 2)
+...
 
 ## ✅ Recent Improvements (Completed)
 > Sorted by: Newest first
 
-### v1.5.0 - Enhanced Validation (2025-12-15)
+### v1.5.0 - Enhanced Skill Validation (2025-12-15)  ← Moved here with version
 
 **Goal:** Improve validation coverage
-...implementation details...
+
+**Solution Implemented:**
+...
 
 **Files Changed:**
 - scripts/validator.py
+
+**Impact:**
+- Better validation coverage
+...
 ```
 
-#### Phase 4: Release
-**Before updating SKILL.md version:**
-
-1. Replace "TBD" with completion date in Version History table:
-```markdown
-## Version History
-
-| Version | Date | Description |
-|---------|------|-------------|
-| 1.5.0 | 2025-12-15 | Enhanced validation coverage |  ← Date added!
-| 1.4.0 | 2025-12-01 | Previous release |
-```
-
-2. Update "Last Updated" in Planned Improvements section:
-```markdown
-## 🔮 Planned Improvements
-> Last Updated: 2025-12-15
-```
-
-3. Update SKILL.md frontmatter:
+**SKILL.md:**
 ```yaml
 ---
 name: my-skill
@@ -190,16 +406,43 @@ version: 1.5.0  ← Updated from 1.4.0
 ---
 ```
 
-4. Run validation:
-```bash
-python3 scripts/quick_validate.py --check-improvement-plan .
+**marketplace.json:** (synced automatically via pre-commit hook)
+```json
+{
+  "version": "1.5.0"
+}
 ```
-
-5. Sync and commit
 
 ## Common Pitfalls
 
-### 1. Forgetting to Replace TBD
+### 1. Using Version Numbers in Planned Improvements
+
+**Problem:**
+```markdown
+## 🔮 Planned Improvements
+
+### High Priority - v1.6.0  ← ERROR: Planned improvements shouldn't have versions
+
+#### Enhanced Validation
+...
+```
+
+**Solution:**
+```markdown
+## 🔮 Planned Improvements
+
+### High Priority
+
+#### 1. Enhanced Validation  ← Correct: Numbered, not versioned
+...
+```
+
+**Why this matters:**
+- Version numbers should only be assigned when releasing
+- Planned improvements may be combined, split, or reordered
+- This prevents version confusion and orphaned version numbers
+
+### 2. Forgetting to Replace TBD (if you use it)
 
 **Problem:**
 ```markdown
@@ -285,40 +528,51 @@ Completed all implementation...
 
 Before releasing a new version, follow the Planned → Completed workflow:
 
-- [ ] Implementation complete and tested
-- [ ] **Cut** improvement section from "🔮 Planned Improvements"
-- [ ] **Update** header with completion date: `### v{version} - {name} (YYYY-MM-DD)`
+- [ ] **Implementation complete** and tested
+- [ ] **Decide version number** using the Version Decision Tree (patch/minor/major)
+- [ ] **Cut** numbered improvement section from "🔮 Planned Improvements"
+- [ ] **Update** header with version and date: `#### 1. Name` → `### v{version} - Name (YYYY-MM-DD)`
 - [ ] **Paste** at TOP of "✅ Recent Improvements (Completed)"
+- [ ] **Add to version history** table: `| {version} | YYYY-MM-DD | Description |`
 - [ ] **Enhance** content:
   - Change "Proposed Solution" → "Solution Implemented"
   - Change "Files to Modify" → "Files Changed"
   - Add "Impact" section
-- [ ] **Update** version history table: Replace "TBD" with actual date (YYYY-MM-DD)
 - [ ] **Update** "Last Updated" in Planned Improvements section
 - [ ] **Update** version in SKILL.md frontmatter
-- [ ] Run validation: `python3 scripts/quick_validate.py --check-improvement-plan <skill-path>`
-- [ ] Fix any validation errors
-- [ ] Sync marketplace (if applicable): `python3 scripts/sync_marketplace_versions.py`
-- [ ] Commit and push changes
+- [ ] **Run validation**: `python3 scripts/quick_validate.py --check-improvement-plan <skill-path>`
+- [ ] **Fix** any validation errors
+- [ ] **Sync marketplace**: Automatic via pre-commit hook (or run `python3 scripts/sync_marketplace_versions.py`)
+- [ ] **Commit** release: `git commit -m "chore: Release v{version}"`
+- [ ] **Push** changes
 
-## Example: skillsmith v1.4.0
+## Example: skillsmith v1.5.0
 
 The skillsmith skill follows these best practices itself. See `skills/skillsmith/IMPROVEMENT_PLAN.md` for a real example:
 
-**Planned Phase:**
-- v1.4.0 added to "Planned Improvements" with detailed goals
-- Version history shows: `| 1.4.0 | TBD | IMPROVEMENT_PLAN.md validation |`
+**Planning Phase:**
+- Two improvements planned (numbered, not versioned):
+  - IMPROVEMENT_PLAN.md restructuring
+  - Skillsmith rename
+- No version numbers assigned yet
 
-**Implementation Phase:**
-- Work on features while version stays in "Planned"
-- TBD remains in version history
+**Implementation Phase (2 commits):**
+- Commit 1: Implemented IMPROVEMENT_PLAN.md restructuring
+- Commit 2: Implemented skillsmith rename
+- Both improvements stayed numbered in Planned section
+- SKILL.md stayed at v1.4.0
 
-**Completion Phase:**
-- Move v1.4.0 to "Recent Improvements (Completed)" with (2025-12-01) date
-- Replace TBD: `| 1.4.0 | 2025-12-01 | IMPROVEMENT_PLAN.md validation |`
-- Update SKILL.md: `version: 1.4.0`
-- Run validation on itself
-- Release!
+**Release Phase (1 commit):**
+- Decided to combine both into v1.5.0 (minor bump - new features + breaking change)
+- Removed both numbered improvements from Planned
+- Created single v1.5.0 completed entry documenting both changes
+- Added to version history: `| 1.5.0 | 2025-12-20 | IMPROVEMENT_PLAN.md restructuring and rename to skillsmith |`
+- Updated SKILL.md: `version: 1.5.0`
+- Synced marketplace
+- Committed release
+
+**Key Lesson:**
+Multiple planned improvements can be combined into a single release version when appropriate.
 
 ## Validation Commands
 

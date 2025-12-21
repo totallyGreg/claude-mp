@@ -203,9 +203,11 @@ This document tracks improvements, enhancements, and future development plans fo
 ## 🔮 Planned Improvements
 > Last Updated: {date}
 
+**Note:** Planned improvements are tracked by NUMBER, not version. Version numbers are only assigned when releasing.
+
 ### High Priority
 
-#### TODO: Feature Name
+#### 1. Example Enhancement
 **Goal:** Brief description of what this improvement aims to achieve
 
 **Problem:**
@@ -223,10 +225,12 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ### Medium Priority
 
+#### 2. Another Planned Feature
 TODO: Add medium priority improvements
 
 ### Low Priority
 
+#### 3. Future Enhancement
 TODO: Add low priority improvements
 
 ---
