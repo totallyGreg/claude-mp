@@ -21,12 +21,12 @@ Expert guide for Helm chart development, testing, security, and OCI registries. 
 claude skill install totally-tools/helm-chart-developer
 ```
 
-### skill-creator
-Comprehensive guide for creating effective Claude skills with marketplace integration.
+### skillsmith
+Comprehensive guide for forging effective Claude skills with marketplace integration.
 
 **Installation:**
 ```bash
-claude skill install totally-tools/skill-creator
+claude skill install totally-tools/skillsmith
 ```
 
 ### swift-dev
@@ -54,4 +54,4 @@ claude skill install totally-tools/swift-dev
 
 ## Creating Your Own Skills
 
-See the [skill-creator](./skill-creator/) skill for detailed guidance on creating custom skills.
+See the [skillsmith](./skillsmith/) skill for detailed guidance on creating custom skills.

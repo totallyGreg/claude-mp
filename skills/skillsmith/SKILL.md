@@ -1,13 +1,13 @@
 ---
-name: skill-creator
-description: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
+name: skillsmith
+description: Guide for forging effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
 version: 1.4.0
 license: Complete terms in LICENSE.txt
 ---
 
-# Skill Creator
+# Skillsmith
 
-This skill provides guidance for creating effective skills.
+This skill provides guidance for forging effective skills.
 
 ## About Skills
 
@@ -330,10 +330,10 @@ All scripts automatically detect the repository root by searching for `.git` or 
 Examples:
 ```bash
 # Auto-detect repo root (works from any directory in repo)
-python3 skills/skill-creator/scripts/add_to_marketplace.py list
+python3 skills/skillsmith/scripts/add_to_marketplace.py list
 
 # From scripts directory
-cd skills/skill-creator/scripts
+cd skills/skillsmith/scripts
 python3 add_to_marketplace.py list
 
 # With explicit path (if auto-detection fails)

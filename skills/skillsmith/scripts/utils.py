@@ -1,4 +1,4 @@
-"""Shared utilities for skill-creator scripts."""
+"""Shared utilities for skillsmith scripts."""
 
 import sys
 from pathlib import Path

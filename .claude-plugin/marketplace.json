@@ -37,8 +37,8 @@
       ]
     },
     {
-      "name": "skill-creator",
-      "description": "Guide for creating effective Claude skills with marketplace integration",
+      "name": "skillsmith",
+      "description": "Guide for forging effective Claude skills with marketplace integration",
       "category": "development",
       "version": "1.4.0",
       "author": {
@@ -47,7 +47,7 @@
       },
       "source": "./",
       "skills": [
-        "./skills/skill-creator"
+        "./skills/skillsmith"
       ]
     },
     {

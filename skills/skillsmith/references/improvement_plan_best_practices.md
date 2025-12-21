@@ -301,9 +301,9 @@ Before releasing a new version, follow the Planned → Completed workflow:
 - [ ] Sync marketplace (if applicable): `python3 scripts/sync_marketplace_versions.py`
 - [ ] Commit and push changes
 
-## Example: skill-creator v1.4.0
+## Example: skillsmith v1.4.0
 
-The skill-creator skill follows these best practices itself. See `skills/skill-creator/IMPROVEMENT_PLAN.md` for a real example:
+The skillsmith skill follows these best practices itself. See `skills/skillsmith/IMPROVEMENT_PLAN.md` for a real example:
 
 **Planned Phase:**
 - v1.4.0 added to "Planned Improvements" with detailed goals

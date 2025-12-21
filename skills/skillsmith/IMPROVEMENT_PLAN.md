@@ -1,22 +1,110 @@
-# Skill Creator - Improvement Plan
+# Skillsmith - Improvement Plan
 
 ## Overview
 
-This document tracks improvements, enhancements, and future development plans for the skill-creator skill.
+This document tracks improvements, enhancements, and future development plans for the skillsmith skill.
 
 ## Version History
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.6.0 | TBD | Rename skill-creator to skillsmith |
 | 1.4.1 | 2025-12-20 | Documentation improvements: plan mode guidance, init_skill.py path clarification, IMPROVEMENT_PLAN.md cleanup |
 | 1.4.0 | 2025-12-01 | Added IMPROVEMENT_PLAN.md validation and guidance with enhanced validation script and best practices documentation |
 | 1.3.0 | 2025-11-24 | Added IMPROVEMENT_PLAN.md as standard skill component with template generation and workflow integration |
 | 1.2.0 | 2025-11-20 | Fixed script path detection with repository root auto-detection and improved error messages |
 | 1.1.0 | 2025-11-20 | Added marketplace version sync automation with pre-commit hook |
-| 1.0.0 | Initial | Initial skill-creator implementation with packaging and marketplace support |
+| 1.0.0 | Initial | Initial skillsmith implementation with packaging and marketplace support |
 
 ## 🔮 Planned Improvements
 > Last Updated: 2025-12-20
+
+### High Priority - v1.6.0
+
+#### Rename skill-creator to skillsmith
+
+**Goal:** Rebrand skill to reflect customizations beyond original Claude examples
+
+**Rationale:**
+- Current name suggests generic template from Claude examples
+- Significant enhancements made (IMPROVEMENT_PLAN.md structure, validation, automation)
+- "skillsmith" better reflects the crafting/forging aspect of skill creation
+- Establishes unique identity separate from upstream examples
+
+**Scope of Changes:**
+
+1. **Directory Structure**
+   - Rename: `skills/skill-creator/` → `skills/skillsmith/`
+
+2. **SKILL.md Frontmatter**
+   - `name: skill-creator` → `name: skillsmith`
+   - Update description to reference "skillsmith"
+   - Version remains 1.4.0 (rename doesn't increment version)
+
+3. **Marketplace Configuration** (`.claude-plugin/marketplace.json`)
+   - Plugin name: `skill-creator` → `skillsmith`
+   - Skills path: `./skills/skill-creator` → `./skills/skillsmith`
+   - Update description if needed
+
+4. **Documentation Updates**
+   - `README.md`: Update skill name and references
+   - `skills/README.md`: Update installation command and references
+   - `paths-to-keep.txt`: Update directory name
+
+5. **Self-Referential Documentation**
+   - `IMPROVEMENT_PLAN.md`: Update title and all self-references
+   - `references/improvement_plan_best_practices.md`: Update example references
+   - `scripts/utils.py`: Update module docstring
+
+6. **SKILL.md Content**
+   - Update example commands showing script paths
+   - Update any inline references to skill-creator
+
+**Files to Modify (14 files):**
+- Directory rename: `skills/skill-creator/` → `skills/skillsmith/`
+- `skills/skillsmith/SKILL.md` - frontmatter name + path references
+- `skills/skillsmith/IMPROVEMENT_PLAN.md` - title + self-references
+- `skills/skillsmith/scripts/utils.py` - docstring
+- `skills/skillsmith/references/improvement_plan_best_practices.md` - example references
+- `.claude-plugin/marketplace.json` - plugin definition
+- `README.md` - skill list
+- `skills/README.md` - installation + references
+- `paths-to-keep.txt` - directory name
+
+**Migration Considerations:**
+
+1. **Backward Compatibility**
+   - Old installation command will break: `claude skill install totally-tools/skill-creator`
+   - New command: `claude skill install totally-tools/skillsmith`
+   - Document migration path for existing users
+
+2. **Git History**
+   - Use `git mv` to preserve file history
+   - Single atomic commit for all changes
+
+3. **Marketplace Transition**
+   - Update marketplace.json before syncing
+   - May need to deprecate old plugin or add redirect
+
+4. **Testing Checklist**
+   - Verify all scripts still run from new location
+   - Test skill installation from marketplace
+   - Validate SKILL.md renders correctly
+   - Check all documentation links
+
+**Success Criteria:**
+- All references updated consistently
+- No broken links in documentation
+- Scripts run from new directory location
+- Marketplace installation works with new name
+- Git history preserved for all files
+- No regression in functionality
+
+**Estimated Effort:** 1-2 hours
+**Risk Level:** Medium (many file changes, marketplace impact)
+**Breaking Change:** Yes (installation command changes)
+
+---
 
 ### High Priority
 
@@ -156,7 +244,7 @@ This document tracks improvements, enhancements, and future development plans fo
 - Add type hints to Python code (Python 3.8+)
 
 ### Documentation
-- Create developer guide for contributing to skill-creator
+- Create developer guide for contributing to skillsmith
 - Document script API and internal functions
 - Add more examples to references/plugin_marketplace_guide.md
 - Create troubleshooting guide for common issues
@@ -172,7 +260,7 @@ This document tracks improvements, enhancements, and future development plans fo
 ### v1.4.0 - IMPROVEMENT_PLAN.md Validation and Guidance (2025-12-01)
 
 **Problem:**
-The swift-dev skill v1.1.0 was completed with all implementation done, but the version history still showed "TBD" instead of the actual completion date. This indicated that while skill-creator instructs skills to update IMPROVEMENT_PLAN.md with dates, there was no validation to ensure this guidance was followed.
+The swift-dev skill v1.1.0 was completed with all implementation done, but the version history still showed "TBD" instead of the actual completion date. This indicated that while skillsmith instructs skills to update IMPROVEMENT_PLAN.md with dates, there was no validation to ensure this guidance was followed.
 
 **Solution Implemented:**
 
@@ -197,11 +285,11 @@ The swift-dev skill v1.1.0 was completed with all implementation done, but the v
      - TBD placeholder usage and when to replace
      - Common pitfalls with examples and fixes
      - Pre-release checklist
-     - Real examples from skill-creator itself
+     - Real examples from skillsmith itself
    - Detailed workflow showing all phases: planning → implementation → completion → release
 
 **Meta-Validation:**
-Applied skill-creator to itself during implementation, demonstrating the self-referential nature of skill maintenance. skill-creator now follows and validates its own guidance.
+Applied skillsmith to itself during implementation, demonstrating the self-referential nature of skill maintenance. Skillsmith now follows and validates its own guidance.
 
 **Impact:**
 - Skills can now validate their IMPROVEMENT_PLAN.md completeness before release
