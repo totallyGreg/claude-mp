@@ -2,7 +2,7 @@
 name: marketplace-manager
 description: Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance. Use when adding skills to marketplace, updating skill versions, syncing marketplace.json, or managing plugin distributions. Triggers when user mentions marketplace, version sync, or plugin publishing.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 compatibility: Requires git repository with .claude-plugin/marketplace.json
 ---
 
@@ -158,14 +158,59 @@ marketplace-manager integrates with skill-planner workflow:
 
 ### Semantic Versioning
 
-Follow semantic versioning for all skills:
+Follow semantic versioning for all skills and plugins:
 - **MAJOR** (1.0.0 → 2.0.0): Breaking changes
 - **MINOR** (1.0.0 → 1.1.0): New features, backward-compatible
 - **PATCH** (1.0.0 → 1.0.1): Bug fixes, documentation
 
+### Plugin Versioning Strategies
+
+marketplace-manager supports two versioning modes for different plugin architectures:
+
+**Auto Mode (Default - Recommended for Single-Skill Plugins)**
+- Automatically syncs plugin version from skill version
+- Best for plugins with one skill
+- Plugin version always matches skill version
+- Simple and automatic
+- Usage: `python3 scripts/sync_marketplace_versions.py`
+
+**Manual Mode (Recommended for Multi-Component Plugins)**
+- Plugin version managed independently from component versions
+- Required for plugins with multiple skills, MCP servers, LSP servers, hooks, or agents
+- Sync script detects mismatches and warns without auto-updating
+- Developer manually bumps plugin version based on changes
+- Usage: `python3 scripts/sync_marketplace_versions.py --mode=manual`
+
+**Choosing a Strategy:**
+- **Single component** → Use auto mode
+- **Multiple components** → Use manual mode
+- **When in doubt** → Use manual mode for conscious version control
+
+### Multi-Component Plugin Versioning
+
+For plugins containing multiple components (skills, MCP servers, etc.):
+
+**Problem with auto-sync:**
+- Plugin v1.5.0 with skill-a v1.5.0 and skill-b v1.2.0
+- Update skill-b to v1.3.0
+- Auto-sync would keep plugin at v1.5.0 (no update signal!)
+
+**Manual versioning workflow:**
+1. Update component and bump its version
+2. Run: `python3 scripts/sync_marketplace_versions.py --mode=manual`
+3. Script warns about version mismatch
+4. Decide appropriate plugin version bump (major/minor/patch)
+5. Manually update plugin version in marketplace.json
+6. Commit component + marketplace.json together
+
+**Plugin version decision guide:**
+- **MAJOR**: Any component has breaking changes
+- **MINOR**: Any component adds new features
+- **PATCH**: Any component fixes bugs only
+
 ### Update Workflow
 
-**When updating a skill:**
+**Single-skill plugin workflow:**
 1. Make changes to SKILL.md or bundled resources
 2. Update `metadata.version` in SKILL.md frontmatter
 3. Test changes thoroughly
@@ -173,12 +218,22 @@ Follow semantic versioning for all skills:
 5. Commit SKILL.md and marketplace.json together
 6. Push changes
 
+**Multi-component plugin workflow:**
+1. Make changes to component(s)
+2. Update `metadata.version` in component's SKILL.md
+3. Test changes thoroughly
+4. Run sync script: `python3 scripts/sync_marketplace_versions.py --mode=manual`
+5. Review warnings about version mismatches
+6. Manually update plugin version in marketplace.json
+7. Commit component files + marketplace.json together
+8. Push changes
+
 **Automated workflow (with pre-commit hook):**
 1. Make changes and update version
 2. Git add and commit
 3. Hook auto-detects mismatch
-4. Hook auto-syncs marketplace.json
-5. Hook adds marketplace.json to commit
+4. Hook auto-syncs marketplace.json (auto mode) or warns (manual mode)
+5. Hook adds marketplace.json to commit if updated
 6. Commit proceeds automatically
 
 ## Best Practices
@@ -187,15 +242,23 @@ Follow semantic versioning for all skills:
 1. Always update skill version when making changes
 2. Use `metadata.version` (not deprecated `version`)
 3. Follow semantic versioning guidelines
-4. Sync marketplace.json before pushing
-5. Include both files in same commit
+4. Choose appropriate versioning mode (auto for single-skill, manual for multi-component)
+5. Sync marketplace.json before pushing
+6. Include both files in same commit
+7. For multi-component plugins, manually control plugin version
 
-**Organization:**
-1. Group related skills into plugins
-2. Use descriptive plugin names
-3. Set appropriate categories
-4. Keep plugin versions synchronized
+**Plugin Organization:**
+1. **Prefer single-skill plugins** for simplicity and automatic versioning
+2. Use multi-skill plugins only for tightly coupled components
+3. Use descriptive plugin names
+4. Set appropriate categories
 5. Document changes in IMPROVEMENT_PLAN.md
+
+**Component Organization:**
+1. Group related skills into plugins only if they're always used together
+2. Consider separate plugins for independently versioned components
+3. For plugins with skills + MCP servers + hooks, use manual versioning mode
+4. Keep component versions independent within multi-component plugins
 
 **Automation:**
 1. Install pre-commit hook for auto-sync

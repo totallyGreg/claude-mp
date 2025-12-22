@@ -23,11 +23,15 @@ from utils import get_repo_root, print_verbose_info, validate_repo_structure
 def extract_frontmatter_version(skill_md_path):
     """Extract version from SKILL.md YAML frontmatter.
 
+    Priority:
+    1. metadata.version (Agent Skills spec - preferred)
+    2. version (deprecated but supported)
+
     Args:
         skill_md_path: Path to SKILL.md file
 
     Returns:
-        Version string or None if not found
+        Tuple of (version_string, is_deprecated) or (None, None) if not found
     """
     try:
         with open(skill_md_path, 'r') as f:
@@ -36,20 +40,41 @@ def extract_frontmatter_version(skill_md_path):
         # Match YAML frontmatter (between --- markers)
         frontmatter_match = re.match(r'^---\s*\n(.*?)\n---', content, re.DOTALL)
         if not frontmatter_match:
-            return None
+            return None, None
 
         frontmatter = frontmatter_match.group(1)
 
-        # Extract version field
-        version_match = re.search(r'^version:\s*([^\n]+)', frontmatter, re.MULTILINE)
-        if version_match:
-            return version_match.group(1).strip()
+        # Parse frontmatter for both metadata.version and version
+        metadata_version = None
+        version = None
+        in_metadata = False
 
-        return None
+        for line in frontmatter.split('\n'):
+            line = line.strip()
+
+            if line.startswith('metadata:'):
+                in_metadata = True
+            elif in_metadata and line.startswith('version:'):
+                # metadata.version (preferred)
+                metadata_version = line.split(':', 1)[1].strip().strip('"').strip("'")
+                in_metadata = False
+            elif not in_metadata and line.startswith('version:'):
+                # deprecated version field
+                version = line.split(':', 1)[1].strip().strip('"').strip("'")
+            elif line and not line.startswith(' ') and not line.startswith('-'):
+                in_metadata = False
+
+        # Return preferred version
+        if metadata_version:
+            return metadata_version, False
+        elif version:
+            return version, True
+        else:
+            return None, None
 
     except Exception as e:
         print(f"⚠️  Warning: Could not read {skill_md_path}: {e}")
-        return None
+        return None, None
 
 
 def load_marketplace(marketplace_path):
@@ -72,13 +97,14 @@ def save_marketplace(marketplace_path, marketplace_data):
     print(f"✅ Updated marketplace: {marketplace_path}")
 
 
-def sync_versions(marketplace_path, repo_root, dry_run=False):
+def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
     """Sync versions from SKILL.md files to marketplace.json.
 
     Args:
         marketplace_path: Path to marketplace.json
         repo_root: Repository root directory
         dry_run: If True, don't save changes
+        mode: Versioning mode - 'auto' (auto-update single-skill plugins) or 'manual' (warn only)
 
     Returns:
         Number of plugins updated
@@ -93,6 +119,7 @@ def sync_versions(marketplace_path, repo_root, dry_run=False):
         return 0
 
     updated_count = 0
+    warnings = []
 
     for plugin in plugins:
         plugin_name = plugin.get('name', '(unnamed)')
@@ -102,8 +129,42 @@ def sync_versions(marketplace_path, repo_root, dry_run=False):
             print(f"ℹ️  Plugin '{plugin_name}' has no skills, skipping")
             continue
 
-        # For plugins with multiple skills, use the first skill's version
-        # This assumes all skills in a plugin should share the same version
+        # Check if multi-skill plugin
+        is_multi_skill = len(skills) > 1
+
+        # For plugins with multiple skills, check all skill versions
+        if is_multi_skill:
+            skill_versions = []
+            for skill_path in skills:
+                skill_path_clean = skill_path.lstrip('./')
+                skill_md = repo_root / skill_path_clean / 'SKILL.md'
+                if skill_md.exists():
+                    version, _ = extract_frontmatter_version(skill_md)
+                    if version:
+                        skill_versions.append((skill_path_clean, version))
+
+            if skill_versions:
+                current_plugin_version = plugin.get('version', '1.0.0')
+                # Warn if any skill version changed
+                for skill_path, version in skill_versions:
+                    if version != current_plugin_version:
+                        warnings.append({
+                            'plugin': plugin_name,
+                            'skill': skill_path,
+                            'skill_version': version,
+                            'plugin_version': current_plugin_version
+                        })
+                if not any(v == current_plugin_version for _, v in skill_versions):
+                    print(f"⚠️  Multi-skill plugin '{plugin_name}' version mismatch detected")
+                    print(f"   Plugin version: {current_plugin_version}")
+                    for skill_path, version in skill_versions:
+                        print(f"   Skill {skill_path}: {version}")
+                    print(f"   → Manual plugin version update recommended")
+                else:
+                    print(f"✓ Plugin '{plugin_name}' version matches at least one skill")
+            continue
+
+        # Single-skill plugin handling
         first_skill_path = skills[0].lstrip('./')
         skill_md = repo_root / first_skill_path / 'SKILL.md'
 
@@ -111,35 +172,58 @@ def sync_versions(marketplace_path, repo_root, dry_run=False):
             print(f"⚠️  SKILL.md not found for plugin '{plugin_name}': {skill_md}")
             continue
 
-        skill_version = extract_frontmatter_version(skill_md)
+        skill_version, is_deprecated = extract_frontmatter_version(skill_md)
 
         if not skill_version:
             print(f"ℹ️  No version found in {first_skill_path}/SKILL.md, skipping plugin '{plugin_name}'")
             continue
 
+        if is_deprecated:
+            print(f"⚠️  Plugin '{plugin_name}' skill uses deprecated 'version' field")
+            print(f"   Please use 'metadata.version' instead in {first_skill_path}/SKILL.md")
+
         current_plugin_version = plugin.get('version', '1.0.0')
 
         if skill_version != current_plugin_version:
-            print(f"🔄 Updating plugin '{plugin_name}':")
-            print(f"   {current_plugin_version} → {skill_version}")
-            print(f"   (from {first_skill_path}/SKILL.md)")
+            if mode == 'manual':
+                # Manual mode: warn only, don't update
+                print(f"⚠️  Version mismatch for plugin '{plugin_name}':")
+                print(f"   Plugin version: {current_plugin_version}")
+                print(f"   Skill version:  {skill_version} (from {first_skill_path}/SKILL.md)")
+                print(f"   → Please update plugin version manually in marketplace.json")
+                warnings.append({
+                    'plugin': plugin_name,
+                    'skill': first_skill_path,
+                    'skill_version': skill_version,
+                    'plugin_version': current_plugin_version
+                })
+            else:
+                # Auto mode: update single-skill plugins
+                print(f"🔄 Updating plugin '{plugin_name}':")
+                print(f"   {current_plugin_version} → {skill_version}")
+                print(f"   (from {first_skill_path}/SKILL.md)")
 
-            if not dry_run:
-                plugin['version'] = skill_version
-            updated_count += 1
+                if not dry_run:
+                    plugin['version'] = skill_version
+                updated_count += 1
         else:
             print(f"✓ Plugin '{plugin_name}' already at version {skill_version}")
 
+    # Save changes if any updates were made
     if updated_count > 0:
         if dry_run:
             print(f"\n🔍 Dry run: Would update {updated_count} plugin(s)")
         else:
             save_marketplace(marketplace_path, marketplace_data)
             print(f"\n✅ Updated {updated_count} plugin(s)")
+    elif warnings:
+        print(f"\n⚠️  {len(warnings)} version mismatch(es) detected")
+        print("   Run with --mode=auto to update single-skill plugins automatically")
+        print("   or update plugin versions manually in marketplace.json")
     else:
         print("\n✓ All plugin versions are up to date")
 
-    return updated_count
+    return updated_count if not warnings else -1  # Return -1 if warnings exist
 
 
 def main():
@@ -148,8 +232,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Sync versions in current directory
+  # Auto-sync single-skill plugin versions (default)
   %(prog)s
+
+  # Manual mode: warn about mismatches, don't auto-update
+  %(prog)s --mode=manual
 
   # Sync versions in specific repository
   %(prog)s --path /path/to/repo
@@ -180,6 +267,13 @@ Examples:
         help='Show detailed path resolution information'
     )
 
+    parser.add_argument(
+        '--mode',
+        choices=['auto', 'manual'],
+        default='auto',
+        help='Versioning mode: auto (auto-update single-skill plugins) or manual (warn only, no auto-updates)'
+    )
+
     args = parser.parse_args()
 
     # Determine paths with auto-detection
@@ -204,12 +298,19 @@ Examples:
         return 1
 
     print(f"📦 Syncing versions for marketplace: {marketplace_path}")
+    if args.mode == 'manual':
+        print(f"🔧 Mode: Manual (warn only, no auto-updates)")
+    else:
+        print(f"🔧 Mode: Auto (auto-update single-skill plugins)")
     print()
 
-    updated_count = sync_versions(marketplace_path, repo_root, dry_run=args.dry_run)
+    updated_count = sync_versions(marketplace_path, repo_root, dry_run=args.dry_run, mode=args.mode)
 
     if args.dry_run and updated_count > 0:
         return 1  # Exit with error in dry-run mode if changes needed
+
+    if updated_count < 0:
+        return 1  # Exit with error if warnings exist
 
     return 0
 

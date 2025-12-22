@@ -40,7 +40,7 @@
       "name": "skillsmith",
       "description": "Guide for forging effective Claude skills with marketplace integration",
       "category": "development",
-      "version": "1.5.0",
+      "version": "1.7.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
@@ -82,7 +82,7 @@
       "name": "omnifocus-manager",
       "description": "Cross-platform OmniFocus automation with Omni Automation, JXA queries, and secure task management",
       "category": "productivity",
-      "version": "1.2.0",
+      "version": "1.0.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
@@ -94,7 +94,7 @@
     },
     {
       "name": "skill-planner",
-      "description": "Manages improvement planning lifecycle for skills using git branches with research → plan → approve → implement workflow",
+      "description": "Manages improvement planning lifecycle for skills using git branches with research \u2192 plan \u2192 approve \u2192 implement workflow",
       "category": "development",
       "version": "1.0.0",
       "author": {
@@ -110,7 +110,7 @@
       "name": "marketplace-manager",
       "description": "Manages Claude Code plugin marketplace operations including version syncing and marketplace.json maintenance",
       "category": "development",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"

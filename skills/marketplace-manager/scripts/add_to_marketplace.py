@@ -26,9 +26,11 @@ def load_marketplace(marketplace_path):
 
     # Return empty marketplace structure
     return {
+        "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
         "name": "",
+        "version": "1.0.0",
+        "description": "",
         "owner": {"name": "", "email": ""},
-        "metadata": {"description": "", "version": "1.0.0"},
         "plugins": [],
     }
 
@@ -46,9 +48,11 @@ def save_marketplace(marketplace_path, marketplace_data):
 def init_marketplace(marketplace_path, name, owner_name, owner_email, description):
     """Initialize a new marketplace.json."""
     marketplace_data = {
+        "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
         "name": name,
+        "version": "1.0.0",
+        "description": description,
         "owner": {"name": owner_name, "email": owner_email},
-        "metadata": {"description": description, "version": "1.0.0"},
         "plugins": [],
     }
 
@@ -118,10 +122,8 @@ def list_marketplace(marketplace_data):
     """List all plugins and skills in the marketplace."""
     print("\n📦 Marketplace:", marketplace_data.get("name", "(unnamed)"))
     print(f"   Owner: {marketplace_data.get('owner', {}).get('name', '(not set)')}")
-    print(f"   Version: {marketplace_data.get('metadata', {}).get('version', '1.0.0')}")
-    print(
-        f"   Description: {marketplace_data.get('metadata', {}).get('description', '(none)')}"
-    )
+    print(f"   Version: {marketplace_data.get('version', '1.0.0')}")
+    print(f"   Description: {marketplace_data.get('description', '(none)')}")
 
     plugins = marketplace_data.get("plugins", [])
     if not plugins:
@@ -200,35 +202,356 @@ def update_metadata(
     Returns:
         True if updated, False otherwise
     """
-    metadata = marketplace_data.get("metadata", {})
     updated = False
 
     if description:
-        old_desc = metadata.get("description", "(none)")
-        metadata["description"] = description
+        old_desc = marketplace_data.get("description", "(none)")
+        marketplace_data["description"] = description
         print(f"✅ Updated description:")
         print(f"   Old: {old_desc}")
         print(f"   New: {description}")
         updated = True
 
     if version:
-        old_version = metadata.get("version", "1.0.0")
-        metadata["version"] = version
+        old_version = marketplace_data.get("version", "1.0.0")
+        marketplace_data["version"] = version
         print(f"✅ Updated version: {old_version} → {version}")
         updated = True
     elif auto_increment:
-        old_version = metadata.get("version", "1.0.0")
+        old_version = marketplace_data.get("version", "1.0.0")
         new_version = increment_version(old_version, auto_increment)
-        metadata["version"] = new_version
+        marketplace_data["version"] = new_version
         print(
             f"✅ Auto-incremented version ({auto_increment}): {old_version} → {new_version}"
         )
         updated = True
 
-    if updated:
-        marketplace_data["metadata"] = metadata
-
     return updated
+
+
+def validate_semantic_version(version_str):
+    """Validate semantic version format (X.Y.Z).
+
+    Args:
+        version_str: Version string to validate
+
+    Returns:
+        True if valid, False otherwise
+    """
+    import re
+    pattern = r'^\d+\.\d+\.\d+$'
+    return bool(re.match(pattern, str(version_str)))
+
+
+def validate_email(email_str):
+    """Basic email validation.
+
+    Args:
+        email_str: Email string to validate
+
+    Returns:
+        True if valid format, False otherwise
+    """
+    if not email_str:
+        return True  # Email is optional
+    import re
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email_str))
+
+
+def validate_marketplace(marketplace_path, repo_root, output_format='text'):
+    """Comprehensively validate marketplace.json structure.
+
+    Args:
+        marketplace_path: Path to marketplace.json
+        repo_root: Repository root directory
+        output_format: 'text' or 'json'
+
+    Returns:
+        Tuple of (is_valid, issues)
+    """
+    issues = []
+
+    # Load marketplace
+    try:
+        marketplace_data = load_marketplace(marketplace_path)
+    except Exception as e:
+        issues.append({
+            'type': 'error',
+            'category': 'schema',
+            'message': f"Failed to load marketplace.json: {e}"
+        })
+        return False, issues
+
+    # Validate required fields
+    required_fields = ['name', 'version', 'description', 'owner', 'plugins']
+    for field in required_fields:
+        if field not in marketplace_data or not marketplace_data[field]:
+            issues.append({
+                'type': 'error',
+                'category': 'schema',
+                'field': field,
+                'message': f"Required field '{field}' is missing or empty"
+            })
+
+    # Validate $schema URL
+    expected_schema = "https://anthropic.com/claude-code/marketplace.schema.json"
+    if '$schema' not in marketplace_data:
+        issues.append({
+            'type': 'warning',
+            'category': 'schema',
+            'field': '$schema',
+            'message': f"Missing $schema field (expected: {expected_schema})"
+        })
+    elif marketplace_data['$schema'] != expected_schema:
+        issues.append({
+            'type': 'warning',
+            'category': 'schema',
+            'field': '$schema',
+            'message': f"Unexpected schema URL: {marketplace_data['$schema']}"
+        })
+
+    # Validate marketplace version
+    if 'version' in marketplace_data:
+        if not validate_semantic_version(marketplace_data['version']):
+            issues.append({
+                'type': 'error',
+                'category': 'version',
+                'field': 'version',
+                'value': marketplace_data['version'],
+                'message': f"Invalid semantic version format: {marketplace_data['version']} (expected X.Y.Z)"
+            })
+
+    # Validate owner
+    if 'owner' in marketplace_data:
+        owner = marketplace_data['owner']
+        if not isinstance(owner, dict):
+            issues.append({
+                'type': 'error',
+                'category': 'schema',
+                'field': 'owner',
+                'message': "Owner must be an object with 'name' and optional 'email'"
+            })
+        else:
+            if 'name' not in owner or not owner['name']:
+                issues.append({
+                    'type': 'error',
+                    'category': 'schema',
+                    'field': 'owner.name',
+                    'message': "Owner name is required"
+                })
+            if 'email' in owner and not validate_email(owner['email']):
+                issues.append({
+                    'type': 'warning',
+                    'category': 'format',
+                    'field': 'owner.email',
+                    'value': owner['email'],
+                    'message': f"Invalid email format: {owner['email']}"
+                })
+
+    # Validate plugins
+    if 'plugins' not in marketplace_data or not isinstance(marketplace_data['plugins'], list):
+        issues.append({
+            'type': 'error',
+            'category': 'schema',
+            'field': 'plugins',
+            'message': "Plugins must be an array"
+        })
+    else:
+        plugins = marketplace_data['plugins']
+        plugin_names = set()
+
+        for idx, plugin in enumerate(plugins):
+            plugin_prefix = f"plugins[{idx}]"
+
+            # Check required plugin fields
+            if 'name' not in plugin or not plugin['name']:
+                issues.append({
+                    'type': 'error',
+                    'category': 'schema',
+                    'field': f'{plugin_prefix}.name',
+                    'message': f"Plugin at index {idx} missing required 'name' field"
+                })
+            else:
+                plugin_name = plugin['name']
+
+                # Check for duplicate names
+                if plugin_name in plugin_names:
+                    issues.append({
+                        'type': 'error',
+                        'category': 'duplicate',
+                        'field': f'{plugin_prefix}.name',
+                        'value': plugin_name,
+                        'message': f"Duplicate plugin name: {plugin_name}"
+                    })
+                plugin_names.add(plugin_name)
+
+            if 'description' not in plugin or not plugin['description']:
+                issues.append({
+                    'type': 'error',
+                    'category': 'schema',
+                    'field': f'{plugin_prefix}.description',
+                    'message': f"Plugin '{plugin.get('name', 'unnamed')}' missing required 'description' field"
+                })
+
+            if 'version' not in plugin or not plugin['version']:
+                issues.append({
+                    'type': 'error',
+                    'category': 'schema',
+                    'field': f'{plugin_prefix}.version',
+                    'message': f"Plugin '{plugin.get('name', 'unnamed')}' missing required 'version' field"
+                })
+            elif not validate_semantic_version(plugin['version']):
+                issues.append({
+                    'type': 'error',
+                    'category': 'version',
+                    'field': f'{plugin_prefix}.version',
+                    'value': plugin['version'],
+                    'message': f"Plugin '{plugin.get('name', 'unnamed')}' has invalid version: {plugin['version']}"
+                })
+
+            # Validate skill paths
+            if 'skills' in plugin and isinstance(plugin['skills'], list):
+                for skill_idx, skill_path in enumerate(plugin['skills']):
+                    skill_path_clean = skill_path.lstrip('./')
+                    skill_dir = repo_root / skill_path_clean
+
+                    # Check if path starts with './'
+                    if not skill_path.startswith('./'):
+                        issues.append({
+                            'type': 'warning',
+                            'category': 'format',
+                            'field': f'{plugin_prefix}.skills[{skill_idx}]',
+                            'value': skill_path,
+                            'message': f"Skill path should start with './' (got: {skill_path})"
+                        })
+
+                    # Check if skill directory exists
+                    if not skill_dir.exists():
+                        issues.append({
+                            'type': 'error',
+                            'category': 'missing_file',
+                            'field': f'{plugin_prefix}.skills[{skill_idx}]',
+                            'value': skill_path,
+                            'message': f"Skill directory not found: {skill_dir}"
+                        })
+                    else:
+                        skill_md = skill_dir / 'SKILL.md'
+                        if not skill_md.exists():
+                            issues.append({
+                                'type': 'error',
+                                'category': 'missing_file',
+                                'field': f'{plugin_prefix}.skills[{skill_idx}]',
+                                'value': skill_path,
+                                'message': f"SKILL.md not found in: {skill_dir}"
+                            })
+                        else:
+                            # Validate SKILL.md frontmatter
+                            from sync_marketplace_versions import extract_frontmatter_version
+                            version, is_deprecated = extract_frontmatter_version(skill_md)
+                            if not version:
+                                issues.append({
+                                    'type': 'warning',
+                                    'category': 'metadata',
+                                    'field': f'{plugin_prefix}.skills[{skill_idx}]',
+                                    'value': skill_path,
+                                    'message': f"No version found in {skill_path}/SKILL.md frontmatter"
+                                })
+                            elif is_deprecated:
+                                issues.append({
+                                    'type': 'warning',
+                                    'category': 'deprecated',
+                                    'field': f'{plugin_prefix}.skills[{skill_idx}]',
+                                    'value': skill_path,
+                                    'message': f"Skill uses deprecated 'version' field (use 'metadata.version' instead)"
+                                })
+
+            # Validate author email if present
+            if 'author' in plugin and isinstance(plugin['author'], dict):
+                if 'email' in plugin['author'] and not validate_email(plugin['author']['email']):
+                    issues.append({
+                        'type': 'warning',
+                        'category': 'format',
+                        'field': f'{plugin_prefix}.author.email',
+                        'value': plugin['author']['email'],
+                        'message': f"Invalid email format: {plugin['author']['email']}"
+                    })
+
+    # Determine if valid
+    errors = [i for i in issues if i['type'] == 'error']
+    is_valid = len(errors) == 0
+
+    return is_valid, issues
+
+
+def format_validation_output(is_valid, issues, format_type='text'):
+    """Format validation results for output.
+
+    Args:
+        is_valid: Boolean indicating if validation passed
+        issues: List of issue dictionaries
+        format_type: 'text' or 'json'
+
+    Returns:
+        None (prints to stdout)
+    """
+    if format_type == 'json':
+        import json
+        result = {
+            'valid': is_valid,
+            'issues': issues,
+            'summary': {
+                'total': len(issues),
+                'errors': len([i for i in issues if i['type'] == 'error']),
+                'warnings': len([i for i in issues if i['type'] == 'warning'])
+            }
+        }
+        print(json.dumps(result, indent=2))
+    else:
+        # Text format
+        print("\n" + "="*60)
+        print("Marketplace Validation Report")
+        print("="*60 + "\n")
+
+        if is_valid and not issues:
+            print("✅ Validation passed! No issues found.\n")
+            return
+
+        errors = [i for i in issues if i['type'] == 'error']
+        warnings = [i for i in issues if i['type'] == 'warning']
+
+        if errors:
+            print(f"❌ Errors ({len(errors)}):\n")
+            for issue in errors:
+                field = issue.get('field', 'unknown')
+                message = issue['message']
+                value = issue.get('value', '')
+                if value:
+                    print(f"  • [{field}] {message}")
+                    print(f"    Value: {value}")
+                else:
+                    print(f"  • [{field}] {message}")
+            print()
+
+        if warnings:
+            print(f"⚠️  Warnings ({len(warnings)}):\n")
+            for issue in warnings:
+                field = issue.get('field', 'unknown')
+                message = issue['message']
+                value = issue.get('value', '')
+                if value:
+                    print(f"  • [{field}] {message}")
+                    print(f"    Value: {value}")
+                else:
+                    print(f"  • [{field}] {message}")
+            print()
+
+        print("="*60)
+        if is_valid:
+            print("✅ Validation passed (with warnings)")
+        else:
+            print("❌ Validation failed")
+        print("="*60 + "\n")
 
 
 def main():
@@ -342,6 +665,25 @@ Examples:
         "--path", default=".", help="Repository root path (default: auto-detect)"
     )
     update_parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Show detailed path resolution information"
+    )
+
+    # Validate command
+    validate_parser = subparsers.add_parser(
+        "validate", help="Validate marketplace.json structure and compliance"
+    )
+    validate_parser.add_argument(
+        "--path", default=".", help="Repository root path (default: auto-detect)"
+    )
+    validate_parser.add_argument(
+        "--format",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (text or json)"
+    )
+    validate_parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         help="Show detailed path resolution information"
@@ -473,6 +815,24 @@ Examples:
         else:
             print("❌ No changes made")
             return 1
+
+    elif args.command == "validate":
+        if not marketplace_path.exists():
+            print(f"❌ No marketplace found")
+            print(f"   Expected location: {marketplace_path}")
+            print(f"   Repository root: {repo_root}")
+            print(f"   Current directory: {Path.cwd()}")
+            print(f"\n   Run 'init' command first or specify correct --path")
+            return 1
+
+        # Run validation
+        is_valid, issues = validate_marketplace(marketplace_path, repo_root, output_format=args.format)
+
+        # Format and print results
+        format_validation_output(is_valid, issues, format_type=args.format)
+
+        # Exit with error code if validation failed
+        return 0 if is_valid else 1
 
     return 0
 
