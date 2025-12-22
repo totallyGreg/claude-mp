@@ -1,0 +1,118 @@
+{
+  "weekly_review": {
+    "name": "Weekly Review",
+    "project": "Admin",
+    "tags": ["review", "weekly"],
+    "estimate": "1h",
+    "note": "Weekly Review Checklist:\n\n**Get Clear (15 min)**\n- [ ] Process inbox to zero\n- [ ] Process notes and reading\n- [ ] Empty mind capture lists\n\n**Get Current (30 min)**\n- [ ] Review calendar (past week)\n- [ ] Review calendar (next 2 weeks)\n- [ ] Review all project lists\n- [ ] Update project next actions\n- [ ] Review \"waiting for\" list\n- [ ] Review upcoming deadlines\n\n**Get Creative (15 min)**\n- [ ] Review someday/maybe\n- [ ] Brainstorm new projects\n- [ ] Reflect on goals and areas",
+    "sequential": false,
+    "defer_pattern": "every Monday at 09:00"
+  },
+  "monthly_review": {
+    "name": "Monthly Review",
+    "project": "Admin",
+    "tags": ["review", "monthly"],
+    "estimate": "2h",
+    "note": "Monthly Review Checklist:\n\n- [ ] Review all active projects\n- [ ] Archive completed projects\n- [ ] Review someday/maybe projects\n- [ ] Check progress on quarterly goals\n- [ ] Update areas of responsibility\n- [ ] Review last month's accomplishments\n- [ ] Set priorities for next month\n- [ ] Check budget and finances\n- [ ] Review health and wellness goals\n- [ ] Plan major events/deadlines for next month",
+    "defer_pattern": "first day of month"
+  },
+  "meeting_prep": {
+    "name": "Prepare for {{MEETING_NAME}}",
+    "project": "{{PROJECT_NAME}}",
+    "tags": ["meeting", "prep"],
+    "estimate": "30m",
+    "note": "Meeting Preparation:\n\n- [ ] Review agenda\n- [ ] Prepare materials/slides\n- [ ] Review action items from last meeting\n- [ ] List discussion topics\n- [ ] Prepare questions\n- [ ] Test technology (if virtual)\n- [ ] Gather supporting documents",
+    "defer_days_before_meeting": 1
+  },
+  "project_kickoff": {
+    "name": "Kickoff: {{PROJECT_NAME}}",
+    "project": "{{PROJECT_NAME}}",
+    "tags": ["planning", "kickoff"],
+    "estimate": "2h",
+    "note": "Project Kickoff Checklist:\n\n**Define**\n- [ ] Clarify project outcome (what does done look like?)\n- [ ] Identify stakeholders\n- [ ] Set success criteria\n- [ ] Define timeline and milestones\n\n**Plan**\n- [ ] Brainstorm required actions\n- [ ] Organize actions into phases\n- [ ] Identify dependencies\n- [ ] Assign responsibilities\n- [ ] Identify required resources\n\n**Setup**\n- [ ] Create project folder/workspace\n- [ ] Schedule kickoff meeting\n- [ ] Create recurring check-in meetings\n- [ ] Set up communication channels",
+    "flagged": true,
+    "create_project": true
+  },
+  "project_review": {
+    "name": "Review: {{PROJECT_NAME}}",
+    "project": "{{PROJECT_NAME}}",
+    "tags": ["review", "project"],
+    "estimate": "30m",
+    "note": "Project Review:\n\n- [ ] Review project outcome - still relevant?\n- [ ] Check progress against timeline\n- [ ] Review completed tasks\n- [ ] Update next actions\n- [ ] Remove blocked or unnecessary tasks\n- [ ] Identify roadblocks\n- [ ] Update project notes\n- [ ] Communicate status to stakeholders"
+  },
+  "inbox_zero": {
+    "name": "Process Inbox to Zero",
+    "project": "Admin",
+    "tags": ["processing"],
+    "estimate": "15m",
+    "note": "Inbox Processing:\n\nFor each item:\n1. What is it?\n2. Is it actionable?\n   - NO → Trash, reference, or someday/maybe\n   - YES → Continue\n3. What's the next action?\n4. Will it take < 2 minutes?\n   - YES → Do it now\n   - NO → Continue\n5. Can/should I delegate it?\n   - YES → Create \"waiting for\" task\n   - NO → Continue\n6. Add to appropriate project with context tags\n7. Set due/defer dates if applicable"
+  },
+  "email_processing": {
+    "name": "Process Email",
+    "project": "Admin",
+    "tags": ["email", "computer"],
+    "estimate": "30m",
+    "note": "Email Processing:\n\n- [ ] Process all emails (don't just read)\n- [ ] Archive or delete processed emails\n- [ ] Create tasks for actionable items\n- [ ] Respond to quick emails (<2 min)\n- [ ] Defer longer responses to tasks\n- [ ] Unsubscribe from unwanted lists\n- [ ] Achieve inbox zero"
+  },
+  "daily_planning": {
+    "name": "Daily Planning",
+    "project": "Admin",
+    "tags": ["planning", "daily"],
+    "estimate": "10m",
+    "note": "Daily Planning:\n\n**Morning**\n- [ ] Review today's calendar\n- [ ] Review today's tasks\n- [ ] Check flagged priorities\n- [ ] Choose top 3 tasks for today\n- [ ] Check waiting for items\n\n**Evening**\n- [ ] Complete finished tasks\n- [ ] Capture new items\n- [ ] Review tomorrow's calendar\n- [ ] Review tomorrow's tasks\n- [ ] Clear desk/workspace",
+    "defer_pattern": "every day at 09:00"
+  },
+  "deep_work_session": {
+    "name": "Deep Work: {{TASK_NAME}}",
+    "project": "{{PROJECT_NAME}}",
+    "tags": ["deep-work", "focus"],
+    "estimate": "2h",
+    "note": "Deep Work Session:\n\n**Preparation** (5 min)\n- [ ] Close email and Slack\n- [ ] Turn off notifications\n- [ ] Clear workspace\n- [ ] Set timer (90-120 min)\n- [ ] Have water nearby\n\n**Focus** (90-120 min)\n- Work on single task\n- No multitasking\n- No checking email/messages\n\n**Review** (5 min)\n- [ ] Note progress\n- [ ] Capture any new items\n- [ ] Update task status\n- [ ] Schedule next session if needed"
+  },
+  "read_article": {
+    "name": "Read: {{ARTICLE_TITLE}}",
+    "project": "Reading List",
+    "tags": ["reading", "computer"],
+    "estimate": "15m",
+    "note": "Article: {{ARTICLE_URL}}\n\n- [ ] Read article\n- [ ] Take notes on key insights\n- [ ] Create tasks for any action items\n- [ ] Share if valuable\n- [ ] Archive or bookmark for reference"
+  },
+  "learn_skill": {
+    "name": "Learn: {{SKILL_NAME}}",
+    "project": "Personal Development",
+    "tags": ["learning"],
+    "estimate": "{{ESTIMATE}}",
+    "note": "Learning Plan:\n\n**Resources**\n- Course: {{COURSE_URL}}\n- Books: {{BOOKS}}\n- Practice: {{PRACTICE_IDEAS}}\n\n**Milestones**\n- [ ] Complete introduction/overview\n- [ ] Finish core content\n- [ ] Complete practice exercises\n- [ ] Build sample project\n- [ ] Apply in real scenario",
+    "create_project": true,
+    "sequential": true
+  },
+  "errands_trip": {
+    "name": "Errands Run",
+    "project": "Personal",
+    "tags": ["errands"],
+    "estimate": "1h",
+    "note": "Errands List:\n\n- [ ] {{ERRAND_1}}\n- [ ] {{ERRAND_2}}\n- [ ] {{ERRAND_3}}\n\n**Route Planning**\n1. Start: {{START_LOCATION}}\n2. Stop: {{STOP_1}}\n3. Stop: {{STOP_2}}\n4. Return home\n\n**Don't Forget**\n- Reusable bags\n- Shopping list\n- Returns/exchanges"
+  },
+  "backup_routine": {
+    "name": "Backup Computer",
+    "project": "Admin",
+    "tags": ["computer", "maintenance"],
+    "estimate": "20m",
+    "note": "Backup Checklist:\n\n- [ ] Verify Time Machine backup\n- [ ] Check cloud sync (Dropbox/iCloud)\n- [ ] Export critical documents\n- [ ] Backup OmniFocus database\n- [ ] Test restore if needed\n- [ ] Update backup documentation",
+    "defer_pattern": "every 2 weeks"
+  },
+  "financial_review": {
+    "name": "Monthly Financial Review",
+    "project": "Finance",
+    "tags": ["finance", "review"],
+    "estimate": "1h",
+    "note": "Financial Review:\n\n**Income & Expenses**\n- [ ] Review bank statements\n- [ ] Categorize transactions\n- [ ] Check credit card statements\n- [ ] Review budget vs actual\n\n**Savings & Investments**\n- [ ] Check savings account\n- [ ] Review investment performance\n- [ ] Rebalance if needed\n- [ ] Update net worth tracker\n\n**Bills & Subscriptions**\n- [ ] Pay upcoming bills\n- [ ] Review subscriptions (cancel unused)\n- [ ] Check for price changes\n\n**Planning**\n- [ ] Adjust budget for next month\n- [ ] Set financial goals\n- [ ] Note any large upcoming expenses",
+    "defer_pattern": "last day of month"
+  },
+  "health_checkup": {
+    "name": "Health Checkup",
+    "project": "Health",
+    "tags": ["health", "phone"],
+    "estimate": "15m",
+    "note": "Health Maintenance:\n\n- [ ] Schedule annual physical\n- [ ] Schedule dental cleaning\n- [ ] Schedule eye exam\n- [ ] Refill prescriptions\n- [ ] Review health goals\n- [ ] Update medical records\n- [ ] Check insurance coverage"
+  }
+}

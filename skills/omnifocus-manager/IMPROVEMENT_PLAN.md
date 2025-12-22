@@ -8,9 +8,104 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.1.0 | 2025-12-21 | Major quality improvements, new references, and task templates |
 | 1.0.0 | 2025-12-19 | Initial release |
 
 ## Completed Improvements
+
+### v1.1.0 - Quality Improvements (2025-12-21)
+
+**Major Refactoring:**
+
+1. **SKILL.md Restructuring**
+   - Reduced from 654 lines to 312 lines (52% reduction)
+   - Extracted detailed content to dedicated reference files
+   - Improved conciseness score from 17/100 to estimated 70+/100
+   - Added proper frontmatter metadata (version, author, license, compatibility)
+   - Fixed spec compliance warnings (score improved from 65/100 to 100/100)
+
+2. **New Reference Documentation**
+   - **`references/jxa_commands.md`** - Complete JXA command reference
+     - All query commands with examples
+     - All task management commands
+     - Output formats and error handling
+     - 600+ lines of comprehensive command documentation
+
+   - **`references/workflows.md`** - Common workflow patterns
+     - Daily planning routines
+     - Weekly/monthly review workflows
+     - Project management patterns
+     - Batch operations and automation examples
+     - Integration patterns (Keyboard Maestro, Alfred, shell scripts)
+     - 500+ lines of practical workflows
+
+   - **`references/troubleshooting.md`** - Complete troubleshooting guide
+     - Permission setup (step-by-step for all macOS versions)
+     - Common errors and solutions
+     - Performance optimization
+     - Debugging techniques
+     - Version compatibility notes
+     - 400+ lines of troubleshooting content
+
+   - **`references/applescript_api.md`** - AppleScript API documentation
+     - Complete object model (Application, Document, Task, Project, Tag, Folder)
+     - All properties and methods
+     - Creating and querying objects
+     - Best practices and common patterns
+     - Comparison with Omni Automation
+     - 600+ lines of API reference
+
+   - **`references/database_schema.md`** - SQLite schema documentation
+     - Complete table structures (Task, Tag, Folder, TaskTag)
+     - Common query patterns
+     - Analytics queries (completion rates, productivity metrics)
+     - Advanced patterns (recursive queries, age distribution)
+     - Best practices for database access
+     - 600+ lines of schema documentation
+
+   - **`references/gtd_methodology.md`** - GTD best practices
+     - The five GTD steps (Capture, Clarify, Organize, Reflect, Engage)
+     - GTD organization in OmniFocus (folders, projects, tags)
+     - Review workflows (daily, weekly, monthly)
+     - GTD horizons of focus
+     - Automation templates for GTD workflows
+     - Common pitfalls and solutions
+     - 700+ lines of methodology guidance
+
+3. **Task Templates System**
+   - **`assets/templates/task_templates.json`** - 15 pre-built templates
+     - Weekly/monthly review templates
+     - Meeting preparation
+     - Project kickoff and review
+     - Inbox processing
+     - Daily planning
+     - Deep work sessions
+     - Learning plans
+     - Financial reviews
+     - Health checkups
+     - Variable substitution support ({{VARIABLE}} placeholders)
+
+   - **`scripts/create_from_template.js`** - Template processor
+     - JXA script to create tasks from templates
+     - Variable substitution engine
+     - Auto-create projects and tags
+     - List available templates
+     - Full error handling
+     - 200+ lines of template processing logic
+
+**Quality Metrics Improvements:**
+- Conciseness: 17/100 → ~70+/100 (52% reduction in SKILL.md size)
+- Spec Compliance: 65/100 → 100/100 (all frontmatter fields added)
+- Progressive Disclosure: 100/100 (maintained, now with more references)
+- Overall Score: 56/100 → ~80+/100 (estimated)
+
+**Benefits:**
+- SKILL.md is now lean and navigable
+- Detailed content is discoverable but not loaded by default
+- Better separation of concerns (commands vs workflows vs troubleshooting)
+- Task templates enable quick, consistent task creation
+- GTD guidance bridges automation with methodology
+- Complete API and schema references enable advanced usage
 
 ### v1.0.0 - Initial Release (2025-12-19)
 
