@@ -1,7 +1,9 @@
 ---
 name: skillsmith
 description: Guide for forging effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
-version: 1.5.0
+metadata:
+  version: "1.6.0"
+compatibility: Requires python3 for research and metrics scripts
 license: Complete terms in LICENSE.txt
 ---
 
@@ -195,297 +197,215 @@ To complete SKILL.md, answer the following questions:
 2. When should the skill be used?
 3. In practice, how should Claude use the skill? All reusable skill contents developed above should be referenced so that Claude knows how to use them.
 
-### Step 5: Add to Plugin Marketplace (Recommended)
+### Step 5: Distribute via Marketplace (Optional)
 
-Once the skill is ready and tested, add it to a Claude Code plugin marketplace for easy distribution and installation. This is the recommended approach for sharing skills within teams or publicly.
-
-Skip this step only if distributing the skill as a standalone zip file (see Step 6).
-
-For comprehensive information about plugin marketplaces, refer to `references/plugin_marketplace_guide.md`.
-
-#### Understanding Plugin Marketplaces
-
-A plugin marketplace allows users to install skills via Claude Code's plugin system using commands like:
-```bash
-/plugin marketplace add username/repository
-/plugin install plugin-name@marketplace-name
-```
-
-Plugin marketplaces require:
-1. A `.claude-plugin/marketplace.json` file in the repository root
-2. A Git repository (GitHub, GitLab, etc.)
-3. Skills organized in the repository
-
-#### Version Management
-
-**IMPORTANT:** When skills are updated with new versions in their SKILL.md frontmatter, the marketplace.json must be updated to reflect the new plugin version. This is handled automatically using the sync script:
+To distribute skills via Claude Code plugin marketplace, use **marketplace-manager**:
 
 ```bash
-# Sync all skill versions to marketplace
-python3 scripts/sync_marketplace_versions.py
+# Add skill to marketplace
+See marketplace-manager skill for complete workflow
 
-# Preview changes without saving
-python3 scripts/sync_marketplace_versions.py --dry-run
+# marketplace-manager handles:
+- Adding skills to marketplace.json
+- Version syncing
+- Git integration
+- Validation
 ```
 
-The sync script:
-- Reads the `version` field from each skill's SKILL.md frontmatter
-- Updates the corresponding plugin's `version` in marketplace.json
-- Reports all changes made
+For comprehensive marketplace documentation, see the **marketplace-manager** skill.
 
-**Git Pre-Commit Hook:** The repository can include a pre-commit hook that automatically runs the sync script before commits, ensuring marketplace versions always stay in sync with skill versions. The hook will:
-- Detect version mismatches before commits
-- Automatically update marketplace.json
-- Add the updated marketplace.json to the commit
-- Prevent commits if sync fails (can be bypassed with `git commit --no-verify`)
-
-To set up the pre-commit hook:
-```bash
-# Copy the pre-commit hook template (if provided in the marketplace)
-cp .git/hooks/pre-commit.sample .git/hooks/pre-commit
-chmod +x .git/hooks/pre-commit
-
-# Or the hook may already be installed in the repository
-```
-
-### Step 6: Packaging a Skill (Optional)
-
-For standalone distribution outside of a marketplace, package the skill into a distributable zip file. The packaging process automatically validates the skill first to ensure it meets all requirements:
-
-```bash
-scripts/package_skill.py <path/to/skill-folder>
-```
-
-Optional output directory specification:
-
-```bash
-scripts/package_skill.py <path/to/skill-folder> ./dist
-```
-
-The packaging script will:
-
-1. **Validate** the skill automatically, checking:
-   - YAML frontmatter format and required fields
-   - Skill naming conventions and directory structure
-   - Description completeness and quality
-   - File organization and resource references
-
-2. **Package** the skill if validation passes, creating a zip file named after the skill (e.g., `my-skill.zip`) that includes all files and maintains the proper directory structure for distribution.
-
-If validation fails, the script will report the errors and exit without creating a package. Fix any validation errors and run the packaging command again.
-
-**When to use packaging:**
-- Distributing a single skill to individual users
-- Sharing via email, Slack, or direct download
-- Testing installation without setting up a marketplace
-- Creating backup archives of skills
-
-**Note:** For team or public distribution, prefer adding skills to a marketplace (Step 5) instead of distributing zip files
-
-#### Marketplace Structure
-
-The marketplace.json defines:
-- **Marketplace metadata** - Name, owner, description, version
-- **Plugins** - Collections of related skills with their own versions
-- **Skills** - Individual skill directories
-
-Example structure:
-```json
-{
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "my-marketplace",
-  "version": "2.0.0",
-  "description": "Collection description",
-  "owner": {
-    "name": "Your Name",
-    "email": "email@example.com"
-  },
-  "plugins": [
-    {
-      "name": "plugin-name",
-      "description": "Plugin description",
-      "category": "development",
-      "version": "1.0.0",
-      "author": {
-        "name": "Your Name",
-        "email": "email@example.com"
-      },
-      "source": "./",
-      "skills": ["./skills/skill-one", "./skills/skill-two"]
-    }
-  ]
-}
-```
-
-**Important:** Plugin versions should match the version in the skill's SKILL.md frontmatter. Use the sync script to keep these in sync automatically
-
-#### Managing the Marketplace
-
-Use the `add_to_marketplace.py` script to manage the marketplace.
-
-**Script Path Handling:**
-
-All scripts automatically detect the repository root by searching for `.git` or `.claude-plugin` directories in parent directories. This means you can run scripts from any directory within your repository without specifying `--path`.
-
-Examples:
-```bash
-# Auto-detect repo root (works from any directory in repo)
-python3 skills/skillsmith/scripts/add_to_marketplace.py list
-
-# From scripts directory
-cd skills/skillsmith/scripts
-python3 add_to_marketplace.py list
-
-# With explicit path (if auto-detection fails)
-python3 add_to_marketplace.py list --path /path/to/repo
-
-# With verbose output to see path resolution
-python3 add_to_marketplace.py list --verbose
-```
-
-**Troubleshooting:**
-- If you see "Could not find repository root", ensure you're running from within a git repository
-- Or specify `--path /path/to/repo` explicitly
-- Use `--verbose` flag to see detailed path resolution information
-
-**Initialize a new marketplace:**
-```bash
-scripts/add_to_marketplace.py init \
-  --name my-marketplace \
-  --owner-name "Your Name" \
-  --owner-email "email@example.com" \
-  --description "My skill collection"
-```
-
-**Create a new plugin with skills:**
-```bash
-scripts/add_to_marketplace.py create-plugin my-plugin \
-  "Plugin description" \
-  --skills ./skill-one ./skill-two ./skill-three
-```
-
-**Add a skill to existing plugin:**
-```bash
-scripts/add_to_marketplace.py add-skill my-plugin ./new-skill
-```
-
-**List marketplace contents:**
-```bash
-scripts/add_to_marketplace.py list
-```
-
-#### Publishing Workflow
-
-1. **Initialize marketplace** (if not already done):
-```bash
-scripts/add_to_marketplace.py init \
-  --name terminal-tools \
-  --owner-name "Your Name" \
-  --owner-email "you@example.com" \
-  --description "Terminal configuration tools"
-```
-
-2. **Create plugin or add skills**:
-```bash
-# Create new plugin
-scripts/add_to_marketplace.py create-plugin terminal-guru \
-  "Terminal diagnostics and configuration" \
-  --skills ./terminal-guru
-
-# Or add to existing plugin
-scripts/add_to_marketplace.py add-skill terminal-guru ./another-skill
-```
-
-3. **Sync versions and commit to Git**:
-```bash
-# Sync versions from SKILL.md to marketplace.json
-python3 scripts/sync_marketplace_versions.py
-
-# Add and commit changes
-git add .claude-plugin/ skills/skill-name/
-git commit -m "Add skill-name to marketplace"
-# Note: If pre-commit hook is installed, version sync happens automatically
-
-git push
-```
-
-4. **Users can install**:
-```bash
-/plugin marketplace add username/repository
-/plugin install plugin-name@marketplace-name
-```
-
-#### Organizing Multiple Skills
-
-Common patterns for organizing skills in marketplaces:
-
-**Pattern 1: Single plugin with related skills**
-```
-.claude-plugin/marketplace.json
-├── Plugin: "development-tools"
-    ├── ./terminal-guru
-    ├── ./git-helper
-    └── ./code-reviewer
-```
-
-**Pattern 2: Multiple plugins by domain**
-```
-.claude-plugin/marketplace.json
-├── Plugin: "terminal-tools"
-│   ├── ./terminal-guru
-│   └── ./shell-config
-└── Plugin: "document-tools"
-    ├── ./pdf-tools
-    └── ./markdown-tools
-```
-
-**Pattern 3: Plugin per skill** (for unrelated skills)
-```
-.claude-plugin/marketplace.json
-├── Plugin: "terminal-guru"
-│   └── ./terminal-guru
-└── Plugin: "brand-guidelines"
-    └── ./brand-guidelines
-```
-
-#### Best Practices
-
-1. **Descriptive plugin names** - Use clear, searchable names
-2. **Meaningful descriptions** - Help users understand what the plugin provides
-3. **Logical grouping** - Group related skills into plugins
-4. **Version management** - Update marketplace version when adding/changing skills
-5. **README documentation** - Include installation instructions in repository README
-
-### Step 7: Iterate
+### Step 6: Iterate
 
 After testing the skill, users may request improvements. Often this happens right after using the skill, with fresh context of how the skill performed.
 
 **Iteration workflow:**
 1. Use the skill on real tasks
 2. Notice struggles or inefficiencies
-3. Identify how SKILL.md or bundled resources should be updated
-4. **Document planned changes in IMPROVEMENT_PLAN.md**
-5. Implement changes and test again
-6. **Update IMPROVEMENT_PLAN.md to move items from "Planned" to "Completed"**
-7. If published in marketplace, follow the **Pre-Release Checklist** below
-
-**Pre-Release Checklist:**
-
-Before releasing a new version, ensure all steps are completed:
-
-- [ ] Implementation complete and tested
-- [ ] Move improvements from "Planned" to "Recent Improvements (Completed)" in IMPROVEMENT_PLAN.md
-- [ ] Add completion date to completed section header (e.g., `### v1.4.0 - Feature Name (2025-12-01)`)
-- [ ] **Replace "TBD" with actual date (YYYY-MM-DD) in IMPROVEMENT_PLAN.md version history table**
-- [ ] Update `version` field in SKILL.md frontmatter (follow semantic versioning)
-- [ ] Run validation: `python3 scripts/quick_validate.py --check-improvement-plan <skill-path>`
-- [ ] Fix any validation errors or warnings
-- [ ] Run sync script: `python3 scripts/sync_marketplace_versions.py` (if using marketplace)
-- [ ] Commit and push changes (version sync happens automatically if pre-commit hook is installed)
-
-After release, users can update via `/plugin update`
+3. Use **skill-planner** for systematic improvements:
+   - Research current state
+   - Create improvement plan
+   - Refine and approve plan
+   - Implement approved changes
+4. Update `metadata.version` in SKILL.md frontmatter (follow semantic versioning)
+5. If published in marketplace, use **marketplace-manager** to sync versions
 
 **Version Guidelines:**
-- **Patch** (1.0.0 → 1.0.1): Bug fixes, documentation updates, minor improvements
-- **Minor** (1.0.1 → 1.1.0): New features, new bundled resources, backward-compatible changes
-- **Major** (1.1.0 → 2.0.0): Breaking changes, major rewrites, changed workflow
+- **MAJOR** (1.0.0 → 2.0.0): Breaking changes, major rewrites, changed workflow
+- **MINOR** (1.0.0 → 1.1.0): New features, new bundled resources, backward-compatible changes
+- **PATCH** (1.0.0 → 1.0.1): Bug fixes, documentation updates, minor improvements
+
+---
+
+## Skill Research & Analysis
+
+skillsmith provides deep research capabilities to understand skills and identify improvement opportunities. This research integrates with skill-planner for systematic skill improvement workflows.
+
+### Research Capabilities
+
+The research system conducts a multi-phase analysis to understand what a skill does, how well it's implemented, and how it can be improved.
+
+**Available Research Phases:**
+
+1. **Understand Intent** - Extract skill purpose, description, and usage patterns
+2. **Identify Domain & Complexity** - Classify domain and assess complexity level
+3. **Research Best Practices** - Identify domain-specific patterns (future enhancement)
+4. **Find Similar Skills** - Learn from examples in repository (future enhancement)
+5. **Analyze Implementation** - Calculate quality metrics and identify issues
+6. **Check Spec Compliance** - Validate against Agent Skills specification
+7. **Synthesize Findings** - Consolidate into prioritized recommendations (future enhancement)
+
+### Quality Metrics
+
+skillsmith calculates objective quality metrics for any skill:
+
+**Conciseness Score (0-100)**
+- Evaluates line count vs guidelines (500 max, 300 recommended)
+- Evaluates token count vs guidelines (2000 max)
+- Higher score = more concise
+
+**Complexity Score (0-100)**
+- Analyzes heading structure and nesting depth
+- Counts sections and code blocks
+- Higher score = simpler, clearer structure
+
+**Spec Compliance Score (0-100)**
+- Validates required frontmatter fields (name, description)
+- Checks recommended fields (metadata, compatibility, license)
+- Identifies violations and warnings
+- Higher score = better adherence to Agent Skills spec
+
+**Progressive Disclosure Score (0-100)**
+- Evaluates proper use of bundled resources (scripts, references, assets)
+- Checks for appropriate content separation
+- Higher score = better information architecture
+
+**Overall Score (0-100)**
+- Weighted average of all metrics
+- Provides single quality indicator
+
+### Running Research
+
+To analyze a skill:
+
+```bash
+python3 scripts/research_skill.py <skill-path> [--output research.json]
+```
+
+**Example:**
+```bash
+# Analyze skillsmith itself
+python3 scripts/research_skill.py skills/skillsmith
+
+# Save findings to JSON
+python3 scripts/research_skill.py skills/omnifocus-manager --output research.json
+```
+
+**Output includes:**
+- Domain classification and complexity assessment
+- Current quality metrics with visual score bars
+- Strengths, weaknesses, and opportunities
+- Spec compliance violations and warnings
+- Full metrics data in JSON format (if --output specified)
+
+### Calculate Metrics Only
+
+To calculate quality metrics without full research:
+
+```bash
+python3 scripts/calculate_metrics.py <skill-path> [--format json|text]
+```
+
+**Example output:**
+```
+Quality Metrics: skillsmith
+Basic Metrics:
+  SKILL.md: 491 lines, ~5290 tokens
+  Scripts: 9 files, 2696 lines
+  References: 2 files, 783 lines
+
+Quality Scores:
+  Conciseness:     [██░░░░░░░░] 26/100
+  Complexity:      [████████░░] 80/100
+  Spec Compliance: [███████░░░] 75/100
+  Progressive:     [██████████] 100/100
+  Overall:         [██████░░░░] 68/100
+```
+
+### Integration with skill-planner
+
+Research findings integrate seamlessly with skill-planner for improvement workflows:
+
+**Workflow:**
+1. User: "I want to improve skillsmith"
+2. skill-planner invokes skillsmith research
+3. Research analyzes skill and identifies issues
+4. skill-planner creates improvement plan with research findings
+5. Plan includes baseline metrics and specific opportunities
+6. User refines and approves plan
+7. Implementation guided by objective metrics
+
+**Benefits:**
+- Data-driven improvement decisions
+- Objective baseline for measuring progress
+- Specific, actionable recommendations
+- Before/after metrics comparison
+
+### Research Output Format
+
+Research generates structured JSON with all findings:
+
+```json
+{
+  "timestamp": "2025-12-21T...",
+  "skill_path": "skills/skillsmith",
+  "phase1_intent": {
+    "name": "skillsmith",
+    "description": "...",
+    "purpose": "...",
+    "triggers": [...]
+  },
+  "phase2_domain": {
+    "domain": "meta",
+    "complexity": "Meta",
+    "special_considerations": [...]
+  },
+  "phase5_implementation": {
+    "metrics": { ... },
+    "strengths": [...],
+    "weaknesses": [...],
+    "opportunities": [...]
+  },
+  "phase6_compliance": {
+    "score": 75,
+    "violations": [],
+    "warnings": [...]
+  }
+}
+```
+
+This structured format enables programmatic consumption by skill-planner and other tools.
+
+### Best Practices for Research
+
+**When to research:**
+- Before planning skill improvements
+- After significant changes to validate quality
+- Periodically to track skill health
+- When skill feels bloated or unclear
+
+**Interpreting metrics:**
+- Overall < 60: Significant improvements needed
+- Overall 60-79: Good quality, room for improvement
+- Overall 80+: Excellent quality
+
+**Focus areas by score:**
+- Low conciseness: Move content to references/, simplify language
+- Low complexity: Reduce nesting, simplify structure
+- Low spec compliance: Fix frontmatter, follow guidelines
+- Low progressive disclosure: Better separation of concerns
+
+**Acting on findings:**
+- Use skill-planner for systematic improvements
+- Address violations before warnings
+- Prioritize opportunities with highest impact
+- Measure before/after to validate improvements

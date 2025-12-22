@@ -82,7 +82,7 @@
       "name": "omnifocus-manager",
       "description": "Cross-platform OmniFocus automation with Omni Automation, JXA queries, and secure task management",
       "category": "productivity",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
@@ -90,6 +90,34 @@
       "source": "./",
       "skills": [
         "./skills/omnifocus-manager"
+      ]
+    },
+    {
+      "name": "skill-planner",
+      "description": "Manages improvement planning lifecycle for skills using git branches with research → plan → approve → implement workflow",
+      "category": "development",
+      "version": "1.0.0",
+      "author": {
+        "name": "J. Greg Williams",
+        "email": "283704+totallyGreg@users.noreply.github.com"
+      },
+      "source": "./",
+      "skills": [
+        "./skills/skill-planner"
+      ]
+    },
+    {
+      "name": "marketplace-manager",
+      "description": "Manages Claude Code plugin marketplace operations including version syncing and marketplace.json maintenance",
+      "category": "development",
+      "version": "1.0.0",
+      "author": {
+        "name": "J. Greg Williams",
+        "email": "283704+totallyGreg@users.noreply.github.com"
+      },
+      "source": "./",
+      "skills": [
+        "./skills/marketplace-manager"
       ]
     }
   ]
