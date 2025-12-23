@@ -8,6 +8,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.8.0 | 2025-12-23 | Added AgentSkills specification as core domain knowledge |
 | 1.7.0 | 2025-12-22 | Conciseness optimization - moved research documentation to references/ |
 | 1.5.0 | 2025-12-20 | IMPROVEMENT_PLAN.md restructuring and rename to skillsmith |
 | 1.4.0 | 2025-12-01 | Added IMPROVEMENT_PLAN.md validation and guidance with enhanced validation script and best practices documentation |
@@ -169,6 +170,69 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ## ✅ Recent Improvements (Completed)
 > Sorted by: Newest first
+
+### v1.8.0 - AgentSkills Specification Integration (2025-12-23)
+
+**Goal:**
+Incorporate the official AgentSkills specification as core domain knowledge to ensure skills created with skillsmith comply with established standards and best practices.
+
+**User Request:**
+"Following the specifications from https://github.com/agentskills/agentskills/blob/main/docs/specification.mdx and https://agentskills.io/specification, skillsmith should define these external references as core components of the domain knowledge."
+
+**Solution Implemented:**
+
+1. **Created comprehensive specification reference** (`references/agentskills_specification.md`):
+   - Fetched official specification from both authoritative sources
+   - Documented complete directory structure requirements
+   - Detailed all SKILL.md frontmatter fields (required and optional)
+   - Specified naming conventions with valid/invalid examples
+   - Explained progressive disclosure architecture (3 loading levels)
+   - Covered all supporting directories: scripts/, references/, assets/
+   - Included validation requirements and best practices
+   - Provided migration guide for non-compliant skills
+   - ~350 lines of comprehensive reference material
+
+2. **Updated SKILL.md with specification references**:
+   - Added "Specification Compliance" section in "Anatomy of a Skill"
+   - Enhanced "SKILL.md (required)" section with specification requirements
+   - Added "Specification Compliance" guidance in "Step 4: Edit the Skill"
+   - Created new "Specification Validation" section with:
+     - 4-part validation checklist (frontmatter, structure, progressive disclosure, content quality)
+     - References to validation tools (calculate_metrics.py, research_skill.py)
+     - Cross-references to agentskills_specification.md for details
+
+3. **Version and Documentation Updates**:
+   - Bumped version: 1.7.0 → 1.8.0 (MINOR - new feature)
+   - Updated IMPROVEMENT_PLAN.md version history
+   - Added comprehensive completed improvement entry
+
+**Key Specification Requirements Now Documented:**
+
+- **Naming:** 1-64 chars, lowercase alphanumeric + hyphens, no leading/trailing hyphens
+- **Description:** Max 1024 chars, non-empty, includes triggering keywords
+- **Structure:** SKILL.md required, scripts/references/assets/ optional
+- **Progressive Disclosure:** Metadata (~100 tokens), Instructions (<5000 tokens), Resources (on-demand)
+- **Content Guidelines:** Keep SKILL.md <500 lines, use relative paths, one-level references
+
+**Impact:**
+
+- ✅ Skillsmith now incorporates official AgentSkills specification as core domain knowledge
+- ✅ Skills created with skillsmith will naturally comply with specification standards
+- ✅ Validation guidance aligned with official requirements
+- ✅ Progressive disclosure principle reinforced with specification backing
+- ✅ Reference material available on-demand without bloating SKILL.md
+- ✅ Creates single source of truth for skill structure and requirements
+
+**Files Changed:**
+- `SKILL.md` - Added specification references and validation section (v1.8.0)
+- `references/agentskills_specification.md` - New comprehensive specification reference (~350 lines)
+- `IMPROVEMENT_PLAN.md` - Version history and completed improvement entry
+
+**Verification:**
+- agentskills_specification.md successfully created with complete specification content
+- SKILL.md updated with 4 strategic references to the specification
+- New "Specification Validation" section provides clear compliance checklist
+- Version bumped appropriately for new feature addition
 
 ### v1.7.0 - Conciseness Optimization (2025-12-22)
 

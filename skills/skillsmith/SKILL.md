@@ -3,7 +3,7 @@ name: skillsmith
 description: Guide for forging effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
 metadata:
   author: J. Greg Williams
-  version: "1.7.0"
+  version: "1.8.0"
 compatibility: Requires python3 for research and metrics scripts
 license: Complete terms in LICENSE.txt
 ---
@@ -45,9 +45,18 @@ skill-name/
     └── assets/           - Files used in output (templates, icons, fonts, etc.)
 ```
 
+**Specification Compliance:** Skills must follow the AgentSkills specification for structure, naming conventions, and metadata requirements. See `references/agentskills_specification.md` for complete specification details including validation requirements, naming rules, and progressive disclosure architecture.
+
 #### SKILL.md (required)
 
 **Metadata Quality:** The `name` and `description` in YAML frontmatter determine when Claude will use the skill. Be specific about what the skill does and when to use it. Use the third-person (e.g. "This skill should be used when..." instead of "Use this skill when...").
+
+**Specification Requirements:**
+- `name`: 1-64 characters, lowercase alphanumeric and hyphens only, must match directory name
+- `description`: Max 1024 characters, non-empty, describes what the skill does and when to use it
+- Optional fields: `license`, `compatibility`, `metadata`, `allowed-tools`
+
+For complete frontmatter requirements and examples, see `references/agentskills_specification.md`.
 
 #### IMPROVEMENT_PLAN.md (recommended)
 
@@ -192,6 +201,16 @@ Also, delete any example files and directories not needed for the skill. The ini
 
 **Writing Style:** Write the entire skill using **imperative/infinitive form** (verb-first instructions), not second person. Use objective, instructional language (e.g., "To accomplish X, do Y" rather than "You should do X" or "If you need to do X"). This maintains consistency and clarity for AI consumption.
 
+**Specification Compliance:** Ensure the skill follows AgentSkills specification requirements:
+- Verify frontmatter contains required `name` and `description` fields
+- Confirm `name` follows naming conventions (lowercase, alphanumeric, hyphens only)
+- Keep `description` under 1024 characters with clear triggering keywords
+- Keep SKILL.md body under 500 lines (move detailed content to references/)
+- Use relative paths for all file references
+- Maintain one-level-deep reference chains
+
+See `references/agentskills_specification.md` for complete validation requirements.
+
 To complete SKILL.md, answer the following questions:
 
 1. What is the purpose of the skill, in a few sentences?
@@ -234,6 +253,51 @@ After testing the skill, users may request improvements. Often this happens righ
 - **MAJOR** (1.0.0 → 2.0.0): Breaking changes, major rewrites, changed workflow
 - **MINOR** (1.0.0 → 1.1.0): New features, new bundled resources, backward-compatible changes
 - **PATCH** (1.0.0 → 1.0.1): Bug fixes, documentation updates, minor improvements
+
+---
+
+## Specification Validation
+
+Ensure skills comply with the AgentSkills specification before distribution or after major updates.
+
+**Validation checklist:**
+
+1. **Frontmatter compliance:**
+   - `name` field present (1-64 chars, lowercase alphanumeric + hyphens)
+   - `name` matches directory name
+   - `description` field present (max 1024 chars, non-empty)
+   - `description` uses third-person and includes triggering keywords
+   - Optional fields properly formatted: `license`, `compatibility`, `metadata`
+
+2. **Structure compliance:**
+   - SKILL.md exists at skill root
+   - Directory follows naming conventions (lowercase, hyphens only)
+   - Supporting directories use correct names: `scripts/`, `references/`, `assets/`
+   - File references use relative paths
+   - Reference chains remain one-level deep
+
+3. **Progressive disclosure:**
+   - SKILL.md body under 500 lines
+   - Detailed content moved to references/
+   - Metadata (~100 tokens) provides clear skill purpose
+   - Instructions (<5000 tokens) provide actionable guidance
+
+4. **Content quality:**
+   - Writing uses imperative/infinitive form
+   - Instructions are clear and actionable
+   - Examples demonstrate concrete usage
+   - Bundled resources are properly referenced
+
+**Validation tools:**
+```bash
+# Calculate spec compliance metrics
+python3 scripts/calculate_metrics.py <skill-path>
+
+# Full skill analysis including spec compliance
+python3 scripts/research_skill.py <skill-path>
+```
+
+For complete specification details, naming rules, and validation requirements, see `references/agentskills_specification.md`.
 
 ---
 
