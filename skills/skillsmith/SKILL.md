@@ -290,10 +290,10 @@ Ensure skills comply with the AgentSkills specification before distribution or a
 
 **Validation tools:**
 ```bash
-# Calculate spec compliance metrics
-python3 scripts/calculate_metrics.py <skill-path>
+# Comprehensive evaluation with metrics and spec validation (recommended)
+python3 scripts/evaluate_skill.py <skill-path>
 
-# Full skill analysis including spec compliance
+# Deep multi-phase research analysis for improvement planning
 python3 scripts/research_skill.py <skill-path>
 ```
 
@@ -301,21 +301,73 @@ For complete specification details, naming rules, and validation requirements, s
 
 ---
 
-## Skill Research & Analysis
+## Skill Evaluation & Analysis
 
-skillsmith provides deep research capabilities to understand skills and identify improvement opportunities through:
+skillsmith provides comprehensive evaluation and research capabilities to assess skills, verify improvements, and identify enhancement opportunities:
 
-- **Multi-phase analysis** - 7 research phases from intent to recommendations
-- **Quality metrics** - Objective scores (0-100) for conciseness, complexity, spec compliance, progressive disclosure
-- **Integration** - Seamless workflow with skill-planner for systematic improvements
+### evaluate_skill.py
 
-**Quick start:**
+Comprehensive skill evaluation combining metrics, spec validation, comparison, and functionality testing.
+
+**Features:**
+- **Baseline metrics** - Calculates all quality scores (conciseness, complexity, spec compliance, progressive disclosure)
+- **Comparison mode** - Compare improved skill against original to verify improvements
+- **Spec validation** - Complete AgentSkills specification compliance checking
+- **Functionality testing** - Validates skill can be loaded, scripts are executable, references are readable
+- **Metadata storage** - Optionally store metrics in SKILL.md frontmatter
+
+**Usage:**
 ```bash
-# Analyze any skill with full research
-python3 scripts/research_skill.py <skill-path>
+# Basic evaluation with metrics and spec validation
+python3 scripts/evaluate_skill.py <skill-path>
 
-# Calculate metrics only
-python3 scripts/calculate_metrics.py <skill-path>
+# Compare improved vs original skill
+python3 scripts/evaluate_skill.py <skill-path> --compare <original-path>
+
+# With functionality validation
+python3 scripts/evaluate_skill.py <skill-path> --validate-functionality
+
+# Store metrics in SKILL.md metadata
+python3 scripts/evaluate_skill.py <skill-path> --store-metrics
+
+# Full evaluation with all options and JSON output
+python3 scripts/evaluate_skill.py <skill-path> --compare <original-path> --validate-functionality --format json
+
+# Save results to file
+python3 scripts/evaluate_skill.py <skill-path> --output results.json
 ```
 
-For comprehensive documentation on research phases, metrics interpretation, output formats, and best practices, see `references/research_guide.md`.
+**When to use:**
+- Before and after skill improvements to verify enhancements
+- To validate AgentSkills specification compliance
+- To get comprehensive quality assessment
+- To compare different versions of a skill
+- To test skill functionality and resource accessibility
+- For quick quality checks or detailed analysis
+
+### research_skill.py
+
+Deep multi-phase research analysis to understand skills and identify improvement opportunities.
+
+**Features:**
+- 7-phase research workflow (intent, domain, best practices, similar skills, implementation, compliance, recommendations)
+- Identifies strengths, weaknesses, and opportunities
+- Domain classification and complexity assessment
+- Integration with skill-planner for systematic improvements
+
+**Usage:**
+```bash
+# Full research analysis
+python3 scripts/research_skill.py <skill-path>
+
+# Save research to file
+python3 scripts/research_skill.py <skill-path> --output research.json
+```
+
+**When to use:**
+- Planning major skill improvements
+- Understanding unfamiliar skills
+- Identifying refactoring opportunities
+- Preparing for skill-planner workflow
+
+For comprehensive documentation on research phases, metrics interpretation, evaluation workflows, and best practices, see `references/research_guide.md`.

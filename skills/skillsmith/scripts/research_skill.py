@@ -294,7 +294,7 @@ def phase5_analyze_implementation(skill_path):
     Phase 5: Analyze current implementation with metrics
 
     Returns: {
-        'metrics': dict,  # Full metrics from calculate_metrics.py
+        'metrics': dict,  # Full metrics from evaluate_skill.py
         'strengths': [str],
         'weaknesses': [str],
         'opportunities': [str]
@@ -305,19 +305,20 @@ def phase5_analyze_implementation(skill_path):
     # Get directory containing this script
     script_dir = Path(__file__).parent
 
-    # Call calculate_metrics.py
-    metrics_script = script_dir / 'calculate_metrics.py'
+    # Call evaluate_skill.py
+    evaluate_script = script_dir / 'evaluate_skill.py'
 
     result = subprocess.run(
-        [sys.executable, str(metrics_script), str(skill_path), '--format', 'json'],
+        [sys.executable, str(evaluate_script), str(skill_path), '--format', 'json'],
         capture_output=True,
         text=True
     )
 
     if result.returncode != 0:
-        raise Exception(f"Metrics calculation failed: {result.stderr}")
+        raise Exception(f"Evaluation failed: {result.stderr}")
 
-    metrics = json.loads(result.stdout)
+    evaluation = json.loads(result.stdout)
+    metrics = evaluation['metrics']
 
     # Analyze metrics to identify strengths, weaknesses, opportunities
     strengths = []
