@@ -10,6 +10,10 @@ Provides comprehensive skill assessment including:
 - Store metrics under metadata (conciseness, complexity, spec_compliance, progressive)
 
 Usage:
+    # Quick validation (fast, structure-only)
+    python3 evaluate_skill.py <skill-path> --quick
+    python3 evaluate_skill.py <skill-path> --quick --check-improvement-plan
+
     # Baseline evaluation
     python3 evaluate_skill.py <skill-path>
 
@@ -26,6 +30,8 @@ Usage:
     python3 evaluate_skill.py <skill-path> --compare <original-path> --validate-functionality --store-metrics --format json
 
 Options:
+    --quick                   Fast validation mode (structure only)
+    --check-improvement-plan  Validate IMPROVEMENT_PLAN.md (requires --quick)
     --compare <path>          Compare against original skill version
     --validate-functionality  Run functionality validation tests
     --store-metrics          Store metrics in SKILL.md metadata
@@ -36,11 +42,173 @@ Options:
 import os
 import sys
 import json
+import re
 import subprocess
 import time
 from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
+
+# Import basic validation from quick_validate.py
+from quick_validate import validate_skill
+
+
+# ============================================================================
+# IMPROVEMENT_PLAN Validation (custom enhancement)
+# ============================================================================
+
+
+def validate_improvement_plan(skill_path, skill_version=None):
+    """
+    Validate IMPROVEMENT_PLAN.md completeness and consistency (from quick_validate.py)
+
+    Returns: (valid: bool, message: str)
+    """
+    skill_path = Path(skill_path)
+    improvement_plan = skill_path / 'IMPROVEMENT_PLAN.md'
+
+    if not improvement_plan.exists():
+        return True, "✓ IMPROVEMENT_PLAN.md not present (optional)"
+
+    errors = []
+    warnings = []
+
+    try:
+        content = improvement_plan.read_text()
+        lines = content.split('\n')
+
+        # Find version history table
+        version_history_start = None
+        for i, line in enumerate(lines):
+            if '## Version History' in line:
+                version_history_start = i
+                break
+
+        if version_history_start is None:
+            return True, "✓ IMPROVEMENT_PLAN.md exists but no version history found"
+
+        # Parse version history table
+        versions = []
+        in_table = False
+        for i in range(version_history_start, len(lines)):
+            line = lines[i].strip()
+
+            # Skip header and separator rows
+            if line.startswith('|') and 'Version' in line:
+                in_table = True
+                continue
+            if line.startswith('|') and '---' in line:
+                continue
+            if not line.startswith('|'):
+                if in_table:
+                    break
+                continue
+
+            # Parse version row: | version | date | description |
+            parts = [p.strip() for p in line.split('|')[1:-1]]  # Skip empty first/last
+            if len(parts) >= 2:
+                version = parts[0]
+                date = parts[1]
+                versions.append({
+                    'version': version,
+                    'date': date,
+                    'line': i + 1
+                })
+
+        if not versions:
+            return True, "✓ IMPROVEMENT_PLAN.md version history table is empty"
+
+        # Check for TBD in version history
+        tbd_versions = [v for v in versions if v['date'].upper() == 'TBD']
+        if tbd_versions:
+            for v in tbd_versions:
+                # If this is the current skill version, it's an error
+                if skill_version and v['version'] == skill_version:
+                    errors.append(
+                        f"❌ Version {v['version']} in SKILL.md shows 'TBD' in IMPROVEMENT_PLAN.md\n"
+                        f"   → Replace 'TBD' with completion date (YYYY-MM-DD) before release\n"
+                        f"   → File: IMPROVEMENT_PLAN.md line {v['line']}"
+                    )
+                else:
+                    warnings.append(
+                        f"⚠️  Version {v['version']} has 'TBD' date\n"
+                        f"   → This is acceptable for planned/in-progress versions\n"
+                        f"   → File: IMPROVEMENT_PLAN.md line {v['line']}"
+                    )
+
+        # Check version consistency
+        if skill_version and versions:
+            latest_version = versions[0]['version']  # Assumes newest first
+            if skill_version != latest_version:
+                warnings.append(
+                    f"⚠️  SKILL.md version ({skill_version}) differs from latest IMPROVEMENT_PLAN.md version ({latest_version})\n"
+                    f"   → This may be intentional if you haven't updated SKILL.md yet"
+                )
+
+        # Check date chronology (if not TBD)
+        dated_versions = [v for v in versions if v['date'].upper() != 'TBD' and v['date'].lower() != 'initial']
+        if len(dated_versions) > 1:
+            try:
+                dates = [datetime.strptime(v['date'], '%Y-%m-%d') for v in dated_versions]
+                # Check if dates are in descending order (newest first)
+                if dates != sorted(dates, reverse=True):
+                    warnings.append(
+                        "⚠️  Version history dates may not be in chronological order\n"
+                        "   → Consider ordering newest versions first"
+                    )
+            except ValueError:
+                # Invalid date format, skip chronology check
+                pass
+
+        # Return results
+        if errors:
+            return False, '\n\n'.join(errors)
+        elif warnings:
+            return True, '\n\n'.join(warnings)
+        else:
+            return True, "✓ IMPROVEMENT_PLAN.md is complete and consistent"
+
+    except Exception as e:
+        return False, f"❌ Error validating IMPROVEMENT_PLAN.md: {e}"
+
+
+def quick_validate(skill_path, check_improvement_plan=False):
+    """
+    Perform quick validation of skill structure
+
+    Uses validate_skill() from quick_validate.py for basic validation,
+    optionally adds IMPROVEMENT_PLAN validation (custom enhancement).
+
+    Returns: {
+        'valid': bool,
+        'structure': dict,
+        'improvement_plan': dict | None
+    }
+    """
+    skill_path = Path(skill_path)
+
+    # Basic structure validation (imported from quick_validate.py)
+    struct_valid, struct_message, skill_version = validate_skill(skill_path)
+
+    result = {
+        'valid': struct_valid,
+        'structure': {
+            'valid': struct_valid,
+            'message': struct_message,
+            'skill_version': skill_version
+        }
+    }
+
+    # IMPROVEMENT_PLAN validation if requested (custom enhancement)
+    if check_improvement_plan:
+        ip_valid, ip_message = validate_improvement_plan(skill_path, skill_version)
+        result['improvement_plan'] = {
+            'valid': ip_valid,
+            'message': ip_message
+        }
+        result['valid'] = struct_valid and ip_valid
+
+    return result
 
 
 # ============================================================================
@@ -906,6 +1074,26 @@ def evaluate_skill(skill_path, compare_with=None, validate_func=False, store_met
 # Output Formatting
 # ============================================================================
 
+def print_quick_validation_text(validation_result):
+    """Print quick validation in human-readable text format"""
+    struct = validation_result['structure']
+    print(struct['message'])
+
+    if not struct['valid']:
+        sys.exit(1)
+
+    # IMPROVEMENT_PLAN validation
+    if 'improvement_plan' in validation_result:
+        print()  # Blank line
+        ip = validation_result['improvement_plan']
+        print(ip['message'])
+
+        if not ip['valid']:
+            sys.exit(1)
+
+    sys.exit(0)
+
+
 def format_score_bar(score, width=20):
     """Format score as visual bar"""
     filled = int((score / 100) * width)
@@ -1030,6 +1218,8 @@ def main():
         sys.exit(0 if '--help' in sys.argv or '-h' in sys.argv else 1)
 
     skill_path = sys.argv[1]
+    quick_mode = False
+    check_improvement_plan = False
     compare_with = None
     validate_func = False
     store_metrics_flag = False
@@ -1040,7 +1230,13 @@ def main():
     i = 2
     while i < len(sys.argv):
         arg = sys.argv[i]
-        if arg == '--compare' and i + 1 < len(sys.argv):
+        if arg == '--quick':
+            quick_mode = True
+            i += 1
+        elif arg == '--check-improvement-plan':
+            check_improvement_plan = True
+            i += 1
+        elif arg == '--compare' and i + 1 < len(sys.argv):
             compare_with = sys.argv[i + 1]
             i += 2
         elif arg == '--validate-functionality':
@@ -1060,7 +1256,24 @@ def main():
             sys.exit(1)
 
     try:
-        # Run evaluation
+        # Quick validation mode
+        if quick_mode:
+            validation_result = quick_validate(skill_path, check_improvement_plan)
+
+            if output_format == 'json':
+                output = json.dumps(validation_result, indent=2)
+                if output_file:
+                    with open(output_file, 'w') as f:
+                        f.write(output)
+                    print(f"Results saved to {output_file}")
+                else:
+                    print(output)
+                sys.exit(0 if validation_result['valid'] else 1)
+            else:
+                print_quick_validation_text(validation_result)
+                # This function exits with appropriate code
+
+        # Comprehensive evaluation mode
         evaluation = evaluate_skill(
             skill_path,
             compare_with=compare_with,

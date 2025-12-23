@@ -307,9 +307,10 @@ skillsmith provides comprehensive evaluation and research capabilities to assess
 
 ### evaluate_skill.py
 
-Comprehensive skill evaluation combining metrics, spec validation, comparison, and functionality testing.
+Unified skill validation and evaluation tool with two modes: **quick validation** (fast, structure-only) and **comprehensive evaluation** (metrics, spec validation, comparison, functionality testing).
 
 **Features:**
+- **Quick validation mode** - Fast structural validation for pre-commit hooks and CI/CD (replaces quick_validate.py)
 - **Baseline metrics** - Calculates all quality scores (conciseness, complexity, spec compliance, progressive disclosure)
 - **Comparison mode** - Compare improved skill against original to verify improvements
 - **Spec validation** - Complete AgentSkills specification compliance checking
@@ -318,6 +319,10 @@ Comprehensive skill evaluation combining metrics, spec validation, comparison, a
 
 **Usage:**
 ```bash
+# Quick validation (fast, structure-only - for pre-commit hooks, CI/CD)
+python3 scripts/evaluate_skill.py <skill-path> --quick
+python3 scripts/evaluate_skill.py <skill-path> --quick --check-improvement-plan
+
 # Basic evaluation with metrics and spec validation
 python3 scripts/evaluate_skill.py <skill-path>
 
@@ -337,13 +342,21 @@ python3 scripts/evaluate_skill.py <skill-path> --compare <original-path> --valid
 python3 scripts/evaluate_skill.py <skill-path> --output results.json
 ```
 
-**When to use:**
+**When to use quick mode (`--quick`):**
+- Pre-commit hooks and CI/CD validation gates
+- Quick sanity checks during development
+- Validating IMPROVEMENT_PLAN.md completeness before release
+- Fast structural validation only (no metrics calculation)
+
+**When to use comprehensive mode (default):**
 - Before and after skill improvements to verify enhancements
 - To validate AgentSkills specification compliance
 - To get comprehensive quality assessment
 - To compare different versions of a skill
 - To test skill functionality and resource accessibility
-- For quick quality checks or detailed analysis
+- For detailed quality analysis and metrics
+
+**Note:** `scripts/quick_validate.py` provides basic SKILL.md validation only (upstream compatible with Anthropic skill-creator). For enhanced validation including IMPROVEMENT_PLAN checking, use `evaluate_skill.py --quick --check-improvement-plan`.
 
 ### research_skill.py
 
