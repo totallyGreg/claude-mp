@@ -325,7 +325,17 @@ All detailed documentation has been moved to references for better organization:
    - Code examples and best practices
    - Use this for learning and implementation guidance
 
-3. **`references/OmniFocus-API.md`** - Complete Omni Automation API reference
+3. **`references/omni_automation_shared.md`** - Shared Omni Automation classes ⭐
+   - Cross-app shared APIs (Alert, Form, FilePicker, etc.)
+   - Works across OmniFocus, OmniGraffle, OmniOutliner, OmniPlan
+   - User interaction (alerts, forms, dialogs)
+   - File handling (FilePicker, FileSaver, FileWrapper)
+   - Data processing (URL, XML, Pasteboard, Credentials)
+   - Formatters (Date, Decimal, Duration)
+   - System integration (Device, Notification, Speech, Timer)
+   - **Use this for:** Building cross-platform plugins, user input, file operations, clipboard access
+
+4. **`references/OmniFocus-API.md`** - Complete Omni Automation API reference
    - Official comprehensive API specification
    - Detailed class/method/property documentation
    - Use this for API lookup and detailed signatures
@@ -335,7 +345,7 @@ All detailed documentation has been moved to references for better organization:
      - Document methods: `grep "function.*Document" references/OmniFocus-API.md`
      - Specific property: `grep -i "propertyName" references/OmniFocus-API.md`
 
-4. **`references/foundation_models_integration.md`** ⭐ - Apple Intelligence integration
+5. **`references/foundation_models_integration.md`** ⭐ - Apple Intelligence integration
    - **NEW in OmniFocus 4.8+** - On-device AI for task automation
    - Natural language task processing with LanguageModel.Session
    - Intelligent categorization and prioritization
@@ -345,13 +355,13 @@ All detailed documentation has been moved to references for better organization:
    - Requirements: macOS 15.2+, iOS 18.2+, Apple Silicon/iPhone 15 Pro+
    - **Use this for:** AI-powered automation, intelligent task organization, natural language processing
 
-5. **`references/workflows.md`** - Common workflow patterns
+6. **`references/workflows.md`** - Common workflow patterns
    - Daily/weekly/monthly planning
    - Project management workflows
    - Batch operations
    - Integration examples (Keyboard Maestro, Alfred, etc.)
 
-6. **`references/omnifocus_url_scheme.md`** - URL scheme reference ⭐
+7. **`references/omnifocus_url_scheme.md`** - URL scheme reference ⭐
    - Task creation with all parameters
    - Bulk TaskPaper import (paste action)
    - Built-in perspectives (inbox, flagged, forecast, etc.)
@@ -362,7 +372,7 @@ All detailed documentation has been moved to references for better organization:
    - URL encoding and generation helpers
    - Cross-platform (Mac + iOS)
 
-7. **`references/troubleshooting.md`** - Troubleshooting guide
+8. **`references/troubleshooting.md`** - Troubleshooting guide
    - Permission setup (step-by-step)
    - Common errors and solutions
    - Performance optimization

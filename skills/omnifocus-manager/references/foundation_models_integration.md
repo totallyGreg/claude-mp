@@ -427,7 +427,14 @@ Until direct Foundation Models API is available:
 
 ## Resources
 
+**Skill References:**
+- `omni_automation.md` - OmniFocus Omni Automation API reference
+- `omni_automation_shared.md` - Shared Omni Automation classes (Alert, Form, etc.)
+- `OmniFocus-API.md` - Complete OmniFocus API specification
+
+**External Resources:**
 - Apple Intelligence overview: apple.com/apple-intelligence
+- Apple Language Models: omni-automation.com/shared/alm.html
 - Shortcuts app automation
 - Omni Automation documentation: omni-automation.com
 - AppleScript/JXA for macOS automation
