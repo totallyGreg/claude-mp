@@ -23,7 +23,7 @@ This marketplace currently includes:
 
 - **terminal-guru** (v2.0) - Terminal diagnostics, testing, and optimization with isolated environments
 - **helm-chart-developer** - Helm chart development, testing, and security
-- **skillsmith** - Guide for forging custom Claude skills
+- **skillsmith** (v2.0) - Main actor for skill creation, improvement, and management with intelligent routing
 
 #### 📦 Coming Soon
 

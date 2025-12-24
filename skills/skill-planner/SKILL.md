@@ -1,8 +1,8 @@
 ---
 name: skill-planner
-description: Manages the improvement planning lifecycle for skills using git branches. Creates improvement plans with research → plan → approve → implement workflow. Use when planning skill improvements, refining improvement plans, approving plans for implementation, or tracking plan completion. Triggers when user says "improve skill", "create plan", "approve plan", or "implement plan".
+description: Provides systematic planning for complex skill improvements. Invoked by Skillsmith when improvements require structured planning with git branch workflow (research → plan → approve → implement). Use when Skillsmith delegates complex changes, or when explicit planning workflow is needed. Triggers when invoked by Skillsmith or when user explicitly requests planning.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 compatibility: Requires git, python3, access to repository with .git directory
 ---
 
@@ -30,6 +30,16 @@ Use skill-planner when:
 - Tracking plan completion
 
 ## How It Works
+
+### Sub-Skill Mode
+
+When invoked by Skillsmith for complex skill improvements:
+- Receives improvement context and goals from Skillsmith
+- Runs complete workflow (research → plan → approve → implement)
+- Returns control to Skillsmith with implementation results
+- Skillsmith handles final version management and marketplace sync
+
+This mode enables Skillsmith to delegate complex improvements while handling quick updates directly.
 
 ### Git Branch-Based Planning
 
@@ -389,25 +399,26 @@ skill-planner:
 ✓ Archived: completed/skillsmith/improvement-20251221.md
 ```
 
-## Integration with skillsmith
+## Integration with Skillsmith
 
-skill-planner coordinates with skillsmith for:
+skill-planner works as a specialized sub-skill invoked BY Skillsmith:
 
-**Research Phase:**
-- Invokes skillsmith to deeply research skill
-- Receives comprehensive research report
-- Presents findings to user
+**When Invoked:**
+- Skillsmith analyzes skill improvement request
+- Determines change is complex (multi-file, structural, >50 lines)
+- Invokes skill-planner with improvement context
 
-**Planning Phase:**
-- Invokes skillsmith to generate recommendations
-- Receives prioritized suggestions with metrics
-- Formats into PLAN.md
+**During Workflow:**
+- skill-planner executes research → plan → approve → implement phases
+- Uses skillsmith's evaluation scripts (evaluate_skill.py, research_skill.py)
+- Manages git branch workflow and PLAN.md
+- Implements approved changes
 
-**Implementation Phase:**
-- Invokes skillsmith with approved plan
-- skillsmith implements according to plan
-- Receives before/after metrics
-- Updates PLAN.md with actuals
+**After Completion:**
+- Returns implementation results to Skillsmith
+- Skillsmith determines version bump (MINOR or MAJOR)
+- Skillsmith calls marketplace-manager for version sync and commit
+- skill-planner archives completed plan after merge
 
 ## Integration with marketplace-manager
 
@@ -466,6 +477,6 @@ After plan is implemented and merged:
 
 ## See Also
 
-- **skillsmith** - Handles research, suggestions, and implementation
-- **marketplace-manager** - Auto-syncs marketplace after merge
-- [THREE_SKILL_ARCHITECTURE.md](../../THREE_SKILL_ARCHITECTURE.md) - Complete system design
+- **skillsmith** - Main actor for all skill work; invokes skill-planner for complex improvements
+- **marketplace-manager** - Handles version sync, commits, and marketplace updates
+- [THREE_SKILL_ARCHITECTURE.md](../../THREE_SKILL_ARCHITECTURE.md) - Complete system architecture (if exists)

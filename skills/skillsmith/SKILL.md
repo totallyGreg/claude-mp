@@ -1,9 +1,9 @@
 ---
 name: skillsmith
-description: Guide for forging effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
+description: Main actor for all skill-related operations including creation, improvement, and management. Intelligently routes requests - handling quick updates directly and delegating complex improvements to skill-planner. This skill should be used when users want to create, update, improve, or manage skills that extend Claude's capabilities with specialized knowledge, workflows, or tool integrations.
 metadata:
   author: J. Greg Williams
-  version: "1.8.0"
+  version: "2.0.0"
 compatibility: Requires python3 for research and metrics scripts
 license: Complete terms in LICENSE.txt
 ---
@@ -118,6 +118,39 @@ Skills use a three-level loading system to manage context efficiently:
 
 *Unlimited because scripts can be executed without reading into context window.
 
+## Skill Improvement Routing
+
+Skillsmith is the main entry point for all skill-related work and intelligently routes improvement requests based on complexity:
+
+**Quick Updates** (Handled directly by Skillsmith):
+- Adding reference files to `references/`
+- Updating SKILL.md documentation (< 50 line changes)
+- Adding examples, clarifications, or fixing typos
+- Minor script fixes (< 20 lines)
+- Single file, single concern, low risk changes
+- **Version**: Automatic PATCH bump (1.0.0 → 1.0.1)
+
+**Complex Improvements** (Delegated to skill-planner):
+- Restructuring SKILL.md sections (> 50 lines)
+- Adding new scripts or significant script modifications
+- Changing workflow procedures or processes
+- Multi-file coordinated changes
+- Breaking changes or major refactors
+- **Version**: User selects MINOR (1.0.0 → 1.1.0) or MAJOR (1.0.0 → 2.0.0)
+
+**Automatic Detection**:
+Skillsmith analyzes requests based on:
+- **File count**: 1 file = quick, 2+ files = likely complex
+- **Line changes**: < 50 lines = quick, ≥ 50 lines = complex
+- **Scope**: Documentation/references = quick, structure/workflow = complex
+- **Impact**: Additive = quick, modifications = complex
+
+**User Override**:
+- Say "handle this quickly" or "quick update" to skip planning
+- Say "use planning" or "create a plan" to force systematic planning
+
+For detailed complexity classification criteria and integration patterns, see `references/integration_guide.md`.
+
 ## Skill Creation Process
 
 To create a skill, follow the "Skill Creation Process" in order, skipping steps only if there is a clear reason why they are not applicable.
@@ -219,40 +252,73 @@ To complete SKILL.md, answer the following questions:
 
 ### Step 5: Distribute via Marketplace (Optional)
 
-To distribute skills via Claude Code plugin marketplace, use **marketplace-manager**:
+To distribute skills via Claude Code plugin marketplace, Skillsmith delegates to **marketplace-manager**:
 
-```bash
-# Add skill to marketplace
-See marketplace-manager skill for complete workflow
+**Distribution workflow:**
+1. Create or improve skill using Steps 1-4
+2. Ready to distribute? Skillsmith calls marketplace-manager
+3. marketplace-manager adds skill to marketplace.json (if new)
+4. marketplace-manager syncs skill version to marketplace.json
+5. marketplace-manager validates marketplace structure
+6. Asks user: "Commit to marketplace?"
+7. On approval, commits skill + marketplace.json together
+8. Optionally pushes to remote repository
 
-# marketplace-manager handles:
+**marketplace-manager handles:**
 - Adding skills to marketplace.json
-- Version syncing
-- Git integration
-- Validation
-```
+- Automatic version syncing between SKILL.md and marketplace.json
+- Git integration (commit and push operations)
+- Marketplace validation
+- Multi-component plugin versioning
 
-For comprehensive marketplace documentation, see the **marketplace-manager** skill.
+For comprehensive marketplace documentation and manual operations, see the **marketplace-manager** skill.
 
 ### Step 6: Iterate
 
-After testing the skill, users may request improvements. Often this happens right after using the skill, with fresh context of how the skill performed.
+After testing the skill, users may request improvements. Skillsmith coordinates all improvement workflows, automatically routing based on complexity.
 
-**Iteration workflow:**
-1. Use the skill on real tasks
-2. Notice struggles or inefficiencies
-3. Use **skill-planner** for systematic improvements:
-   - Research current state
-   - Create improvement plan
-   - Refine and approve plan
-   - Implement approved changes
-4. Update `metadata.version` in SKILL.md frontmatter (follow semantic versioning)
-5. If published in marketplace, use **marketplace-manager** to sync versions
+**Quick Update Workflow:**
+
+For simple changes (adding references, documentation updates, minor fixes):
+
+1. Skillsmith analyzes the request and determines it's quick
+2. Reads current skill state to understand context
+3. Makes the requested changes directly
+4. Runs `evaluate_skill.py` to verify no regressions
+5. Automatically bumps `metadata.version` to next PATCH (e.g., 1.0.0 → 1.0.1)
+6. Calls **marketplace-manager** to sync marketplace.json
+7. Asks user: "Commit these changes?"
+8. On approval, marketplace-manager commits SKILL.md + marketplace.json
+9. Asks user: "Push to remote?"
+
+**Complex Improvement Workflow:**
+
+For substantial changes (restructuring, new scripts, multi-file changes):
+
+1. Skillsmith analyzes the request and determines it's complex
+2. Informs user: "This requires systematic planning. Invoking skill-planner..."
+3. Invokes **skill-planner** with improvement context
+4. skill-planner executes complete workflow:
+   - Research current state (using research_skill.py)
+   - Create improvement plan (PLAN.md in git branch)
+   - Refinement loop (user can iterate)
+   - User approval (explicit approval gate)
+   - Implementation (in plan branch)
+5. skill-planner returns results to Skillsmith
+6. Skillsmith asks user: "Version bump? MINOR (new feature) or MAJOR (breaking)?"
+7. Updates `metadata.version` based on user selection
+8. Calls **marketplace-manager** to sync and commit to plan branch
+9. User manually tests and merges plan branch to main
+10. skill-planner detects merge and archives completed plan
+
+**Explicit Planning Request:**
+
+If user says "create a plan for..." or "use planning", Skillsmith immediately invokes skill-planner regardless of complexity.
 
 **Version Guidelines:**
 - **MAJOR** (1.0.0 → 2.0.0): Breaking changes, major rewrites, changed workflow
 - **MINOR** (1.0.0 → 1.1.0): New features, new bundled resources, backward-compatible changes
-- **PATCH** (1.0.0 → 1.0.1): Bug fixes, documentation updates, minor improvements
+- **PATCH** (1.0.0 → 1.0.1): Bug fixes, documentation updates, minor improvements (auto-applied for quick updates)
 
 ---
 

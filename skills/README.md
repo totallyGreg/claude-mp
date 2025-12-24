@@ -22,7 +22,7 @@ claude skill install totally-tools/helm-chart-developer
 ```
 
 ### skillsmith
-Comprehensive guide for forging effective Claude skills with marketplace integration.
+**v2.0.0** - Main actor for all skill operations including creation, improvement, and management. Intelligently routes requests between quick updates and systematic planning workflows. Coordinates with skill-planner for complex improvements and marketplace-manager for distribution.
 
 **Installation:**
 ```bash

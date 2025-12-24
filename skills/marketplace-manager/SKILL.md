@@ -1,8 +1,8 @@
 ---
 name: marketplace-manager
-description: Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance. Use when adding skills to marketplace, updating skill versions, syncing marketplace.json, or managing plugin distributions. Triggers when user mentions marketplace, version sync, or plugin publishing.
+description: Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance. Supports programmatic invocation by other skills (e.g., Skillsmith) for automated version management. Use when adding skills to marketplace, updating skill versions, syncing marketplace.json, or managing plugin distributions. Triggers when user mentions marketplace, version sync, or when invoked by other skills.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 compatibility: Requires git repository with .claude-plugin/marketplace.json
 ---
 
@@ -28,6 +28,37 @@ Use marketplace-manager when:
 - Detecting version mismatches
 - Managing plugin metadata
 - Validating marketplace structure
+
+## Programmatic Invocation
+
+marketplace-manager can be invoked programmatically by other skills (e.g., Skillsmith) for automated version management and git operations.
+
+**When Called by Skillsmith:**
+1. Skillsmith completes skill changes (quick update or complex implementation)
+2. Skillsmith calls marketplace-manager: "Sync versions and commit these changes"
+3. marketplace-manager runs sync_marketplace_versions.py
+4. marketplace-manager updates marketplace.json with new skill version
+5. marketplace-manager asks user: "Commit these changes? [yes/no]"
+6. On approval, commits both SKILL.md and marketplace.json together
+7. marketplace-manager asks user: "Push to remote? [yes/no]"
+8. Returns commit SHA and status to Skillsmith
+
+**Workflow Integration:**
+- **Quick updates**: Skillsmith → marketplace-manager → commit (single flow)
+- **Complex updates**: skill-planner → Skillsmith → marketplace-manager → commit to plan branch
+- **Manual fallback**: Users can always run scripts directly
+
+**Commands Used:**
+```bash
+# Sync versions (auto-detects changes)
+python3 scripts/sync_marketplace_versions.py
+
+# Preview changes first
+python3 scripts/sync_marketplace_versions.py --dry-run
+
+# Detect mismatches
+python3 scripts/detect_version_changes.py
+```
 
 ## Core Functionality
 
