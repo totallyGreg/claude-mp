@@ -3,7 +3,7 @@ name: skillsmith
 description: Main actor for all skill-related operations including creation, improvement, and management. Intelligently routes requests - handling quick updates directly and delegating complex improvements to skill-planner. This skill should be used when users want to create, update, improve, or manage skills that extend Claude's capabilities with specialized knowledge, workflows, or tool integrations.
 metadata:
   author: J. Greg Williams
-  version: "2.0.0"
+  version: "2.1.1"
 compatibility: Requires python3 for research and metrics scripts
 license: Complete terms in LICENSE.txt
 ---
@@ -98,6 +98,8 @@ Documentation and reference material intended to be loaded as needed into contex
 - **Benefits**: Keeps SKILL.md lean, loaded only when Claude determines it's needed
 - **Best practice**: If files are large (>10k words), include grep search patterns in SKILL.md
 - **Avoid duplication**: Information should live in either SKILL.md or references files, not both. Prefer references files for detailed information unless it's truly core to the skill—this keeps SKILL.md lean while making information discoverable without hogging the context window. Keep only essential procedural instructions and workflow guidance in SKILL.md; move detailed reference material, schemas, and examples to references files.
+- **Reference Catalog**: Skills with 3+ reference files should include `references/REFERENCE.md` to index all references with metadata. This catalog is automatically maintained by skillsmith during quick update workflows.
+- **Forms and Templates**: Skills that involve structured data collection should include `references/FORMS.md` with form templates.
 
 ##### Assets (`assets/`)
 
@@ -124,6 +126,9 @@ Skillsmith is the main entry point for all skill-related work and intelligently 
 
 **Quick Updates** (Handled directly by Skillsmith):
 - Adding reference files to `references/`
+  - Automatically regenerates `references/REFERENCE.md` catalog
+  - Validates reference structure and detects consolidation opportunities
+  - Both reference file and updated catalog included in commit
 - Updating SKILL.md documentation (< 50 line changes)
 - Adding examples, clarifications, or fixing typos
 - Minor script fixes (< 20 lines)
@@ -217,6 +222,18 @@ The script:
 - Creates IMPROVEMENT_PLAN.md template for tracking skill evolution
 - Creates example resource directories: `scripts/`, `references/`, and `assets/`
 - Adds example files in each directory that can be customized or deleted
+
+The initialization script also creates reference management files:
+
+- `references/REFERENCE.md` - Catalog template (regenerate after adding references)
+- `references/FORMS.md` - Form templates for structured data (customize for your domain)
+
+After creating your skill and adding actual reference content, regenerate the catalog:
+
+```bash
+cd skills/your-skill
+python3 ../skillsmith/scripts/update_references.py .
+```
 
 After initialization, customize or remove the generated SKILL.md and example files as needed.
 
@@ -354,6 +371,13 @@ Ensure skills comply with the AgentSkills specification before distribution or a
    - Examples demonstrate concrete usage
    - Bundled resources are properly referenced
 
+5. **Reference organization:**
+   - references/ directory uses one-level depth (no nested subdirectories)
+   - REFERENCE.md catalog exists if skill has 3+ references
+   - Catalog is up-to-date (includes all reference files)
+   - No duplicate or overlapping reference content detected
+   - FORMS.md included if skill uses structured data collection
+
 **Validation tools:**
 ```bash
 # Comprehensive evaluation with metrics and spec validation (recommended)
@@ -364,6 +388,32 @@ python3 scripts/research_skill.py <skill-path>
 ```
 
 For complete specification details, naming rules, and validation requirements, see `references/agentskills_specification.md`.
+
+---
+
+## Reference Management
+
+Skillsmith provides automated reference catalog management for skills with multiple reference documents.
+
+**Quick Start:**
+```bash
+# Generate or update catalog
+python3 scripts/update_references.py .
+
+# Detect consolidation opportunities
+python3 scripts/update_references.py . --detect-duplicates
+
+# Validate reference structure
+python3 scripts/update_references.py . --validate-structure
+```
+
+**Key Features:**
+- Automatic `REFERENCE.md` catalog generation with metadata
+- Consolidation detection for duplicate/overlapping references
+- Structure validation against AgentSkills spec
+- Automatic catalog updates during quick update workflows
+
+For detailed documentation on catalog structure, usage patterns, command reference, and advanced features, see `references/reference_management_guide.md`.
 
 ---
 

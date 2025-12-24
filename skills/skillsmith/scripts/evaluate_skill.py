@@ -812,6 +812,101 @@ def validate_references_readable(skill_path):
     return {'references': results}
 
 
+def validate_reference_catalog(skill_path):
+    """
+    Validate REFERENCE.md catalog is present and up-to-date for skills with multiple references
+
+    Returns: {
+        'catalog_exists': bool,
+        'catalog_recommended': bool,  # True if skill has 3+ references
+        'catalog_up_to_date': bool,
+        'missing_from_catalog': [str],  # Files in refs/ but not in REFERENCE.md
+        'extra_in_catalog': [str],      # Files in REFERENCE.md but not in refs/
+        'issues': [str]
+    }
+    """
+    refs_dir = skill_path / 'references'
+
+    if not refs_dir.exists():
+        return {
+            'catalog_exists': False,
+            'catalog_recommended': False,
+            'catalog_up_to_date': True,
+            'missing_from_catalog': [],
+            'extra_in_catalog': [],
+            'issues': []
+        }
+
+    # Get actual reference files (exclude REFERENCE.md itself)
+    actual_refs = [
+        f.name for f in refs_dir.glob('*.md')
+        if f.is_file() and f.name != 'REFERENCE.md' and not f.name.startswith('.')
+    ]
+
+    catalog_file = refs_dir / 'REFERENCE.md'
+    catalog_exists = catalog_file.exists()
+    catalog_recommended = len(actual_refs) >= 3  # Recommend catalog for 3+ references
+
+    if not catalog_exists:
+        if catalog_recommended:
+            return {
+                'catalog_exists': False,
+                'catalog_recommended': True,
+                'catalog_up_to_date': False,
+                'missing_from_catalog': actual_refs,
+                'extra_in_catalog': [],
+                'issues': [f'REFERENCE.md recommended for skills with {len(actual_refs)} references']
+            }
+        else:
+            return {
+                'catalog_exists': False,
+                'catalog_recommended': False,
+                'catalog_up_to_date': True,
+                'missing_from_catalog': [],
+                'extra_in_catalog': [],
+                'issues': []
+            }
+
+    # Parse REFERENCE.md to find listed files
+    try:
+        with open(catalog_file, 'r') as f:
+            catalog_content = f.read()
+
+        # Extract filenames from markdown (look for ### headings with .md extensions)
+        import re
+        catalog_refs = re.findall(r'###\s+([\w\-\_]+\.md)', catalog_content)
+        catalog_refs = list(set(catalog_refs))  # Remove duplicates
+
+        missing = [ref for ref in actual_refs if ref not in catalog_refs]
+        extra = [ref for ref in catalog_refs if ref not in actual_refs]
+
+        up_to_date = len(missing) == 0 and len(extra) == 0
+
+        issues = []
+        if missing:
+            issues.append(f'References not in catalog: {", ".join(missing)}')
+        if extra:
+            issues.append(f'Catalog lists non-existent references: {", ".join(extra)}')
+
+        return {
+            'catalog_exists': True,
+            'catalog_recommended': catalog_recommended,
+            'catalog_up_to_date': up_to_date,
+            'missing_from_catalog': missing,
+            'extra_in_catalog': extra,
+            'issues': issues
+        }
+    except Exception as e:
+        return {
+            'catalog_exists': True,
+            'catalog_recommended': catalog_recommended,
+            'catalog_up_to_date': False,
+            'missing_from_catalog': [],
+            'extra_in_catalog': [],
+            'issues': [f'Error parsing REFERENCE.md: {str(e)}']
+        }
+
+
 def validate_functionality(skill_path):
     """
     Run complete functionality validation
@@ -826,6 +921,7 @@ def validate_functionality(skill_path):
     loading = validate_skill_loading(skill_path)
     scripts = validate_scripts(skill_path)
     references = validate_references_readable(skill_path)
+    reference_catalog = validate_reference_catalog(skill_path)
 
     # Determine overall functionality
     overall_functional = loading['can_load']
@@ -839,6 +935,7 @@ def validate_functionality(skill_path):
         'loading': loading,
         'scripts': scripts,
         'references': references,
+        'reference_catalog': reference_catalog,
         'overall_functional': overall_functional
     }
 
