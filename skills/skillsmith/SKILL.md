@@ -3,7 +3,7 @@ name: skillsmith
 description: Main actor for all skill-related operations including creation, improvement, and management. Intelligently routes requests - handling quick updates directly and delegating complex improvements to skill-planner. This skill should be used when users want to create, update, improve, or manage skills that extend Claude's capabilities with specialized knowledge, workflows, or tool integrations.
 metadata:
   author: J. Greg Williams
-  version: "2.1.1"
+  version: "2.2.0"
 compatibility: Requires python3 for research and metrics scripts
 license: Complete terms in LICENSE.txt
 ---
