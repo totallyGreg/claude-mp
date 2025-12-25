@@ -2,7 +2,7 @@
 name: omnifocus-manager
 description: Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA). This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
 metadata:
-  version: 1.3.0
+  version: 1.3.1
   author: totally-tools
   license: MIT
 compatibility:
@@ -41,7 +41,7 @@ Comprehensive OmniFocus automation through multiple complementary approaches:
    - NO → Continue
 
 2. **Reusable automation?**
-   - YES → Create Omni Automation plug-in (`examples/`)
+   - YES → Create Omni Automation plug-in (see `references/plugin_installation.md`)
    - NO → Continue
 
 3. **Querying/reading data?**
@@ -78,8 +78,8 @@ Comprehensive OmniFocus automation through multiple complementary approaches:
 **Resources:**
 - Complete API reference: `references/omni_automation.md`
 - **Apple Intelligence integration:** `references/foundation_models_integration.md`
-- Example plug-ins: `examples/TodaysTasks.omnifocusjs`
-- Installation guide: `examples/README.md`
+- Example plug-ins: `assets/TodaysTasks.omnifocusjs`, `assets/AITaskAnalyzer.omnifocusjs`
+- Installation guide: `references/plugin_installation.md`
 
 **Quick Example:**
 ```javascript
@@ -231,7 +231,7 @@ python3 scripts/query_omnifocus.py --custom-query "SELECT ..."
 osascript -l JavaScript scripts/manage_omnifocus.js today
 ```
 
-Or install the Today's Tasks plug-in: `examples/TodaysTasks.omnifocusjs`
+Or install the Today's Tasks plug-in: `assets/TodaysTasks.omnifocusjs`
 
 ### "Create a task for X"
 
@@ -383,10 +383,13 @@ All detailed documentation has been moved to references for better organization:
 - **`scripts/manage_omnifocus.js`** - JXA automation (Mac)
 - **`scripts/query_omnifocus.py`** - Database queries (Mac, requires permissions)
 
-### Examples
+### Assets
 
-- **`examples/TodaysTasks.omnifocusjs`** - Today's tasks plug-in
-- **`examples/README.md`** - Plug-in installation guide
+- **`assets/TodaysTasks.omnifocusjs`** - Today's tasks plug-in
+- **`assets/AITaskAnalyzer.omnifocusjs`** - AI-powered task analyzer plug-in
+- **`assets/templates/`** - Template files for task creation
+
+See `references/plugin_installation.md` for plug-in installation and usage instructions.
 
 ## Important Notes
 
@@ -435,3 +438,4 @@ python3 scripts/query_omnifocus.py --help
 - **Omni Automation:** [omni-automation.com/omnifocus](https://omni-automation.com/omnifocus/)
 - **OmniFocus URL Schemes:** [support.omnigroup.com/omnifocus-url-schemes](https://support.omnigroup.com/omnifocus-url-schemes/)
 - **OmniFocus AppleScript:** [support.omnigroup.com/omnifocus-applescript](https://support.omnigroup.com/omnifocus-applescript/)
+- **OmniFocus 4 Reference Manual** [OmniFocus 4 Reference Manual](https://support.omnigroup.com/documentation/omnifocus/universal/4/en/)

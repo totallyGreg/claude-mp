@@ -586,7 +586,7 @@ if (url) {
 - **Main Documentation:** [omni-automation.com/shared](https://omni-automation.com/shared/index.html)
 - **OmniFocus Specific:** See `omni_automation.md` in this directory
 - **Apple Foundation Models:** See `foundation_models_integration.md` in this directory
-- **Examples:** See `examples/` directory in skill root
+- **Examples:** See `assets/` directory for plug-in templates and `plugin_installation.md` for installation guide
 
 ## See Also
 

@@ -1,0 +1,23 @@
+# System files
+.DS_Store
+._.DS_Store
+
+# Python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+.*.tmp
+
+# Development/planning files (keep in git, exclude from packaging)
+IMPROVEMENT_PLAN.md

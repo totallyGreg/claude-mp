@@ -1,10 +1,14 @@
-# Omni Automation Plug-In Examples
+# Omni Automation Plug-In Installation & Usage Guide
 
-This directory contains example Omni Automation plug-ins for OmniFocus that demonstrate common automation patterns.
+Comprehensive guide for installing, using, and creating Omni Automation plug-ins for OmniFocus.
+
+## Overview
+
+This skill provides two ready-to-use Omni Automation plug-ins in the `assets/` directory that demonstrate common automation patterns. These serve as both functional tools and templates for creating custom automation.
 
 ## Available Plug-Ins
 
-### Today's Tasks (TodaysTasks.omnifocusjs)
+### Today's Tasks (`assets/TodaysTasks.omnifocusjs`)
 
 Shows all tasks that are due or deferred to today, grouped by project. Provides a quick overview of what needs to be worked on today.
 
@@ -15,6 +19,28 @@ Shows all tasks that are due or deferred to today, grouped by project. Provides 
 - Shows flagged status
 - Shows due times for tasks with specific times
 - Excludes completed and dropped tasks
+
+**Location:** `assets/TodaysTasks.omnifocusjs`
+
+### AI Task Analyzer (`assets/AITaskAnalyzer.omnifocusjs`)
+
+AI-powered task analysis using Apple Foundation Models (Apple Intelligence) to provide intelligent insights about your workload, priorities, and actionable recommendations.
+
+**Features:**
+- Priority recommendations with reasoning
+- Workload assessment
+- Overdue task pattern detection
+- Time management suggestions
+- GTD-aligned action items
+
+**Requirements:**
+- OmniFocus 4.8+
+- macOS 15.2+ / iOS 18.2+ / iPadOS 18.2+
+- Apple Silicon (Mac) or iPhone 15 Pro+
+
+**Location:** `assets/AITaskAnalyzer.omnifocusjs`
+
+**Documentation:** See `foundation_models_integration.md` for complete Apple Intelligence integration details
 
 ## Installation
 
@@ -74,7 +100,7 @@ All plug-ins are fully editable. To customize:
 
 ## Creating Your Own Plug-Ins
 
-See the [Omni Automation Reference](../references/omni_automation.md) for complete documentation on creating custom plug-ins.
+See `omni_automation.md` in this directory for complete documentation on creating custom plug-ins, or use the available plug-ins in `assets/` as templates.
 
 ### Basic Structure
 
@@ -163,9 +189,17 @@ MyPlugin.omnifocusjs/
 
 ## Resources
 
+### Skill References
+
+- **Omni Automation Guide:** See `omni_automation.md` - Complete API reference and practical examples
+- **Apple Intelligence Integration:** See `foundation_models_integration.md` - AI-powered automation with Apple Foundation Models
+- **Shared Classes Reference:** See `omni_automation_shared.md` - Cross-platform shared APIs (Alert, Form, FilePicker, etc.)
+
+### External Documentation
+
 - **Omni Automation Documentation:** [omni-automation.com/omnifocus](https://omni-automation.com/omnifocus/)
 - **Plug-In Library:** [omni-automation.com/omnifocus/actions.html](https://omni-automation.com/omnifocus/actions.html)
-- **Reference Guide:** [../references/omni_automation.md](../references/omni_automation.md)
+- **Official API Reference:** See `OmniFocus-API.md` for complete OmniFocus API specification
 
 ## License
 

@@ -220,7 +220,7 @@ osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 2
 osascript -l JavaScript scripts/manage_omnifocus.js today
 ```
 
-Or use the plug-in: `examples/TodaysTasks.omnifocusjs`
+Or use the plug-in: `assets/TodaysTasks.omnifocusjs`
 
 ### Next Actions Perspective
 
