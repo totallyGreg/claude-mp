@@ -814,14 +814,12 @@ def validate_references_readable(skill_path):
 
 def validate_reference_catalog(skill_path):
     """
-    Validate REFERENCE.md catalog is present and up-to-date for skills with multiple references
+    Validate that all reference files are mentioned in SKILL.md (validation-based approach)
 
     Returns: {
-        'catalog_exists': bool,
-        'catalog_recommended': bool,  # True if skill has 3+ references
-        'catalog_up_to_date': bool,
-        'missing_from_catalog': [str],  # Files in refs/ but not in REFERENCE.md
-        'extra_in_catalog': [str],      # Files in REFERENCE.md but not in refs/
+        'all_mentioned': bool,  # True if all references are mentioned in SKILL.md
+        'orphaned_refs': [str],  # Reference files not mentioned in SKILL.md
+        'total_refs': int,  # Total number of reference files
         'issues': [str]
     }
     """
@@ -829,82 +827,77 @@ def validate_reference_catalog(skill_path):
 
     if not refs_dir.exists():
         return {
-            'catalog_exists': False,
-            'catalog_recommended': False,
-            'catalog_up_to_date': True,
-            'missing_from_catalog': [],
-            'extra_in_catalog': [],
+            'all_mentioned': True,
+            'orphaned_refs': [],
+            'total_refs': 0,
             'issues': []
         }
 
-    # Get actual reference files (exclude REFERENCE.md itself)
+    # Get actual reference files
     actual_refs = [
         f.name for f in refs_dir.glob('*.md')
-        if f.is_file() and f.name != 'REFERENCE.md' and not f.name.startswith('.')
+        if f.is_file() and not f.name.startswith('.')
     ]
 
-    catalog_file = refs_dir / 'REFERENCE.md'
-    catalog_exists = catalog_file.exists()
-    catalog_recommended = len(actual_refs) >= 3  # Recommend catalog for 3+ references
-
-    if not catalog_exists:
-        if catalog_recommended:
-            return {
-                'catalog_exists': False,
-                'catalog_recommended': True,
-                'catalog_up_to_date': False,
-                'missing_from_catalog': actual_refs,
-                'extra_in_catalog': [],
-                'issues': [f'REFERENCE.md recommended for skills with {len(actual_refs)} references']
-            }
-        else:
-            return {
-                'catalog_exists': False,
-                'catalog_recommended': False,
-                'catalog_up_to_date': True,
-                'missing_from_catalog': [],
-                'extra_in_catalog': [],
-                'issues': []
-            }
-
-    # Parse REFERENCE.md to find listed files
-    try:
-        with open(catalog_file, 'r') as f:
-            catalog_content = f.read()
-
-        # Extract filenames from markdown (look for ### headings with .md extensions)
-        import re
-        catalog_refs = re.findall(r'###\s+([\w\-\_]+\.md)', catalog_content)
-        catalog_refs = list(set(catalog_refs))  # Remove duplicates
-
-        missing = [ref for ref in actual_refs if ref not in catalog_refs]
-        extra = [ref for ref in catalog_refs if ref not in actual_refs]
-
-        up_to_date = len(missing) == 0 and len(extra) == 0
-
-        issues = []
-        if missing:
-            issues.append(f'References not in catalog: {", ".join(missing)}')
-        if extra:
-            issues.append(f'Catalog lists non-existent references: {", ".join(extra)}')
-
+    if not actual_refs:
         return {
-            'catalog_exists': True,
-            'catalog_recommended': catalog_recommended,
-            'catalog_up_to_date': up_to_date,
-            'missing_from_catalog': missing,
-            'extra_in_catalog': extra,
-            'issues': issues
+            'all_mentioned': True,
+            'orphaned_refs': [],
+            'total_refs': 0,
+            'issues': []
         }
+
+    # Check if SKILL.md exists
+    skill_md_path = skill_path / 'SKILL.md'
+    if not skill_md_path.exists():
+        return {
+            'all_mentioned': False,
+            'orphaned_refs': actual_refs,
+            'total_refs': len(actual_refs),
+            'issues': ['SKILL.md not found - cannot validate reference mentions']
+        }
+
+    # Read SKILL.md content
+    try:
+        with open(skill_md_path, 'r', encoding='utf-8') as f:
+            skill_content = f.read()
     except Exception as e:
         return {
-            'catalog_exists': True,
-            'catalog_recommended': catalog_recommended,
-            'catalog_up_to_date': False,
-            'missing_from_catalog': [],
-            'extra_in_catalog': [],
-            'issues': [f'Error parsing REFERENCE.md: {str(e)}']
+            'all_mentioned': False,
+            'orphaned_refs': actual_refs,
+            'total_refs': len(actual_refs),
+            'issues': [f'Error reading SKILL.md: {str(e)}']
         }
+
+    # Check which references are mentioned in SKILL.md
+    orphaned_refs = []
+    for ref in actual_refs:
+        # Look for patterns like:
+        # - `references/filename.md`
+        # - references/filename.md
+        # - `filename.md`
+        patterns = [
+            f'`references/{ref}`',
+            f'references/{ref}',
+            f'`{ref}`',
+        ]
+
+        is_mentioned = any(pattern in skill_content for pattern in patterns)
+
+        if not is_mentioned:
+            orphaned_refs.append(ref)
+
+    # Build result
+    issues = []
+    if orphaned_refs:
+        issues.append(f'Reference files not mentioned in SKILL.md: {", ".join(orphaned_refs)}')
+
+    return {
+        'all_mentioned': len(orphaned_refs) == 0,
+        'orphaned_refs': orphaned_refs,
+        'total_refs': len(actual_refs),
+        'issues': issues
+    }
 
 
 def validate_functionality(skill_path):

@@ -2,372 +2,370 @@
 
 ## Introduction
 
-For skills with multiple reference documents, skillsmith provides automated reference catalog management. This guide covers how to use the reference management system to maintain organized, discoverable, and consolidated reference documentation.
+Skillsmith uses a validation-based approach to reference management that maintains AgentSkills one-level reference architecture through contextual pointers in SKILL.md rather than intermediate catalog files.
 
-**Why Reference Management Matters:**
-- Enables faster reference discovery for agents through structured metadata
-- Ensures all references are properly documented and cataloged
-- Prevents reference bloat through consolidation detection
-- Validates compliance with AgentSkills specification
+**Why Validation-Based Management:**
+- Maintains one-level reference chain (SKILL.md → reference files)
+- References discovered in context where they're actually used
+- Prevents orphaned references (files not mentioned anywhere)
+- Keeps SKILL.md lean and within 500-line guideline
+- Complies with AgentSkills spec: "Keep reference chains one-level deep"
 
-**When to Use Reference Management:**
-- Skills with 3+ reference files should include a REFERENCE.md catalog
+**When to Use Reference Validation:**
 - When adding new reference documentation
-- When reviewing skills for consolidation opportunities
+- After creating or moving reference files
 - During skill validation and quality checks
+- When reviewing skills for completeness
 
-## Reference Catalog (REFERENCE.md)
+## Architecture: Contextual Pointers
 
-### Purpose and Structure
+### How It Works
 
-Skills with 3+ reference files should include a `references/REFERENCE.md` catalog that indexes all references with metadata. This enables faster reference discovery and ensures all references are properly documented.
+Instead of creating a separate REFERENCE.md catalog, reference files are mentioned contextually in SKILL.md where they're relevant:
 
-**Catalog Structure:**
-- **Quick Reference**: Concise list of all references with one-line descriptions
-- **Detailed Index**: Full metadata including size, topics, purpose, usage scenarios, key sections
-- **Consolidation Status**: Warnings about similar references that may need consolidation
-
-**Metadata Included:**
-- File name and size (KB)
-- Line count
-- Topic tags (extracted from headings and content)
-- Purpose statement (first paragraph)
-- Key sections (H2 headings)
-- When to use (usage scenarios)
+**Examples of contextual mentions:**
+```markdown
+- For complete frontmatter requirements, see `references/agentskills_specification.md`
+- Use templates from `references/FORMS.md`
+- See `references/improvement_plan_best_practices.md` for versioning strategy
+```
 
 **Benefits:**
-- Faster reference discovery for agents
-- Ensures all references are documented
-- Standardized format across skills
-- Automated maintenance via update_references.py
+1. **Contextual Discovery**: Agents learn about references when they need them
+2. **One-Level Chain**: SKILL.md → reference files (no intermediate catalog)
+3. **Natural Integration**: References tied to specific use cases in documentation
+4. **Lean SKILL.md**: No table bloat from cataloging all references
 
-### How Agents Use Catalogs
+### AgentSkills Spec Compliance
 
-Instead of reading SKILL.md to discover which references exist, agents can:
-1. Read the compact REFERENCE.md catalog
-2. Quickly identify relevant references by topics and purpose
-3. Load only the specific references needed for the task
-4. Understand when to use each reference through usage scenarios
+This approach follows the AgentSkills specification guideline:
+> "Keep reference chains one-level deep from SKILL.md"
 
-This follows the progressive disclosure principle: metadata in REFERENCE.md (level 2), full reference content loaded on-demand (level 3).
-
-## Generating and Updating Catalogs
-
-### Automatic Workflow
-
-The reference catalog is automatically maintained during skillsmith quick update workflows:
-
-1. When adding a reference file through skillsmith
-2. Skillsmith automatically runs update_references.py
-3. REFERENCE.md is regenerated with the new file included
-4. Both the reference file and updated catalog are committed together
-
-### Manual Workflow
-
-You can also manually generate or update the catalog:
-
-```bash
-# Generate or update catalog for current skill
-python3 scripts/update_references.py .
-
-# For other skills (from skillsmith directory)
-python3 scripts/update_references.py ../other-skill
+**Compliant architecture:**
+```
+SKILL.md (mentions references in context)
+├─→ references/agentskills_specification.md
+├─→ references/FORMS.md
+├─→ references/improvement_plan_best_practices.md
+└─→ references/... (direct reference)
 ```
 
-### Output Formats
-
-The catalog can be generated in different formats:
-
-```bash
-# Markdown format (default)
-python3 scripts/update_references.py .
-
-# JSON format for programmatic access
-python3 scripts/update_references.py . --format json
+**Non-compliant (previous approach):**
 ```
-
-**JSON output includes:**
-- last_updated timestamp
-- references array with full metadata
-- Total reference count
+SKILL.md
+└─→ references/REFERENCE.md (catalog)
+    ├─→ references/agentskills_specification.md
+    ├─→ references/FORMS.md
+    └─→ ... (two-level chain)
+```
 
 ## Adding New References
 
-### Quick Update Workflow (Automatic)
+### Workflow
 
-When adding a new reference file during skill improvements handled by skillsmith:
+When adding a new reference file:
 
-1. Create new reference file: `references/new_topic.md`
-2. Skillsmith automatically runs update_references.py
-3. REFERENCE.md regenerated with new file included
-4. Both files committed together
+1. **Create the reference file** in `references/` directory:
+   ```bash
+   # Example: Adding API documentation
+   touch references/api_docs.md
+   # Write content to the file...
+   ```
 
-**No manual catalog updates needed!**
+2. **Add contextual mention** in SKILL.md where relevant:
+   ```markdown
+   # In the section where APIs are discussed:
+   For complete API specifications, see `references/api_docs.md`.
+   ```
 
-### Manual Workflow
-
-For manual reference additions:
-
-1. Create `references/new_topic.md` with proper structure:
-   - H1 heading with descriptive title
-   - Clear introductory paragraph explaining purpose
-   - H2 sections for major topics
-   - Well-organized content
-
-2. Run the catalog update script:
+3. **Run validation** to confirm it's properly linked:
    ```bash
    python3 scripts/update_references.py .
    ```
 
-3. Review the updated REFERENCE.md to verify:
-   - New reference appears in Quick Reference section
-   - Detailed index entry has accurate metadata
-   - Topics were correctly extracted
+4. **Expected output:**
+   ```
+   Validating reference mentions for /path/to/skill...
 
-4. Commit both files together:
-   ```bash
-   git add references/new_topic.md references/REFERENCE.md
-   git commit -m "Add new_topic reference documentation"
+   Found 7 reference file(s)
+
+   ✓ All 7 reference files are mentioned in SKILL.md
    ```
 
-### Best Practices
+### Where to Mention References
 
-- **Use descriptive filenames**: `api_authentication.md` not `auth.md`
-- **Start with clear H1**: First heading becomes the title in catalog
-- **Write clear purpose**: First paragraph is extracted as purpose statement
-- **Use H2 for sections**: These become "Key sections" in catalog
-- **Keep focused**: One topic per reference file
-- **Update catalog**: Always regenerate REFERENCE.md after adding references
+**Good places for contextual mentions:**
 
-## Detecting Consolidation Opportunities
+1. **In relevant documentation sections:**
+   ```markdown
+   #### API Integration
+   For complete endpoint specifications and schemas, see `references/api_docs.md`.
+   ```
 
-### Why Consolidation Matters
+2. **In workflow instructions:**
+   ```markdown
+   - Use form templates from `references/FORMS.md`
+   - Follow versioning strategy in `references/improvement_plan_best_practices.md`
+   ```
 
-As skills evolve, references may become redundant or overlapping. Multiple references covering similar topics:
-- Fragment information unnecessarily
-- Create maintenance burden
-- Confuse agents about which reference to load
-- Violate the principle of keeping references focused
+3. **In feature descriptions:**
+   ```markdown
+   For AgentSkills compliance details, see `references/agentskills_specification.md`.
+   ```
 
-### Running Consolidation Detection
+**Patterns to use:**
+- `See \`references/filename.md\` for [purpose]`
+- `Use [resource] from \`references/filename.md\``
+- `[Topic] documentation in \`references/filename.md\``
+- `For [detail], see \`references/filename.md\``
 
-Detect similar references using the duplicate detection mode:
+## Validation Process
+
+### Running Validation
+
+The `update_references.py` script validates that all reference files are mentioned in SKILL.md:
+
+```bash
+# Validate current skill
+python3 scripts/update_references.py .
+
+# Validate another skill
+python3 scripts/update_references.py ../other-skill
+```
+
+### Validation Output
+
+**All references mentioned (✓):**
+```
+Validating reference mentions for /path/to/skill...
+
+Found 6 reference file(s)
+
+✓ All 6 reference files are mentioned in SKILL.md
+```
+
+**Orphaned references detected (⚠️):**
+```
+Validating reference mentions for /path/to/skill...
+
+Found 6 reference file(s)
+
+⚠️  Warning: 2 reference file(s) not mentioned in SKILL.md:
+  - integration_guide.md
+  - research_guide.md
+
+Consider adding contextual mentions in SKILL.md, such as:
+  - 'See `references/filename.md` for details'
+  - 'Use templates from `references/filename.md`'
+  - 'API documentation in `references/filename.md`'
+```
+
+### Fixing Orphaned References
+
+When orphaned references are detected:
+
+1. **Review the reference file** to understand its purpose
+2. **Find relevant section** in SKILL.md where it should be mentioned
+3. **Add contextual mention** in that section
+4. **Re-run validation** to confirm it's fixed
+
+**Example:**
+
+If `research_guide.md` is orphaned:
+
+```markdown
+# In SKILL.md, find the section about skill evaluation/research:
+
+## Skill Evaluation
+
+Skillsmith provides comprehensive evaluation capabilities to assess skills
+and identify improvement opportunities. See `references/research_guide.md`
+for detailed information on research tools and evaluation metrics.
+```
+
+## Validation Modes
+
+### Default Mode: Validate Mentions
+
+Scans references/ directory and validates all files are mentioned in SKILL.md:
+
+```bash
+python3 scripts/update_references.py .
+```
+
+### Detect Duplicates Mode
+
+Detects similar references that may need consolidation:
 
 ```bash
 python3 scripts/update_references.py . --detect-duplicates
 ```
 
-### Output Example
-
+**Output:**
 ```
+Detecting consolidation opportunities...
+
 Consolidation Opportunities Detected:
 
 Cluster 1 (85% similar):
-  - references/api_guide.md
-  - references/api_reference.md
-  Recommendation: Consolidate into single API documentation file
+  - references/api_v1_docs.md
+  - references/api_v2_docs.md
+  Recommendation: Consider consolidating into single versioned API documentation
 
-Cluster 2 (72% similar):
-  - references/workflow_a.md
-  - references/process_guide.md
-  Recommendation: Review for overlapping content
+Cluster 2 (92% similar):
+  - references/forms_old.md
+  - references/FORMS.md
+  Recommendation: Review for potential merge - high similarity detected
 ```
 
-### Similarity Thresholds
+### Validate Structure Mode
 
-The detection algorithm uses Jaccard similarity on reference descriptions and topics:
-
-- **>90% similar**: High priority consolidation (likely duplicates)
-  - Action: Merge into single reference file
-  - These are probably covering the exact same content
-
-- **70-90% similar**: Medium priority review (overlapping content)
-  - Action: Review both files for overlap
-  - May need restructuring or partial consolidation
-
-- **<70%**: No consolidation needed
-  - Files are sufficiently distinct
-  - Keep as separate references
-
-### How Similarity is Calculated
-
-1. **Tokenization**: Extract significant words from purpose and topics
-2. **Similarity Metric**: Calculate Jaccard similarity (intersection / union)
-3. **Clustering**: Group references with >70% similarity
-4. **Recommendations**: Provide action items based on similarity level
-
-### Interpreting Results
-
-**When consolidation is recommended:**
-- Read both references to understand overlap
-- Determine if they can be merged
-- Consider if they serve different use cases despite similarity
-- Consolidate if truly redundant
-
-**False positives may occur when:**
-- References use similar terminology but serve different purposes
-- Topic overlap is high but content depth differs
-- References target different skill levels (beginner vs advanced)
-
-Use judgment when deciding whether to consolidate.
-
-## Validating Reference Structure
-
-### Running Structure Validation
-
-Ensure references/ directory follows AgentSkills specification:
+Validates references/ directory structure per AgentSkills spec:
 
 ```bash
 python3 scripts/update_references.py . --validate-structure
 ```
 
-### Validation Checks
+## Best Practices
 
-The validator checks for:
+### Contextual Integration
 
-1. **Directory exists**: `references/` directory is present
-2. **One-level depth**: No nested subdirectories (per AgentSkills spec)
-3. **File readability**: All `.md` files can be read
-4. **Catalog currency**: REFERENCE.md is up-to-date (if exists)
-5. **Large file warnings**: Files >100KB get warnings (use grep patterns in SKILL.md)
-
-### Example Output
-
-```
-✓ references/ directory exists
-✓ All references are readable
-✓ No nested subdirectories (spec compliant)
-✓ REFERENCE.md is up-to-date
-⚠ Large file detected: references/api_docs.md (124 KB)
-  Recommendation: Consider including grep patterns in SKILL.md
-```
-
-### Common Issues and Fixes
-
-**Issue: Nested subdirectories**
-- Problem: `references/api/authentication.md`
-- Fix: Flatten structure to `references/api_authentication.md`
-- Why: AgentSkills spec requires one-level depth
-
-**Issue: REFERENCE.md out of date**
-- Problem: Added references but didn't regenerate catalog
-- Fix: Run `python3 scripts/update_references.py .`
-- Prevention: Use automatic workflow via skillsmith
-
-**Issue: Large reference files**
-- Problem: Reference >100KB makes context window inefficient
-- Fix: Include grep search patterns in SKILL.md for selective loading
-- Example: `grep -A 20 "^## Authentication" references/api_docs.md`
-
-**Issue: Unreadable files**
-- Problem: File encoding issues or permission problems
-- Fix: Ensure UTF-8 encoding and readable permissions
-- Command: `chmod 644 references/*.md`
-
-## FORMS.md Template File
-
-### Purpose and Usage
-
-The `references/FORMS.md` file (optional) contains structured templates for workflows that involve data collection.
-
-**Purpose:**
-- Provide consistent templates for common skill workflows
-- Standardize data capture across skill usage
-- Reduce back-and-forth for missing information
-- Serve as quick reference for required fields
-
-### When to Include FORMS.md
-
-Include a FORMS.md file when your skill:
-- Involves structured data collection
-- Uses repeatable forms or templates frequently
-- Requires standardized request/proposal formats
-- Has workflows with specific field requirements
-
-### Examples of Form Templates
-
-**Skill-specific examples:**
-- **Skill proposal forms**: Template for proposing new skills
-- **Improvement request templates**: Standardized improvement requests
-- **Research analysis templates**: Structured skill research findings
-- **Domain-specific structured data**: Expense reports, status updates, bug reports, etc.
-
-### Benefits
-
-- **Consistency**: All users/agents follow same data structure
-- **Completeness**: Templates ensure all required fields are included
-- **Efficiency**: Reduces back-and-forth asking for missing information
-- **Clarity**: Makes expectations clear upfront
-
-### FORMS.md Structure
-
-Typically organized by form type:
-
+✅ **Good:**
 ```markdown
-# Form Templates
+## API Integration
 
-## [Form Type 1]
-
-**Field 1:** [description/requirements]
-**Field 2:** [description/requirements]
-[...]
-
-## [Form Type 2]
-
-**Field 1:** [description/requirements]
-[...]
+The skill supports RESTful API integration with OAuth2 authentication.
+For complete endpoint specifications, request/response schemas, and
+authentication flows, see `references/api_docs.md`.
 ```
 
-See `references/FORMS.md` in skillsmith for examples of skill proposal, improvement request, and research analysis templates.
+❌ **Avoid:**
+```markdown
+## References
+
+- See api_docs.md
+- See FORMS.md
+- See research_guide.md
+```
+
+### Mention Patterns
+
+Use clear, descriptive patterns that explain WHY someone would read the reference:
+
+✅ **Good:**
+- "For complete API specifications, see `references/api_docs.md`"
+- "Use form templates from `references/FORMS.md`"
+- "For versioning strategy and best practices, see `references/improvement_plan_best_practices.md`"
+
+❌ **Avoid:**
+- "See api_docs.md" (lacks context)
+- "More info in FORMS.md" (vague purpose)
+- "Check research_guide.md" (unclear when to use it)
+
+### Keep SKILL.md Lean
+
+- Mention each reference once (avoid redundant mentions)
+- Use concise mention patterns (don't copy content into SKILL.md)
+- Trust agents to load references when they see contextual pointers
+
+### Validation Workflow
+
+Make validation part of your skill development workflow:
+
+1. **After adding reference**: Run validation immediately
+2. **Before committing**: Ensure all references are mentioned
+3. **During reviews**: Check for orphaned references
+4. **Periodic audits**: Re-run validation to catch drift
+
+## Integration with Skillsmith Workflows
+
+### Quick Updates
+
+When skillsmith handles quick updates involving new references:
+
+1. Skillsmith creates the reference file
+2. Skillsmith adds contextual mention to SKILL.md
+3. Skillsmith runs `update_references.py` to validate
+4. Both reference file and updated SKILL.md are committed together
+
+### Complex Improvements
+
+When skill-planner coordinates complex improvements:
+
+1. Planning phase identifies needed references
+2. Implementation adds references and contextual mentions
+3. Validation ensures all references are properly linked
+4. Quality checks verify mentions are contextually appropriate
+
+## Migration from REFERENCE.md
+
+If your skill currently uses `references/REFERENCE.md` catalog:
+
+1. **Read REFERENCE.md** to see what references exist
+2. **Add contextual mentions** for each reference in SKILL.md
+3. **Run validation** to confirm all are mentioned
+4. **Delete REFERENCE.md** once validation passes
+5. **Update .skillignore** if REFERENCE.md was listed there
+
+**Example migration:**
+
+```bash
+# 1. Check current references
+cat references/REFERENCE.md
+
+# 2. Add contextual mentions in SKILL.md
+# (edit SKILL.md to add mentions)
+
+# 3. Validate all references are mentioned
+python3 scripts/update_references.py .
+
+# 4. Delete old catalog once validation passes
+rm references/REFERENCE.md
+
+# 5. Commit changes
+git add SKILL.md references/
+git commit -m "Migrate to validation-based reference management"
+```
+
+## FAQ
+
+**Q: Do I need REFERENCE.md anymore?**
+
+A: No. The validation-based approach eliminates the need for a separate catalog file. References are mentioned contextually in SKILL.md instead.
+
+**Q: What if I have many references?**
+
+A: Mention each reference once in the appropriate context. The validation script ensures none are orphaned, regardless of how many you have.
+
+**Q: Can I mention a reference multiple times?**
+
+A: Yes, but it's not necessary for validation. The script only checks that each reference is mentioned at least once. Multiple mentions are fine if contextually appropriate.
+
+**Q: What if my reference file isn't mentioned anywhere?**
+
+A: The validation script will report it as orphaned and suggest adding a contextual mention. This prevents "lost" references that agents can't discover.
+
+**Q: Does this work with references in subdirectories?**
+
+A: Currently, the script scans only `references/*.md` files (not subdirectories). Keep references flat in `references/` for best compatibility.
 
 ## Command Reference
 
-### update_references.py
-
-Complete command-line reference for the reference management script.
-
-**Basic Usage:**
 ```bash
-python3 scripts/update_references.py <skill-path> [options]
-```
-
-**Options:**
-
-- `<skill-path>`: Path to skill directory (required)
-- `--output FILENAME`: Output filename (default: REFERENCE.md)
-- `--format {markdown|json}`: Output format (default: markdown)
-- `--detect-duplicates`: Detect and report consolidation opportunities only
-- `--validate-structure`: Validate references/ directory structure only
-- `--force`: Force regeneration even if catalog is up-to-date
-
-**Examples:**
-
-```bash
-# Generate catalog for current skill
+# Validate reference mentions (default)
 python3 scripts/update_references.py .
-
-# Generate for another skill
-python3 scripts/update_references.py ../other-skill
 
 # Detect consolidation opportunities
 python3 scripts/update_references.py . --detect-duplicates
 
-# Validate structure
+# Validate directory structure
 python3 scripts/update_references.py . --validate-structure
 
-# Output as JSON
-python3 scripts/update_references.py . --format json
-
-# Custom output filename
-python3 scripts/update_references.py . --output MY_CATALOG.md
+# Validate another skill
+python3 scripts/update_references.py ../other-skill
 ```
 
-**Exit Codes:**
-- `0`: Success
-- `1`: Validation failure or error
+## Related Documentation
 
-**Output:**
-- Markdown: Human-readable catalog with Quick Reference, Detailed Index, and Consolidation Status
-- JSON: Machine-readable format with full metadata array
-
-For specification details on references/ directory structure, see `references/agentskills_specification.md` (lines 188-217).
+- `references/agentskills_specification.md` - AgentSkills specification with reference architecture guidelines
+- SKILL.md (lines 91-103) - References section with discovery guidance

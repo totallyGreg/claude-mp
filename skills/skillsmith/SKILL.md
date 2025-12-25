@@ -60,7 +60,7 @@ For complete frontmatter requirements and examples, see `references/agentskills_
 
 #### IMPROVEMENT_PLAN.md (recommended)
 
-Living document tracking skill evolution, version history, and future improvements.
+Living document tracking skill evolution, version history, and future improvements. See `references/improvement_plan_best_practices.md` for detailed guidance on structure, versioning strategy, and best practices.
 
 - **When to include**: For all skills, especially those expected to evolve over time
 - **Purpose**: Historical context, planning documentation, design decision rationale
@@ -98,7 +98,7 @@ Documentation and reference material intended to be loaded as needed into contex
 - **Benefits**: Keeps SKILL.md lean, loaded only when Claude determines it's needed
 - **Best practice**: If files are large (>10k words), include grep search patterns in SKILL.md
 - **Avoid duplication**: Information should live in either SKILL.md or references files, not both. Prefer references files for detailed information unless it's truly core to the skill—this keeps SKILL.md lean while making information discoverable without hogging the context window. Keep only essential procedural instructions and workflow guidance in SKILL.md; move detailed reference material, schemas, and examples to references files.
-- **Reference Catalog**: Skills with 3+ reference files should include `references/REFERENCE.md` to index all references with metadata. This catalog is automatically maintained by skillsmith during quick update workflows.
+- **Reference Discovery**: Reference files should be mentioned contextually in SKILL.md where they're relevant (e.g., "See `references/api_docs.md` for API schemas"). The `update_references.py` script validates that all reference files are properly mentioned.
 - **Forms and Templates**: Skills that involve structured data collection should include `references/FORMS.md` with form templates.
 
 ##### Assets (`assets/`)

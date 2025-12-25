@@ -2,20 +2,20 @@
 """
 Reference Management Tool for AgentSkills
 
-Scans references/ directory, extracts metadata, detects consolidation opportunities,
-and generates/updates REFERENCE.md catalog.
+Validates that all reference files in references/ directory are mentioned
+contextually in SKILL.md, maintaining AgentSkills one-level reference architecture.
 
 Usage:
-    update_references.py <skill-path> [--output REFERENCE.md] [--format markdown|json]
+    update_references.py <skill-path>
     update_references.py <skill-path> --detect-duplicates
     update_references.py <skill-path> --validate-structure
 
 Features:
     - Scans references/ directory and extracts metadata from each file
-    - Generates structured REFERENCE.md catalog
+    - Validates that all reference files are mentioned in SKILL.md
+    - Detects orphaned references (files not mentioned anywhere)
     - Detects similar descriptions signaling consolidation needs
     - Validates references/ directory structure per spec
-    - Supports both markdown and JSON output
     - Reusable by other skills (not skillsmith-specific)
 """
 
@@ -280,181 +280,44 @@ def validate_references_structure(skill_path: Path) -> Dict:
     }
 
 
-def generate_reference_catalog(references_list: List[Dict], format: str = 'markdown') -> str:
+def validate_reference_mentions(skill_md_path: Path, references_list: List[Dict]) -> List[str]:
     """
-    Generate reference catalog content
+    Validate that all reference files are mentioned in SKILL.md
 
     Args:
+        skill_md_path: Path to SKILL.md file
         references_list: List of reference metadata dicts
-        format: Output format ('markdown' or 'json')
 
     Returns:
-        Catalog content as string
+        List of orphaned reference filenames (not mentioned in SKILL.md)
     """
-    if format == 'json':
-        return json.dumps({
-            'last_updated': datetime.now().strftime('%Y-%m-%d'),
-            'references': references_list,
-            'count': len(references_list)
-        }, indent=2)
+    # Read SKILL.md content
+    with open(skill_md_path, 'r', encoding='utf-8') as f:
+        skill_content = f.read()
 
-    # Markdown format
-    lines = []
-    lines.append('# Reference Catalog')
-    lines.append('')
-    lines.append(f'Last updated: {datetime.now().strftime("%Y-%m-%d")}')
-    lines.append('')
-    lines.append('This catalog indexes all reference documentation in this skill. Each reference file serves a specific purpose in the skill\'s domain knowledge.')
-    lines.append('')
-
-    # Quick Reference section
-    lines.append('## Quick Reference')
-    lines.append('')
-    for ref in references_list:
-        # Create one-line description from title
-        one_liner = ref['title']
-        if ref['topics']:
-            one_liner += ' (' + ', '.join(ref['topics'][:3]) + ')'
-        lines.append(f'- **{ref["filename"]}** - {one_liner}')
-    lines.append('')
-
-    # Detailed Index section
-    lines.append('## Detailed Index')
-    lines.append('')
+    orphaned_refs = []
 
     for ref in references_list:
-        lines.append(f'### {ref["filename"]}')
+        filename = ref['filename']
 
-        # Metadata line
-        metadata_parts = [
-            f'**Size**: {ref["size_kb"]} KB',
-            f'**Lines**: {ref["line_count"]}'
+        # Check if reference is mentioned in SKILL.md
+        # Look for patterns like:
+        # - `references/filename.md`
+        # - references/filename.md
+        # - `filename.md` (sometimes just filename if context is clear)
+
+        patterns = [
+            f'`references/{filename}`',
+            f'references/{filename}',
+            f'`{filename}`',
         ]
-        if ref['topics']:
-            metadata_parts.append(f'**Topics**: {", ".join(ref["topics"])}')
-        lines.append(' | '.join(metadata_parts))
 
-        # Purpose
-        if ref['purpose']:
-            lines.append(f'**Purpose**: {ref["purpose"]}')
+        is_mentioned = any(pattern in skill_content for pattern in patterns)
 
-        # When to use (derived from purpose and topics)
-        when_to_use = f'Reference when working with {", ".join(ref["topics"][:3])}' if ref['topics'] else 'General reference documentation'
-        lines.append(f'**When to use**: {when_to_use}')
+        if not is_mentioned:
+            orphaned_refs.append(filename)
 
-        # Key sections
-        if ref['key_sections']:
-            lines.append(f'**Key sections**: {", ".join(ref["key_sections"][:5])}')
-
-        lines.append('')
-
-    # Consolidation status
-    consolidation_clusters = detect_similar_references(references_list)
-
-    lines.append('## Consolidation Status')
-    lines.append('')
-
-    if consolidation_clusters:
-        lines.append(f'⚠️  {len(consolidation_clusters)} potential consolidation opportunit{"y" if len(consolidation_clusters) == 1 else "ies"} detected:')
-        lines.append('')
-        for i, cluster in enumerate(consolidation_clusters, 1):
-            lines.append(f'**Cluster {i}** ({cluster["similarity"]}% similar):')
-            for file in cluster['files']:
-                lines.append(f'  - {file}')
-            lines.append(f'  *{cluster["recommendation"]}*')
-            lines.append('')
-    else:
-        lines.append('No similar references detected requiring consolidation.')
-        lines.append('')
-
-    # Footer
-    lines.append('---')
-    lines.append('')
-    lines.append('*This catalog is automatically generated by `scripts/update_references.py`. To regenerate: `python3 scripts/update_references.py .`*')
-
-    return '\n'.join(lines)
-
-
-def update_reference_catalog(skill_path: Path, output_file: str = 'REFERENCE.md',
-                             format: str = 'markdown', force: bool = False) -> Dict:
-    """
-    Main orchestrator function to update reference catalog
-
-    Args:
-        skill_path: Path to skill directory
-        output_file: Output filename (default: REFERENCE.md)
-        format: Output format ('markdown' or 'json')
-        force: Force regeneration even if catalog is up-to-date
-
-    Returns:
-        Dict containing:
-            - success: bool
-            - message: str
-            - references_count: int
-            - consolidation_opportunities: int
-    """
-    # Validate skill path
-    if not skill_path.exists():
-        return {
-            'success': False,
-            'message': f'Skill path does not exist: {skill_path}',
-            'references_count': 0,
-            'consolidation_opportunities': 0
-        }
-
-    refs_dir = skill_path / 'references'
-
-    if not refs_dir.exists():
-        return {
-            'success': False,
-            'message': f'No references/ directory found in {skill_path}',
-            'references_count': 0,
-            'consolidation_opportunities': 0
-        }
-
-    # Scan references directory
-    ref_files = scan_references_directory(skill_path)
-
-    if not ref_files:
-        return {
-            'success': False,
-            'message': 'No reference files found in references/ directory',
-            'references_count': 0,
-            'consolidation_opportunities': 0
-        }
-
-    # Extract metadata from all references
-    references_metadata = []
-    for ref_file in ref_files:
-        metadata = extract_reference_metadata(ref_file)
-        references_metadata.append(metadata)
-
-    # Generate catalog
-    catalog_content = generate_reference_catalog(references_metadata, format=format)
-
-    # Write catalog to file
-    output_path = refs_dir / output_file
-    try:
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(catalog_content)
-    except Exception as e:
-        return {
-            'success': False,
-            'message': f'Error writing catalog file: {str(e)}',
-            'references_count': len(references_metadata),
-            'consolidation_opportunities': 0
-        }
-
-    # Detect consolidation opportunities
-    clusters = detect_similar_references(references_metadata)
-
-    return {
-        'success': True,
-        'message': f'Successfully generated {output_file} with {len(references_metadata)} references',
-        'references_count': len(references_metadata),
-        'consolidation_opportunities': len(clusters),
-        'output_path': str(output_path)
-    }
+    return orphaned_refs
 
 
 def main():
@@ -463,7 +326,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 Examples:
-  # Generate or update catalog for current skill
+  # Validate reference mentions for current skill
   python3 update_references.py .
 
   # For other skills (from skillsmith directory)
@@ -474,23 +337,14 @@ Examples:
 
   # Validate reference structure only
   python3 update_references.py . --validate-structure
-
-  # Output JSON format instead of markdown
-  python3 update_references.py . --format json
         '''
     )
 
     parser.add_argument('skill_path', type=str, help='Path to skill directory')
-    parser.add_argument('--output', type=str, default='REFERENCE.md',
-                       help='Output filename (default: REFERENCE.md)')
-    parser.add_argument('--format', type=str, choices=['markdown', 'json'], default='markdown',
-                       help='Output format (default: markdown)')
     parser.add_argument('--detect-duplicates', action='store_true',
                        help='Detect and report consolidation opportunities only')
     parser.add_argument('--validate-structure', action='store_true',
                        help='Validate references/ directory structure only')
-    parser.add_argument('--force', action='store_true',
-                       help='Force regeneration even if catalog is up-to-date')
 
     args = parser.parse_args()
 
@@ -546,27 +400,47 @@ Examples:
 
         sys.exit(0)
 
-    # Generate catalog mode (default)
-    print(f'Generating reference catalog for {skill_path}...')
+    # Validate reference mentions mode (default)
+    print(f'Validating reference mentions for {skill_path}...')
     print()
 
-    result = update_reference_catalog(
-        skill_path=skill_path,
-        output_file=args.output,
-        format=args.format,
-        force=args.force
-    )
+    # Scan references directory
+    ref_files = scan_references_directory(skill_path)
 
-    if result['success']:
-        print(f'✓ {result["message"]}')
-        print(f'  References cataloged: {result["references_count"]}')
-        if result['consolidation_opportunities'] > 0:
-            print(f'  ⚠️  Consolidation opportunities: {result["consolidation_opportunities"]}')
-            print(f'      Run with --detect-duplicates to see details')
-        print(f'  Output: {result["output_path"]}')
-    else:
-        print(f'✗ {result["message"]}')
+    if not ref_files:
+        print('No reference files found in references/ directory')
+        sys.exit(0)
+
+    print(f'Found {len(ref_files)} reference file(s)')
+    print()
+
+    # Extract metadata from all reference files
+    references_list = []
+    for ref_file in ref_files:
+        metadata = extract_reference_metadata(ref_file)
+        references_list.append(metadata)
+
+    # Validate references are mentioned in SKILL.md
+    skill_md_path = skill_path / 'SKILL.md'
+
+    if not skill_md_path.exists():
+        print(f'✗ SKILL.md not found at {skill_md_path}')
         sys.exit(1)
+
+    orphaned_refs = validate_reference_mentions(skill_md_path, references_list)
+
+    if orphaned_refs:
+        print(f"⚠️  Warning: {len(orphaned_refs)} reference file(s) not mentioned in SKILL.md:")
+        for ref in orphaned_refs:
+            print(f"  - {ref}")
+        print("\nConsider adding contextual mentions in SKILL.md, such as:")
+        print("  - 'See `references/filename.md` for details'")
+        print("  - 'Use templates from `references/filename.md`'")
+        print("  - 'API documentation in `references/filename.md`'")
+        sys.exit(1)
+    else:
+        print(f"✓ All {len(references_list)} reference files are mentioned in SKILL.md")
+        sys.exit(0)
 
 
 if __name__ == '__main__':
