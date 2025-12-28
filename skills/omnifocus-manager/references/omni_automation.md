@@ -28,7 +28,7 @@ Omni Automation is OmniFocus's modern, device-independent JavaScript automation 
 3. Scripts run in the context of the current document
 
 **As Plug-Ins:**
-1. Create plug-in bundle (.omnifocusjs)
+1. Create plug-in bundle (.omnifocusjs directory - see `omnifocus_plugin_structure.md`)
 2. Install in OmniFocus
 3. Trigger via Tools → Plug-In Name
 
@@ -387,9 +387,19 @@ Properties:
 
 ## Plug-In Development
 
+**For complete plug-in documentation, see `omnifocus_plugin_structure.md`:**
+- Full manifest.json schema with all available fields
+- Complete bundle structure and file organization
+- Step-by-step creation guide
+- Action script templates and patterns
+- Installation and testing procedures
+- Common Glob/Grep patterns for working with plugins
+
+**Important:** `.omnifocusjs` is a directory bundle, not a single file. See `omnifocus_plugin_structure.md` for detailed explanation of bundle structure and how to work with plugin files.
+
 ### Plug-In Structure
 
-A plug-in is a folder with `.omnifocusjs` extension containing:
+A plug-in is a directory bundle with `.omnifocusjs` extension containing:
 
 ```
 MyPlugin.omnifocusjs/

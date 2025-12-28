@@ -8,8 +8,100 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.3.2 | 2025-12-27 | Added comprehensive plugin bundle structure documentation |
+| 1.3.1 | 2025-12-24 | Reorganized skill structure for AgentSkills compliance |
 | 1.1.0 | 2025-12-21 | Major quality improvements, new references, and task templates |
 | 1.0.0 | 2025-12-19 | Initial release |
+
+## Completed Improvements
+
+### v1.3.2 - Plugin Bundle Documentation (2025-12-27)
+
+**Problem Addressed:**
+- Claude struggled to work with .omnifocusjs plugin bundles
+- Tried to Read .omnifocusjs paths directly, failing because they're directories not files
+- Lacked knowledge about bundle structure and how to navigate them
+- No comprehensive documentation existed for manifest.json schema
+
+**New Documentation:**
+
+1. **`references/omnifocus_plugin_structure.md`** (NEW)
+   - Comprehensive 700+ line reference document
+   - **Bundle Fundamentals:**
+     - Explains .omnifocusjs are directory bundles, not single files
+     - Distinction between Finder behavior (appears as file) vs Terminal (is a directory)
+     - Why Read tool fails on bundle paths
+     - Correct patterns for reading files within bundles
+   - **Complete Structure Documentation:**
+     - Required vs optional files
+     - Directory layout standards
+     - Naming conventions and best practices
+   - **manifest.json Complete Schema:**
+     - All available fields documented
+     - Required vs optional fields
+     - Field descriptions and examples
+     - Multiple example configurations (minimal, full-featured, multi-action)
+   - **Working with Bundles:**
+     - How to detect plugin bundles
+     - Reading files from bundles (correct patterns)
+     - Common Glob patterns for finding plugins
+     - Common Grep patterns for searching within plugins
+     - Exploring bundle contents with ls and Glob
+   - **Creating Plugins:**
+     - Step-by-step creation process
+     - Adding multiple actions
+     - Best practices for organization
+     - Version management
+   - **Action Script Structure:**
+     - Complete templates
+     - Plugin.Action wrapper pattern
+     - Validation functions
+     - Error handling patterns
+     - Common API usage examples
+   - **Installation & Testing:**
+     - Installation locations on macOS
+     - Testing procedures during development
+     - Troubleshooting common issues
+   - **Modifying Existing Plugins:**
+     - Reading plugin contents
+     - Making changes safely
+     - Version update guidelines
+
+2. **SKILL.md Updates:**
+   - Added omnifocus_plugin_structure.md to primary references (position #2)
+   - Added **CRITICAL** note that .omnifocusjs is a directory bundle
+   - Updated decision tree with plugin creation/modification as first option
+   - Added cross-references to all related documentation
+   - Renumbered references section (now has 9 primary references)
+
+3. **`references/plugin_installation.md` Updates:**
+   - Added comprehensive "Understanding .omnifocusjs Bundles" section at beginning
+   - Explains bundle vs file distinction
+   - Shows correct vs incorrect approaches for reading bundles
+   - Provides bundle structure overview
+   - Documents how to navigate bundles in terminal
+   - Added cross-reference to omnifocus_plugin_structure.md
+
+4. **`references/omni_automation.md` Updates:**
+   - Added prominent cross-reference at Plug-In Development section
+   - Notes that .omnifocusjs is a directory bundle
+   - Updated "As Plug-Ins" section with reference
+   - Links to omnifocus_plugin_structure.md for complete details
+
+**Impact:**
+- Claude will now correctly recognize .omnifocusjs as directory bundles
+- Will use Read with full paths like `Plugin.omnifocusjs/manifest.json`
+- Will use Bash ls or Glob to explore bundle contents
+- Has complete templates and structure documentation
+- Understands all available manifest.json fields
+- Knows how to create, read, and modify plugin bundles correctly
+
+**Quality Metrics:**
+- Added 1 new reference document (700+ lines)
+- Updated 3 existing documentation files
+- Total documentation: 16 references (10,265 lines)
+- Spec compliance: ✓ PASS (90/100)
+- Overall score: 75/100 (maintained)
 
 ## Completed Improvements
 

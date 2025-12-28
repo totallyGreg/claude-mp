@@ -2,7 +2,7 @@
 name: omnifocus-manager
 description: Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA). This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
 metadata:
-  version: 1.3.1
+  version: 1.3.2
   author: totally-tools
   license: MIT
 compatibility:
@@ -36,24 +36,31 @@ Comprehensive OmniFocus automation through multiple complementary approaches:
 
 ## Quick Decision Tree
 
-1. **Cross-platform support needed (iOS/Mac)?**
+1. **Creating/modifying OmniFocus plugins (.omnifocusjs bundles)?**
+   - **IMPORTANT:** .omnifocusjs is a directory bundle, not a file
+   - Use `references/omnifocus_plugin_structure.md` for bundle format and structure
+   - Use `references/omni_automation.md` for JavaScript API
+   - Use `references/omni_automation_shared.md` for UI components (Alert, Form, etc.)
+   - See example plugins: `assets/TodaysTasks.omnifocusjs`, `assets/AITaskAnalyzer.omnifocusjs`
+
+2. **Cross-platform support needed (iOS/Mac)?**
    - YES → Use Omni Automation (`references/omni_automation.md`)
    - NO → Continue
 
-2. **Reusable automation?**
-   - YES → Create Omni Automation plug-in (see `references/plugin_installation.md`)
+3. **Reusable automation?**
+   - YES → Create Omni Automation plug-in (see `references/omnifocus_plugin_structure.md` and `references/plugin_installation.md`)
    - NO → Continue
 
-3. **Querying/reading data?**
+4. **Querying/reading data?**
    - Use `scripts/manage_omnifocus.js` query commands (JXA)
    - See `references/jxa_commands.md` for complete command reference
 
-4. **Creating/modifying data?**
+5. **Creating/modifying data?**
    - Simple task creation → Use omnifocus:// URL scheme (`references/omnifocus_url_scheme.md`)
    - Complex operations → Use `scripts/manage_omnifocus.js` (JXA)
    - See `references/jxa_commands.md` for all management commands
 
-5. **Last resort: Database queries**
+6. **Last resort: Database queries**
    - ONLY use `scripts/query_omnifocus.py` if JXA cannot accomplish the task
    - Requires full disk access permissions
    - Read-only, Mac-only
@@ -319,13 +326,23 @@ All detailed documentation has been moved to references for better organization:
    - Output formats and error handling
    - Command-line usage patterns
 
-2. **`references/omni_automation.md`** - Omni Automation practical guide
+2. **`references/omnifocus_plugin_structure.md`** ⭐ - OmniFocus Plugin Bundle Structure
+   - **CRITICAL:** `.omnifocusjs` is a directory bundle, not a single file
+   - Complete manifest.json schema with all fields
+   - Bundle structure and file organization
+   - How to read, create, and modify plugin bundles
+   - Action script templates and patterns
+   - Common Glob/Grep patterns for plugin files
+   - Installation and testing procedures
+   - **Use this for:** Working with .omnifocusjs bundles, creating/modifying plugins, understanding plugin architecture
+
+3. **`references/omni_automation.md`** - Omni Automation practical guide
    - Getting started and common patterns
    - Plug-in development workflow
    - Code examples and best practices
    - Use this for learning and implementation guidance
 
-3. **`references/omni_automation_shared.md`** - Shared Omni Automation classes ⭐
+4. **`references/omni_automation_shared.md`** - Shared Omni Automation classes ⭐
    - Cross-app shared APIs (Alert, Form, FilePicker, etc.)
    - Works across OmniFocus, OmniGraffle, OmniOutliner, OmniPlan
    - User interaction (alerts, forms, dialogs)
@@ -335,7 +352,7 @@ All detailed documentation has been moved to references for better organization:
    - System integration (Device, Notification, Speech, Timer)
    - **Use this for:** Building cross-platform plugins, user input, file operations, clipboard access
 
-4. **`references/OmniFocus-API.md`** - Complete Omni Automation API reference
+5. **`references/OmniFocus-API.md`** - Complete Omni Automation API reference
    - Official comprehensive API specification
    - Detailed class/method/property documentation
    - Use this for API lookup and detailed signatures
@@ -345,7 +362,7 @@ All detailed documentation has been moved to references for better organization:
      - Document methods: `grep "function.*Document" references/OmniFocus-API.md`
      - Specific property: `grep -i "propertyName" references/OmniFocus-API.md`
 
-5. **`references/foundation_models_integration.md`** ⭐ - Apple Intelligence integration
+6. **`references/foundation_models_integration.md`** ⭐ - Apple Intelligence integration
    - **NEW in OmniFocus 4.8+** - On-device AI for task automation
    - Natural language task processing with LanguageModel.Session
    - Intelligent categorization and prioritization
@@ -355,13 +372,13 @@ All detailed documentation has been moved to references for better organization:
    - Requirements: macOS 15.2+, iOS 18.2+, Apple Silicon/iPhone 15 Pro+
    - **Use this for:** AI-powered automation, intelligent task organization, natural language processing
 
-6. **`references/workflows.md`** - Common workflow patterns
+7. **`references/workflows.md`** - Common workflow patterns
    - Daily/weekly/monthly planning
    - Project management workflows
    - Batch operations
    - Integration examples (Keyboard Maestro, Alfred, etc.)
 
-7. **`references/omnifocus_url_scheme.md`** - URL scheme reference ⭐
+8. **`references/omnifocus_url_scheme.md`** - URL scheme reference ⭐
    - Task creation with all parameters
    - Bulk TaskPaper import (paste action)
    - Built-in perspectives (inbox, flagged, forecast, etc.)
@@ -372,7 +389,7 @@ All detailed documentation has been moved to references for better organization:
    - URL encoding and generation helpers
    - Cross-platform (Mac + iOS)
 
-8. **`references/troubleshooting.md`** - Troubleshooting guide
+9. **`references/troubleshooting.md`** - Troubleshooting guide
    - Permission setup (step-by-step)
    - Common errors and solutions
    - Performance optimization

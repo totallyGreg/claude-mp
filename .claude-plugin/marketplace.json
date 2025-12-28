@@ -82,7 +82,7 @@
       "name": "omnifocus-manager",
       "description": "Interface with OmniFocus to surface insights, create reusable automations and perspectives, and suggest workflow optimizations",
       "category": "productivity",
-      "version": "1.3.1",
+      "version": "1.3.2",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"

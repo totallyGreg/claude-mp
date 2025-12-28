@@ -2,6 +2,78 @@
 
 Comprehensive guide for installing, using, and creating Omni Automation plug-ins for OmniFocus.
 
+## Understanding .omnifocusjs Bundles
+
+**CRITICAL:** `.omnifocusjs` files are **directory bundles**, not single files.
+
+### What is a Bundle?
+
+A `.omnifocusjs` bundle is a directory that appears as a single file in Finder, similar to macOS `.app` applications. Understanding this distinction is essential for working with plugins programmatically.
+
+**In Finder:**
+- Appears as a single clickable icon
+- Has `.omnifocusjs` extension
+- Double-clicking installs the plugin
+- Right-click → "Show Package Contents" reveals the internal structure
+
+**In Terminal / for Claude:**
+- Is actually a **directory**, not a file
+- Contains multiple files: `manifest.json`, `Resources/`, etc.
+- Cannot be read directly with Read tool (will fail with "is a directory" error)
+- Must read individual files within the bundle
+
+### Navigating Bundles
+
+**Correct approach for reading bundle files:**
+```bash
+# Read the manifest
+Read("/path/to/Plugin.omnifocusjs/manifest.json")
+
+# Read an action script
+Read("/path/to/Plugin.omnifocusjs/Resources/actionName.js")
+
+# Read documentation
+Read("/path/to/Plugin.omnifocusjs/README.md")
+```
+
+**Incorrect approach:**
+```bash
+# This will FAIL - cannot read a directory
+Read("/path/to/Plugin.omnifocusjs")  # ❌ ERROR: Is a directory
+```
+
+**Exploring bundle contents:**
+```bash
+# List files in bundle
+ls /path/to/Plugin.omnifocusjs/
+
+# List with details
+ls -la /path/to/Plugin.omnifocusjs/
+
+# Recursive listing
+ls -R /path/to/Plugin.omnifocusjs/
+
+# Using Glob tool
+Glob(pattern="*", path="/path/to/Plugin.omnifocusjs/")
+Glob(pattern="**/*.js", path="/path/to/Plugin.omnifocusjs/")
+```
+
+### Bundle Structure
+
+Standard `.omnifocusjs` bundle structure:
+```
+PluginName.omnifocusjs/          # Bundle directory
+├── manifest.json                 # Required: Plugin metadata
+├── Resources/                    # Required: Action scripts directory
+│   ├── action1.js               # Action implementation files
+│   └── action2.js
+├── README.md                    # Optional: Documentation
+├── INSTALL.md                   # Optional: Installation guide
+└── [other files]                # Optional: Additional resources
+```
+
+For complete details on bundle structure, manifest.json schema, creating plugins, and working with bundles, see `omnifocus_plugin_structure.md`.
+
 ## Overview
 
 This skill provides two ready-to-use Omni Automation plug-ins in the `assets/` directory that demonstrate common automation patterns. These serve as both functional tools and templates for creating custom automation.
@@ -100,7 +172,12 @@ All plug-ins are fully editable. To customize:
 
 ## Creating Your Own Plug-Ins
 
-See `omni_automation.md` in this directory for complete documentation on creating custom plug-ins, or use the available plug-ins in `assets/` as templates.
+For comprehensive documentation on creating custom plug-ins, see:
+- **`omnifocus_plugin_structure.md`** - Complete bundle structure, manifest.json schema, action templates, and step-by-step creation guide
+- **`omni_automation.md`** - JavaScript API reference and patterns
+- **`omni_automation_shared.md`** - UI components (Alert, Form, FileSaver, etc.)
+
+Or use the available plug-ins in `assets/` as templates.
 
 ### Basic Structure
 
