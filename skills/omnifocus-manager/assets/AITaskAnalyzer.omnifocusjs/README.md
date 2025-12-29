@@ -1,18 +1,30 @@
 # AI Analyzer - OmniFocus Plugin
 
-Comprehensive AI-powered analysis for OmniFocus using **Apple Foundation Models (Apple Intelligence)** with two powerful modes:
+Comprehensive AI-powered analysis for OmniFocus using **Apple Foundation Models (Apple Intelligence)** with three powerful modes:
 
 1. **Task Analyzer** - Daily task insights, priorities, and workload assessment
 2. **Project Analyzer** - Recursive project hierarchy analysis with optional tagging and Markdown reports
+3. **Selected Task Analyzer** - Detailed per-task analysis with clarity scoring and improvement suggestions
 
 ## Features
 
-### Task Analysis
+### Task Analysis (All Today's & Overdue Tasks)
 - 🎯 **Priority Recommendations**: AI-suggested top 3 tasks to tackle first with reasoning
 - 📋 **Workload Analysis**: Assessment of whether your workload is manageable
 - ⏰ **Overdue Insights**: Pattern detection in overdue tasks with recommendations
 - ⏱️ **Time Management**: Suggested schedule based on estimated task durations
 - ✅ **Action Items**: Immediate actions to improve your task management
+- 📋 **Copy to Clipboard**: Export analysis results for reference
+
+### Selected Task Analysis (NEW in v2.1)
+- 🎯 **Clarity Scoring**: Rate each task's clarity on a 1-10 scale
+- 📝 **Name Suggestions**: AI-recommended improvements to task names
+- 🏷️ **Tag Recommendations**: 2-3 relevant tags based on task content
+- ⚡ **Priority Assessment**: High/medium/low priority for each task
+- ⏱️ **Time Estimates**: AI-suggested completion time in minutes
+- 💡 **Specific Improvements**: Actionable suggestions to enhance each task
+- ❓ **Missing Information**: Identifies gaps that would help complete tasks
+- 📋 **Copy to Clipboard**: Export detailed analysis for all selected tasks
 
 ### Project Analysis (NEW in v2.0)
 - 📊 **Recursive Folder Analysis**: Analyze entire folder hierarchies maintaining structure
@@ -42,9 +54,10 @@ Comprehensive AI-powered analysis for OmniFocus using **Apple Foundation Models 
 
 3. **Verify Installation**:
    - Go to Tools → AI Analyzer
-   - You should see two options:
+   - You should see three options:
      - "Analyze My Tasks"
      - "Analyze Projects"
+     - "Analyze Selected"
 
 ## Usage
 
@@ -107,7 +120,89 @@ Recommendations:
 • Defer 2 low-priority tasks to tomorrow
 ```
 
-### Project Analysis (NEW)
+### Selected Task Analysis (NEW in v2.1)
+
+**What It Analyzes:**
+- 1-5 tasks that you select in OmniFocus
+- Deep analysis of each task individually
+- Task metadata: name clarity, project context, tags, dates, estimates
+- Opportunities for improvement and missing information
+
+**How to Run:**
+
+**Method 1: Via Tools Menu**
+1. Select 1-5 tasks in OmniFocus (inbox, project, or perspective)
+2. Go to **Tools → AI Analyzer → Analyze Selected**
+3. Wait for Apple Intelligence to analyze each task
+4. Review detailed per-task feedback
+5. Optionally copy results to clipboard
+
+**Method 2: Via Automation Console**
+```javascript
+PlugIn.find("com.totallytools.omnifocus.ai-task-analyzer")
+  .action("analyzeSelectedTasks")
+  .perform()
+```
+
+**Sample Output:**
+```
+TASK: Review Q1 budget proposal
+
+Clarity Score: 6/10
+
+Suggested Name:
+→ Review and approve Q1 2025 marketing budget proposal
+
+Priority: HIGH
+
+Est. Time: 45 minutes
+
+Suggested Tags:
+  • finance
+  • review-needed
+  • Q1-planning
+
+Improvements:
+  • Add specific deadline or review date
+  • Specify what aspects need review (total amount, line items, etc.)
+  • Include stakeholders who need to sign off
+
+Missing Information:
+  • Who submitted the proposal?
+  • What's the approval deadline?
+  • Are there specific concerns to watch for?
+
+========================================
+
+TASK: Call dentist
+
+Clarity Score: 9/10
+
+Priority: MEDIUM
+
+Est. Time: 5 minutes
+
+Suggested Tags:
+  • phone
+  • personal
+  • health
+
+Improvements:
+  • Add phone number to task note for quick access
+  • Specify reason for call (appointment, question, etc.)
+
+Missing Information:
+  • What's the purpose of the call?
+```
+
+**Usage Tips:**
+- Analyze unclear tasks to improve actionability
+- Use before weekly review to refine task descriptions
+- Copy results and paste into task notes for reference
+- Apply suggested tags to improve organization
+- Use estimates to better plan your day
+
+### Project Analysis (NEW in v2.0)
 
 **What It Analyzes:**
 - Selected folder and optionally all subfolders recursively
@@ -474,6 +569,17 @@ let expositionTag = doc.tags.byName("your-custom-tag");
 - **Someday/Maybe**: Identifies candidates for deferral
 
 ## Version History
+
+### v2.1.0 (2025-12-28)
+- **NEW**: Selected Task Analyzer action for detailed per-task analysis
+- **NEW**: Clarity scoring (1-10) for individual tasks
+- **NEW**: Task name improvement suggestions
+- **NEW**: Per-task tag recommendations and priority assessment
+- **NEW**: Missing information detection per task
+- **NEW**: Copy to Clipboard option for all analyzers
+- Enhanced Task Analyzer with clipboard export
+- Limit selected task analysis to 5 tasks for performance
+- Updated documentation with new analyzer workflow
 
 ### v2.0.0 (2025-12-27)
 - **NEW**: Project Analyzer with recursive folder analysis

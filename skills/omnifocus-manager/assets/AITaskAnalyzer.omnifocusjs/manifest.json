@@ -1,6 +1,6 @@
 {
   "identifier": "com.totallytools.omnifocus.ai-task-analyzer",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "author": "totally-tools",
   "description": "Analyzes tasks and projects using Apple Foundation Models (Apple Intelligence) to provide intelligent insights about workload, priorities, project health, and recommendations.",
   "label": "AI Analyzer",
@@ -24,6 +24,14 @@
       "longLabel": "Analyze Project Hierarchy with Apple Intelligence",
       "paletteLabel": "AI Project Analyzer",
       "image": "chart.bar.doc.horizontal"
+    },
+    {
+      "identifier": "analyzeSelectedTasks",
+      "label": "Analyze Selected",
+      "mediumLabel": "Analyze Selected Tasks",
+      "longLabel": "Analyze Selected Tasks with Apple Intelligence",
+      "paletteLabel": "AI Selected Task Analyzer",
+      "image": "wand.and.stars"
     }
   ]
 }

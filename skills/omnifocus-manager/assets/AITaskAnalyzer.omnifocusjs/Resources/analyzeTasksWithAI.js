@@ -195,8 +195,14 @@ Keep the analysis concise, actionable, and GTD-aligned (Getting Things Done meth
 
             // Show results
             const resultAlert = new Alert("AI Task Analysis", message);
+            resultAlert.addOption("Copy to Clipboard");
             resultAlert.addOption("Done");
-            await resultAlert.show();
+            const buttonIndex = await resultAlert.show();
+
+            if (buttonIndex === 0) {
+                // Copy to clipboard
+                Pasteboard.general.string = message;
+            }
 
         } catch (error) {
             console.error("Error:", error);
