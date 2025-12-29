@@ -15,7 +15,7 @@
         try {
             // Get all tasks
             const doc = Document.defaultDocument;
-            const tasks = doc.flattenedTasks;
+            const tasks = doc.flattenedTasks();
 
             // Calculate date ranges
             const today = new Date();
