@@ -19,7 +19,7 @@
      */
     function getTodayTasks() {
         const doc = Document.defaultDocument;
-        const tasks = doc.flattenedTasks();
+        const tasks = doc.flattenedTasks;
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -47,7 +47,7 @@
      */
     function getOverdueTasks() {
         const doc = Document.defaultDocument;
-        const tasks = doc.flattenedTasks();
+        const tasks = doc.flattenedTasks;
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -67,7 +67,7 @@
      */
     function getFlaggedTasks() {
         const doc = Document.defaultDocument;
-        const tasks = doc.flattenedTasks();
+        const tasks = doc.flattenedTasks;
 
         const flaggedTasks = tasks.filter(task => {
             return task.flagged && !task.completed && !task.dropped;
@@ -83,7 +83,7 @@
      */
     function getTasksByTag(tagName) {
         const doc = Document.defaultDocument;
-        const tasks = doc.flattenedTasks();
+        const tasks = doc.flattenedTasks;
 
         const filtered = tasks.filter(task => {
             if (task.completed || task.dropped) return false;
@@ -100,7 +100,7 @@
      */
     function getTasksByProject(projectName) {
         const doc = Document.defaultDocument;
-        const tasks = doc.flattenedTasks();
+        const tasks = doc.flattenedTasks;
 
         const filtered = tasks.filter(task => {
             if (task.completed || task.dropped) return false;
@@ -116,7 +116,7 @@
      */
     function getSummaryStats() {
         const doc = Document.defaultDocument;
-        const tasks = doc.flattenedTasks();
+        const tasks = doc.flattenedTasks;
 
         const stats = {
             total: tasks.length,
