@@ -7,6 +7,50 @@
 
 ---
 
+## ⚠️ MANDATORY Pre-Generation Checklist
+
+**BEFORE writing ANY plugin code, complete this checklist:**
+
+### 1. Read Validation Documentation ✅
+- [ ] Read this entire document (code_generation_validation.md)
+- [ ] Read references/plugin_development_guide.md sections relevant to your code
+- [ ] Understand official template patterns (OFBundlePlugInTemplate)
+
+### 2. Verify Every API ✅
+- [ ] List all classes to instantiate (PlugIn.Action, PlugIn.Library, Version, Alert, Form, etc.)
+- [ ] Check constructor signatures in references/OmniFocus-API.md for EACH class
+- [ ] Verify all properties/methods in references/api_quick_reference.md
+- [ ] Confirm NOT using hallucinated APIs (Document.defaultDocument, Progress, etc.)
+
+### 3. Verify PlugIn.Library Pattern (If Applicable) ✅
+- [ ] Review official template: assets/OFBundlePlugInTemplate.omnifocusjs/Resources/
+- [ ] Confirm pattern: `var lib = new PlugIn.Library(new Version("1.0"));`
+- [ ] Confirm NOT using function constructor: `new PlugIn.Library(function() { ... })`
+- [ ] Review existing libraries: taskMetrics.js, exportUtils.js
+
+### 4. Verify Environment Globals ✅
+- [ ] Using global variables: flattenedTasks, folders, projects, tags, inbox
+- [ ] NOT using Document.defaultDocument (use globals instead)
+- [ ] NOT using Node.js or browser APIs
+
+### 5. Verify LanguageModel Schema (If Applicable) ✅
+- [ ] Using LanguageModel.Schema.fromJSON() factory (NOT constructor)
+- [ ] Using OmniFocus schema format (NOT JSON Schema format)
+- [ ] Reviewed schema patterns in code_generation_validation.md Rule 5
+
+### 6. Post-Generation Validation (REQUIRED) ✅
+- [ ] Run `eslint_d` on all generated .js files
+- [ ] Fix ALL eslint errors (zero errors required)
+- [ ] Use vtsls LSP for semantic validation
+- [ ] Fix ALL LSP errors and warnings
+- [ ] Verify no warnings about undefined globals
+- [ ] Confirm code matches validation patterns
+- [ ] Test code actually runs in OmniFocus without errors
+
+**Only proceed with code generation after ALL checkboxes completed.**
+
+---
+
 ## Validation Philosophy
 
 **80% Execute, 15% Compose, 5% Generate:**
