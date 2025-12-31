@@ -1,23 +1,15 @@
-# Improvement Plan: omnifocus-manager - Mandatory Pre-Code-Generation Validation
+# Improvement Plan: marketplace-manager - Hook Robustness
 
-**Status:** implemented
-**Created:** 2025-12-31T15:27:26Z
-**Implemented:** 2025-12-31T16:00:00Z
-**Branch:** plan/omnifocus-manager-improvement-20251231
-**Version:** v2
+**Status:** draft
+**Created:** 2025-12-31T00:00:00Z
+**Branch:** plan/marketplace-manager-hook-robustness-20251231
+**Version:** v1
 
 ---
 
 ## Goal
 
-Prevent API misuse errors (like PlugIn.Library constructor) by:
-1. Fixing incorrect PlugIn.Library pattern in existing documentation
-2. Enforcing mandatory validation workflows BEFORE any plugin code generation
-
-**Root Cause Analysis:**
-1. **Documentation inconsistency**: plugin_development_guide.md shows TWO different patterns (correct at line 72, incorrect at line 680)
-2. **No enforcement**: Validation patterns exist but no mandatory workflow gates
-3. **Passive language**: SKILL.md says "follow these requirements" instead of "MUST complete validation"
+Fix the outdated pre-commit hook installation and make the hook infrastructure robust, idempotent, and self-healing to prevent future breakage from skill renames or path changes.
 
 ---
 
@@ -25,392 +17,215 @@ Prevent API misuse errors (like PlugIn.Library constructor) by:
 
 ### Understanding
 
-**Purpose:** Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA)
-**Domain:** Task management automation, OmniFocus plugin development
-**Complexity:** High - requires knowledge of multiple APIs (Omni Automation, JXA, AppleScript)
+**Purpose:** Manages marketplace.json version syncing with skill versions via automated scripts and git hooks
+**Domain:** Development tooling - version management and git automation
+**Complexity:** Moderate (multiple scripts, git integration, cross-platform support)
 
-### Metrics (Baseline)
+### Analysis
 
-```
-SKILL.md: 496 lines
-Tokens: ~4485
-References: 20 files, 13676 lines
-Scripts: 6
-Nesting depth: 3
+**Strengths:**
+- Comprehensive template with correct paths in `scripts/pre-commit.template`
+- Auto-sync functionality works well
+- Clear documentation in SKILL.md
+- Good error handling and colored output
 
-Conciseness:     [█████░░░░░] 25/100
-Complexity:      [████████░░] 83/100
-Spec Compliance: [█████████░] 90/100
-Progressive:     [██████████] 100/100
-Overall:         [███████░░░] 74/100
-```
+**Weaknesses:**
+- Installed hook at `.git/hooks/pre-commit` has outdated path (`skill-creator` instead of `marketplace-manager`)
+- No mechanism to detect or update outdated hooks
+- Hardcoded paths make hooks brittle to skill renames
+- Manual installation process prone to errors
+- No validation to check hook health
 
-### Critical Issues Found
+**Opportunities:**
+- Add installation script for idempotent hook setup
+- Implement hook versioning for upgrade detection
+- Use dynamic path discovery instead of hardcoded paths
+- Add validation command to check hook status
+- Self-healing capability when paths change
 
-**Issue 1: Inconsistent PlugIn.Library Patterns in plugin_development_guide.md**
+### Current Issues
 
-✅ **Correct pattern (line 72)** - From official template:
-```javascript
-var lib = new PlugIn.Library(new Version("1.1"));
-```
+**Problem 1: Outdated Installed Hook**
+- `.git/hooks/pre-commit` references `skills/skill-creator/scripts/sync_marketplace_versions.py`
+- Should reference `skills/marketplace-manager/scripts/sync_marketplace_versions.py`
+- Causes warning: "sync_marketplace_versions.py not found, skipping version sync"
 
-❌ **Incorrect pattern (line 680)** - Contradicts API spec:
-```javascript
-const myHelpers = new PlugIn.Library(function() {
-    const lib = this;
-```
+**Problem 2: No Update Mechanism**
+- When skill is renamed or hook template changes, installed hooks become stale
+- Users must manually discover and reinstall
+- No detection or notification of outdated hooks
 
-**Why This Causes Errors:**
-- According to OmniFocus-API.md:1769, constructor signature is `new PlugIn.Library(version: Version)`
-- Passing a function instead of Version causes: "Attempted to invoke function... with invalid instance"
-- This is exactly the error we encountered with foundationModelsUtils.js
-
-**Issue 2: No Mandatory Validation Workflow**
-- SKILL.md says "follow these critical requirements" (passive)
-- No enforcement gates before code generation
-- code_generation_validation.md has correct patterns but isn't required reading
-
-###Metrics Analysis
-
-**Conciseness (25/100) - LOW**
-- SKILL.md at size limit: 496/500 lines
-- Cannot add mandatory workflow without removing content
-- Solution: Move detailed examples to existing references/, add concise workflow
-
-**Spec Compliance (90/100) - GOOD**
-- Only missing: license field in frontmatter
-- Easy fix: add `license: MIT` to SKILL.md
+**Problem 3: Brittle Path Hardcoding**
+- Hook relies on exact skill name in path
+- Breaks on skill renames
+- Not resilient to repository structure changes
 
 ---
 
 ## Proposed Changes
 
-### Change 1: Fix Incorrect PlugIn.Library Pattern in plugin_development_guide.md
-
-**Type:** FIX (Critical)
-**What:** Replace incorrect pattern at line 680 with correct pattern matching official template.
-
-**Why:** Current pattern contradicts OmniFocus API specification and causes constructor errors.
-
-**Impact:**
-- Eliminates source of confusion
-- Aligns with official template (line 72)
-- No metric impact (fixing existing content)
-
-**Implementation:**
-```diff
-- (() => {
--     const myHelpers = new PlugIn.Library(function() {
--         const lib = this;
--
--         lib.formatDate = function(date) {
--             return date.toLocaleDateString();
--         };
--
--         lib.calculateDaysUntil = function(date) {
--             const now = new Date();
--             const diff = date - now;
--             return Math.ceil(diff / (1000 * 60 * 60 * 24));
--         };
--
--         return lib;
--     });
--
--     return myHelpers;
-- })();
-
-+ (() => {
-+     var lib = new PlugIn.Library(new Version("1.0"));
-+
-+     lib.formatDate = function(date) {
-+         return date.toLocaleDateString();
-+     };
-+
-+     lib.calculateDaysUntil = function(date) {
-+         const now = new Date();
-+         const diff = date - now;
-+         return Math.ceil(diff / (1000 * 60 * 60 * 24));
-+     };
-+
-+     return lib;
-+ })();
-```
-
-### Change 2: Add Prominent Anti-Pattern Warning
+### Change 1: Fix Installed Hook Immediately
 
 **Type:** ENHANCE
-**What:** Add explicit ❌ WRONG section immediately after the correct pattern in plugin_development_guide.md.
-
-**Why:** Make it impossible to miss the incorrect pattern. Show what NOT to do.
-
-**Impact:** +15 lines to plugin_development_guide.md
+**What:** Reinstall pre-commit hook from correct template
+**Why:** Resolve immediate issue blocking marketplace sync
+**Impact:** Hook will work correctly, no more warnings
 
 **Implementation:**
-Add after line 76 (correct pattern example):
-```markdown
-❌ **WRONG - Common Mistakes:**
+- Copy `skills/marketplace-manager/scripts/pre-commit.template` to `.git/hooks/pre-commit`
+- Set executable permissions
+- Test with dummy commit
 
-```javascript
-// Constructor takes Version, NOT a function
-new PlugIn.Library(function() { ... })  // ERROR! Type mismatch
-new PlugIn.Library(async function() { ... })  // ERROR! Type mismatch
-
-// Use 'var lib', not 'const myLib' or other names
-const foundationModelsUtils = new PlugIn.Library(...)  // WRONG!
-var lib = new PlugIn.Library(...)  // CORRECT!
-```
-
-**Why these patterns fail:**
-- PlugIn.Library constructor signature: `new PlugIn.Library(version: Version)` (OmniFocus-API.md:1769)
-- Passing a function instead of Version object causes "invalid instance" error
-- Always use `var lib` pattern for consistency with official templates
-```
-
-### Change 3: Add Pre-Code-Generation Checklist to code_generation_validation.md
+### Change 2: Create Installation Script
 
 **Type:** ENHANCE
-**What:** Add mandatory checklist at TOP of code_generation_validation.md.
-
-**Why:** Creates explicit validation gate that must be completed before any code generation.
-
-**Impact:** +30 lines to code_generation_validation.md (acceptable - reference file)
+**What:** Add `scripts/install_hook.sh` for idempotent hook installation
+**Why:** Make installation and updates easy, reliable, and repeatable
+**Impact:** Users can run script anytime to ensure hook is current
 
 **Implementation:**
-Add at top of file (after purpose/updated metadata):
-```markdown
----
+- Create `scripts/install_hook.sh` with:
+  - Check if hook already installed
+  - Compare installed version with template
+  - Update if outdated or install if missing
+  - Set permissions automatically
+  - Provide clear feedback
+  - Support `--force` flag to override checks
+  - Support `--dry-run` to preview changes
 
-## ⚠️ MANDATORY Pre-Generation Checklist
-
-**BEFORE writing ANY plugin code, complete this checklist:**
-
-### 1. Read Validation Documentation ✅
-- [ ] Read this entire document (code_generation_validation.md)
-- [ ] Read references/plugin_development_guide.md sections relevant to your code
-- [ ] Understand official template patterns (OFBundlePlugInTemplate)
-
-### 2. Verify Every API ✅
-- [ ] List all classes to instantiate (PlugIn.Action, PlugIn.Library, Version, Alert, Form, etc.)
-- [ ] Check constructor signatures in references/OmniFocus-API.md for EACH class
-- [ ] Verify all properties/methods in references/api_quick_reference.md
-- [ ] Confirm NOT using hallucinated APIs (Document.defaultDocument, Progress, etc.)
-
-### 3. Verify PlugIn.Library Pattern (If Applicable) ✅
-- [ ] Review official template: assets/OFBundlePlugInTemplate.omnifocusjs/Resources/
-- [ ] Confirm pattern: `var lib = new PlugIn.Library(new Version("1.0"));`
-- [ ] Confirm NOT using function constructor: `new PlugIn.Library(function() { ... })`
-- [ ] Review existing libraries: taskMetrics.js, exportUtils.js
-
-### 4. Verify Environment Globals ✅
-- [ ] Using global variables: flattenedTasks, folders, projects, tags, inbox
-- [ ] NOT using Document.defaultDocument (use globals instead)
-- [ ] NOT using Node.js or browser APIs
-
-### 5. Verify LanguageModel Schema (If Applicable) ✅
-- [ ] Using LanguageModel.Schema.fromJSON() factory (NOT constructor)
-- [ ] Using OmniFocus schema format (NOT JSON Schema format)
-- [ ] Reviewed schema patterns in code_generation_validation.md Rule 5
-
-**Only proceed with code generation after ALL checkboxes completed.**
-
----
-```
-
-### Change 4: Add Mandatory Validation Workflow to SKILL.md
-
-**Type:** RESTRUCTURE
-**What:** Replace passive "Generating plugin code" section (lines 92-124) with mandatory validation workflow.
-
-**Why:** Enforce pre-generation validation. Change from "follow these" to "MUST complete".
-
-**Impact:** -35 lines from SKILL.md (move examples to references/), +20 lines for workflow = NET -15 lines
-
-**Implementation:**
-
-**Remove from SKILL.md (lines 92-124):**
-- Detailed API examples
-- Property vs method examples
-- Common pitfalls list
-
-**Replace with (lines 92-110):**
-```markdown
-## Plugin Code Generation (MANDATORY WORKFLOW)
-
-**⚠️ CRITICAL:** Never generate plugin code without completing this workflow.
-
-### BEFORE Code Generation
-
-**Step 1: Complete Pre-Generation Checklist (REQUIRED)**
-1. Open `references/code_generation_validation.md`
-2. Read the "MANDATORY Pre-Generation Checklist" at top
-3. Complete ALL checkbox items before proceeding
-
-**Step 2: Verify Constructor Patterns (REQUIRED)**
-1. For PlugIn.Library: Review `assets/OFBundlePlugInTemplate.omnifocusjs/Resources/` patterns
-2. Confirm: `var lib = new PlugIn.Library(new Version("1.0"));`
-3. For other classes: Check constructor signature in `references/OmniFocus-API.md`
-
-**Step 3: Verify APIs (REQUIRED)**
-1. Check EVERY API in `references/api_quick_reference.md`
-2. Verify properties (no `()`) vs methods (with `()`)
-3. Use global variables (flattenedTasks, folders) NOT Document.defaultDocument
-
-### AFTER Code Generation
-
-**Step 4: Validate Generated Code**
-1. Run `eslint_d` on all .js files
-2. Verify no hallucinated APIs
-3. Confirm correct constructor patterns
-
-**Complete documentation:**
-- Validation rules: `references/code_generation_validation.md`
-- Plugin patterns: `references/plugin_development_guide.md`
-- API reference: `references/OmniFocus-API.md`, `references/api_quick_reference.md`
-```
-
-### Change 5: Add License Field to SKILL.md
-
-**Type:** FIX
-**What:** Add `license: MIT` to SKILL.md frontmatter.
-
-**Why:** Improves spec compliance from 90/100 to 100/100.
-
-**Impact:** +1 line, spec compliance +10 points
-
-**Implementation:**
-Add after metadata section in frontmatter:
-```yaml
-license: MIT
-```
-
-### Change 6: Add LSP and Linter Validation to Post-Generation Workflow
+### Change 3: Add Hook Versioning
 
 **Type:** ENHANCE
-**What:** Mandate eslint_d AND vtsls (JavaScript LSP) validation for ALL generated plugin code.
-
-**Why:**
-- ESLint catches syntax errors, undefined globals, hallucinated APIs
-- vtsls (JavaScript LSP) provides additional type checking and semantic validation
-- Two-layer validation significantly reduces runtime failures
-
-**Impact:** +15 lines to SKILL.md mandatory workflow section
+**What:** Embed version marker in hook template and check on execution
+**Why:** Detect outdated hooks and warn users to update
+**Impact:** Self-awareness when hook is stale
 
 **Implementation:**
+- Add version comment at top of `scripts/pre-commit.template`:
+  ```bash
+  # marketplace-manager pre-commit hook v1.3.0
+  ```
+- Hook checks its own version and compares with template
+- If outdated, print warning with update instructions
+- Continue execution (graceful degradation)
 
-Update "AFTER Code Generation" section in SKILL.md Change 4 to:
-```markdown
-### AFTER Code Generation (MANDATORY VALIDATION)
+### Change 4: Robust Path Discovery
 
-**Step 4: Validate with ESLint and LSP**
-1. Run `eslint_d` on ALL generated .js files (syntax, style, undefined globals)
-2. Use vtsls LSP for semantic validation (type checking, API correctness)
-3. Fix ALL errors before proceeding (zero tolerance)
-4. Verify no hallucinated APIs
-5. Confirm correct constructor patterns
+**Type:** ENHANCE
+**What:** Replace hardcoded paths with dynamic discovery using `find` command
+**Why:** Make hook resilient to skill renames and repository structure changes
+**Impact:** Hook survives skill renames without breaking
 
-**ESLint validation (REQUIRED):**
-```bash
-# From omnifocus-manager directory
-eslint_d assets/YourPlugin.omnifocusjs/Resources/*.js
+**Implementation:**
+- Replace hardcoded sync script path with dynamic discovery
+- Use `find` command to locate sync_marketplace_versions.py
+- Fallback search if specific path not found
+- Add validation that script was found before executing
 
-# Must return zero errors before code is acceptable
-```
+### Change 5: Add Validation Command
 
-**LSP validation (REQUIRED):**
-- vtsls provides JavaScript language server validation
-- Catches type mismatches, incorrect API usage, semantic errors
-- Integrates with editor (VSCode, Neovim, etc.) for real-time validation
-- Run validation before finalizing code
+**Type:** ENHANCE
+**What:** Add `scripts/validate_hook.py` to check hook installation status
+**Why:** Allow users and CI to verify hook is installed and up-to-date
+**Impact:** Better visibility into hook health
 
-**What ESLint catches:**
-- Undefined globals (hallucinated APIs like `Document.defaultDocument`, `Progress`)
-- Syntax errors (`.bind(this)` on arrow functions)
-- Style violations
-- Unreachable code
+**Implementation:**
+- Create Python script that checks:
+  - Is hook installed?
+  - Does hook match template (content comparison)?
+  - Is hook executable?
+  - What version is installed?
+  - Are required scripts present?
+- Output format:
+  - Human-readable summary for CLI
+  - JSON format for CI/CD (`--json` flag)
+- Exit codes:
+  - 0: All checks pass
+  - 1: Hook outdated or missing
+  - 2: Critical error
 
-**What vtsls LSP catches:**
-- Type mismatches (passing function when Version expected)
-- Incorrect constructor arguments
-- Property/method confusion (calling property as method)
-- Semantic errors not caught by ESLint
-```
+### Change 6: Update Documentation
 
-**Also update code_generation_validation.md checklist:**
+**Type:** ENHANCE
+**What:** Update SKILL.md with new installation method
+**Why:** Guide users to use the new, robust installation process
+**Impact:** Better user experience, fewer manual errors
 
-Add to bottom of "MANDATORY Pre-Generation Checklist":
-```markdown
-### 6. Post-Generation Validation (REQUIRED) ✅
-- [ ] Run `eslint_d` on all generated .js files
-- [ ] Fix ALL eslint errors (zero errors required)
-- [ ] Use vtsls LSP for semantic validation
-- [ ] Fix ALL LSP errors and warnings
-- [ ] Verify no warnings about undefined globals
-- [ ] Confirm code matches validation patterns
-- [ ] Test code actually runs in OmniFocus without errors
-```
+**Implementation:**
+- Update "Git Integration" section in SKILL.md
+- Replace manual `cp` commands with new script-based approach
+- Document `--force` and `--dry-run` options
+- Add troubleshooting section for hook issues
 
 ---
 
 ## Expected Outcome
 
-### Metrics (After)
-
-```
-SKILL.md: 480 lines (-16, -3.2%)
-Tokens: ~4200 (-285, -6.4%)
-References: 20 files (no change), 13750 lines (+74)
-Scripts: 6 (no change)
-Nesting depth: 3 (no change)
-
-Conciseness:     [██████░░░░] 30/100 (+5) ✓ improvement
-Complexity:      [████████░░] 83/100 (no change)
-Spec Compliance: [██████████] 100/100 (+10) ✓ improvement
-Progressive:     [██████████] 100/100 (no change)
-Overall:         [████████░░] 80/100 (+6) ✓ improvement
-```
-
 ### Success Criteria
 
-- [ ] Incorrect PlugIn.Library pattern removed from plugin_development_guide.md:680
-- [ ] Correct pattern with anti-pattern warning added to plugin_development_guide.md
-- [ ] Pre-generation checklist added to code_generation_validation.md (top of file)
-- [ ] Mandatory validation workflow added to SKILL.md with imperative language
-- [ ] License field added to SKILL.md frontmatter
-- [ ] ESLint and vtsls LSP validation mandated in post-generation workflow
-- [ ] eslint_d and vtsls validation examples added to SKILL.md and code_generation_validation.md
-- [ ] SKILL.md reduced by 15+ lines (remove examples, add concise workflow)
-- [ ] All code examples validate with eslint_d AND vtsls (zero errors)
-- [ ] Conciseness score improves to 30+ (currently 25)
-- [ ] Spec compliance score reaches 100 (currently 90)
-- [ ] Overall score improves to 80+ (currently 74)
+- [ ] Installed hook has correct paths (no more warnings)
+- [ ] `install_hook.sh` can be run multiple times safely (idempotent)
+- [ ] Hook auto-detects if it's outdated and warns user
+- [ ] Hook works even if skill is renamed
+- [ ] `validate_hook.py` accurately reports hook status
+- [ ] Documentation updated with new workflow
+- [ ] All changes tested with actual git commits
 
 ### Expected Benefits
 
-- **Eliminates confusion**: No more conflicting patterns in documentation
-- **Prevents hallucination**: Mandatory checklist forces validation, ESLint catches undefined globals
-- **Two-layer validation**: ESLint (syntax/style) + vtsls LSP (semantics/types) catches more errors
-- **Catches errors early**: Validation before code reaches runtime
-- **Clearer workflow**: Step-by-step gates with "MUST" language
-- **Better metrics**: Improved conciseness and spec compliance
-- **Maintainability**: Correct patterns throughout documentation
-- **Quality assurance**: Zero-error policy enforced by tooling
+- **Immediate:** Fix current warning and enable proper marketplace syncing
+- **Robustness:** Hook survives skill renames and path changes
+- **Maintainability:** Easy to update hooks across repositories
+- **Visibility:** Clear status reporting for debugging
+- **User Experience:** Simple, reliable installation process
+- **Future-proof:** Self-healing capability reduces future breakage
 
 ---
 
 ## Revision History
 
-### v2 (2025-12-31)
-- Removed redundant new reference file (use existing plugin_development_guide.md)
-- Added fix for incorrect pattern at plugin_development_guide.md:680
-- Added anti-pattern warnings to prevent future errors
-- Streamlined SKILL.md by removing detailed examples (keep in references/)
-
-### v1 (2025-12-31)
-- Initial plan created from evaluation findings
-- Proposed new reference file (later removed in v2 - redundant)
+### v1 (2025-12-31T00:00:00Z)
+- Initial plan created from research findings
+- Focus on fixing immediate issue and adding robustness
+- Six proposed changes covering installation, versioning, path discovery, and validation
 
 ---
 
-*This plan was generated using skillsmith evaluation and error analysis.*
-*Root cause: Documentation inconsistency + no validation enforcement.*
-*Solution: Fix incorrect patterns + add mandatory workflow gates.*
+## Research Findings (Reference)
+
+### Domain Classification
+
+**Domain:** Development tooling - git automation and version management
+**Complexity:** Moderate (scripting, git integration, cross-platform considerations)
+
+**Special Considerations:**
+- Must work reliably in git workflow (cannot break commits)
+- Should degrade gracefully on errors
+- Cross-platform compatibility (macOS, Linux)
+- Idempotent operations essential for automation
+
+### Best Practices for Domain
+
+**Critical:**
+- **Idempotency**: Installation scripts must be safely repeatable
+- **Graceful degradation**: Hooks should warn but not block commits on non-critical errors
+- **Path resilience**: Don't hardcode paths that can change
+- **Version awareness**: Detect and handle outdated installations
+
+**Important:**
+- Clear error messages with actionable instructions
+- Easy verification of correct installation
+- Minimal dependencies (use shell/Python stdlib)
+- Fast execution (pre-commit hooks delay workflow)
+
+### Current Issues Discovered
+
+1. **Outdated hook installed**: References `skill-creator` instead of `marketplace-manager`
+2. **No update mechanism**: Stale hooks persist indefinitely
+3. **Brittle paths**: Hardcoded skill name in paths
+4. **No validation**: Can't verify hook health programmatically
+
+---
+
+*This plan was generated by skill-planner from comprehensive research findings.*
+*All changes designed to make marketplace-manager hook infrastructure robust and self-healing.*
