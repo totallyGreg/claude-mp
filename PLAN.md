@@ -1,7 +1,9 @@
 # Improvement Plan: marketplace-manager - Hook Robustness
 
-**Status:** draft
+**Status:** approved
 **Created:** 2025-12-31T00:00:00Z
+**Approved:** 2025-12-31T00:05:00Z
+**Approved By:** User
 **Branch:** plan/marketplace-manager-hook-robustness-20251231
 **Version:** v1
 
