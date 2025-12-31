@@ -19,8 +19,6 @@
 (() => {
     const action = new PlugIn.Action(async function(selection, sender) {
         try {
-            const doc = Document.defaultDocument;
-
             // Step 1: Folder Selection Form
             const selectionForm = new Form();
             selectionForm.addField(new Form.Field.String(
@@ -29,13 +27,26 @@
                 "What time frame or focus area? (e.g., 'This quarter', 'Work projects', 'All active')"
             ));
 
-            const folderOptions = getAllFolders(doc);
+            const folderOptions = getAllFolders();
+
+            // Default to selected project's folder if available
+            let defaultFolder = folderOptions[0];
+            if (selection.projects.length > 0) {
+                const selectedProject = selection.projects[0];
+                if (selectedProject.parentFolder) {
+                    const matchingFolder = folderOptions.find(f => f.id === selectedProject.parentFolder.id);
+                    if (matchingFolder) {
+                        defaultFolder = matchingFolder;
+                    }
+                }
+            }
+
             const folderField = new Form.Field.Option(
                 "selectedFolder",
                 "Select Folder to Analyze",
                 folderOptions,
                 folderOptions.map(f => f.name),
-                folderOptions[0]
+                defaultFolder
             );
             selectionForm.addField(folderField);
 
@@ -65,6 +76,11 @@
             selectionForm.addField(formPrompt);
 
             const formResult = await selectionForm.show("AI Project Analyzer", "Analyze");
+
+            // Handle form cancellation
+            if (!formResult) {
+                return; // User cancelled, exit gracefully
+            }
 
             const selectedFolder = formResult.values["selectedFolder"];
             const includeSubfolders = formResult.values["includeSubfolders"];
@@ -121,70 +137,91 @@ Please provide a comprehensive analysis focusing on:
 
 Keep analysis actionable and GTD-aligned.`;
 
-            const schema = new LanguageModel.Schema({
-                type: "object",
-                properties: {
-                    projectHealth: {
-                        type: "object",
-                        properties: {
-                            overallScore: {
-                                type: "string",
-                                description: "One of: Excellent, Good, Fair, Needs Attention"
-                            },
-                            summary: { type: "string" },
-                            strengths: { type: "array", items: { type: "string" } },
-                            concerns: { type: "array", items: { type: "string" } }
-                        }
-                    },
-                    hierarchyInsights: {
-                        type: "object",
-                        properties: {
-                            organizationQuality: { type: "string" },
-                            suggestions: { type: "array", items: { type: "string" } }
-                        }
-                    },
-                    bottlenecks: {
-                        type: "array",
-                        items: {
-                            type: "object",
-                            properties: {
-                                projectName: { type: "string" },
-                                projectId: { type: "string" },
-                                issue: { type: "string" },
-                                recommendation: { type: "string" }
-                            }
-                        }
-                    },
-                    priorityRecommendations: {
-                        type: "array",
-                        items: {
-                            type: "object",
-                            properties: {
-                                area: { type: "string" },
-                                reason: { type: "string" },
-                                urgency: {
-                                    type: "string",
-                                    description: "One of: High, Medium, Low"
+            const schema = LanguageModel.Schema.fromJSON({
+                name: "project-analysis-schema",
+                properties: [
+                    {
+                        name: "projectHealth",
+                        schema: {
+                            name: "health-schema",
+                            properties: [
+                                {
+                                    name: "overallScore",
+                                    description: "One of: Excellent, Good, Fair, Needs Attention"
+                                },
+                                {name: "summary"},
+                                {
+                                    name: "strengths",
+                                    schema: {arrayOf: {constant: "strength"}}
+                                },
+                                {
+                                    name: "concerns",
+                                    schema: {arrayOf: {constant: "concern"}}
                                 }
+                            ]
+                        }
+                    },
+                    {
+                        name: "hierarchyInsights",
+                        schema: {
+                            name: "hierarchy-schema",
+                            properties: [
+                                {name: "organizationQuality"},
+                                {
+                                    name: "suggestions",
+                                    schema: {arrayOf: {constant: "suggestion"}}
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        name: "bottlenecks",
+                        schema: {
+                            arrayOf: {
+                                name: "bottleneck-schema",
+                                properties: [
+                                    {name: "projectName"},
+                                    {name: "projectId"},
+                                    {name: "issue"},
+                                    {name: "recommendation"}
+                                ]
                             }
                         }
                     },
-                    projectsNeedingExposition: {
-                        type: "array",
-                        items: {
-                            type: "object",
-                            properties: {
-                                projectId: { type: "string" },
-                                projectName: { type: "string" },
-                                reason: { type: "string" }
+                    {
+                        name: "priorityRecommendations",
+                        schema: {
+                            arrayOf: {
+                                name: "priority-schema",
+                                properties: [
+                                    {name: "area"},
+                                    {name: "reason"},
+                                    {
+                                        name: "urgency",
+                                        description: "One of: High, Medium, Low"
+                                    }
+                                ]
                             }
                         }
                     },
-                    actionItems: {
-                        type: "array",
-                        items: { type: "string" }
+                    {
+                        name: "projectsNeedingExposition",
+                        schema: {
+                            arrayOf: {
+                                name: "exposition-schema",
+                                properties: [
+                                    {name: "projectId"},
+                                    {name: "projectName"},
+                                    {name: "reason"}
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        name: "actionItems",
+                        schema: {arrayOf: {constant: "action"}}
                     }
-                }
+                ]
             });
 
             // Step 5: Get AI Analysis
@@ -225,19 +262,19 @@ Keep analysis actionable and GTD-aligned.`;
 
     // Helper Functions
 
-    function getAllFolders(doc) {
-        const folders = [];
+    function getAllFolders() {
+        const allFolders = [];
 
         // Add root-level folders
-        doc.folders.forEach(folder => {
-            folders.push(folder);
-            collectSubfolders(folder, folders);
+        folders.forEach(folder => {
+            allFolders.push(folder);
+            collectSubfolders(folder, allFolders);
         });
 
         // Add "All Projects" option (null folder)
-        folders.unshift({ name: "All Projects (No Folder Filter)", id: "root" });
+        allFolders.unshift({ name: "All Projects (No Folder Filter)", id: "root" });
 
-        return folders;
+        return allFolders;
     }
 
     function collectSubfolders(folder, collection) {
@@ -259,8 +296,7 @@ Keep analysis actionable and GTD-aligned.`;
 
         // Handle "All Projects" case
         if (folder.id === "root") {
-            const doc = Document.defaultDocument;
-            doc.flattenedProjects.forEach(project => {
+            flattenedProjects.forEach(project => {
                 result.projects.push(analyzeProject(project, depth + 1));
             });
             return result;
@@ -531,13 +567,13 @@ Keep analysis actionable and GTD-aligned.`;
 
         const fileSaver = new FileSaver();
         fileSaver.nameLabel = "Save Analysis Report";
-        fileSaver.types = [FileType.fromExtension("md")];
+        // Don't specify types - allow any file type
         fileSaver.defaultFileName = filename;
 
         const url = await fileSaver.show();
         if (url) {
-            const wrapper = FileWrapper.fromString(url.toString(), report);
-            wrapper.write(url);
+            // Use the simple FileWrapper pattern that works
+            url.write(report);  // Write string directly to URL
 
             const successAlert = new Alert(
                 "Report Saved",

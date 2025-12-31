@@ -12,8 +12,7 @@
 	var lib = new PlugIn.Library(new Version("3.0"));
 
 	lib.getTodayTasks = function() {
-		const doc = Document.defaultDocument;
-		const tasks = doc.flattenedTasks;
+		const tasks = flattenedTasks;
 
 		const today = new Date();
 		today.setHours(0, 0, 0, 0);
@@ -36,8 +35,7 @@
 	};
 
 	lib.getOverdueTasks = function() {
-		const doc = Document.defaultDocument;
-		const tasks = doc.flattenedTasks;
+		const tasks = flattenedTasks;
 
 		const today = new Date();
 		today.setHours(0, 0, 0, 0);
@@ -52,8 +50,7 @@
 	};
 
 	lib.getFlaggedTasks = function() {
-		const doc = Document.defaultDocument;
-		const tasks = doc.flattenedTasks;
+		const tasks = flattenedTasks;
 
 		const flaggedTasks = tasks.filter(task => {
 			return task.flagged && !task.completed && !task.dropped;

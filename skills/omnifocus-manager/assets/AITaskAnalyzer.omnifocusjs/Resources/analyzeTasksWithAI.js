@@ -24,29 +24,29 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            // Build task summary for AI analysis
-            const taskData = {
+            // Limit tasks to avoid context window issues (max 10 each)
+            const maxTasks = 10;
+            const limitedTodayTasks = todayTasks.slice(0, maxTasks);
+            const limitedOverdueTasks = overdueTasks.slice(0, maxTasks);
+
+            // Build concise task summary for AI analysis
+            const taskSummary = {
                 todayCount: todayTasks.length,
                 overdueCount: overdueTasks.length,
-                todayTasks: todayTasks.map(t => ({
+                todayTasks: limitedTodayTasks.map(t => ({
                     name: t.name,
                     project: t.project || "Inbox",
-                    dueTime: t.dueDate ? new Date(t.dueDate).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'}) : null,
-                    flagged: t.flagged,
-                    tags: t.tags,
-                    estimatedMinutes: t.estimatedMinutes
+                    flagged: t.flagged ? "🚩" : ""
                 })),
-                overdueTasks: overdueTasks.map(t => ({
+                overdueTasks: limitedOverdueTasks.map(t => ({
                     name: t.name,
                     project: t.project || "Inbox",
-                    daysOverdue: Math.floor((today - new Date(t.dueDate)) / (1000 * 60 * 60 * 24)),
-                    flagged: t.flagged,
-                    tags: t.tags
+                    daysOverdue: Math.floor((today - new Date(t.dueDate)) / (1000 * 60 * 60 * 24))
                 }))
             };
 
             // Check if we have any tasks to analyze
-            if (taskData.todayCount === 0 && taskData.overdueCount === 0) {
+            if (taskSummary.todayCount === 0 && taskSummary.overdueCount === 0) {
                 const alert = new Alert(
                     "AI Task Analyzer",
                     "No tasks found for today or overdue. Great job staying on top of things! 🎉"
@@ -58,67 +58,87 @@
             // Create AI session
             const session = new LanguageModel.Session();
 
-            // Prepare prompt for AI analysis
-            const prompt = `Analyze these OmniFocus tasks and provide actionable insights:
+            // Prepare concise prompt for AI analysis
+            const prompt = `Analyze OmniFocus tasks (GTD methodology):
 
-TODAY'S TASKS (${taskData.todayCount}):
-${JSON.stringify(taskData.todayTasks, null, 2)}
+TODAY (${taskSummary.todayCount} total, showing ${limitedTodayTasks.length}):
+${limitedTodayTasks.map(t => `- ${t.flagged}${t.name} [${t.project}]`).join('\n')}
 
-OVERDUE TASKS (${taskData.overdueCount}):
-${JSON.stringify(taskData.overdueTasks, null, 2)}
+OVERDUE (${taskSummary.overdueCount} total, showing ${limitedOverdueTasks.length}):
+${limitedOverdueTasks.map(t => `- ${t.name} [${t.project}] (${t.daysOverdue}d overdue)`).join('\n')}
 
-Please provide:
-1. **Priority Recommendations**: Which 3 tasks should I tackle first today and why?
-2. **Workload Analysis**: Is today's workload manageable? Any concerns?
-3. **Overdue Insights**: What patterns do you see in overdue tasks? Any recommendations?
-4. **Time Management**: Based on estimated times, how should I structure my day?
-5. **Action Items**: Any immediate actions to take?
+Provide concise insights on:
+1. Top 3 priorities today
+2. Workload assessment
+3. Overdue patterns
+4. Key actions`;
 
-Keep the analysis concise, actionable, and GTD-aligned (Getting Things Done methodology).`;
-
-            // Request structured analysis using schema
-            const schema = new LanguageModel.Schema({
-                type: "object",
-                properties: {
-                    priorityRecommendations: {
-                        type: "array",
+            // Request structured analysis using OmniFocus schema format
+            const schema = LanguageModel.Schema.fromJSON({
+                name: "analysis-schema",
+                properties: [
+                    {
+                        name: "priorityRecommendations",
                         description: "Top 3 tasks to tackle first",
-                        items: {
-                            type: "object",
-                            properties: {
-                                taskName: { type: "string" },
-                                reason: { type: "string" }
+                        schema: {
+                            arrayOf: {
+                                name: "priority-item",
+                                properties: [
+                                    {name: "taskName"},
+                                    {name: "reason"}
+                                ]
                             }
                         }
                     },
-                    workloadAnalysis: {
-                        type: "object",
-                        properties: {
-                            isManageable: { type: "boolean" },
-                            summary: { type: "string" },
-                            concerns: { type: "array", items: { type: "string" } }
+                    {
+                        name: "workloadAnalysis",
+                        schema: {
+                            name: "workload-schema",
+                            properties: [
+                                {name: "isManageable"},
+                                {name: "summary"},
+                                {
+                                    name: "concerns",
+                                    schema: {arrayOf: {constant: "concern"}}
+                                }
+                            ]
                         }
                     },
-                    overdueInsights: {
-                        type: "object",
-                        properties: {
-                            patterns: { type: "array", items: { type: "string" } },
-                            recommendations: { type: "array", items: { type: "string" } }
+                    {
+                        name: "overdueInsights",
+                        schema: {
+                            name: "overdue-schema",
+                            properties: [
+                                {
+                                    name: "patterns",
+                                    schema: {arrayOf: {constant: "pattern"}}
+                                },
+                                {
+                                    name: "recommendations",
+                                    schema: {arrayOf: {constant: "recommendation"}}
+                                }
+                            ]
                         }
                     },
-                    timeManagement: {
-                        type: "object",
-                        properties: {
-                            totalEstimatedMinutes: { type: "number" },
-                            suggestedSchedule: { type: "array", items: { type: "string" } }
+                    {
+                        name: "timeManagement",
+                        schema: {
+                            name: "time-schema",
+                            properties: [
+                                {name: "totalEstimatedMinutes"},
+                                {
+                                    name: "suggestedSchedule",
+                                    schema: {arrayOf: {constant: "schedule-item"}}
+                                }
+                            ]
                         }
                     },
-                    actionItems: {
-                        type: "array",
+                    {
+                        name: "actionItems",
                         description: "Immediate actions to take",
-                        items: { type: "string" }
+                        schema: {arrayOf: {constant: "action"}}
                     }
-                }
+                ]
             });
 
             // Get AI response
@@ -138,22 +158,26 @@ Keep the analysis concise, actionable, and GTD-aligned (Getting Things Done meth
             message += `\n`;
 
             // Workload Analysis
-            message += `📋 WORKLOAD: ${analysis.workloadAnalysis.isManageable ? "✅ Manageable" : "⚠️ Heavy"}\n`;
-            message += `${analysis.workloadAnalysis.summary}\n`;
-            if (analysis.workloadAnalysis.concerns.length > 0) {
-                message += `Concerns:\n`;
-                analysis.workloadAnalysis.concerns.forEach(c => message += `• ${c}\n`);
+            if (analysis.workloadAnalysis) {
+                message += `📋 WORKLOAD: ${analysis.workloadAnalysis.isManageable ? "✅ Manageable" : "⚠️ Heavy"}\n`;
+                if (analysis.workloadAnalysis.summary) {
+                    message += `${analysis.workloadAnalysis.summary}\n`;
+                }
+                if (analysis.workloadAnalysis.concerns && analysis.workloadAnalysis.concerns.length > 0) {
+                    message += `Concerns:\n`;
+                    analysis.workloadAnalysis.concerns.forEach(c => message += `• ${c}\n`);
+                }
+                message += `\n`;
             }
-            message += `\n`;
 
             // Overdue Insights
-            if (taskData.overdueCount > 0) {
+            if (taskSummary.overdueCount > 0 && analysis.overdueInsights) {
                 message += `⏰ OVERDUE INSIGHTS:\n`;
-                if (analysis.overdueInsights.patterns.length > 0) {
+                if (analysis.overdueInsights.patterns && analysis.overdueInsights.patterns.length > 0) {
                     message += `Patterns:\n`;
                     analysis.overdueInsights.patterns.forEach(p => message += `• ${p}\n`);
                 }
-                if (analysis.overdueInsights.recommendations.length > 0) {
+                if (analysis.overdueInsights.recommendations && analysis.overdueInsights.recommendations.length > 0) {
                     message += `Recommendations:\n`;
                     analysis.overdueInsights.recommendations.forEach(r => message += `• ${r}\n`);
                 }
@@ -161,14 +185,14 @@ Keep the analysis concise, actionable, and GTD-aligned (Getting Things Done meth
             }
 
             // Time Management
-            if (analysis.timeManagement.suggestedSchedule.length > 0) {
+            if (analysis.timeManagement && analysis.timeManagement.suggestedSchedule && analysis.timeManagement.suggestedSchedule.length > 0) {
                 message += `⏱️ SUGGESTED SCHEDULE:\n`;
                 analysis.timeManagement.suggestedSchedule.forEach(s => message += `• ${s}\n`);
                 message += `\n`;
             }
 
             // Action Items
-            if (analysis.actionItems.length > 0) {
+            if (analysis.actionItems && analysis.actionItems.length > 0) {
                 message += `✅ ACTION ITEMS:\n`;
                 analysis.actionItems.forEach(a => message += `• ${a}\n`);
             }

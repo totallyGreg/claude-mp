@@ -2,7 +2,7 @@
 name: omnifocus-manager
 description: Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA). This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
 metadata:
-  version: 3.1.0
+  version: 3.2.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -86,6 +86,42 @@ osascript -l JavaScript scripts/manage_omnifocus.js create \
 3. Restart OmniFocus to reload
 
 → **See:** [Plugin Development Guide](references/plugin_development_guide.md#modifying-plugins)
+
+**Generating plugin code:**
+
+When generating JavaScript code for OmniFocus plugins, follow these critical requirements:
+
+1. **Verify APIs Exist** - Check `references/api_quick_reference.md` before using any API
+2. **Properties vs Methods** - Properties accessed directly (no parentheses), methods called with parentheses
+3. **Validate Syntax** - Follow validation rules in `references/code_generation_validation.md`
+4. **Test Before Suggesting** - Verify code would work in OmniFocus environment
+
+**Quick API Lookup:**
+- **[API Quick Reference](references/api_quick_reference.md)** - Fast lookup for common APIs, properties vs methods
+- **[Code Generation Validation](references/code_generation_validation.md)** - Validation checklist and workflow
+- **[OmniFocus API](references/OmniFocus-API.md)** - Complete API documentation
+- **[Plugin Development Guide](references/plugin_development_guide.md)** - Plugin structure and patterns
+
+**Common Pitfalls to Avoid:**
+- ❌ Don't use non-existent APIs (`Progress` class, `FileType.fromExtension()`)
+- ❌ Don't use `Document.defaultDocument` - use global variables instead (`flattenedTasks`, `folders`, `projects`, `tags`, `inbox`)
+- ❌ Don't call properties as functions (`task.name()` - wrong, use `task.name`)
+- ❌ Don't use `.bind(this)` on arrow functions (arrow functions inherit `this` automatically)
+- ❌ Don't use `new LanguageModel.Schema()` - use `LanguageModel.Schema.fromJSON()` factory method
+- ❌ Don't use JSON Schema format - OmniFocus uses custom schema format
+
+**Validation Checklist:**
+
+Before suggesting any plugin code, verify:
+- [ ] All classes/methods exist in API documentation
+- [ ] Properties accessed without `()`, methods with `()`
+- [ ] Using global variables (`flattenedTasks`, `folders`) not `Document.defaultDocument`
+- [ ] LanguageModel schemas use `fromJSON()` factory method with OmniFocus format
+- [ ] No hallucinated APIs (verify each class, property, and method exists)
+- [ ] Arrow function syntax correct (no `.bind(this)`)
+- [ ] Code follows patterns from working examples
+
+→ **See:** [Code Generation Validation Guide](references/code_generation_validation.md) for complete workflow
 
 ### 3. Automate via Scripts or URLs
 

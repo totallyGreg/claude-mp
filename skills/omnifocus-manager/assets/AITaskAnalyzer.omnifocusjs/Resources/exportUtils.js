@@ -136,7 +136,7 @@
 			const values = headers.map(header => {
 				const value = item[header];
 				return this.formatCSVValue(value);
-			}.bind(this));
+			});
 			rows.push(values.join(","));
 		});
 
@@ -291,7 +291,7 @@
 		let html = "<table>\n<thead>\n<tr>\n";
 		headers.forEach(h => {
 			html += `<th>${this.escapeHTML(h)}</th>\n`;
-		}.bind(this));
+		});
 		html += "</tr>\n</thead>\n<tbody>\n";
 
 		data.forEach(row => {
@@ -303,7 +303,7 @@
 					: val instanceof Date ? val.toLocaleDateString()
 					: String(val);
 				html += `<td>${this.escapeHTML(formatted)}</td>\n`;
-			}.bind(this));
+			});
 			html += "</tr>\n";
 		});
 

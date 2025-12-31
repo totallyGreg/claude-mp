@@ -40,47 +40,52 @@
 				// Build context for the AI
 				const taskContext = buildTaskContext(task);
 
-				// Define the analysis schema for structured output
-				const schema = new LanguageModel.Schema({
-						type: "object",
-						properties: {
-							clarity: {
-								type: "number",
-								minimum: 1,
-								maximum: 10,
+				// Define the analysis schema using OmniFocus format
+				const schema = LanguageModel.Schema.fromJSON({
+						name: "task-analysis-schema",
+						properties: [
+							{
+								name: "clarity",
 								description: "How clear and actionable the task is (1-10)"
 							},
-							suggestedName: {
-								type: "string",
-								description: "Improved task name if current one could be clearer"
+							{
+								name: "suggestedName",
+								description: "Improved task name if current one could be clearer",
+								isOptional: true
 							},
-							suggestedTags: {
-								type: "array",
-								items: { type: "string" },
-								description: "2-3 relevant tags based on task content"
+							{
+								name: "suggestedTags",
+								description: "2-3 relevant tags based on task content",
+								schema: {arrayOf: {constant: "tag"}}
 							},
-							priority: {
-								type: "string",
-								enum: ["high", "medium", "low"],
-								description: "Suggested priority level"
+							{
+								name: "priority",
+								description: "Suggested priority level",
+								schema: {
+									anyOf: [
+										{constant: "high"},
+										{constant: "medium"},
+										{constant: "low"}
+									]
+								}
 							},
-							estimatedMinutes: {
-								type: "number",
-								minimum: 1,
-								description: "Estimated time to complete in minutes"
+							{
+								name: "estimatedMinutes",
+								description: "Estimated time to complete in minutes",
+								isOptional: true
 							},
-							improvements: {
-								type: "array",
-								items: { type: "string" },
-								description: "Specific suggestions for improving the task"
+							{
+								name: "improvements",
+								description: "Specific suggestions for improving the task",
+								schema: {arrayOf: {constant: "improvement"}}
 							},
-							missingInfo: {
-								type: "array",
-								items: { type: "string" },
-								description: "Information that would help complete this task"
+							{
+								name: "missingInfo",
+								description: "Information that would help complete this task",
+								isOptional: true,
+								schema: {arrayOf: {constant: "info"}}
 							}
-						},
-						required: ["clarity", "suggestedTags", "priority", "improvements"]
+						]
 					});
 
 					// Craft the prompt
