@@ -2,7 +2,7 @@
 name: omnifocus-manager
 description: Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA). This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
 metadata:
-  version: 3.0.0
+  version: 3.1.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -72,11 +72,13 @@ osascript -l JavaScript scripts/manage_omnifocus.js create \
 → **[Plugin Quickstart](references/quickstarts/plugin_quickstart.md)** - 5-minute tutorial
 
 **Create new plugin:**
-1. Use example as template from `assets/examples/plugins/`
-2. Modify manifest.json and action scripts
-3. Load libraries via `this.plugIn.library("libraryName")`
+1. Reference `assets/OFBundlePlugInTemplate.omnifocusjs` - official Omni Group template
+2. Follow patterns from template (or copy and customize)
+3. Modify manifest.json and action scripts
+4. Load libraries via `this.plugIn.library("libraryName")`
 
 → **See:** [Plugin Development Guide](references/plugin_development_guide.md)
+→ **Template:** [OFBundlePlugInTemplate](assets/OFBundlePlugInTemplate.omnifocusjs/) - Official template
 
 **Modify existing plugin:**
 1. Right-click `.omnifocusjs` → Show Package Contents
@@ -425,7 +427,15 @@ python3 scripts/analyze_insights.py
 
 ## Version Information
 
-**Current version:** 3.0.0
+**Current version:** 3.1.0
+
+**What's new in 3.1:**
+- ⭐ Official plugin template reference (OFBundlePlugInTemplate)
+- ⭐ Comprehensive plugin testing workflows
+- ⭐ Plugin distribution checklist
+- Expanded plugin development guide with OFBundlePlugInTemplate patterns
+- Detailed Automation Console testing procedures
+- Plugin validation and testing best practices
 
 **What's new in 3.0:**
 - ⭐ Modular library system (`libraries/`)

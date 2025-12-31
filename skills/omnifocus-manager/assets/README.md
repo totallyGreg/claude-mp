@@ -17,6 +17,48 @@ assets/
 
 ---
 
+## Official Plugin Template
+
+### OFBundlePlugInTemplate.omnifocusjs
+
+**Official Omni Group plugin template** - the authoritative reference for creating OmniFocus plugins.
+
+**Purpose:**
+- **Source of truth** for correct plugin patterns
+- **Official template** from Omni Group
+- **Base for all new plugins** - copy and customize
+
+**Structure:**
+- Demonstrates correct `PlugIn.Library` pattern
+- Shows proper manifest.json structure
+- Includes library declaration examples
+- Demonstrates localization support (en.lproj/)
+- Multiple actions and libraries example
+
+**Location:** `OFBundlePlugInTemplate.omnifocusjs/`
+
+**Usage:**
+1. Copy the entire bundle: `cp -R OFBundlePlugInTemplate.omnifocusjs MyPlugin.omnifocusjs`
+2. Edit `manifest.json` - update identifier, name, version, author
+3. Customize action files in `Resources/`
+4. Test by double-clicking to install
+5. Iterate until ready for distribution
+
+**Key Files:**
+- `manifest.json` - Plugin metadata with library declarations
+- `Resources/allDateLibrary.js` - Example library implementation
+- `Resources/aboutThisPlugin.js` - Example action showing plugin info
+- `Resources/addFolderForEachMonth.js` - Example action with functionality
+- `Resources/en.lproj/` - Localization support
+
+**Documentation:**
+- Complete guide: `../references/plugin_development_guide.md`
+- Installation: `../references/plugin_installation.md`
+
+**When creating plugins, always start with this template** - it contains the correct patterns from Omni Group.
+
+---
+
 ## Plugins
 
 ### AITaskAnalyzer.omnifocusjs
@@ -206,13 +248,15 @@ All assets are fully editable:
 
 **Template for New Plugin:**
 ```bash
-# Copy example structure
-cp -R examples/plugins/SimpleQuery.omnifocusjs MyPlugin.omnifocusjs
+# ALWAYS start with the official template
+cp -R OFBundlePlugInTemplate.omnifocusjs MyPlugin.omnifocusjs
 
-# Edit manifest
-# Edit actions in Resources/
+# Edit manifest.json (identifier, name, version, author)
+# Edit or replace actions in Resources/
 # Test by double-clicking to install
 ```
+
+**Note:** Use `OFBundlePlugInTemplate.omnifocusjs` as the base, not example plugins. The official template contains correct patterns from Omni Group.
 
 ---
 

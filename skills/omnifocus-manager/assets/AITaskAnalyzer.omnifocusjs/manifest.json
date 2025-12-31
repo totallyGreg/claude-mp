@@ -8,7 +8,6 @@
   "longLabel": "Analyze Tasks & Projects with Apple Intelligence",
   "paletteLabel": "AI Analyzer",
   "image": "brain.head.profile",
-  "libraries": ["taskMetrics", "exportUtils"],
   "actions": [
     {
       "identifier": "analyzeTasksWithAI",
@@ -33,6 +32,14 @@
       "longLabel": "Analyze Selected Tasks with Apple Intelligence",
       "paletteLabel": "AI Selected Task Analyzer",
       "image": "wand.and.stars"
+    }
+  ],
+  "libraries": [
+    {
+      "identifier": "taskMetrics"
+    },
+    {
+      "identifier": "exportUtils"
     }
   ]
 }

@@ -1,0 +1,26 @@
+{
+  "author": "Otto Automator",
+  "identifier": "com.omni-automation.of.omnifocus-bundle-example",
+  "defaultLocale": "en",
+  "version": "1.0",
+  "description": "A collection of Omni Automation scripts for OmniFocus.",
+  "actions": [
+    {
+      "image": "icon.png",
+      "identifier": "aboutThisPlugin"
+    },
+    {
+      "image": "icon.png",
+      "identifier": "addFolderForEachMonth"
+    },
+    {
+      "image": "icon.png",
+      "identifier": "infoForDateLibrary"
+    }
+  ],
+  "libraries": [
+    {
+      "identifier": "allDateLibrary"
+    }
+  ]
+}

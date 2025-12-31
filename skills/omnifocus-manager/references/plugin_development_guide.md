@@ -32,6 +32,68 @@ The quickstart covers:
 
 ---
 
+## Official Plugin Template Reference
+
+### OFBundlePlugInTemplate.omnifocusjs
+
+Location: `../assets/OFBundlePlugInTemplate.omnifocusjs/`
+
+**Purpose:** Official Omni Group template demonstrating correct plugin patterns and API usage.
+
+**Use this template as:**
+- **Reference** for correct PlugIn.Library patterns
+- **Example** of proper manifest.json structure
+- **Guide** for library declarations and action implementations
+- **Starting point** (optional) - can copy and customize, or create from scratch following these patterns
+
+**Two approaches to plugin creation:**
+
+**Approach 1: Create from scratch** (following template patterns)
+- Understand the patterns from OFBundlePlugInTemplate
+- Create your own structure
+- Implement using the same API patterns
+- Test to ensure correctness
+
+**Approach 2: Copy and customize** (faster start)
+```bash
+# Copy template as base
+cp -R assets/OFBundlePlugInTemplate.omnifocusjs MyPlugin.omnifocusjs
+
+# Customize manifest.json and actions
+# Keep the patterns, change the functionality
+```
+
+**Key Patterns from Official Template:**
+
+**Library Pattern:**
+```javascript
+// From OFBundlePlugInTemplate/Resources/allDateLibrary.js
+(() => {
+	var lib = new PlugIn.Library(new Version("1.1"));
+
+	lib.dateOccursToday = function(dateToCheck) {
+		// implementation
+	};
+
+	return lib;
+})();
+```
+
+**Manifest with Library Declaration:**
+```json
+{
+  "identifier": "com.omni-automation.of.omnifocus-bundle-example",
+  "libraries": [
+    {"identifier": "allDateLibrary"}
+  ],
+  "actions": [...]
+}
+```
+
+**The key:** Follow the API correctly as demonstrated in OFBundlePlugInTemplate, whether you copy it or create from scratch.
+
+---
+
 ## Understanding Plugin Bundles
 
 ### What is a Plugin Bundle?
@@ -942,6 +1004,50 @@ const action = new PlugIn.Action(async function(selection, sender) {
    - Direct download link
    - Plugin marketplace (if available)
 
+### Distribution Checklist
+
+**Before releasing your plugin, ensure:**
+
+**Code Quality:**
+- [ ] All code follows patterns from OFBundlePlugInTemplate
+- [ ] No hardcoded paths or user-specific data
+- [ ] Error handling for all failure cases
+- [ ] Console logging removed or made conditional
+- [ ] Code is commented where non-obvious
+
+**Testing:**
+- [ ] Tested on all target platforms (Mac/iOS)
+- [ ] All actions tested in Automation Console
+- [ ] Libraries load without errors
+- [ ] Actions execute without crashes
+- [ ] Tested with various selection types
+- [ ] No console errors during normal operation
+
+**Documentation:**
+- [ ] README.md included with installation instructions
+- [ ] Usage examples provided
+- [ ] Requirements clearly stated (OmniFocus version, macOS/iOS version)
+- [ ] Known limitations documented
+- [ ] LICENSE file included
+
+**Manifest:**
+- [ ] Version number updated
+- [ ] Author name correct
+- [ ] Description is clear and accurate
+- [ ] All library declarations present and correct
+- [ ] All action identifiers match filenames
+
+**Files to EXCLUDE from distribution:**
+- [ ] Remove development artifacts (TESTING.md, validation scripts, etc.)
+- [ ] Remove .DS_Store files
+- [ ] Remove temporary/backup files
+- [ ] Keep only: manifest.json, Resources/, README.md, LICENSE
+
+**Version Management:**
+- [ ] Follow semantic versioning (major.minor.patch)
+- [ ] Document changes in README or CHANGELOG
+- [ ] Tag release in version control (if using Git)
+
 ---
 
 ## Validation & Testing
@@ -963,13 +1069,75 @@ const action = new PlugIn.Action(async function(selection, sender) {
 - [ ] Works on Mac (if targeting Mac)
 - [ ] Works on iOS (if targeting iOS)
 
+### Testing in Automation Console
+
+**Open Automation Console:** `Cmd+Opt+Ctrl+C`
+
+**Test 1: Find Your Plugin**
+```javascript
+const plugin = PlugIn.find('com.yourname.your-plugin');
+console.log('Plugin found:', plugin !== null);
+console.log('Version:', plugin.versionString);
+console.log('Actions:', plugin.actions.map(a => a.name));
+console.log('Libraries:', plugin.libraries.map(l => l.name));
+```
+
+**Expected output:**
+```
+Plugin found: true
+Version: 1.0.0
+Actions: ["Action Name 1", "Action Name 2"]
+Libraries: ["libraryName"]
+```
+
+**Test 2: Load Libraries**
+```javascript
+const plugin = PlugIn.find('com.yourname.your-plugin');
+const myLibrary = plugin.library('libraryName');
+console.log('Library type:', typeof myLibrary);
+console.log('Functions:', Object.keys(myLibrary));
+```
+
+**Expected:** Library should be object with your functions listed.
+
+**Test 3: Test Library Functions**
+```javascript
+const plugin = PlugIn.find('com.yourname.your-plugin');
+const myLibrary = plugin.library('libraryName');
+
+// Test a specific function
+const result = myLibrary.someFunction();
+console.log('Result:', result);
+```
+
+**Test 4: List and Validate Actions**
+```javascript
+const plugin = PlugIn.find('com.yourname.your-plugin');
+const selection = document.windows[0].content.selection;
+
+plugin.actions.forEach((action, i) => {
+    const isValid = action.validate(selection, null);
+    console.log(`${i}: ${action.name} (${isValid ? 'enabled' : 'disabled'})`);
+});
+```
+
+**Test 5: Execute Action**
+```javascript
+const plugin = PlugIn.find('com.yourname.your-plugin');
+const selection = document.windows[0].content.selection;
+
+// Execute first action
+plugin.actions[0].perform(selection, null);
+```
+
 ### Testing Actions
 
 **Test validation logic:**
 ```javascript
 // Test with no selection
-// Test with single item
-// Test with multiple items
+// Test with single task selected
+// Test with multiple tasks selected
+// Test with project selected
 // Test with mixed selection (tasks + projects)
 ```
 
@@ -978,6 +1146,7 @@ const action = new PlugIn.Action(async function(selection, sender) {
 // What if library not available?
 // What if network fails?
 // What if user cancels?
+// What if no tasks match criteria?
 ```
 
 **Console debugging:**
@@ -988,6 +1157,20 @@ console.warn("Warning:", message);
 ```
 
 View console: View → Automation → Console (⌃⌥⌘I)
+
+### Testing Checklist
+
+**Before releasing:**
+- [ ] Plugin installs without errors
+- [ ] All actions appear in Automation menu
+- [ ] Actions enable/disable based on selection correctly
+- [ ] Libraries load successfully (test in console)
+- [ ] Library functions return expected types
+- [ ] Actions execute without crashes
+- [ ] Error messages are helpful and specific
+- [ ] Tested on target platforms (Mac/iOS)
+- [ ] Console shows no unexpected errors
+- [ ] Manifest version number updated
 
 ---
 

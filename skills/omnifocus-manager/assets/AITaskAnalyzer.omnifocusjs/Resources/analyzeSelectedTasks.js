@@ -33,18 +33,15 @@
 
 			// AI Analysis
 			const session = new LanguageModel.Session();
-			const progress = new Progress("Analyzing tasks with AI...");
-			progress.totalUnitCount = tasks.length;
 
 			const results = [];
 
-			try {
-				for (const task of tasks) {
-					// Build context for the AI
-					const taskContext = buildTaskContext(task);
+			for (const task of tasks) {
+				// Build context for the AI
+				const taskContext = buildTaskContext(task);
 
-					// Define the analysis schema for structured output
-					const schema = new LanguageModel.Schema({
+				// Define the analysis schema for structured output
+				const schema = new LanguageModel.Schema({
 						type: "object",
 						properties: {
 							clarity: {
@@ -107,15 +104,10 @@ Be specific and practical in your suggestions.`;
 					const response = await session.respondWithSchema(prompt, schema);
 					const analysis = JSON.parse(response);
 
-					results.push({
-						task: task,
-						analysis: analysis
-					});
-
-					progress.completedUnitCount++;
-				}
-			} finally {
-				progress.finish();
+				results.push({
+					task: task,
+					analysis: analysis
+				});
 			}
 
 			// Display Results
