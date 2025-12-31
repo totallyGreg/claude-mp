@@ -160,10 +160,25 @@ The marketplace.json defines marketplace metadata and plugins:
 Auto-sync marketplace.json before commits:
 
 ```bash
-# Install pre-commit hook
-cp scripts/pre-commit.template .git/hooks/pre-commit
-chmod +x .git/hooks/pre-commit
+# Install or update pre-commit hook (recommended)
+bash skills/marketplace-manager/scripts/install_hook.sh
+
+# Verify installation
+python3 skills/marketplace-manager/scripts/validate_hook.py
+
+# Preview changes without installing
+bash skills/marketplace-manager/scripts/install_hook.sh --dry-run
+
+# Force reinstall
+bash skills/marketplace-manager/scripts/install_hook.sh --force
 ```
+
+**Hook features:**
+- ✅ **Idempotent installation** - Safe to run multiple times
+- ✅ **Version detection** - Warns when hook is outdated
+- ✅ **Robust path discovery** - Survives skill renames
+- ✅ **Auto-sync** - Updates marketplace.json automatically
+- ✅ **Graceful degradation** - Warns but doesn't block commits
 
 **Hook behavior:**
 - Detects version mismatches before commit
@@ -302,6 +317,57 @@ For plugins containing multiple components (skills, MCP servers, etc.):
 - Use `--verbose` to debug path resolution
 - Check for `.git` or `.claude-plugin` directories
 - Ensure you're in repository when running scripts
+
+## Troubleshooting
+
+### Hook Issues
+
+**Hook not syncing marketplace.json:**
+```bash
+# Check hook status
+python3 skills/marketplace-manager/scripts/validate_hook.py
+
+# Reinstall if needed
+bash skills/marketplace-manager/scripts/install_hook.sh --force
+```
+
+**Hook shows version mismatch warning:**
+- This means the installed hook is outdated
+- Run: `bash skills/marketplace-manager/scripts/install_hook.sh`
+- Hook will auto-update to latest version
+
+**Hook not found errors:**
+- The hook uses dynamic path discovery
+- If scripts are moved/renamed, hook will find them automatically
+- First checks specific path, then searches entire repository
+
+**Hook not executable:**
+```bash
+chmod +x .git/hooks/pre-commit
+```
+
+**Want to bypass hook temporarily:**
+```bash
+git commit --no-verify
+```
+
+**Hook blocking commits:**
+- Check error message for specific issue
+- Run sync manually: `python3 skills/marketplace-manager/scripts/sync_marketplace_versions.py`
+- Fix reported issues, then commit again
+- Or bypass with `--no-verify` if urgent
+
+### Script Issues
+
+**Cannot find skill:**
+- Check skill name spelling
+- Verify skill is in repository or installed
+- Use full path if needed
+
+**Plan already exists:**
+- Check for existing planning branch
+- Delete old branch or use different name
+- Complete or abandon existing plan first
 
 ## See Also
 

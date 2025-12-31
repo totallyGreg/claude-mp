@@ -1,15 +1,18 @@
 #!/bin/bash
 #
+# marketplace-manager pre-commit hook v1.3.0
+#
 # Pre-commit hook for marketplace-manager
 # Automatically syncs marketplace.json when skill versions change
 #
 # Installation:
-#   cp skills/marketplace-manager/scripts/pre-commit.template .git/hooks/pre-commit
-#   chmod +x .git/hooks/pre-commit
+#   bash skills/marketplace-manager/scripts/install_hook.sh
 #
 # Bypass (if needed):
 #   git commit --no-verify
 #
+
+HOOK_VERSION="1.3.0"
 
 # Colors for output
 RED='\033[0;31m'
@@ -21,8 +24,6 @@ NC='\033[0m' # No Color
 # Find repository root
 REPO_ROOT=$(git rev-parse --show-toplevel)
 MARKETPLACE_JSON="$REPO_ROOT/.claude-plugin/marketplace.json"
-DETECT_SCRIPT="$REPO_ROOT/skills/marketplace-manager/scripts/detect_version_changes.py"
-SYNC_SCRIPT="$REPO_ROOT/skills/marketplace-manager/scripts/sync_marketplace_versions.py"
 
 echo -e "${BLUE}🔍 Checking for marketplace version mismatches...${NC}"
 
@@ -32,10 +33,32 @@ if [ ! -f "$MARKETPLACE_JSON" ]; then
     exit 0
 fi
 
-# Check if scripts exist
-if [ ! -f "$DETECT_SCRIPT" ] || [ ! -f "$SYNC_SCRIPT" ]; then
+# Discover script paths dynamically (robust to skill renames)
+# Try specific path first for performance
+if [ -f "$REPO_ROOT/skills/marketplace-manager/scripts/detect_version_changes.py" ]; then
+    DETECT_SCRIPT="$REPO_ROOT/skills/marketplace-manager/scripts/detect_version_changes.py"
+    SYNC_SCRIPT="$REPO_ROOT/skills/marketplace-manager/scripts/sync_marketplace_versions.py"
+else
+    # Fallback: search for scripts anywhere in repository
+    SYNC_SCRIPT=$(find "$REPO_ROOT/skills" -type f -name "sync_marketplace_versions.py" 2>/dev/null | head -n 1)
+    DETECT_SCRIPT=$(find "$REPO_ROOT/skills" -type f -name "detect_version_changes.py" 2>/dev/null | head -n 1)
+fi
+
+# Validate scripts were found
+if [ -z "$DETECT_SCRIPT" ] || [ -z "$SYNC_SCRIPT" ] || [ ! -f "$DETECT_SCRIPT" ] || [ ! -f "$SYNC_SCRIPT" ]; then
     echo -e "${YELLOW}⚠️  marketplace-manager scripts not found, skipping version sync${NC}"
+    echo -e "${YELLOW}   Expected: sync_marketplace_versions.py and detect_version_changes.py${NC}"
     exit 0
+fi
+
+# Check if hook version is outdated
+TEMPLATE_PATH="$(dirname "$SYNC_SCRIPT")/pre-commit.template"
+if [ -f "$TEMPLATE_PATH" ]; then
+    TEMPLATE_VERSION=$(grep -m 1 "^# marketplace-manager pre-commit hook v" "$TEMPLATE_PATH" | sed 's/.*v\([0-9.]*\).*/\1/')
+    if [ -n "$TEMPLATE_VERSION" ] && [ "$TEMPLATE_VERSION" != "$HOOK_VERSION" ]; then
+        echo -e "${YELLOW}⚠️  Hook version outdated: v$HOOK_VERSION (template: v$TEMPLATE_VERSION)${NC}"
+        echo -e "${YELLOW}   Update with: bash skills/marketplace-manager/scripts/install_hook.sh${NC}"
+    fi
 fi
 
 # Detect version changes
