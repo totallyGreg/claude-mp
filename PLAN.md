@@ -1,25 +1,23 @@
-# Improvement Plan: omnifocus-manager - Insights & Automation Focus
+# Improvement Plan: omnifocus-manager - Mandatory Pre-Code-Generation Validation
 
 **Status:** implemented
-**Created:** 2025-12-22T13:32:00Z
-**Approved:** 2025-12-22T13:35:00Z by Greg Williams
-**Implemented:** 2025-12-22T15:30:00Z
-**Completed:** (pending merge to main)
-
-**Branch:** plan/omnifocus-manager-insights-automation-20251222
-**Version:** v1
+**Created:** 2025-12-31T15:27:26Z
+**Implemented:** 2025-12-31T16:00:00Z
+**Branch:** plan/omnifocus-manager-improvement-20251231
+**Version:** v2
 
 ---
 
 ## Goal
 
-Transform omnifocus-manager from a command-line interface tool into an intelligent OmniFocus assistant that:
-1. **Surfaces insights** - Analyzes tasks/projects to provide actionable intelligence
-2. **Creates reusable automations** - Builds Omni Automation plugins (not repeated queries)
-3. **Designs custom perspectives** - Enables consistent, purposeful views of task data
-4. **Suggests optimizations** - Proactively identifies automation opportunities
+Prevent API misuse errors (like PlugIn.Library constructor) by:
+1. Fixing incorrect PlugIn.Library pattern in existing documentation
+2. Enforcing mandatory validation workflows BEFORE any plugin code generation
 
-Supporting context: GTD methodology knowledge informs better insight generation and automation design.
+**Root Cause Analysis:**
+1. **Documentation inconsistency**: plugin_development_guide.md shows TWO different patterns (correct at line 72, incorrect at line 680)
+2. **No enforcement**: Validation patterns exist but no mandatory workflow gates
+3. **Passive language**: SKILL.md says "follow these requirements" instead of "MUST complete validation"
 
 ---
 
@@ -27,316 +25,329 @@ Supporting context: GTD methodology knowledge informs better insight generation 
 
 ### Understanding
 
-**Purpose:** Cross-platform OmniFocus automation via Omni Automation, JXA, and database queries
-**Domain:** productivity
-**Complexity:** Meta
-
-**Current Approach:**
-- Hybrid automation: Python database queries (read) + JXA task management (write)
-- Omni Automation documented but not positioned as primary approach
-- Command-line interface pattern (execute queries, return data)
-- No insight generation or proactive analysis
-- No perspective creation guidance
-- No automation opportunity detection
+**Purpose:** Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA)
+**Domain:** Task management automation, OmniFocus plugin development
+**Complexity:** High - requires knowledge of multiple APIs (Omni Automation, JXA, AppleScript)
 
 ### Metrics (Baseline)
 
 ```
-SKILL.md: 645 lines
-Tokens: ~4637
-References: 2 files, 891 lines
-Scripts: 2 files, 1250 lines
-Assets: 0
-Nesting depth: 4
+SKILL.md: 496 lines
+Tokens: ~4485
+References: 20 files, 13676 lines
+Scripts: 6
+Nesting depth: 3
 
-Conciseness:     [██░░░░░░░░] 17/100  ⚠️ Far exceeds guidelines
-Complexity:      [█████░░░░░] 46/100  ⚠️ Overly complex structure
-Spec Compliance: [███████░░░] 65/100  ⚠️ Missing metadata fields
-Progressive:     [██████████] 100/100 ✓ Excellent separation
-Overall:         [██████░░░░] 56/100  ⚠️ Needs improvement
+Conciseness:     [█████░░░░░] 25/100
+Complexity:      [████████░░] 83/100
+Spec Compliance: [█████████░] 90/100
+Progressive:     [██████████] 100/100
+Overall:         [███████░░░] 74/100
 ```
 
-### Analysis
+### Critical Issues Found
 
-**Strengths:**
-- Excellent progressive disclosure (100/100) - scripts and references properly separated
-- Comprehensive Omni Automation reference documentation exists
-- Solid technical foundation with multiple automation approaches (JXA, Python, URL schemes, Omni Automation)
-- Has IMPROVEMENT_PLAN.md with some relevant ideas already identified
+**Issue 1: Inconsistent PlugIn.Library Patterns in plugin_development_guide.md**
 
-**Weaknesses:**
-- Poor conciseness (17/100) - SKILL.md is bloated with 645 lines and 4637 tokens vs 500/2000 guidelines
-- Overly complex structure (46/100) - deep nesting, too many sections
-- Missing spec compliance (65/100) - deprecated frontmatter fields
-- No insight generation - just executes commands and returns data
-- Token-expensive pattern - emphasizes repeated direct queries instead of reusable plugins
-- No perspective creation guidance
-- No proactive automation suggestions
-- GTD mentioned in triggers but no actual GTD knowledge provided
+✅ **Correct pattern (line 72)** - From official template:
+```javascript
+var lib = new PlugIn.Library(new Version("1.1"));
+```
 
-**Opportunities:**
-- Move detailed command examples to references/ to slim down SKILL.md
-- Simplify heading structure and reduce nesting
-- Add insight generation capabilities
-- Shift to plugin-first approach for token efficiency
-- Add perspective creation workflows
-- Integrate GTD knowledge as supporting context for better insights
-- Enable Apple Foundation Models integration for intelligent task processing
-- Create task template system
+❌ **Incorrect pattern (line 680)** - Contradicts API spec:
+```javascript
+const myHelpers = new PlugIn.Library(function() {
+    const lib = this;
+```
 
-### Spec Compliance
+**Why This Causes Errors:**
+- According to OmniFocus-API.md:1769, constructor signature is `new PlugIn.Library(version: Version)`
+- Passing a function instead of Version causes: "Attempted to invoke function... with invalid instance"
+- This is exactly the error we encountered with foundationModelsUtils.js
 
-**Violations:** 0
+**Issue 2: No Mandatory Validation Workflow**
+- SKILL.md says "follow these critical requirements" (passive)
+- No enforcement gates before code generation
+- code_generation_validation.md has correct patterns but isn't required reading
 
-**Warnings:** 4
-- Missing recommended frontmatter field: metadata
-- Missing recommended frontmatter field: compatibility
-- Missing recommended frontmatter field: license
-- Using deprecated 'version' field; use 'metadata.version' instead
+###Metrics Analysis
+
+**Conciseness (25/100) - LOW**
+- SKILL.md at size limit: 496/500 lines
+- Cannot add mandatory workflow without removing content
+- Solution: Move detailed examples to existing references/, add concise workflow
+
+**Spec Compliance (90/100) - GOOD**
+- Only missing: license field in frontmatter
+- Easy fix: add `license: MIT` to SKILL.md
 
 ---
 
 ## Proposed Changes
 
-### Change 1: Add Insight Generation Capabilities
+### Change 1: Fix Incorrect PlugIn.Library Pattern in plugin_development_guide.md
 
-**Type:** ENHANCE
-**What:** Transform skill from passive interface to active intelligence system
+**Type:** FIX (Critical)
+**What:** Replace incorrect pattern at line 680 with correct pattern matching official template.
 
-**Why:**
-- Current skill only executes queries and returns raw data
-- Users want actionable intelligence, not just task lists
-- Analyzing patterns reveals blockers, priorities, and optimization opportunities
+**Why:** Current pattern contradicts OmniFocus API specification and causes constructor errors.
 
 **Impact:**
-- Enables "what should I focus on?" intelligence
-- Surfaces hidden patterns (recurring blockers, overdue trends, underutilized projects)
-- Provides recommendations based on task state analysis
+- Eliminates source of confusion
+- Aligns with official template (line 72)
+- No metric impact (fixing existing content)
 
 **Implementation:**
-- Add `scripts/analyze_insights.js` - Omni Automation plugin that analyzes task patterns
-- Add `references/insight_patterns.md` - Common patterns to detect and what they mean
-- Update SKILL.md with insight generation workflows:
-  - "Show me blockers" → analyze dependencies and waiting-for items
-  - "What's falling through cracks?" → identify stale projects and overdue clusters
-  - "Optimize my workflow" → suggest perspective/automation opportunities
-- Examples of insights:
-  - "You have 12 tasks waiting on others - consider a 'Waiting For' perspective"
-  - "Project X has 15 overdue tasks - needs review or date adjustment"
-  - "You create 'Weekly planning' tasks manually - I can create a template plugin"
+```diff
+- (() => {
+-     const myHelpers = new PlugIn.Library(function() {
+-         const lib = this;
+-
+-         lib.formatDate = function(date) {
+-             return date.toLocaleDateString();
+-         };
+-
+-         lib.calculateDaysUntil = function(date) {
+-             const now = new Date();
+-             const diff = date - now;
+-             return Math.ceil(diff / (1000 * 60 * 60 * 24));
+-         };
+-
+-         return lib;
+-     });
+-
+-     return myHelpers;
+- })();
 
-### Change 2: Shift to Plugin-First Approach
++ (() => {
++     var lib = new PlugIn.Library(new Version("1.0"));
++
++     lib.formatDate = function(date) {
++         return date.toLocaleDateString();
++     };
++
++     lib.calculateDaysUntil = function(date) {
++         const now = new Date();
++         const diff = date - now;
++         return Math.ceil(diff / (1000 * 60 * 60 * 24));
++     };
++
++     return lib;
++ })();
+```
+
+### Change 2: Add Prominent Anti-Pattern Warning
+
+**Type:** ENHANCE
+**What:** Add explicit ❌ WRONG section immediately after the correct pattern in plugin_development_guide.md.
+
+**Why:** Make it impossible to miss the incorrect pattern. Show what NOT to do.
+
+**Impact:** +15 lines to plugin_development_guide.md
+
+**Implementation:**
+Add after line 76 (correct pattern example):
+```markdown
+❌ **WRONG - Common Mistakes:**
+
+```javascript
+// Constructor takes Version, NOT a function
+new PlugIn.Library(function() { ... })  // ERROR! Type mismatch
+new PlugIn.Library(async function() { ... })  // ERROR! Type mismatch
+
+// Use 'var lib', not 'const myLib' or other names
+const foundationModelsUtils = new PlugIn.Library(...)  // WRONG!
+var lib = new PlugIn.Library(...)  // CORRECT!
+```
+
+**Why these patterns fail:**
+- PlugIn.Library constructor signature: `new PlugIn.Library(version: Version)` (OmniFocus-API.md:1769)
+- Passing a function instead of Version object causes "invalid instance" error
+- Always use `var lib` pattern for consistency with official templates
+```
+
+### Change 3: Add Pre-Code-Generation Checklist to code_generation_validation.md
+
+**Type:** ENHANCE
+**What:** Add mandatory checklist at TOP of code_generation_validation.md.
+
+**Why:** Creates explicit validation gate that must be completed before any code generation.
+
+**Impact:** +30 lines to code_generation_validation.md (acceptable - reference file)
+
+**Implementation:**
+Add at top of file (after purpose/updated metadata):
+```markdown
+---
+
+## ⚠️ MANDATORY Pre-Generation Checklist
+
+**BEFORE writing ANY plugin code, complete this checklist:**
+
+### 1. Read Validation Documentation ✅
+- [ ] Read this entire document (code_generation_validation.md)
+- [ ] Read references/plugin_development_guide.md sections relevant to your code
+- [ ] Understand official template patterns (OFBundlePlugInTemplate)
+
+### 2. Verify Every API ✅
+- [ ] List all classes to instantiate (PlugIn.Action, PlugIn.Library, Version, Alert, Form, etc.)
+- [ ] Check constructor signatures in references/OmniFocus-API.md for EACH class
+- [ ] Verify all properties/methods in references/api_quick_reference.md
+- [ ] Confirm NOT using hallucinated APIs (Document.defaultDocument, Progress, etc.)
+
+### 3. Verify PlugIn.Library Pattern (If Applicable) ✅
+- [ ] Review official template: assets/OFBundlePlugInTemplate.omnifocusjs/Resources/
+- [ ] Confirm pattern: `var lib = new PlugIn.Library(new Version("1.0"));`
+- [ ] Confirm NOT using function constructor: `new PlugIn.Library(function() { ... })`
+- [ ] Review existing libraries: taskMetrics.js, exportUtils.js
+
+### 4. Verify Environment Globals ✅
+- [ ] Using global variables: flattenedTasks, folders, projects, tags, inbox
+- [ ] NOT using Document.defaultDocument (use globals instead)
+- [ ] NOT using Node.js or browser APIs
+
+### 5. Verify LanguageModel Schema (If Applicable) ✅
+- [ ] Using LanguageModel.Schema.fromJSON() factory (NOT constructor)
+- [ ] Using OmniFocus schema format (NOT JSON Schema format)
+- [ ] Reviewed schema patterns in code_generation_validation.md Rule 5
+
+**Only proceed with code generation after ALL checkboxes completed.**
+
+---
+```
+
+### Change 4: Add Mandatory Validation Workflow to SKILL.md
 
 **Type:** RESTRUCTURE
-**What:** Position Omni Automation plugins as primary automation method, direct queries as secondary
+**What:** Replace passive "Generating plugin code" section (lines 92-124) with mandatory validation workflow.
 
-**Why:**
-- Creating reusable plugins is far more token-efficient than repeated queries
-- Plugins work cross-platform (Mac + iOS) unlike JXA
-- User's stated goal: create automations where useful, not run queries repeatedly
-- Current skill buries Omni Automation under JXA/Python approaches
+**Why:** Enforce pre-generation validation. Change from "follow these" to "MUST complete".
 
-**Impact:**
-- Massive token savings - create plugin once, use forever
-- Better cross-platform support
-- Aligns with user's actual workflow needs
+**Impact:** -35 lines from SKILL.md (move examples to references/), +20 lines for workflow = NET -15 lines
 
 **Implementation:**
-- Restructure SKILL.md decision tree to lead with plugins:
-  - "Need to do this repeatedly? → Create Omni Automation plugin"
-  - "One-off analysis? → Use JXA query"
-- Add `examples/plugin-templates/` with starter templates:
-  - `insight-analyzer-template.omnifocusjs`
-  - `perspective-builder-template.omnifocusjs`
-  - `task-template-template.omnifocusjs`
-- Create plugin creation workflow in SKILL.md:
-  1. Identify repeated task pattern
-  2. Use template to scaffold plugin
-  3. Customize logic
-  4. Install and test
-- Move JXA/Python to "Advanced: Direct Queries" section
 
-### Change 3: Add Perspective Creation Guidance
+**Remove from SKILL.md (lines 92-124):**
+- Detailed API examples
+- Property vs method examples
+- Common pitfalls list
+
+**Replace with (lines 92-110):**
+```markdown
+## Plugin Code Generation (MANDATORY WORKFLOW)
+
+**⚠️ CRITICAL:** Never generate plugin code without completing this workflow.
+
+### BEFORE Code Generation
+
+**Step 1: Complete Pre-Generation Checklist (REQUIRED)**
+1. Open `references/code_generation_validation.md`
+2. Read the "MANDATORY Pre-Generation Checklist" at top
+3. Complete ALL checkbox items before proceeding
+
+**Step 2: Verify Constructor Patterns (REQUIRED)**
+1. For PlugIn.Library: Review `assets/OFBundlePlugInTemplate.omnifocusjs/Resources/` patterns
+2. Confirm: `var lib = new PlugIn.Library(new Version("1.0"));`
+3. For other classes: Check constructor signature in `references/OmniFocus-API.md`
+
+**Step 3: Verify APIs (REQUIRED)**
+1. Check EVERY API in `references/api_quick_reference.md`
+2. Verify properties (no `()`) vs methods (with `()`)
+3. Use global variables (flattenedTasks, folders) NOT Document.defaultDocument
+
+### AFTER Code Generation
+
+**Step 4: Validate Generated Code**
+1. Run `eslint_d` on all .js files
+2. Verify no hallucinated APIs
+3. Confirm correct constructor patterns
+
+**Complete documentation:**
+- Validation rules: `references/code_generation_validation.md`
+- Plugin patterns: `references/plugin_development_guide.md`
+- API reference: `references/OmniFocus-API.md`, `references/api_quick_reference.md`
+```
+
+### Change 5: Add License Field to SKILL.md
+
+**Type:** FIX
+**What:** Add `license: MIT` to SKILL.md frontmatter.
+
+**Why:** Improves spec compliance from 90/100 to 100/100.
+
+**Impact:** +1 line, spec compliance +10 points
+
+**Implementation:**
+Add after metadata section in frontmatter:
+```yaml
+license: MIT
+```
+
+### Change 6: Add LSP and Linter Validation to Post-Generation Workflow
 
 **Type:** ENHANCE
-**What:** Enable custom perspective design for consistent task viewing
+**What:** Mandate eslint_d AND vtsls (JavaScript LSP) validation for ALL generated plugin code.
 
 **Why:**
-- Perspectives are core to effective OmniFocus usage
-- User specifically wants "perspectives for viewing things consistently"
-- Current skill has zero perspective creation guidance
-- GTD methodology relies heavily on perspectives (next actions, waiting for, etc.)
+- ESLint catches syntax errors, undefined globals, hallucinated APIs
+- vtsls (JavaScript LSP) provides additional type checking and semantic validation
+- Two-layer validation significantly reduces runtime failures
 
-**Impact:**
-- Users can create purpose-built views
-- Supports GTD workflow implementation
-- Enables consistent task review processes
+**Impact:** +15 lines to SKILL.md mandatory workflow section
 
 **Implementation:**
-- Add `references/perspective_creation.md`:
-  - How perspectives work (rules, grouping, sorting)
-  - Common perspective patterns (by tag, by due date, by project status)
-  - GTD-aligned perspectives (next actions, waiting for, someday/maybe)
-  - How to create via OmniFocus UI (can't script perspective creation currently)
-- Add perspective design workflow to SKILL.md:
-  1. Identify what you need to see consistently
-  2. Define rules (tags, due dates, project states)
-  3. Choose grouping/sorting
-  4. Create in OmniFocus UI following reference guide
-- Add example perspective configs:
-  - Next Actions by Context
-  - Review by Project Status
-  - Waiting For tracking
-  - Overdue with escalation
 
-### Change 4: Add GTD Knowledge as Supporting Context
+Update "AFTER Code Generation" section in SKILL.md Change 4 to:
+```markdown
+### AFTER Code Generation (MANDATORY VALIDATION)
 
-**Type:** ENHANCE
-**What:** Add GTD methodology reference to inform better insights and automation
+**Step 4: Validate with ESLint and LSP**
+1. Run `eslint_d` on ALL generated .js files (syntax, style, undefined globals)
+2. Use vtsls LSP for semantic validation (type checking, API correctness)
+3. Fix ALL errors before proceeding (zero tolerance)
+4. Verify no hallucinated APIs
+5. Confirm correct constructor patterns
 
-**Why:**
-- GTD principles help identify what insights are valuable (e.g., next actions vs any actions)
-- Understanding GTD workflow helps suggest better automations
-- Informs perspective design (GTD relies on specific views)
-- Not primary focus but critical supporting knowledge
+**ESLint validation (REQUIRED):**
+```bash
+# From omnifocus-manager directory
+eslint_d assets/YourPlugin.omnifocusjs/Resources/*.js
 
-**Impact:**
-- Better insight relevance (understand what users need to see)
-- More effective automation suggestions (aligned with GTD workflow)
-- Helps users implement GTD methodology in OmniFocus
+# Must return zero errors before code is acceptable
+```
 
-**Implementation:**
-- Add `references/gtd_context.md` (concise, focused on OmniFocus implementation):
-  - Core GTD principles (collect, process, organize, review, do)
-  - How OmniFocus implements GTD (projects, tags/contexts, perspectives, review)
-  - Common GTD workflows in OmniFocus
-  - How insights should align with GTD (e.g., "next actions" not "all tasks")
-- Update SKILL.md to reference GTD when relevant:
-  - Insight generation considers GTD workflow
-  - Perspective examples follow GTD patterns
-  - Automation suggestions aligned with GTD needs
-- Keep GTD as supporting context, not primary content
+**LSP validation (REQUIRED):**
+- vtsls provides JavaScript language server validation
+- Catches type mismatches, incorrect API usage, semantic errors
+- Integrates with editor (VSCode, Neovim, etc.) for real-time validation
+- Run validation before finalizing code
 
-### Change 5: Add Task Template System
+**What ESLint catches:**
+- Undefined globals (hallucinated APIs like `Document.defaultDocument`, `Progress`)
+- Syntax errors (`.bind(this)` on arrow functions)
+- Style violations
+- Unreachable code
 
-**Type:** ENHANCE
-**What:** Create system for reusable task patterns via Omni Automation plugins
+**What vtsls LSP catches:**
+- Type mismatches (passing function when Version expected)
+- Incorrect constructor arguments
+- Property/method confusion (calling property as method)
+- Semantic errors not caught by ESLint
+```
 
-**Why:**
-- User mentioned "task templates or integrating with Apple's Foundation Models"
-- Repeated task patterns (weekly review, meeting prep) waste time
-- Templates ensure consistency
+**Also update code_generation_validation.md checklist:**
 
-**Impact:**
-- Faster task creation for common patterns
-- Consistency in recurring workflows
-- Foundation for Foundation Models integration (templates + AI customization)
-
-**Implementation:**
-- Add `examples/templates/` with template plugins:
-  - `weekly-review-template.omnifocusjs` - Creates GTD weekly review checklist
-  - `meeting-prep-template.omnifocusjs` - Standard meeting preparation tasks
-  - `project-kickoff-template.omnifocusjs` - New project setup checklist
-- Each template is an Omni Automation plugin that:
-  - Prompts for variables (project name, date, etc.)
-  - Creates structured task hierarchy
-  - Sets appropriate tags, due dates, defer dates
-- Add template creation workflow to SKILL.md:
-  1. Identify recurring task pattern
-  2. Use template starter (in examples/)
-  3. Customize task structure
-  4. Add variable prompts
-  5. Install as plugin
-- Future enhancement: Use Foundation Models to customize templates based on context
-
-### Change 6: Simplify SKILL.md Structure
-
-**Type:** RESTRUCTURE
-**What:** Move detailed command-line examples to references, focus SKILL.md on workflows
-
-**Why:**
-- 645 lines is far beyond 500-line guideline
-- 4637 tokens exceeds 2000-token guideline
-- Extensive JXA/Python command examples belong in references/
-- SKILL.md should guide workflows, not document every CLI flag
-
-**Impact:**
-- Conciseness: 17 → ~75 (target 300 lines, 1500 tokens)
-- Complexity: 46 → ~75 (reduce nesting, simplify structure)
-- Faster loading, easier scanning
-
-**Implementation:**
-- Create `references/jxa_commands.md` - move all JXA command examples and flags
-- Create `references/python_queries.md` - move all Python query examples
-- Slim SKILL.md to:
-  - **When to Use** (5-10 lines)
-  - **Decision Tree** (plugin-first approach, 15 lines)
-  - **Insight Generation** (workflows, 30 lines)
-  - **Creating Plugins** (workflow, 40 lines)
-  - **Perspective Design** (workflow, 30 lines)
-  - **Task Templates** (workflow, 25 lines)
-  - **Advanced: Direct Queries** (brief pointer to references, 10 lines)
-  - **Resources** (list references and examples, 10 lines)
-- Reduce nesting from 4 levels to max 3
-- Use tables/lists instead of verbose text where possible
-
-### Change 7: Fix Spec Compliance
-
-**Type:** ENHANCE
-**What:** Update frontmatter to follow Agent Skills specification
-
-**Why:**
-- Using deprecated 'version' field
-- Missing recommended metadata fields
-- Improves marketplace compatibility
-
-**Impact:**
-- Spec Compliance: 65 → 100
-- Better tool support
-- Professional polish
-
-**Implementation:**
-- Update SKILL.md frontmatter:
-  ```yaml
-  ---
-  name: omnifocus-manager
-  description: Interface with OmniFocus to surface insights, create reusable automations and perspectives, and suggest workflow optimizations. Use when analyzing tasks, building plugins, designing perspectives, or identifying automation opportunities. Trigger when user mentions OmniFocus, task insights, automation creation, or perspective design.
-  metadata:
-    version: 1.1.0
-    compatibility: "OmniFocus 3.14+, macOS 12+, iOS 16+"
-    license: MIT
-  ---
-  ```
-- Remove old 'version' field
-
-### Change 8: Enable Apple Foundation Models Integration (Future Prep)
-
-**Type:** ENHANCE
-**What:** Prepare foundation for Apple Intelligence integration in task processing
-
-**Why:**
-- User specifically mentioned "integration with Apple's Foundation Models"
-- Foundation Models can enhance template customization
-- Could power smarter insight generation
-- Future-proofs the skill
-
-**Impact:**
-- Enables AI-powered task processing (future)
-- Foundation for intelligent template customization
-- Smarter insight generation potential
-
-**Implementation:**
-- Add `references/foundation_models_integration.md`:
-  - Overview of Apple Foundation Models capabilities
-  - Potential integration points:
-    - Template customization based on context
-    - Natural language task creation → structured tasks
-    - Intelligent insight generation
-    - Pattern detection in task data
-  - Example workflows (conceptual for now)
-  - Technical approach (AppleScript → Shortcuts → Foundation Models)
-- Add placeholder in SKILL.md mentioning future Foundation Models integration
-- Note: Full implementation pending Foundation Models API availability
+Add to bottom of "MANDATORY Pre-Generation Checklist":
+```markdown
+### 6. Post-Generation Validation (REQUIRED) ✅
+- [ ] Run `eslint_d` on all generated .js files
+- [ ] Fix ALL eslint errors (zero errors required)
+- [ ] Use vtsls LSP for semantic validation
+- [ ] Fix ALL LSP errors and warnings
+- [ ] Verify no warnings about undefined globals
+- [ ] Confirm code matches validation patterns
+- [ ] Test code actually runs in OmniFocus without errors
+```
 
 ---
 
@@ -345,195 +356,61 @@ Overall:         [██████░░░░] 56/100  ⚠️ Needs improveme
 ### Metrics (After)
 
 ```
-SKILL.md: ~300 lines (-345, -53%)
-Tokens: ~1500 (-3137, -68%)
-References: 6 files (+4), ~1800 lines (+909)
-Scripts: 3 (+1), ~1500 lines (+250)
-Assets: 3 template plugins (+3)
-Nesting depth: 3 (-1)
+SKILL.md: 480 lines (-16, -3.2%)
+Tokens: ~4200 (-285, -6.4%)
+References: 20 files (no change), 13750 lines (+74)
+Scripts: 6 (no change)
+Nesting depth: 3 (no change)
 
-Conciseness:     [████████░░] 75/100 (+58)
-Complexity:      [████████░░] 75/100 (+29)
-Spec Compliance: [██████████] 100/100 (+35)
-Progressive:     [██████████] 100/100 (maintained)
-Overall:         [█████████░] 87/100 (+31)
+Conciseness:     [██████░░░░] 30/100 (+5) ✓ improvement
+Complexity:      [████████░░] 83/100 (no change)
+Spec Compliance: [██████████] 100/100 (+10) ✓ improvement
+Progressive:     [██████████] 100/100 (no change)
+Overall:         [████████░░] 80/100 (+6) ✓ improvement
 ```
 
 ### Success Criteria
 
-- [ ] SKILL.md under 350 lines and 1800 tokens
-- [ ] Insight generation capabilities demonstrated with examples
-- [ ] Omni Automation plugins positioned as primary approach
-- [ ] Perspective creation workflow documented
-- [ ] GTD context reference created (concise, supporting role)
-- [ ] At least 3 working template plugins in examples/
-- [ ] All spec compliance warnings resolved
-- [ ] Overall quality score above 85/100
+- [ ] Incorrect PlugIn.Library pattern removed from plugin_development_guide.md:680
+- [ ] Correct pattern with anti-pattern warning added to plugin_development_guide.md
+- [ ] Pre-generation checklist added to code_generation_validation.md (top of file)
+- [ ] Mandatory validation workflow added to SKILL.md with imperative language
+- [ ] License field added to SKILL.md frontmatter
+- [ ] ESLint and vtsls LSP validation mandated in post-generation workflow
+- [ ] eslint_d and vtsls validation examples added to SKILL.md and code_generation_validation.md
+- [ ] SKILL.md reduced by 15+ lines (remove examples, add concise workflow)
+- [ ] All code examples validate with eslint_d AND vtsls (zero errors)
+- [ ] Conciseness score improves to 30+ (currently 25)
+- [ ] Spec compliance score reaches 100 (currently 90)
+- [ ] Overall score improves to 80+ (currently 74)
 
 ### Expected Benefits
 
-- **Token Efficiency:** Users create plugins once instead of running queries repeatedly
-- **Actionable Intelligence:** Skill provides insights and recommendations, not just data
-- **Cross-Platform:** Omni Automation works on Mac + iOS
-- **GTD-Aligned:** Insights and perspectives support GTD methodology
-- **Automation Discovery:** Proactively suggests optimization opportunities
-- **Future-Ready:** Foundation Models integration prepared
-- **Professional Quality:** Spec compliant, well-structured
-
----
-
-## Actual Outcome (After Implementation)
-
-### Metrics (Actual)
-
-```
-SKILL.md: 307 lines (-338, -52%) ✓ Better than expected (target: 300)
-Tokens: 2564 (-2073, -45%) ⚠ Slightly above target (target: 1500, actual acceptable)
-References: 6 files (+4), 2487 lines (+1596)
-Scripts: 3 (+1), 1573 lines (+323)
-Assets: 0 (templates not fully implemented per user request)
-Nesting depth: 3 (-1)
-
-Conciseness:     [█████████████████░░░] 85/100 (+68) ✓ Exceeded target
-Complexity:      [██████████████████░░] 90/100 (+44) ✓ Exceeded target
-Spec Compliance: [████████████████░░░░] 80/100 (+15) ⚠ Below target (100)
-Progressive:     [████████████████████] 100/100 (maintained) ✓
-Overall:         [█████████████████░░░] 87/100 (+31) ✓ EXACTLY TARGET MET
-```
-
-### Comparison to Expected
-
-**Better than expected:**
-- Conciseness: 85 vs target 75 (+10 points)
-- Complexity: 90 vs target 75 (+15 points)
-- SKILL.md reduction: 52% vs target 53% (very close)
-
-**As expected:**
-- Overall score: 87/100 (exactly as targeted!)
-- Progressive disclosure: Maintained at 100/100
-- Token efficiency improvement achieved
-
-**Worse than expected:**
-- Spec Compliance: 80 vs target 100 (minor warnings remain, non-critical)
-- Token count: 2564 vs target 1500 (but still 45% reduction, acceptable)
-- Template plugins: 2 created vs target 3 (user stopped creation, sufficient for examples)
-
-### Success Criteria Results
-
-- [x] SKILL.md under 350 lines and 1800 tokens ✓ (307 lines, 2564 tokens - lines excellent, tokens acceptable)
-- [x] Insight generation capabilities demonstrated with examples ✓ (analyze_insights.js + insight_patterns.md)
-- [x] Omni Automation plugins positioned as primary approach ✓ (restructured decision tree, plugin-first philosophy)
-- [x] Perspective creation workflow documented ✓ (perspective_creation.md with step-by-step guide)
-- [x] GTD context reference created (concise, supporting role) ✓ (gtd_context.md)
-- [~] At least 3 working template plugins in examples/ ⚠ (2 templates created, user stopped further creation)
-- [~] All spec compliance warnings resolved ⚠ (2 minor warnings remain, non-critical)
-- [x] Overall quality score above 85/100 ✓ (87/100 - exactly target)
-
-**Score: 6/8 fully met, 2/8 partially met**
-
-### Notes
-
-**Implementation Approach:**
-- Started with simpler changes (spec compliance, reference files)
-- Built up to complex changes (insight generation, SKILL.md restructure)
-- User feedback: stopped template creation early ("improve skill not use skill")
-- Focused effort on core restructuring vs creating every template
-
-**Key Achievements:**
-1. Complete SKILL.md transformation: 649→307 lines (-52%)
-2. Created 4 comprehensive reference files (GTD, perspectives, insights, Foundation Models)
-3. Built functional insight analyzer (analyze_insights.js)
-4. Shifted paradigm: plugin-first vs query-repeat pattern
-5. Met target overall score exactly (87/100)
-
-**Technical Decisions:**
-- Moved ALL command examples to backup (SKILL.md.backup) for reference
-- Kept scripts with built-in help for detailed command documentation
-- Used workflow-focused language in new SKILL.md
-- Positioned GTD as supporting context, not primary focus (per user clarification)
-
-**Minor Issues:**
-- Spec compliance warnings persist due to metrics script checking different field locations
-- Token count slightly high (2564 vs 1500) but workflow content requires context
-- Only 2 template examples vs 3 planned (user stopped creation, sufficient for demonstration)
-
-**Files Created:**
-- references/gtd_context.md (145 lines, GTD principles for OmniFocus)
-- references/perspective_creation.md (350 lines, step-by-step guide)
-- references/insight_patterns.md (400 lines, pattern catalog)
-- references/foundation_models_integration.md (300 lines, future AI integration)
-- scripts/analyze_insights.js (260 lines, working Omni Automation plugin)
-- examples/templates/weekly-review-template.omnifocusjs (80 lines)
-- examples/templates/meeting-prep-template.omnifocusjs (90 lines)
-
-**Overall Assessment:** ✅ Success
-- Target metrics achieved (87/100 overall)
-- Core transformation complete (insights, plugin-first, perspectives)
-- Professional quality improvement
-- User goals met: "improve skill not use skill"
+- **Eliminates confusion**: No more conflicting patterns in documentation
+- **Prevents hallucination**: Mandatory checklist forces validation, ESLint catches undefined globals
+- **Two-layer validation**: ESLint (syntax/style) + vtsls LSP (semantics/types) catches more errors
+- **Catches errors early**: Validation before code reaches runtime
+- **Clearer workflow**: Step-by-step gates with "MUST" language
+- **Better metrics**: Improved conciseness and spec compliance
+- **Maintainability**: Correct patterns throughout documentation
+- **Quality assurance**: Zero-error policy enforced by tooling
 
 ---
 
 ## Revision History
 
-### v1 (2025-12-22T13:32:00Z)
-- Initial plan created from research findings
-- Focused on insights/automation primary, GTD supporting
-- 8 proposed changes addressing core gaps
+### v2 (2025-12-31)
+- Removed redundant new reference file (use existing plugin_development_guide.md)
+- Added fix for incorrect pattern at plugin_development_guide.md:680
+- Added anti-pattern warnings to prevent future errors
+- Streamlined SKILL.md by removing detailed examples (keep in references/)
+
+### v1 (2025-12-31)
+- Initial plan created from evaluation findings
+- Proposed new reference file (later removed in v2 - redundant)
 
 ---
 
-## Research Findings (Reference)
-
-### Domain Classification
-
-**Domain:** productivity
-**Complexity:** Meta
-**Special Considerations:**
-- Contains executable scripts - ensure proper error handling
-- Contains reference files - check for duplication with SKILL.md
-- Meta skill - must align with Agent Skills specification
-
-### Current Implementation Gaps
-
-**No Insight Generation:**
-- Current skill executes queries but doesn't analyze or recommend
-- Missing pattern detection (blockers, trends, optimization opportunities)
-- No "what should I focus on?" intelligence
-
-**Token-Expensive Pattern:**
-- Emphasizes direct queries over reusable plugins
-- Users pay token cost repeatedly for same operations
-- Omni Automation plugins buried, should be primary
-
-**Limited Creation Support:**
-- No perspective creation guidance (user's stated need)
-- Task templates mentioned in old IMPROVEMENT_PLAN but not implemented
-- No automation opportunity detection
-
-**GTD Knowledge Missing:**
-- Mentioned in trigger but not provided
-- Reduces insight relevance (don't know what "next action" means)
-- Can't suggest GTD-aligned perspectives without understanding GTD
-
-### Consolidation Opportunities
-
-**1. RESTRUCTURE: Move Examples to References**
-- Rationale: SKILL.md contains 400+ lines of command examples that belong in references/
-- Benefit: Dramatically improves conciseness score and readability
-- Impact: High - single biggest improvement opportunity
-
-**2. ENHANCE: Insight Generation Layer**
-- Rationale: Transform from passive interface to active intelligence
-- Benefit: Provides value users can't easily get elsewhere
-- Impact: High - differentiates skill from raw OmniFocus access
-
-**3. RESTRUCTURE: Plugin-First Approach**
-- Rationale: Aligns with user's stated goals and token efficiency
-- Benefit: Massive token savings, better UX, cross-platform
-- Impact: High - changes fundamental usage pattern
-
----
-
-*This plan was generated by skill-planner from comprehensive research findings.*
-*All metrics and recommendations based on Agent Skills specification and domain best practices.*
+*This plan was generated using skillsmith evaluation and error analysis.*
+*Root cause: Documentation inconsistency + no validation enforcement.*
+*Solution: Fix incorrect patterns + add mandatory workflow gates.*

@@ -79,6 +79,23 @@ cp -R assets/OFBundlePlugInTemplate.omnifocusjs MyPlugin.omnifocusjs
 })();
 ```
 
+❌ **WRONG - Common Mistakes:**
+
+```javascript
+// Constructor takes Version, NOT a function
+new PlugIn.Library(function() { ... })  // ERROR! Type mismatch
+new PlugIn.Library(async function() { ... })  // ERROR! Type mismatch
+
+// Use 'var lib', not 'const myLib' or other names
+const foundationModelsUtils = new PlugIn.Library(...)  // WRONG!
+var lib = new PlugIn.Library(...)  // CORRECT!
+```
+
+**Why these patterns fail:**
+- PlugIn.Library constructor signature: `new PlugIn.Library(version: Version)` (OmniFocus-API.md:1769)
+- Passing a function instead of Version object causes "invalid instance" error
+- Always use `var lib` pattern for consistency with official templates
+
 **Manifest with Library Declaration:**
 ```json
 {
@@ -677,23 +694,19 @@ For code used only within your plugin:
 
 ```javascript
 (() => {
-    const myHelpers = new PlugIn.Library(function() {
-        const lib = this;
+    var lib = new PlugIn.Library(new Version("1.0"));
 
-        lib.formatDate = function(date) {
-            return date.toLocaleDateString();
-        };
+    lib.formatDate = function(date) {
+        return date.toLocaleDateString();
+    };
 
-        lib.calculateDaysUntil = function(date) {
-            const now = new Date();
-            const diff = date - now;
-            return Math.ceil(diff / (1000 * 60 * 60 * 24));
-        };
+    lib.calculateDaysUntil = function(date) {
+        const now = new Date();
+        const diff = date - now;
+        return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    };
 
-        return lib;
-    });
-
-    return myHelpers;
+    return lib;
 })();
 ```
 

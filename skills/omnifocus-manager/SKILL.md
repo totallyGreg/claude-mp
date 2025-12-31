@@ -87,41 +87,60 @@ osascript -l JavaScript scripts/manage_omnifocus.js create \
 
 → **See:** [Plugin Development Guide](references/plugin_development_guide.md#modifying-plugins)
 
-**Generating plugin code:**
+**Plugin Code Generation (MANDATORY WORKFLOW):**
 
-When generating JavaScript code for OmniFocus plugins, follow these critical requirements:
+⚠️ **CRITICAL:** Never generate plugin code without completing this workflow.
 
-1. **Verify APIs Exist** - Check `references/api_quick_reference.md` before using any API
-2. **Properties vs Methods** - Properties accessed directly (no parentheses), methods called with parentheses
-3. **Validate Syntax** - Follow validation rules in `references/code_generation_validation.md`
-4. **Test Before Suggesting** - Verify code would work in OmniFocus environment
+**BEFORE Code Generation:**
 
-**Quick API Lookup:**
-- **[API Quick Reference](references/api_quick_reference.md)** - Fast lookup for common APIs, properties vs methods
-- **[Code Generation Validation](references/code_generation_validation.md)** - Validation checklist and workflow
-- **[OmniFocus API](references/OmniFocus-API.md)** - Complete API documentation
-- **[Plugin Development Guide](references/plugin_development_guide.md)** - Plugin structure and patterns
+**Step 1: Complete Pre-Generation Checklist (REQUIRED)**
+1. Open `references/code_generation_validation.md`
+2. Read the "MANDATORY Pre-Generation Checklist" at top
+3. Complete ALL checkbox items before proceeding
 
-**Common Pitfalls to Avoid:**
-- ❌ Don't use non-existent APIs (`Progress` class, `FileType.fromExtension()`)
-- ❌ Don't use `Document.defaultDocument` - use global variables instead (`flattenedTasks`, `folders`, `projects`, `tags`, `inbox`)
-- ❌ Don't call properties as functions (`task.name()` - wrong, use `task.name`)
-- ❌ Don't use `.bind(this)` on arrow functions (arrow functions inherit `this` automatically)
-- ❌ Don't use `new LanguageModel.Schema()` - use `LanguageModel.Schema.fromJSON()` factory method
-- ❌ Don't use JSON Schema format - OmniFocus uses custom schema format
+**Step 2: Verify Constructor Patterns (REQUIRED)**
+1. For PlugIn.Library: Review `assets/OFBundlePlugInTemplate.omnifocusjs/Resources/` patterns
+2. Confirm: `var lib = new PlugIn.Library(new Version("1.0"));`
+3. For other classes: Check constructor signature in `references/OmniFocus-API.md`
 
-**Validation Checklist:**
+**Step 3: Verify APIs (REQUIRED)**
+1. Check EVERY API in `references/api_quick_reference.md`
+2. Verify properties (no `()`) vs methods (with `()`)
+3. Use global variables (flattenedTasks, folders) NOT Document.defaultDocument
 
-Before suggesting any plugin code, verify:
-- [ ] All classes/methods exist in API documentation
-- [ ] Properties accessed without `()`, methods with `()`
-- [ ] Using global variables (`flattenedTasks`, `folders`) not `Document.defaultDocument`
-- [ ] LanguageModel schemas use `fromJSON()` factory method with OmniFocus format
-- [ ] No hallucinated APIs (verify each class, property, and method exists)
-- [ ] Arrow function syntax correct (no `.bind(this)`)
-- [ ] Code follows patterns from working examples
+**AFTER Code Generation (MANDATORY VALIDATION):**
 
-→ **See:** [Code Generation Validation Guide](references/code_generation_validation.md) for complete workflow
+**Step 4: Validate with ESLint and LSP**
+1. Run `eslint_d` on ALL generated .js files (syntax, style, undefined globals)
+2. Use vtsls LSP for semantic validation (type checking, API correctness)
+3. Fix ALL errors before proceeding (zero tolerance)
+4. Verify no hallucinated APIs
+5. Confirm correct constructor patterns
+
+**ESLint validation (REQUIRED):**
+```bash
+# From omnifocus-manager directory
+eslint_d assets/YourPlugin.omnifocusjs/Resources/*.js
+
+# Must return zero errors before code is acceptable
+```
+
+**What ESLint catches:**
+- Undefined globals (hallucinated APIs like `Document.defaultDocument`, `Progress`)
+- Syntax errors (`.bind(this)` on arrow functions)
+- Style violations
+- Unreachable code
+
+**What vtsls LSP catches:**
+- Type mismatches (passing function when Version expected)
+- Incorrect constructor arguments
+- Property/method confusion (calling property as method)
+- Semantic errors not caught by ESLint
+
+**Complete documentation:**
+- Validation rules: `references/code_generation_validation.md`
+- Plugin patterns: `references/plugin_development_guide.md`
+- API reference: `references/OmniFocus-API.md`, `references/api_quick_reference.md`
 
 ### 3. Automate via Scripts or URLs
 
