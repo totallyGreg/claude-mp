@@ -12,8 +12,16 @@
 
 (() => {
     const action = new PlugIn.Action(async function(selection, sender) {
+        // Load libraries first
+        const fmUtils = this.plugIn.library("foundationModelsUtils");
+
+        // Check availability IMMEDIATELY before doing anything else
+        if (!fmUtils.isAvailable()) {
+            fmUtils.showUnavailableAlert();
+            return;
+        }
+
         try {
-            // Load libraries
             const metrics = this.plugIn.library("taskMetrics");
 
             // Get today's and overdue tasks using library
@@ -55,8 +63,8 @@
                 return;
             }
 
-            // Create AI session
-            const session = new LanguageModel.Session();
+            // Create AI session - may succeed but be invalid
+            const session = fmUtils.createSession();
 
             // Prepare concise prompt for AI analysis
             const prompt = `Analyze OmniFocus tasks (GTD methodology):
@@ -210,14 +218,16 @@ Provide concise insights on:
 
         } catch (error) {
             console.error("Error:", error);
-            const errorAlert = new Alert("Error", `Failed to analyze tasks: ${error.message}\n\nRequirements:\n• OmniFocus 4.8+\n• macOS 15.2+ or iOS 18.2+\n• Apple Silicon/iPhone 15 Pro+`);
+            const fmUtils = this.plugIn.library("foundationModelsUtils");
+            const errorAlert = new Alert("Error", `Failed to analyze tasks: ${error.message}\n\n${fmUtils.getUnavailableMessage()}`);
             errorAlert.show();
         }
     });
 
-    // Always enable this action
+    // Only enable if Apple Foundation Models is available
     action.validate = function(selection, sender) {
-        return true;
+        const fmUtils = this.plugIn.library("foundationModelsUtils");
+        return fmUtils.validateActionAvailability();
     };
 
     return action;

@@ -18,6 +18,15 @@
 
 (() => {
     const action = new PlugIn.Action(async function(selection, sender) {
+        // Load foundationModelsUtils library first
+        const fmUtils = this.plugIn.library("foundationModelsUtils");
+
+        // Check availability IMMEDIATELY before doing anything else
+        if (!fmUtils.isAvailable()) {
+            fmUtils.showUnavailableAlert();
+            return;
+        }
+
         try {
             // Step 1: Folder Selection Form
             const selectionForm = new Form();
@@ -101,8 +110,8 @@
             const metrics = calculateMetrics(analysisData.hierarchy);
             analysisData.metrics = metrics;
 
-            // Step 4: Prepare for AI Analysis
-            const session = new LanguageModel.Session();
+            // Step 4: Prepare for AI Analysis - session may be invalid
+            const session = fmUtils.createSession();
 
             const basePrompt = `You are analyzing an OmniFocus project hierarchy for GTD (Getting Things Done) methodology.
 
@@ -252,9 +261,10 @@ Keep analysis actionable and GTD-aligned.`;
 
         } catch (error) {
             console.error("Error:", error);
+            const fmUtils = this.plugIn.library("foundationModelsUtils");
             const errorAlert = new Alert(
                 "Error",
-                `Failed to analyze projects: ${error.message}\n\nRequirements:\n• OmniFocus 4.8+\n• macOS 15.2+ or iOS 18.2+\n• Apple Silicon/iPhone 15 Pro+`
+                `Failed to analyze projects: ${error.message}\n\n${fmUtils.getUnavailableMessage()}`
             );
             errorAlert.show();
         }
@@ -583,8 +593,10 @@ Keep analysis actionable and GTD-aligned.`;
         }
     }
 
+    // Only enable if Apple Foundation Models is available
     action.validate = function(selection, sender) {
-        return true;
+        const fmUtils = this.plugIn.library("foundationModelsUtils");
+        return fmUtils.validateActionAvailability();
     };
 
     return action;

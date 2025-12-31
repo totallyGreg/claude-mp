@@ -13,6 +13,15 @@
 
 (() => {
 	const action = new PlugIn.Action(async function(selection, sender) {
+		// Load foundationModelsUtils library first
+		const fmUtils = this.plugIn.library("foundationModelsUtils");
+
+		// Check availability IMMEDIATELY before doing anything else
+		if (!fmUtils.isAvailable()) {
+			fmUtils.showUnavailableAlert();
+			return;
+		}
+
 		try {
 			// Validation
 			const tasks = selection.tasks;
@@ -26,13 +35,8 @@
 				throw new Error("Please select 5 or fewer tasks. AI analysis can take time for multiple tasks.");
 			}
 
-			// Check if AFM is available
-			if (typeof LanguageModel === 'undefined') {
-				throw new Error("Apple Foundation Models not available. Requires OmniFocus 4.8+ and macOS/iOS 26+.");
-			}
-
-			// AI Analysis
-			const session = new LanguageModel.Session();
+			// AI Analysis - session may be invalid
+			const session = fmUtils.createSession();
 
 			const results = [];
 
@@ -230,10 +234,11 @@ Be specific and practical in your suggestions.`;
 		});
 	}
 
-	// Validation
+	// Validation - require tasks selected AND LanguageModel available
 	action.validate = function(selection, sender) {
-		// Enable when at least one task is selected
-		return (selection.tasks.length > 0);
+		// Enable when at least one task is selected AND LanguageModel is available
+		const fmUtils = this.plugIn.library("foundationModelsUtils");
+		return (selection.tasks.length > 0) && fmUtils.validateActionAvailability();
 	};
 
 	return action;

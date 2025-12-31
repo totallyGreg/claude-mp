@@ -269,21 +269,81 @@ bash validate-structure.sh
 
 ---
 
+## How the Plugin Validates Requirements
+
+**v3.0.6+ Validation Approach:**
+
+**Important Limitation:** Actions **cannot be grayed out** in the menu because:
+1. `LanguageModel.Session` can be created successfully even when Apple Intelligence is unavailable
+2. Sessions only fail when you try to **use** them (call `respondWithSchema()`)
+3. We cannot detect Apple Intelligence status without actually trying to use the API
+
+**Current Behavior:**
+1. **Actions Always Visible** - AI actions appear enabled in the Automation menu
+2. **Immediate Check** - When clicked, actions check if LanguageModel API exists
+3. **Early Failure** - If API missing, shows alert immediately (before forms/processing)
+4. **Runtime Failure** - If API exists but Apple Intelligence unavailable, shows detailed error when API is used
+
+**Implementation:**
+
+All three AI actions use the `foundationModelsUtils` library:
+- `action.validate()` - Always returns true (can't reliably detect)
+- `fmUtils.isAvailable()` - Checks if LanguageModel API exists (not if it works)
+- `fmUtils.showUnavailableAlert()` - Shows detailed requirements message
+- Error handling in try/catch - Catches runtime failures with helpful messages
+
+**Why This Matters:**
+
+Actions will be visible but fail fast with clear error messages. This is better than unpredictable graying out that doesn't work correctly.
+
+---
+
 ## Common Errors
 
-### Error: "Apple Foundation Models not available"
+### Error: "Apple Foundation Models Not Available"
 
-**Symptoms:**
+**New Behavior (v3.0.5+):**
+
+Actions are **grayed out** in Automation menu if requirements aren't met. If you somehow trigger the action, you'll see:
+
 ```
-Error: Apple Foundation Models not available.
-Requires OmniFocus 4.8+ and macOS/iOS 26+.
+Apple Foundation Models Not Available
+
+This feature requires:
+• OmniFocus 4.8 or later
+• macOS 15.2+ or iOS 18.2+
+• Apple Silicon (M1/M2/M3/M4) or iPhone 15 Pro+
+• Apple Intelligence enabled in System Settings
+
+Current issue:
+Language models are not available on this system
+
+Troubleshooting:
+1. Update OmniFocus to 4.8+ if needed
+2. Update to macOS 15.2+ or iOS 18.2+ if needed
+3. Verify you have Apple Silicon hardware
+4. Enable Apple Intelligence:
+   Settings → Apple Intelligence & Siri → Turn On
+```
+
+**Old Behavior (v3.0.4 and earlier):**
+
+Actions appeared enabled, then failed during execution:
+```
+Failed to analyze tasks: Attempted to invoke function "respondWithSchema"
+with invalid instance of LanguageModel.Session: Error: Language models
+are not available on this system
 ```
 
 **Solutions:**
-1. Verify OmniFocus version: 4.8 or later required
-2. Verify macOS version: 15.2+ required
-3. Verify hardware: Apple Silicon or iPhone 15 Pro+ required
-4. Check: Settings → Apple Intelligence → On-Device AI enabled
+1. **Check OmniFocus version:** Automation → About OmniFocus → Must be 4.8+
+2. **Check macOS version:** System Settings → General → About → Must be 15.2+
+3. **Check hardware:** System Settings → General → About → Must show Apple Silicon (M1/M2/M3/M4)
+4. **Enable Apple Intelligence:**
+   - macOS: System Settings → Apple Intelligence & Siri → Turn On
+   - iOS: Settings → Apple Intelligence & Siri → Turn On
+5. **Verify language:** Apple Intelligence requires device language set to English (US)
+6. **Check region:** Some regions don't support Apple Intelligence yet
 
 ### Error: Plugin doesn't appear in Automation menu
 
@@ -414,6 +474,43 @@ console.log("Library functions:", this.plugIn.library("taskMetrics"));
 
 ## Version History
 
+### v3.0.6 (2025-12-31)
+**Validation Reality Check - Better Error Handling:**
+- ✅ Fixed: Removed unreliable action.validate() graying out (doesn't work)
+- ✅ Improved: Actions check availability immediately before processing
+- ✅ Enhanced: Clear documentation of validation limitations
+- ✅ Updated: All three AI actions fail fast with helpful errors
+
+**What Changed:**
+- Discovered `LanguageModel.Session()` succeeds even when Apple Intelligence unavailable
+- Sessions only fail when actually used (`respondWithSchema()`)
+- Cannot reliably detect Apple Intelligence without trying to use it
+- `validateActionAvailability()` now returns true (actions always visible)
+- `isAvailable()` only checks if API exists, not if it works
+- Removed test session creation from validation (unreliable)
+- Actions fail immediately with clear error if API missing
+- Runtime errors show detailed requirements and troubleshooting
+
+**User Experience:**
+- Actions are **always visible** (cannot be grayed out reliably)
+- Clicking action shows error **immediately** if API missing
+- If API exists but unusable, shows detailed error on first use
+- Better than unpredictable graying out that doesn't work
+
+**Lesson Learned:**
+You cannot validate Apple Intelligence availability without actually calling it. Session creation succeeds but sessions may be invalid.
+
+### v3.0.5 (2025-12-31) - DEPRECATED
+**Attempted proactive validation - didn't work reliably**
+- ❌ Tried to gray out actions when unavailable
+- ❌ Validation unreliable - sessions created but invalid
+- See v3.0.6 for correct approach
+
+### v3.0.4 (2025-12-31)
+**Schema and API Fixes:**
+- ✅ Fixed: `LanguageModel.Schema` constructor issues
+- ✅ Converted: All schemas to OmniFocus format
+
 ### v3.0.0 (2025-12-31)
 **Major Fixes - Plugin Now Works:**
 - ✅ Fixed: `.bind(this)` on arrow functions (exportUtils.js lines 139, 294, 306)
@@ -456,6 +553,8 @@ console.log("Library functions:", this.plugIn.library("taskMetrics"));
 
 ---
 
-**Last Updated:** 2025-01-XX
-**Plugin Version:** 3.0.0
+**Last Updated:** 2025-12-31
+**Plugin Version:** 3.0.6
 **OmniFocus Version Required:** 4.8+
+
+**Known Limitation:** Actions cannot be grayed out when Apple Intelligence is unavailable. They will show good error messages when clicked instead.
