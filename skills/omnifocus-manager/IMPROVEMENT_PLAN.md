@@ -8,12 +8,251 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.3.6 | 2025-12-28 | Added PlugIn API reference with validation checklist and fixed AITaskAnalyzer manifest |
+| 1.3.5 | 2025-12-28 | Added PlugIn.Library API reference for creating shared plugin modules |
+| 1.3.4 | 2025-12-28 | Enhanced plugin documentation with .omnijs extension and consolidated references |
+| 1.3.3 | 2025-12-28 | Added automation best practices reference from Omni Automation documentation |
 | 1.3.2 | 2025-12-27 | Added comprehensive plugin bundle structure documentation |
 | 1.3.1 | 2025-12-24 | Reorganized skill structure for AgentSkills compliance |
 | 1.1.0 | 2025-12-21 | Major quality improvements, new references, and task templates |
 | 1.0.0 | 2025-12-19 | Initial release |
 
 ## Completed Improvements
+
+### v1.3.6 - PlugIn API Reference and Plugin Validation (2025-12-28)
+
+**Problem Addressed:**
+- AITaskAnalyzer.omnifocusjs plugin failing with errors due to invalid manifest identifier
+- No comprehensive PlugIn class API documentation in skill references
+- Missing plugin validation checklist for manifest and structure validation
+- Unclear distinction between PlugIn API (PlugIn.find, PlugIn.Action) and OmniFocus API (Task, Project)
+- No guidance on common plugin errors and troubleshooting
+
+**Root Cause:**
+- manifest.json had `"identifier": "Analyze Tasks"` which is INVALID (contains spaces, not reverse-domain notation)
+- Valid identifiers must use reverse-domain format: "com.company.app.feature"
+- Invalid identifier prevents plugin from registering/loading in OmniFocus
+
+**Changes Made:**
+
+1. **Fixed AITaskAnalyzer.omnifocusjs manifest.json:**
+   - Changed `"identifier": "Analyze Tasks"` → `"identifier": "com.totallytools.omnifocus.ai-task-analyzer"`
+   - Now follows required reverse-domain notation
+   - Version remains 2.2.2 (user-modified)
+
+2. **Added `references/plugin_api.md`:**
+   - Complete PlugIn class documentation (PlugIn.find(), PlugIn.all)
+   - PlugIn.Action and PlugIn.Library constructors and usage
+   - Instance properties: identifier, version, actions, libraries, plugIn
+   - Resource access methods: library(), resourceNamed()
+   - Version class documentation
+   - Complete manifest.json field specifications with validation rules
+   - **Plugin Validation Checklist** (critical addition):
+     - Manifest validation (identifier format, required fields, version format)
+     - Structure validation (bundle directory, Resources/, file matching)
+     - API usage validation (properties vs methods, common pitfalls)
+     - Common properties reference (doc.flattenedTasks, task.name, etc.)
+     - Common methods reference (task.markComplete(), doc.newInboxTask(), etc.)
+   - Troubleshooting guide for 4 most common plugin errors:
+     - "Plugin not found" → invalid identifier
+     - "undefined is not an object" → property/method confusion
+     - "Action file not found" → identifier mismatch
+     - "Library not found" → missing PlugIn.Library return
+   - Best practices for identifier naming, version management, action organization
+   - Clear examples of valid vs invalid identifiers
+
+3. **Updated SKILL.md:**
+   - Added "Validating plugins?" decision tree entry (line 43)
+   - Added "PlugIn class API?" decision tree entry (line 45)
+   - Separated PlugIn API from JavaScript API for clarity
+   - Added references section 3b with complete plugin_api.md documentation
+   - Emphasized validation checklist availability
+
+**Benefits:**
+- AITaskAnalyzer plugin can now load correctly with valid identifier
+- Clear validation checklist prevents common manifest errors
+- Developers can validate plugins before distribution
+- Distinction between PlugIn API (plugin infrastructure) and OmniFocus API (task/project manipulation)
+- Troubleshooting guide reduces debugging time
+- Best practices prevent identifier conflicts and version issues
+- Comprehensive reference for all plugin-related development
+
+**Source:** https://omni-automation.com/plugins/api.html
+
+**Impact:**
+This is a CRITICAL fix for the AITaskAnalyzer plugin and significantly improves the skill's ability to generate and validate plugins correctly.
+
+### v1.3.5 - PlugIn.Library API Reference (2025-12-28)
+
+**Problem Addressed:**
+- No documentation for creating shared libraries within plugins
+- Module reuse patterns not documented
+- Library access methods unclear (from same plugin vs external plugins)
+- Best practices for library creation not covered
+
+**Changes Made:**
+
+1. **Added `references/plugin_library_api.md`:**
+   - Complete PlugIn.Library constructor and properties documentation
+   - How to access libraries from actions and other plugins
+   - Single-file and bundle library patterns
+   - Best practices (info() function, IIFE pattern, versioning)
+   - Common patterns (utilities, data collection, export libraries)
+   - Troubleshooting guide for common library issues
+   - Integration examples for AITaskAnalyzer plugin structure
+
+2. **Updated SKILL.md:**
+   - Added library reference to plugin decision tree (line 46)
+   - Links to `plugin_library_api.md` for shared modules
+
+**Benefits:**
+- Enables proper creation of lib/taskMetrics.js and lib/exportUtils.js as PlugIn.Library instances
+- Documents correct library call patterns (this.plugIn.library("name"))
+- Provides reusable module architecture for plugin development
+- Ensures correct library structure and exports
+
+**Source:** https://omni-automation.com/plugins/library.html
+
+### v1.3.4 - Plugin Documentation Enhancement (2025-12-28)
+
+**Problem Addressed:**
+- Generic `.omnijs` extension not documented (works across all Omni apps)
+- Installation procedures incomplete compared to official omni-automation.com documentation
+- Content duplication between `plugin_installation.md` and `omnifocus_plugin_structure.md`
+- Uninstallation procedures not comprehensive
+- Unclear separation between installing vs creating plugins
+
+**Changes Made:**
+
+1. **Enhanced `references/plugin_installation.md`:**
+   - **NEW: Extension Types section**
+     - Documents generic `.omnijs` extension (cross-app plugins)
+     - Documents app-specific extensions (`.omnifocusjs`, `.omniplanjs`, etc.)
+     - Explains when to use each type
+     - Installation differences between generic and app-specific
+   - **Expanded Installation Methods:**
+     - macOS: Double-click, drag-to-Automation-Configuration, manual installation
+     - iOS/iPadOS: Tap to install, Files app method, share sheet
+     - Complete procedures for both `.omnijs` and `.omnifocusjs`
+   - **NEW: Installation Dialog section**
+     - Dialog components (name, description, storage options)
+     - Storage location details (local vs iCloud)
+   - **Enhanced Uninstallation:**
+     - macOS: Via Automation Configuration (recommended), manual deletion
+     - iOS/iPadOS: Swipe to delete (recommended), Files app method
+     - Complete step-by-step procedures
+   - **Streamlined Creating Plugins section:**
+     - Removed duplicate content (templates, detailed creation steps)
+     - Clear cross-reference to `omnifocus_plugin_structure.md` for development
+     - Kept focus on installation and usage
+
+2. **Streamlined `references/omnifocus_plugin_structure.md`:**
+   - **Added clear statement at top:** "This is a development reference"
+   - **NEW: Quick Navigation section** at top
+     - Installing plugins? → See plugin_installation.md
+     - Creating/modifying plugins? → Continue reading
+     - Extension types? → See plugin_installation.md
+   - **Updated Plugin Installation & Testing section:**
+     - Clear cross-reference to plugin_installation.md
+     - Simplified to focus on development/testing workflow
+     - Removed duplicate installation procedures
+   - **Enhanced Related Documentation:**
+     - Clear separation: installation vs development
+     - Better organization of API references
+
+3. **Updated `SKILL.md`:**
+   - **Enhanced Quick Decision Tree (#1):**
+     - Clear distinction: Installing vs Creating plugins
+     - Added `.omnijs` mention
+     - Added quick tip: `open <path-to-plugin>` after creation
+     - Better navigation to appropriate references
+   - **Updated Reference Documentation section:**
+     - Added `plugin_installation.md` as reference #9 with ⭐
+     - Clear description of what it covers
+     - "Use this for: Installing and using plugins"
+     - Renumbered subsequent references (10, 11)
+   - **Version bumped:** 1.3.3 → 1.3.4
+
+**Source:**
+- Guidance from https://omni-automation.com/plugins/installation.html
+- Official Omni Automation documentation
+
+**Impact:**
+- Complete plugin installation coverage (all methods, all platforms)
+- Generic `.omnijs` cross-app plugins now documented
+- Clear separation of concerns: installation vs development
+- No content duplication between references
+- Better progressive disclosure (users find what they need faster)
+- Claude will correctly distinguish between installing and creating plugins
+- Comprehensive uninstallation procedures for users
+
+**Quality Metrics:**
+- Enhanced 2 reference documents (~150 lines added to plugin_installation.md)
+- Updated SKILL.md decision tree and references
+- Total documentation: 18 references (10,550+ lines)
+- Progressive disclosure maintained
+- Spec compliance: Maintained
+
+### v1.3.3 - Automation Best Practices (2025-12-28)
+
+**Problem Addressed:**
+- Automation scripting best practices were scattered across multiple reference files
+- Key patterns from official Omni Automation documentation weren't explicitly documented
+- Users lacked a consolidated guide for writing efficient OmniFocus scripts
+- Important distinctions (apply vs forEach, flattened collections, etc.) not prominently featured
+
+**New Documentation:**
+
+1. **`references/automation_best_practices.md`** (NEW)
+   - Comprehensive 600+ line best practices reference
+   - **Core Principles:**
+     - Database-centric architecture pattern
+     - Hierarchical traversal: apply() vs forEach() distinction
+     - Flattened collections for efficient searching
+     - Selection-based operations
+     - Create-if-missing pattern (`itemNamed() || new Item()`)
+     - Smart matching functions (tagsMatching, projectsMatching)
+     - Positional insertion patterns
+     - Data persistence pattern (always save after modifications)
+     - Error handling best practices
+     - Perspective management
+   - **Advanced Patterns:**
+     - Conditional task processing by status
+     - Bulk operations on multiple items
+     - Comprehensive hierarchical search with byName()
+     - Performance optimization techniques
+   - **Object Model:**
+     - Containment hierarchy explained
+     - Terminology alignment (Actions vs Tasks)
+     - Context awareness patterns
+   - **Script Organization:**
+     - Immediate invocation pattern (IIFE)
+     - Helper functions structure
+     - Common script template
+   - **Integration:**
+     - Apple Intelligence integration overview
+     - Reference to foundation_models_integration.md
+   - Based on official Omni Automation documentation from omni-automation.com
+
+2. **SKILL.md Updates:**
+   - Added automation_best_practices.md as #1 primary reference (prominent position)
+   - Renumbered all subsequent references (1-10)
+   - Updated .omnifocusjs note to clarify it can be single file OR directory bundle
+   - Updated version to 1.3.3
+
+**Impact:**
+- Claude will now reference consolidated best practices when writing automation scripts
+- Users get clear guidance on efficient scripting patterns
+- Key distinctions (apply vs forEach, flattened vs hierarchical) prominently documented
+- Performance patterns emphasized (batch saves, use flattened collections)
+- Common script template provides starting point for new automations
+- All patterns sourced from official Omni Automation documentation
+
+**Quality Metrics:**
+- Added 1 new reference document (600+ lines)
+- Updated SKILL.md with new reference ordering
+- Total documentation: 17 references (10,865+ lines)
+- Progressive disclosure maintained (new reference loaded only when needed)
 
 ### v1.3.2 - Plugin Bundle Documentation (2025-12-27)
 
@@ -82,7 +321,7 @@ This document tracks improvements, enhancements, and future development plans fo
    - Documents how to navigate bundles in terminal
    - Added cross-reference to omnifocus_plugin_structure.md
 
-4. **`references/omni_automation.md` Updates:**
+4. **`references/omnifocus_automation.md` Updates:**
    - Added prominent cross-reference at Plug-In Development section
    - Notes that .omnifocusjs is a directory bundle
    - Updated "As Plug-Ins" section with reference

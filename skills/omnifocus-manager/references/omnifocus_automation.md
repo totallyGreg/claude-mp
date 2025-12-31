@@ -2,6 +2,16 @@
 
 Complete reference for Omni Automation, the native JavaScript-based automation framework for OmniFocus.
 
+**📍 Related Documentation:**
+- **[Plugin Development Guide](plugin_development_guide.md)** - Complete guide to creating OmniFocus plugins
+- **[Plugin Quickstart](quickstarts/plugin_quickstart.md)** - 5-minute tutorial for your first plugin
+- **[Libraries README](../libraries/README.md)** - Modular library system (use PlugIn.Library pattern)
+- **[JXA API Guide](jxa_api_guide.md)** - Alternative: Mac-only command-line automation
+
+**💡 Key Difference:** Omni Automation (this guide) works on Mac + iOS and runs within OmniFocus. JXA works Mac-only from command line.
+
+---
+
 ## Overview
 
 Omni Automation is OmniFocus's modern, device-independent JavaScript automation framework. Unlike JXA (JavaScript for Automation) or AppleScript, Omni Automation:

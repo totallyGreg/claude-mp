@@ -2,7 +2,7 @@
 name: omnifocus-manager
 description: Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA). This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
 metadata:
-  version: 1.3.2
+  version: 3.0.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -15,255 +15,362 @@ compatibility:
 
 # OmniFocus Manager
 
-## Overview
+## What is OmniFocus?
 
-Comprehensive OmniFocus automation through multiple complementary approaches:
+**OmniFocus** is a task management application for macOS and iOS that implements the Getting Things Done (GTD) methodology. It helps you capture, organize, and track tasks, projects, and goals with features like projects, tags, perspectives, defer/due dates, and repeating tasks.
 
-1. **Omni Automation (JavaScript)** - Native, cross-platform automation (Mac + iOS)
-2. **JXA (JavaScript for Automation)** - Full query and management via AppleScript API (Mac only)
-3. **URL Scheme** - Simple task creation via omnifocus:// URLs (Mac + iOS)
-4. **Database Queries (Python)** - Read-only database access (Mac only, requires permissions)
+## What This Skill Does
 
-## When to Use This Skill
+This skill provides **execution-first architecture** for OmniFocus automation with four equal capabilities:
 
-- User asks to query, search, or analyze their OmniFocus database
-- User wants to create, update, or delete OmniFocus tasks
-- User requests task reports, insights, or statistics
-- User mentions OmniFocus, tasks, projects, contexts, tags, or GTD workflows
-- User asks what tasks are due soon, flagged, or scheduled for today
-- User wants to find specific tasks or projects
-- User wants to complete or modify existing tasks
+1. **Execute automation** - Run existing scripts and plugins to query/modify tasks
+2. **Compose workflows** - Assemble patterns from modular libraries
+3. **Understand GTD concepts** - Navigate OmniFocus and Getting Things Done methodology
+4. **Analyze tasks with AI** - Use Apple Foundation Models for intelligent insights
+
+**Execution priority:** 80% execute existing code, 15% compose from libraries, 5% generate new code.
+
+**Key principle:** Use modular libraries and existing scripts instead of generating from scratch.
+
+---
 
 ## Quick Decision Tree
 
-1. **Creating/modifying OmniFocus plugins (.omnifocusjs bundles)?**
-   - **IMPORTANT:** .omnifocusjs is a directory bundle, not a file
-   - Use `references/omnifocus_plugin_structure.md` for bundle format and structure
-   - Use `references/omni_automation.md` for JavaScript API
-   - Use `references/omni_automation_shared.md` for UI components (Alert, Form, etc.)
-   - See example plugins: `assets/TodaysTasks.omnifocusjs`, `assets/AITaskAnalyzer.omnifocusjs`
+**START HERE: What do you want to do?**
 
-2. **Cross-platform support needed (iOS/Mac)?**
-   - YES → Use Omni Automation (`references/omni_automation.md`)
-   - NO → Continue
+### 1. Execute OmniFocus Operations
 
-3. **Reusable automation?**
-   - YES → Create Omni Automation plug-in (see `references/omnifocus_plugin_structure.md` and `references/plugin_installation.md`)
-   - NO → Continue
-
-4. **Querying/reading data?**
-   - Use `scripts/manage_omnifocus.js` query commands (JXA)
-   - See `references/jxa_commands.md` for complete command reference
-
-5. **Creating/modifying data?**
-   - Simple task creation → Use omnifocus:// URL scheme (`references/omnifocus_url_scheme.md`)
-   - Complex operations → Use `scripts/manage_omnifocus.js` (JXA)
-   - See `references/jxa_commands.md` for all management commands
-
-6. **Last resort: Database queries**
-   - ONLY use `scripts/query_omnifocus.py` if JXA cannot accomplish the task
-   - Requires full disk access permissions
-   - Read-only, Mac-only
-
-## Core Capabilities
-
-### Omni Automation (Recommended)
-
-**Why:** Cross-platform, secure, native, reusable, AI-powered.
-
-**Key Features:**
-- Works on Mac, iOS, iPadOS
-- Create plug-ins for reusable automation
-- No file system permissions required
-- Native OmniFocus JavaScript API
-- **NEW:** Apple Foundation Models integration (OmniFocus 4.8+, macOS 15.2+)
-  - Natural language task processing
-  - Intelligent categorization and prioritization
-  - Extract structured data from text
-  - Smart task suggestions and analysis
-
-**Resources:**
-- Complete API reference: `references/omni_automation.md`
-- **Apple Intelligence integration:** `references/foundation_models_integration.md`
-- Example plug-ins: `assets/TodaysTasks.omnifocusjs`, `assets/AITaskAnalyzer.omnifocusjs`
-- Installation guide: `references/plugin_installation.md`
-
-**Quick Example:**
-```javascript
-// Get today's tasks
-(() => {
-    const doc = Application('OmniFocus').defaultDocument;
-    const tasks = doc.flattenedTasks();
-    return tasks.filter(t => !t.completed() && isDueToday(t));
-})();
-```
-
-**AI-Powered Example:**
-```javascript
-// Auto-categorize task using Apple Intelligence
-(async () => {
-    const session = new LanguageModel.Session();
-    const task = "Buy groceries and cook dinner";
-
-    const result = await session.respondWithSchema(
-        `Categorize: "${task}"`,
-        { type: "object", properties: { category: { type: "string" } } }
-    );
-
-    console.log(result.category); // "personal"
-})();
-```
-
-### JXA Query & Management
-
-**Why:** Full AppleScript API access, secure, comprehensive.
-
-**Common Queries:**
+**Query tasks (read data):**
 ```bash
-# Today's tasks
+# Use existing JXA script
 osascript -l JavaScript scripts/manage_omnifocus.js today
-
-# Tasks due soon
 osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7
-
-# Flagged tasks
-osascript -l JavaScript scripts/manage_omnifocus.js flagged
-
-# Search tasks
 osascript -l JavaScript scripts/manage_omnifocus.js search --query "meeting"
 ```
+→ **See:** [JXA API Guide](references/jxa_api_guide.md#cli-command-reference)
 
-**Task Management:**
+**Create/modify tasks (write data):**
 ```bash
-# Create task
+# Quick capture (cross-platform)
+open "omnifocus:///add?name=Task&autosave=true"
+
+# Detailed creation (Mac only)
 osascript -l JavaScript scripts/manage_omnifocus.js create \
-  --name "Task name" \
-  --project "Project" \
-  --due "2025-12-25"
-
-# Update task
-osascript -l JavaScript scripts/manage_omnifocus.js update \
-  --name "Task name" \
-  --due "2025-12-31"
-
-# Complete task
-osascript -l JavaScript scripts/manage_omnifocus.js complete --name "Task name"
+  --name "Task" --project "Work" --due "2025-12-31"
 ```
+→ **See:** [URL Scheme Guide](references/omnifocus_url_scheme.md) or [JXA API Guide](references/jxa_api_guide.md#task-management-commands)
 
-**Complete command reference:** `references/jxa_commands.md`
+**Run existing plugins:**
+- Install `assets/TodaysTasks.omnifocusjs` - Today's task viewer
+- Install `assets/AITaskAnalyzer.omnifocusjs` - AI-powered analysis
 
-### URL Scheme (Quick Capture & Embedding)
+→ **See:** [Plugin Installation Guide](references/plugin_installation.md)
 
-**Why:** Fastest for simple task creation, cross-platform, no permissions, embeddable in notes/documents.
+### 2. Create or Modify Plugins
 
-**Common Use Cases:**
-1. Quick task creation with one command
-2. Creating clickable links in notes (Obsidian, Bear, etc.)
-3. Meeting notes with action item templates
-4. Daily note quick-capture links
-5. Bulk task import via TaskPaper format
+**New to plugins? Start here:**
+→ **[Plugin Quickstart](references/quickstarts/plugin_quickstart.md)** - 5-minute tutorial
 
-**Quick Actions:**
+**Create new plugin:**
+1. Use example as template from `assets/examples/plugins/`
+2. Modify manifest.json and action scripts
+3. Load libraries via `this.plugIn.library("libraryName")`
 
-Create task:
+→ **See:** [Plugin Development Guide](references/plugin_development_guide.md)
+
+**Modify existing plugin:**
+1. Right-click `.omnifocusjs` → Show Package Contents
+2. Edit `manifest.json` or `Resources/*.js` files
+3. Restart OmniFocus to reload
+
+→ **See:** [Plugin Development Guide](references/plugin_development_guide.md#modifying-plugins)
+
+### 3. Automate via Scripts or URLs
+
+**New to JXA? Start here:**
+→ **[JXA Quickstart](references/quickstarts/jxa_quickstart.md)** - 5-minute tutorial
+
+**Command-line automation (Mac only):**
+- Use modular libraries from `libraries/jxa/`
+- See examples in `assets/examples/jxa-scripts/`
+
+→ **See:** [JXA API Guide](references/jxa_api_guide.md)
+
+**Cross-platform quick capture:**
+- Use URL scheme for task creation
+- Perfect for embedding in notes (Obsidian, etc.)
+
+→ **See:** [URL Scheme Guide](references/omnifocus_url_scheme.md)
+
+**Automation workflows:**
+→ **See:** [Workflows Guide](references/workflows.md)
+
+### 4. Understand OmniFocus and GTD
+
+**New to GTD? Start here:**
+→ **[GTD Overview](references/gtd_overview.md)** - Navigation hub for all GTD resources
+
+**Quick reference:**
+- [GTD Context](references/gtd_context.md) - Brief principles overview
+- [GTD Methodology](references/gtd_methodology.md) - Complete implementation guide
+- [Workflows](references/workflows.md) - Practical automation patterns
+
+**Learn OmniFocus concepts:**
+- Projects vs Tasks vs Tags
+- Perspectives and views
+- Defer/due dates
+- Sequential vs parallel projects
+
+→ **See:** [GTD Overview](references/gtd_overview.md)
+
+### 5. Analyze Tasks for Insights
+
+**AI-powered analysis (OmniFocus 4.8+):**
+- Install `assets/AITaskAnalyzer.omnifocusjs` plugin
+- Requires macOS 15.2+ / iOS 18.2+ with Apple Silicon
+
+→ **See:** [Foundation Models Integration](references/foundation_models_integration.md)
+
+**Pattern detection (works on all versions):**
 ```bash
-open "omnifocus:///add?name=Task%20Name&note=Description&autosave=true"
+# Detect stalled projects, over-committed, etc.
+python3 scripts/analyze_insights.py
 ```
 
-Open perspective:
-```bash
-open "omnifocus:///flagged"
-open "omnifocus:///forecast"
+→ **See:** [Insight Patterns Guide](references/insight_patterns.md)
+
+---
+
+## Modular Library System
+
+**Instead of generating code from scratch, use the modular library system:**
+
+**Location:** `libraries/`
+
+**Available libraries:**
+
+**JXA Libraries** (Mac command-line):
+- `taskQuery.js` - Query operations (today, overdue, flagged, search)
+- `taskMutation.js` - Create, update, complete, delete tasks
+- `dateUtils.js` - Date parsing and formatting
+- `argParser.js` - Command-line argument parsing
+
+**Omni Libraries** (Mac + iOS plugins):
+- `taskMetrics.js` - Task data collection (PlugIn.Library)
+- `exportUtils.js` - Export to JSON/CSV/Markdown/HTML (PlugIn.Library)
+- `insightPatterns.js` - Pattern detection (PlugIn.Library)
+- `templateEngine.js` - Template-based task creation (PlugIn.Library)
+- `patterns.js` - ⭐ MCP-ready composable patterns with Foundation Models (PlugIn.Library)
+
+**Shared Libraries** (Cross-platform):
+- `urlBuilder.js` - URL scheme helper
+
+**See complete documentation:** [Libraries README](libraries/README.md)
+
+### Usage Patterns
+
+**Pattern 1: Standalone (load and call):**
+```javascript
+const taskQuery = loadLibrary('libraries/jxa/taskQuery.js');
+const tasks = taskQuery.getTodayTasks(doc);
 ```
 
-Bulk import (TaskPaper):
-```bash
-open "omnifocus:///paste?target=inbox&content=-%20Task%201%0A-%20Task%202"
+**Pattern 2: JXA Scripts (compose workflow):**
+```javascript
+#!/usr/bin/osascript -l JavaScript
+const taskQuery = loadLibrary('libraries/jxa/taskQuery.js');
+const tasks = taskQuery.getTodayTasks(app.defaultDocument);
+// ... use tasks
 ```
 
-**Embedding in Notes:**
-
-Generate clickable Markdown links for notes:
-```markdown
-[Create daily review](omnifocus:///add?name=Daily%20Review&project=Admin&autosave=true)
-[View Flagged](omnifocus:///flagged)
+**Pattern 3: OmniFocus Plugins (PlugIn.Library):**
+```javascript
+// In manifest.json: "libraries": ["taskMetrics"]
+const metrics = this.plugIn.library("taskMetrics");
+const tasks = metrics.getTodayTasks();
 ```
 
-**URL Generation Helper:**
+**See examples:** `assets/examples/` directory
 
-When generating URLs for users:
-1. **Always URL-encode** - Use Python's `urllib.parse.quote()` or equivalent
-2. **Use autosave=true** - Avoid confirmation dialogs for embedded links
-3. **Include context** - Pre-fill project, tags, due dates when known
-4. **Format as Markdown** - For easy embedding: `[Link text](url)`
+---
 
-Example generation:
-```python
-from urllib.parse import quote
-name = quote("Review proposal")
-project = quote("Work")
-url = f"omnifocus:///add?name={name}&project={project}&autosave=true"
-# Output as: [Create task](omnifocus:///add?name=Review%20proposal&project=Work&autosave=true)
-```
+## Examples and Templates
 
-**Complete reference:** `references/omnifocus_url_scheme.md`
+**All examples are in:** `assets/examples/`
 
-**Key features in reference:**
-- All parameters (name, note, project, tags, due, defer, flagged, repeat, etc.)
-- Paste action for bulk TaskPaper import
-- Built-in perspectives (inbox, flagged, forecast, projects, tags)
-- Custom perspectives
+**Standalone** - Minimal library usage:
+- `query-today.js` - Load taskQuery, get today's tasks
+- `create-task.js` - Load taskMutation, create task
+- `build-url.js` - Load urlBuilder, generate URL
+
+**JXA Scripts** - Complete workflows:
+- `check-today.js` - Daily task report with priorities
+- `bulk-create.js` - Create multiple tasks from templates
+- `weekly-review.js` - Complete GTD weekly review
+- `generate-report.js` - Export tasks to various formats
+
+**Plugins** - Reusable OmniFocus actions:
+- `SimpleQuery.omnifocusjs` - Query using taskMetrics library
+- `BulkOperations.omnifocusjs` - Batch operations using patterns library
+- `URLGenerator.omnifocusjs` - URL generation using urlBuilder library
+
+**See:** [Examples README](assets/examples/README.md)
+
+---
+
+## Automation Approaches
+
+### 1. Omni Automation (Recommended for Plugins)
+
+**Platform:** Mac + iOS + iPadOS
+**Environment:** Runs within OmniFocus
+**Permissions:** None required
+**Use for:** Reusable plugins, cross-platform automation
+
+**Features:**
+- Cross-platform (Mac + iOS)
+- PlugIn.Library pattern for modular code
+- Direct property access: `task.name` (not `task.name()`)
+- UI components (Alert, Form, FileSaver)
+- Apple Foundation Models integration (OmniFocus 4.8+)
+
+**Get started:** [Plugin Quickstart](references/quickstarts/plugin_quickstart.md)
+
+**Complete guide:** [Plugin Development Guide](references/plugin_development_guide.md)
+
+### 2. JXA (JavaScript for Automation)
+
+**Platform:** Mac only
+**Environment:** Command line
+**Permissions:** Automation permission required
+**Use for:** Scripts, scheduled tasks, external automation
+
+**Features:**
+- Full AppleScript API access
+- Method call syntax: `task.name()` (not `task.name`)
+- Modular libraries (taskQuery, taskMutation, dateUtils)
+- Integration with shell scripts, cron, Alfred, etc.
+
+**Get started:** [JXA Quickstart](references/quickstarts/jxa_quickstart.md)
+
+**Complete guide:** [JXA API Guide](references/jxa_api_guide.md)
+
+### 3. URL Scheme
+
+**Platform:** Mac + iOS + iPadOS
+**Environment:** System-wide URLs
+**Permissions:** None required
+**Use for:** Quick capture, embedding in notes, shortcuts
+
+**Features:**
+- Fastest task creation
+- Perfect for embedding in Markdown notes
+- Bulk import via TaskPaper format
+- Open perspectives (inbox, flagged, forecast, custom)
 - x-callback-url support
-- Repeat rules (RRULE format)
-- Embedding templates for notes
 
-### Database Queries (Last Resort)
+**Complete guide:** [URL Scheme Reference](references/omnifocus_url_scheme.md)
 
-**Why:** Advanced SQL queries when JXA is insufficient.
+### 4. Database Queries (Last Resort)
 
-**Usage:**
-```bash
-python3 scripts/query_omnifocus.py --list
-python3 scripts/query_omnifocus.py --flagged
-python3 scripts/query_omnifocus.py --custom-query "SELECT ..."
-```
+**Platform:** Mac only
+**Environment:** Python scripts
+**Permissions:** Full Disk Access required
+**Use for:** Complex SQL queries when JXA insufficient
 
-**Note:** Requires Full Disk Access permission. Use JXA when possible.
+**Note:** Use JXA when possible. Database is read-only.
 
-## Common Workflows
+---
+
+## Reference Documentation
+
+### Quickstart Guides (5 minutes)
+
+- **[Plugin Quickstart](references/quickstarts/plugin_quickstart.md)** - Your first plugin in 5 minutes
+- **[JXA Quickstart](references/quickstarts/jxa_quickstart.md)** - JXA automation in 5 minutes
+
+### Comprehensive Guides
+
+**Plugin Development:**
+- **[Plugin Development Guide](references/plugin_development_guide.md)** - Complete plugin creation guide
+- [Plugin Installation](references/plugin_installation.md) - Installing and using plugins
+
+**Automation:**
+- **[JXA API Guide](references/jxa_api_guide.md)** - Complete JXA reference
+- [Omni Automation Guide](references/omnifocus_automation.md) - Cross-platform automation
+- [URL Scheme Reference](references/omnifocus_url_scheme.md) - Quick capture and embedding
+
+**GTD Methodology:**
+- **[GTD Overview](references/gtd_overview.md)** - Navigation hub for GTD resources
+- [GTD Context](references/gtd_context.md) - Brief GTD principles
+- [GTD Methodology](references/gtd_methodology.md) - Complete implementation guide
+- [Workflows](references/workflows.md) - Practical automation patterns
+
+**Advanced:**
+- [Foundation Models Integration](references/foundation_models_integration.md) - AI-powered automation
+- [Automation Best Practices](references/automation_best_practices.md) - Patterns and principles
+- [Insight Patterns](references/insight_patterns.md) - Pattern detection catalog
+
+### API References
+
+- [OmniFocus API](references/OmniFocus-API.md) - Complete API specification
+- [Shared Classes](references/omni_automation_shared.md) - Alert, Form, FileSaver, etc.
+- [Database Schema](references/database_schema.md) - SQLite structure
+- [Perspective Creation](references/perspective_creation.md) - Custom perspectives
+
+### Resources
+
+- [Libraries README](libraries/README.md) - Modular library documentation
+- [Examples README](assets/examples/README.md) - Working code examples
+- [Assets README](assets/README.md) - Plugins and templates overview
+- [Troubleshooting](references/troubleshooting.md) - Common issues and solutions
+
+---
+
+## Execution-First Philosophy
+
+This skill prioritizes **executing existing code** over generating new code:
+
+**Low-cost operations (80% of use cases):**
+- Execute existing scripts: `osascript scripts/manage_omnifocus.js today`
+- Run installed plugins: Click action in OmniFocus menu
+- Use URL scheme: `open "omnifocus:///add?name=Task&autosave=true"`
+
+**Medium-cost operations (15% of use cases):**
+- Compose from libraries: Load taskQuery + taskMutation
+- Customize examples: Copy from `assets/examples/` and modify
+- Assemble patterns: Use patterns.js for complex workflows
+
+**High-cost operations (5% of use cases):**
+- Generate novel code: Only when no pattern exists
+- Create new patterns: Offer to add to skill repertoire
+
+**Benefit:** Faster execution, lower token usage, tested code, consistent patterns.
+
+---
+
+## Common Use Cases
 
 ### "What should I work on today?"
 
+**Execute:**
 ```bash
 osascript -l JavaScript scripts/manage_omnifocus.js today
 ```
 
-Or install the Today's Tasks plug-in: `assets/TodaysTasks.omnifocusjs`
+Or install plugin: `assets/TodaysTasks.omnifocusjs`
 
-### "Create a task for X"
+### "Create a task"
 
-**Quick (URL scheme):**
+**Quick (URL):**
 ```bash
-open "omnifocus:///add?name=Task%20Name&autosave=true"
-```
-
-**Embedded in notes (Markdown):**
-```markdown
-[Create task](omnifocus:///add?name=Task%20Name&project=Work&autosave=true)
-```
-
-**Bulk import (TaskPaper):**
-```bash
-open "omnifocus:///paste?target=inbox&content=-%20Task%201%0A-%20Task%202"
+open "omnifocus:///add?name=Task&autosave=true"
 ```
 
 **Detailed (JXA):**
 ```bash
 osascript -l JavaScript scripts/manage_omnifocus.js create \
-  --name "Task name" \
-  --project "Project" \
-  --tags "tag1,tag2" \
-  --due "2025-12-25"
+  --name "Task" --project "Work" --due "2025-12-31"
 ```
 
 ### "What's due this week?"
@@ -272,187 +379,72 @@ osascript -l JavaScript scripts/manage_omnifocus.js create \
 osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7
 ```
 
-### "Find tasks about X"
+### "Analyze my tasks for patterns"
 
+**AI-powered (OmniFocus 4.8+):**
+Install and run `assets/AITaskAnalyzer.omnifocusjs`
+
+**Pattern detection (all versions):**
 ```bash
-osascript -l JavaScript scripts/manage_omnifocus.js search --query "X"
+python3 scripts/analyze_insights.py
 ```
 
-### "Mark task Y as complete"
+### "Create a weekly review plugin"
 
-```bash
-osascript -l JavaScript scripts/manage_omnifocus.js complete --name "Y"
-```
+**Compose from example:**
+1. Copy `assets/examples/plugins/SimpleQuery.omnifocusjs`
+2. Modify for weekly review workflow
+3. Use libraries: taskMetrics, exportUtils, insightPatterns
 
-**More workflows:** See `references/workflows.md` for comprehensive workflow examples including:
-- Daily planning routines
-- Weekly/monthly reviews
-- Project management
-- Batch operations
-- Integration with other tools
+---
 
 ## Troubleshooting
 
 ### Permission Issues
 
-**Automation Permission (for JXA):**
+**Automation Permission (JXA):**
 - System Settings → Privacy & Security → Automation
-- Enable OmniFocus for your terminal app
+- Enable OmniFocus for Terminal
 
-**Full Disk Access (for Python database queries):**
+**Full Disk Access (Database queries):**
 - System Settings → Privacy & Security → Full Disk Access
-- Add your terminal app
+- Add Terminal app
 
-**Important:** Restart terminal completely after granting permissions.
+**Restart terminal after granting permissions.**
 
 ### Common Errors
 
-- **"Not authorized to send Apple events"** → Grant automation permission
-- **"Database file not found"** → Grant Full Disk Access, verify OmniFocus version
+- **"Not authorized"** → Grant automation permission
+- **"Database not found"** → Grant Full Disk Access
 - **"Multiple tasks found"** → Use task ID instead of name
-- **"Invalid date format"** → Use ISO 8601: `YYYY-MM-DD`
+- **"Invalid date"** → Use ISO 8601 format: `YYYY-MM-DD`
 
-**Complete troubleshooting guide:** `references/troubleshooting.md`
+**See:** [Troubleshooting Guide](references/troubleshooting.md)
 
-## Reference Documentation
+---
 
-All detailed documentation has been moved to references for better organization:
+## Version Information
 
-### Primary References
+**Current version:** 3.0.0
 
-1. **`references/jxa_commands.md`** ⭐ - Complete JXA command reference
-   - All query commands with parameters and examples
-   - All task management commands (create, update, complete, delete)
-   - Output formats and error handling
-   - Command-line usage patterns
+**What's new in 3.0:**
+- ⭐ Modular library system (`libraries/`)
+- ⭐ Execution-first architecture (80/15/5 split)
+- ⭐ Comprehensive examples (`assets/examples/`)
+- ⭐ Progressive disclosure documentation
+- ⭐ Quickstart guides (5-minute tutorials)
+- Foundation Models integration (OmniFocus 4.8+)
+- Merged documentation (reduced overlap)
+- GTD navigation hub
 
-2. **`references/omnifocus_plugin_structure.md`** ⭐ - OmniFocus Plugin Bundle Structure
-   - **CRITICAL:** `.omnifocusjs` is a directory bundle, not a single file
-   - Complete manifest.json schema with all fields
-   - Bundle structure and file organization
-   - How to read, create, and modify plugin bundles
-   - Action script templates and patterns
-   - Common Glob/Grep patterns for plugin files
-   - Installation and testing procedures
-   - **Use this for:** Working with .omnifocusjs bundles, creating/modifying plugins, understanding plugin architecture
+**Migration from 2.x:** Major architectural refactoring. Documentation reorganized, libraries modularized. Existing generated scripts continue to work. New modular libraries and examples available for composition.
 
-3. **`references/omni_automation.md`** - Omni Automation practical guide
-   - Getting started and common patterns
-   - Plug-in development workflow
-   - Code examples and best practices
-   - Use this for learning and implementation guidance
-
-4. **`references/omni_automation_shared.md`** - Shared Omni Automation classes ⭐
-   - Cross-app shared APIs (Alert, Form, FilePicker, etc.)
-   - Works across OmniFocus, OmniGraffle, OmniOutliner, OmniPlan
-   - User interaction (alerts, forms, dialogs)
-   - File handling (FilePicker, FileSaver, FileWrapper)
-   - Data processing (URL, XML, Pasteboard, Credentials)
-   - Formatters (Date, Decimal, Duration)
-   - System integration (Device, Notification, Speech, Timer)
-   - **Use this for:** Building cross-platform plugins, user input, file operations, clipboard access
-
-5. **`references/OmniFocus-API.md`** - Complete Omni Automation API reference
-   - Official comprehensive API specification
-   - Detailed class/method/property documentation
-   - Use this for API lookup and detailed signatures
-   - **Search patterns for common lookups:**
-     - Task class: `grep -A 20 "^## Task" references/OmniFocus-API.md`
-     - Project class: `grep -A 20 "^## Project" references/OmniFocus-API.md`
-     - Document methods: `grep "function.*Document" references/OmniFocus-API.md`
-     - Specific property: `grep -i "propertyName" references/OmniFocus-API.md`
-
-6. **`references/foundation_models_integration.md`** ⭐ - Apple Intelligence integration
-   - **NEW in OmniFocus 4.8+** - On-device AI for task automation
-   - Natural language task processing with LanguageModel.Session
-   - Intelligent categorization and prioritization
-   - Extract structured data from text (JSON schemas)
-   - Smart task suggestions and analysis
-   - Complete examples: auto-tagging, meeting notes extraction, project structure analysis
-   - Requirements: macOS 15.2+, iOS 18.2+, Apple Silicon/iPhone 15 Pro+
-   - **Use this for:** AI-powered automation, intelligent task organization, natural language processing
-
-7. **`references/workflows.md`** - Common workflow patterns
-   - Daily/weekly/monthly planning
-   - Project management workflows
-   - Batch operations
-   - Integration examples (Keyboard Maestro, Alfred, etc.)
-
-8. **`references/omnifocus_url_scheme.md`** - URL scheme reference ⭐
-   - Task creation with all parameters
-   - Bulk TaskPaper import (paste action)
-   - Built-in perspectives (inbox, flagged, forecast, etc.)
-   - Custom perspectives
-   - x-callback-url support
-   - Repeat rules (RRULE format)
-   - **Embedding in notes** - Templates for Markdown links
-   - URL encoding and generation helpers
-   - Cross-platform (Mac + iOS)
-
-9. **`references/troubleshooting.md`** - Troubleshooting guide
-   - Permission setup (step-by-step)
-   - Common errors and solutions
-   - Performance optimization
-   - Debugging techniques
-
-### Scripts
-
-- **`scripts/manage_omnifocus.js`** - JXA automation (Mac)
-- **`scripts/query_omnifocus.py`** - Database queries (Mac, requires permissions)
-
-### Assets
-
-- **`assets/TodaysTasks.omnifocusjs`** - Today's tasks plug-in
-- **`assets/AITaskAnalyzer.omnifocusjs`** - AI-powered task analyzer plug-in
-- **`assets/templates/`** - Template files for task creation
-
-See `references/plugin_installation.md` for plug-in installation and usage instructions.
-
-## Important Notes
-
-### Omni Automation
-- Cross-platform (Mac + iOS)
-- No permissions required
-- Native OmniFocus API
-- Reusable plug-ins
-
-### JXA (JavaScript for Automation)
-- Mac only
-- Requires automation permission
-- Full AppleScript API access
-- Both read and write operations
-
-### URL Scheme
-- Cross-platform (Mac + iOS)
-- No permissions required
-- Task creation with full parameters (tags, dates, repeat, etc.)
-- Bulk import via TaskPaper format (paste action)
-- Open perspectives (built-in and custom)
-- Perfect for embedding in notes/documents
-- x-callback-url support for automation workflows
-- Cannot modify/delete existing tasks or query data
-
-### Database Queries (Python)
-- Use only when necessary
-- Read-only
-- Requires Full Disk Access
-- Mac only
-
-## Getting Help
-
-Built-in help for all scripts:
-
-```bash
-# JXA help
-osascript -l JavaScript scripts/manage_omnifocus.js help
-
-# Python help
-python3 scripts/query_omnifocus.py --help
-```
+---
 
 ## External Resources
 
 - **Omni Automation:** [omni-automation.com/omnifocus](https://omni-automation.com/omnifocus/)
 - **OmniFocus URL Schemes:** [support.omnigroup.com/omnifocus-url-schemes](https://support.omnigroup.com/omnifocus-url-schemes/)
 - **OmniFocus AppleScript:** [support.omnigroup.com/omnifocus-applescript](https://support.omnigroup.com/omnifocus-applescript/)
-- **OmniFocus 4 Reference Manual** [OmniFocus 4 Reference Manual](https://support.omnigroup.com/documentation/omnifocus/universal/4/en/)
+- **OmniFocus Manual:** [support.omnigroup.com/documentation/omnifocus/](https://support.omnigroup.com/documentation/omnifocus/)
+- **GTD Methodology:** [gettingthingsdone.com](https://gettingthingsdone.com)

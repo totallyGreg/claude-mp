@@ -1,0 +1,26 @@
+{
+  "identifier": "com.example.bulk-operations",
+  "version": "1.0.0",
+  "author": "OmniFocus Manager",
+  "description": "Bulk operations plugin demonstrating patterns library usage",
+  "label": "Bulk Operations",
+  "mediumLabel": "Bulk Ops",
+  "shortLabel": "Bulk",
+  "paletteLabel": "Bulk Operations",
+  "image": "square.stack.3d.up",
+  "libraries": ["patterns", "taskMetrics", "exportUtils", "insightPatterns"],
+  "actions": [
+    {
+      "identifier": "flagAllOverdue",
+      "label": "Flag All Overdue Tasks",
+      "mediumLabel": "Flag Overdue",
+      "shortLabel": "Flag"
+    },
+    {
+      "identifier": "exportByProject",
+      "label": "Export Project Tasks",
+      "mediumLabel": "Export Project",
+      "shortLabel": "Export"
+    }
+  ]
+}

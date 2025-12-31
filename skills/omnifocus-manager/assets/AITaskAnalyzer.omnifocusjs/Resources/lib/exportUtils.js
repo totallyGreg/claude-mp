@@ -1,18 +1,19 @@
 /**
- * Export Utilities Module
+ * Export Utilities Library - PlugIn.Library
  *
- * Reusable functions for exporting data to various formats.
- * Supports JSON, CSV, Markdown, and clipboard/file exports.
+ * Composable, reusable functions for exporting data to various formats.
+ * Supports JSON, CSV, Markdown, HTML, and clipboard/file exports.
  *
- * Usage:
- *   // In plugin actions (Phase 2 implementation)
- *   // const ExportUtils = PlugIn.library.moduleNamed('lib/exportUtils');
- *   // await ExportUtils.toClipboard(data, { format: 'json' });
+ * Usage in plugin actions:
+ *   const exportUtils = this.plugIn.library("exportUtils");
+ *   await exportUtils.toClipboard(data, { format: 'json' });
  *
- * @version 2.2.0
+ * @version 3.0.0
  */
 
 (() => {
+    const lib = new PlugIn.Library(new Version("3.0"));
+
     /**
      * Copy data to system clipboard
      * @param {*} data - Data to copy
@@ -21,20 +22,20 @@
      * @param {boolean} options.pretty - Pretty print JSON (default: true)
      * @returns {boolean} Success status
      */
-    function toClipboard(data, options = {}) {
+    lib.toClipboard = function(data, options = {}) {
         try {
             const format = options.format || 'json';
             let output;
 
             switch (format) {
                 case 'json':
-                    output = toJSON(data, options.pretty !== false);
+                    output = this.toJSON(data, options.pretty !== false);
                     break;
                 case 'csv':
-                    output = toCSV(data);
+                    output = this.toCSV(data);
                     break;
                 case 'markdown':
-                    output = toMarkdown(data, options);
+                    output = this.toMarkdown(data, options);
                     break;
                 default:
                     throw new Error(`Unknown format: ${format}`);
@@ -46,7 +47,7 @@
             console.error("Export to clipboard failed:", error);
             return false;
         }
-    }
+    };
 
     /**
      * Save data to file
@@ -57,24 +58,24 @@
      * @param {boolean} options.pretty - Pretty print JSON
      * @returns {Promise<boolean>} Success status
      */
-    async function toFile(data, options = {}) {
+    lib.toFile = async function(data, options = {}) {
         try {
             const format = options.format || 'json';
             let output, extension, mimeType;
 
             switch (format) {
                 case 'json':
-                    output = toJSON(data, options.pretty !== false);
+                    output = this.toJSON(data, options.pretty !== false);
                     extension = 'json';
                     mimeType = 'application/json';
                     break;
                 case 'csv':
-                    output = toCSV(data);
+                    output = this.toCSV(data);
                     extension = 'csv';
                     mimeType = 'text/csv';
                     break;
                 case 'markdown':
-                    output = toMarkdown(data, options);
+                    output = this.toMarkdown(data, options);
                     extension = 'md';
                     mimeType = 'text/markdown';
                     break;
@@ -102,7 +103,7 @@
             console.error("Export to file failed:", error);
             return false;
         }
-    }
+    };
 
     /**
      * Format data as JSON string
@@ -110,9 +111,9 @@
      * @param {boolean} pretty - Pretty print (default: true)
      * @returns {string} JSON string
      */
-    function toJSON(data, pretty = true) {
+    lib.toJSON = function(data, pretty = true) {
         return JSON.stringify(data, null, pretty ? 2 : 0);
-    }
+    };
 
     /**
      * Format array of objects as CSV
@@ -120,7 +121,7 @@
      * @param {Array} customHeaders - Optional custom header names
      * @returns {string} CSV string
      */
-    function toCSV(data, customHeaders = null) {
+    lib.toCSV = function(data, customHeaders = null) {
         if (!Array.isArray(data) || data.length === 0) {
             return "";
         }
@@ -134,13 +135,13 @@
         data.forEach(item => {
             const values = headers.map(header => {
                 const value = item[header];
-                return formatCSVValue(value);
-            });
+                return this.formatCSVValue(value);
+            }.bind(this));
             rows.push(values.join(","));
         });
 
         return rows.join("\n");
-    }
+    };
 
     /**
      * Format value for CSV
@@ -148,7 +149,7 @@
      * @returns {string} Formatted value
      * @private
      */
-    function formatCSVValue(value) {
+    lib.formatCSVValue = function(value) {
         if (value === null || value === undefined) {
             return "";
         }
@@ -169,7 +170,7 @@
         }
 
         return value;
-    }
+    };
 
     /**
      * Format data as Markdown
@@ -179,7 +180,7 @@
      * @param {string} options.title - Document title
      * @returns {string} Markdown string
      */
-    function toMarkdown(data, options = {}) {
+    lib.toMarkdown = function(data, options = {}) {
         let md = "";
 
         // Add title if provided
@@ -192,15 +193,15 @@
 
         // Format based on data type
         if (Array.isArray(data)) {
-            md += formatArrayAsMarkdown(data);
+            md += this.formatArrayAsMarkdown(data);
         } else if (typeof data === 'object') {
-            md += formatObjectAsMarkdown(data, options);
+            md += this.formatObjectAsMarkdown(data, options);
         } else {
             md += String(data);
         }
 
         return md;
-    }
+    };
 
     /**
      * Format array as Markdown table
@@ -208,17 +209,17 @@
      * @returns {string} Markdown table
      * @private
      */
-    function formatArrayAsMarkdown(arr) {
+    lib.formatArrayAsMarkdown = function(arr) {
         if (arr.length === 0) return "No data\n";
 
         // Check if array of objects (for table formatting)
         if (typeof arr[0] === 'object' && arr[0] !== null && !Array.isArray(arr[0])) {
-            return formatTableAsMarkdown(arr);
+            return this.formatTableAsMarkdown(arr);
         }
 
         // Simple list
         return arr.map(item => `- ${item}`).join("\n") + "\n";
-    }
+    };
 
     /**
      * Format array of objects as Markdown table
@@ -226,7 +227,7 @@
      * @returns {string} Markdown table
      * @private
      */
-    function formatTableAsMarkdown(data) {
+    lib.formatTableAsMarkdown = function(data) {
         if (data.length === 0) return "No data\n";
 
         const headers = Object.keys(data[0]);
@@ -245,7 +246,7 @@
         });
 
         return md;
-    }
+    };
 
     /**
      * Format object as Markdown
@@ -254,16 +255,16 @@
      * @returns {string} Markdown string
      * @private
      */
-    function formatObjectAsMarkdown(obj, options = {}) {
+    lib.formatObjectAsMarkdown = function(obj, options = {}) {
         let md = "";
 
         for (const [key, value] of Object.entries(obj)) {
             md += `## ${key}\n\n`;
 
             if (Array.isArray(value)) {
-                md += formatArrayAsMarkdown(value);
+                md += this.formatArrayAsMarkdown(value);
             } else if (typeof value === 'object' && value !== null) {
-                md += formatObjectAsMarkdown(value, options);
+                md += this.formatObjectAsMarkdown(value, options);
             } else {
                 md += `${value}\n`;
             }
@@ -272,7 +273,7 @@
         }
 
         return md;
-    }
+    };
 
     /**
      * Format data as HTML table
@@ -280,7 +281,7 @@
      * @param {Object} options - Format options
      * @returns {string} HTML string
      */
-    function toHTML(data, options = {}) {
+    lib.toHTML = function(data, options = {}) {
         if (!Array.isArray(data) || data.length === 0) {
             return "<p>No data</p>";
         }
@@ -289,8 +290,8 @@
 
         let html = "<table>\n<thead>\n<tr>\n";
         headers.forEach(h => {
-            html += `<th>${escapeHTML(h)}</th>\n`;
-        });
+            html += `<th>${this.escapeHTML(h)}</th>\n`;
+        }.bind(this));
         html += "</tr>\n</thead>\n<tbody>\n";
 
         data.forEach(row => {
@@ -301,14 +302,14 @@
                     : Array.isArray(val) ? val.join(", ")
                     : val instanceof Date ? val.toLocaleDateString()
                     : String(val);
-                html += `<td>${escapeHTML(formatted)}</td>\n`;
-            });
+                html += `<td>${this.escapeHTML(formatted)}</td>\n`;
+            }.bind(this));
             html += "</tr>\n";
         });
 
         html += "</tbody>\n</table>";
         return html;
-    }
+    };
 
     /**
      * Escape HTML special characters
@@ -316,7 +317,7 @@
      * @returns {string} Escaped string
      * @private
      */
-    function escapeHTML(str) {
+    lib.escapeHTML = function(str) {
         if (!str) return "";
         return String(str)
             .replace(/&/g, "&amp;")
@@ -324,15 +325,7 @@
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
-    }
-
-    // Public API
-    return {
-        toClipboard,
-        toFile,
-        toJSON,
-        toCSV,
-        toMarkdown,
-        toHTML
     };
+
+    return lib;
 })();

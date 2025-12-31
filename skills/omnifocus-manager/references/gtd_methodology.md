@@ -2,6 +2,16 @@
 
 Complete guide to implementing Getting Things Done (GTD) methodology using OmniFocus automation.
 
+**📍 Navigation:**
+- **[GTD Overview](gtd_overview.md)** - Complete GTD guide navigation hub
+- **[GTD Context](gtd_context.md)** - Brief GTD principles overview
+- **This document** - Detailed GTD implementation guide
+- **[Workflows](workflows.md)** - Ready-to-use automation patterns
+
+**Use this document when:** You're implementing GTD in OmniFocus, need detailed phase-by-phase guidance, or want comprehensive automation examples.
+
+---
+
 ## Overview
 
 GTD (Getting Things Done) is a productivity methodology by David Allen. This guide shows how to implement GTD principles using OmniFocus and the automation tools in this skill.

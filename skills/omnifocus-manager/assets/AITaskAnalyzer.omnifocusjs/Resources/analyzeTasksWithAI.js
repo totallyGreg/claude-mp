@@ -13,36 +13,16 @@
 (() => {
     const action = new PlugIn.Action(async function(selection, sender) {
         try {
-            // Get all tasks
-            const doc = Document.defaultDocument;
-            const tasks = doc.flattenedTasks;
+            // Load libraries
+            const metrics = this.plugIn.library("taskMetrics");
 
-            // Calculate date ranges
+            // Get today's and overdue tasks using library
+            const todayTasks = metrics.getTodayTasks();
+            const overdueTasks = metrics.getOverdueTasks();
+
+            // Calculate today for days overdue
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-
-            // Filter for today's tasks
-            const todayTasks = tasks.filter(task => {
-                if (task.completed || task.dropped) return false;
-
-                const due = task.dueDate;
-                const defer = task.deferDate;
-
-                const isDueToday = due && due >= today && due < tomorrow;
-                const isDeferredToday = defer && defer >= today && defer < tomorrow;
-
-                return isDueToday || isDeferredToday;
-            });
-
-            // Filter for overdue tasks
-            const overdueTasks = tasks.filter(task => {
-                if (task.completed || task.dropped) return false;
-
-                const due = task.dueDate;
-                return due && due < today;
-            });
 
             // Build task summary for AI analysis
             const taskData = {
@@ -50,18 +30,18 @@
                 overdueCount: overdueTasks.length,
                 todayTasks: todayTasks.map(t => ({
                     name: t.name,
-                    project: t.containingProject ? t.containingProject.name : "Inbox",
-                    dueTime: t.dueDate ? t.dueDate.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'}) : null,
+                    project: t.project || "Inbox",
+                    dueTime: t.dueDate ? new Date(t.dueDate).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'}) : null,
                     flagged: t.flagged,
-                    tags: t.tags.map(tag => tag.name),
+                    tags: t.tags,
                     estimatedMinutes: t.estimatedMinutes
                 })),
                 overdueTasks: overdueTasks.map(t => ({
                     name: t.name,
-                    project: t.containingProject ? t.containingProject.name : "Inbox",
-                    daysOverdue: Math.floor((today - t.dueDate) / (1000 * 60 * 60 * 24)),
+                    project: t.project || "Inbox",
+                    daysOverdue: Math.floor((today - new Date(t.dueDate)) / (1000 * 60 * 60 * 24)),
                     flagged: t.flagged,
-                    tags: t.tags.map(tag => tag.name)
+                    tags: t.tags
                 }))
             };
 

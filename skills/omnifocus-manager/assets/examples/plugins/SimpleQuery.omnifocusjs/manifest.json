@@ -1,0 +1,32 @@
+{
+  "identifier": "com.example.simple-query",
+  "version": "1.0.0",
+  "author": "OmniFocus Manager",
+  "description": "Simple task query plugin demonstrating taskMetrics library usage",
+  "label": "Simple Query",
+  "mediumLabel": "Query Tasks",
+  "shortLabel": "Query",
+  "paletteLabel": "Simple Query",
+  "image": "checkmark.circle",
+  "libraries": ["taskMetrics", "exportUtils"],
+  "actions": [
+    {
+      "identifier": "queryToday",
+      "label": "Show Today's Tasks",
+      "mediumLabel": "Today's Tasks",
+      "shortLabel": "Today"
+    },
+    {
+      "identifier": "queryFlagged",
+      "label": "Show Flagged Tasks",
+      "mediumLabel": "Flagged Tasks",
+      "shortLabel": "Flagged"
+    },
+    {
+      "identifier": "exportToMarkdown",
+      "label": "Export Today to Markdown",
+      "mediumLabel": "Export Today",
+      "shortLabel": "Export"
+    }
+  ]
+}

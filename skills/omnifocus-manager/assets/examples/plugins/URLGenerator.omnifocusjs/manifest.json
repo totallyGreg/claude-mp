@@ -1,0 +1,25 @@
+{
+  "identifier": "com.example.url-generator",
+  "version": "1.0.0",
+  "author": "OmniFocus Manager",
+  "description": "URL generator plugin demonstrating urlBuilder library usage",
+  "label": "URL Generator",
+  "mediumLabel": "URL Gen",
+  "shortLabel": "URL",
+  "paletteLabel": "URL Generator",
+  "image": "link.circle",
+  "actions": [
+    {
+      "identifier": "generateTaskURL",
+      "label": "Generate Task URL from Selection",
+      "mediumLabel": "Generate URL",
+      "shortLabel": "URL"
+    },
+    {
+      "identifier": "generateQuickEntry",
+      "label": "Generate Quick Entry URL",
+      "mediumLabel": "Quick Entry",
+      "shortLabel": "Quick"
+    }
+  ]
+}

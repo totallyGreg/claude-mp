@@ -1,23 +1,24 @@
 /**
- * Task Metrics Utility Module
+ * Task Metrics Library - PlugIn.Library
  *
  * Composable, reusable functions for collecting task data from OmniFocus.
  * Separates data collection from AI analysis for flexibility and testability.
  *
- * Usage:
- *   // In plugin actions (not yet implemented - Phase 2)
- *   // const TaskMetrics = PlugIn.library.moduleNamed('lib/taskMetrics');
- *   // const tasks = TaskMetrics.getTodayTasks();
+ * Usage in plugin actions:
+ *   const metrics = this.plugIn.library("taskMetrics");
+ *   const tasks = metrics.getTodayTasks();
  *
- * @version 2.2.0
+ * @version 3.0.0
  */
 
 (() => {
+    const lib = new PlugIn.Library(new Version("3.0"));
+
     /**
      * Get tasks due or deferred to today
      * @returns {Array} Array of task objects with normalized data
      */
-    function getTodayTasks() {
+    lib.getTodayTasks = function() {
         const doc = Document.defaultDocument;
         const tasks = doc.flattenedTasks;
 
@@ -38,14 +39,14 @@
             return isDueToday || isDeferredToday;
         });
 
-        return todayTasks.map(normalizeTask);
-    }
+        return todayTasks.map(this.normalizeTask.bind(this));
+    };
 
     /**
      * Get overdue tasks (past due date)
      * @returns {Array} Array of overdue task objects
      */
-    function getOverdueTasks() {
+    lib.getOverdueTasks = function() {
         const doc = Document.defaultDocument;
         const tasks = doc.flattenedTasks;
 
@@ -58,14 +59,14 @@
             return due && due < today;
         });
 
-        return overdueTasks.map(normalizeTask);
-    }
+        return overdueTasks.map(this.normalizeTask.bind(this));
+    };
 
     /**
      * Get all flagged tasks
      * @returns {Array} Array of flagged task objects
      */
-    function getFlaggedTasks() {
+    lib.getFlaggedTasks = function() {
         const doc = Document.defaultDocument;
         const tasks = doc.flattenedTasks;
 
@@ -73,15 +74,15 @@
             return task.flagged && !task.completed && !task.dropped;
         });
 
-        return flaggedTasks.map(normalizeTask);
-    }
+        return flaggedTasks.map(this.normalizeTask.bind(this));
+    };
 
     /**
      * Get tasks by tag name
      * @param {string} tagName - Name of tag to filter by
      * @returns {Array} Array of tasks with the specified tag
      */
-    function getTasksByTag(tagName) {
+    lib.getTasksByTag = function(tagName) {
         const doc = Document.defaultDocument;
         const tasks = doc.flattenedTasks;
 
@@ -90,15 +91,15 @@
             return task.tags.some(tag => tag.name === tagName);
         });
 
-        return filtered.map(normalizeTask);
-    }
+        return filtered.map(this.normalizeTask.bind(this));
+    };
 
     /**
      * Get tasks by project name
      * @param {string} projectName - Name of project to filter by
      * @returns {Array} Array of tasks in the specified project
      */
-    function getTasksByProject(projectName) {
+    lib.getTasksByProject = function(projectName) {
         const doc = Document.defaultDocument;
         const tasks = doc.flattenedTasks;
 
@@ -107,14 +108,14 @@
             return task.containingProject && task.containingProject.name === projectName;
         });
 
-        return filtered.map(normalizeTask);
-    }
+        return filtered.map(this.normalizeTask.bind(this));
+    };
 
     /**
      * Get summary statistics across all tasks
      * @returns {Object} Summary statistics object
      */
-    function getSummaryStats() {
+    lib.getSummaryStats = function() {
         const doc = Document.defaultDocument;
         const tasks = doc.flattenedTasks;
 
@@ -175,15 +176,14 @@
             : 0;
 
         return stats;
-    }
+    };
 
     /**
      * Normalize task object to consistent data structure
      * @param {Task} task - OmniFocus task object
      * @returns {Object} Normalized task data
-     * @private
      */
-    function normalizeTask(task) {
+    lib.normalizeTask = function(task) {
         return {
             name: task.name,
             project: task.containingProject ? task.containingProject.name : null,
@@ -197,85 +197,7 @@
             added: task.added,
             modified: task.modified
         };
-    }
-
-    /**
-     * Export task data as JSON string
-     * @param {Array|Object} data - Task data to export
-     * @param {boolean} pretty - Whether to pretty-print the JSON
-     * @returns {string} JSON string
-     */
-    function exportJSON(data, pretty = true) {
-        return JSON.stringify(data, null, pretty ? 2 : 0);
-    }
-
-    /**
-     * Export task array as CSV string
-     * @param {Array} tasks - Array of normalized task objects
-     * @returns {string} CSV string
-     */
-    function exportCSV(tasks) {
-        if (!tasks || tasks.length === 0) {
-            return "";
-        }
-
-        // CSV headers
-        const headers = [
-            "Name",
-            "Project",
-            "Tags",
-            "Due Date",
-            "Defer Date",
-            "Flagged",
-            "Completed",
-            "Estimated Minutes",
-            "Note"
-        ];
-
-        const rows = [headers.join(",")];
-
-        tasks.forEach(task => {
-            const row = [
-                escapeCSV(task.name),
-                escapeCSV(task.project || ""),
-                escapeCSV(task.tags.join("; ")),
-                task.dueDate ? task.dueDate.toISOString() : "",
-                task.deferDate ? task.deferDate.toISOString() : "",
-                task.flagged ? "Yes" : "No",
-                task.completed ? "Yes" : "No",
-                task.estimatedMinutes || "",
-                escapeCSV(task.note)
-            ];
-            rows.push(row.join(","));
-        });
-
-        return rows.join("\n");
-    }
-
-    /**
-     * Escape string for CSV format
-     * @param {string} str - String to escape
-     * @returns {string} Escaped string
-     * @private
-     */
-    function escapeCSV(str) {
-        if (!str) return "";
-        const needsEscape = str.includes(",") || str.includes('"') || str.includes("\n");
-        if (!needsEscape) return str;
-        return '"' + str.replace(/"/g, '""') + '"';
-    }
-
-    // Public API
-    // Note: Module export pattern to be determined in Phase 2
-    // For now, these functions can be copied/used inline
-    return {
-        getTodayTasks,
-        getOverdueTasks,
-        getFlaggedTasks,
-        getTasksByTag,
-        getTasksByProject,
-        getSummaryStats,
-        exportJSON,
-        exportCSV
     };
+
+    return lib;
 })();

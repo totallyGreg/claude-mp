@@ -2,6 +2,16 @@
 
 This reference provides GTD (Getting Things Done) methodology context to inform better insight generation and automation design in OmniFocus.
 
+**📍 Navigation:**
+- **[GTD Overview](gtd_overview.md)** - Complete GTD guide navigation hub
+- **This document** - Brief GTD principles and OmniFocus concepts
+- **[GTD Methodology](gtd_methodology.md)** - Detailed implementation guide with automation
+- **[Workflows](workflows.md)** - Ready-to-use automation patterns
+
+**Use this document when:** You need quick reference to GTD principles, want context for automation design, or need to understand GTD-aligned perspectives.
+
+---
+
 ## Core GTD Principles
 
 GTD is a five-phase workflow for managing commitments:

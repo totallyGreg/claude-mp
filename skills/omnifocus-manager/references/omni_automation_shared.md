@@ -584,12 +584,12 @@ if (url) {
 ## Resources
 
 - **Main Documentation:** [omni-automation.com/shared](https://omni-automation.com/shared/index.html)
-- **OmniFocus Specific:** See `omni_automation.md` in this directory
+- **OmniFocus Specific:** See `omnifocus_automation.md` in this directory
 - **Apple Foundation Models:** See `foundation_models_integration.md` in this directory
 - **Examples:** See `assets/` directory for plug-in templates and `plugin_installation.md` for installation guide
 
 ## See Also
 
-- `omni_automation.md` - OmniFocus-specific Omni Automation reference
+- `omnifocus_automation.md` - OmniFocus-specific Omni Automation reference
 - `foundation_models_integration.md` - Apple Intelligence integration
 - `jxa_commands.md` - JXA command reference (alternative to Omni Automation)

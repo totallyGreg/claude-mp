@@ -2,6 +2,16 @@
 
 Common workflows and use case patterns for working with OmniFocus automation.
 
+**📍 Navigation:**
+- **[GTD Overview](gtd_overview.md)** - Complete GTD guide navigation hub
+- **[GTD Context](gtd_context.md)** - Brief GTD principles overview
+- **[GTD Methodology](gtd_methodology.md)** - Detailed implementation guide
+- **This document** - Ready-to-use automation patterns and workflows
+
+**Use this document when:** You need practical automation scripts, want to integrate OmniFocus with other tools, or need ready-to-use workflow patterns.
+
+---
+
 ## Overview
 
 This guide provides end-to-end workflows combining query and management operations for common OmniFocus tasks.
@@ -17,7 +27,7 @@ osascript -l JavaScript scripts/manage_omnifocus.js today
 
 **Approach 2: Omni Automation (Cross-platform)**
 - Install and run the Today's Tasks plug-in from `assets/TodaysTasks.omnifocusjs`
-- Or use the Omni Automation console with the script from `references/omni_automation.md`
+- Or use the Omni Automation console with the script from `references/omnifocus_automation.md`
 
 **Follow-up:** If today's list is empty, check flagged tasks:
 ```bash

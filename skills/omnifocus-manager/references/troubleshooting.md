@@ -2,6 +2,15 @@
 
 Complete troubleshooting guide for OmniFocus automation issues, permissions, and common problems.
 
+**📍 Related Documentation:**
+- **[Plugin Development Guide](plugin_development_guide.md)** - Plugin-specific troubleshooting
+- **[JXA API Guide](jxa_api_guide.md)** - JXA troubleshooting section
+- **[Libraries README](../libraries/README.md)** - Library usage and debugging
+
+**💡 Tip:** Most common issues are covered in the specific guides above. Use this document for general troubleshooting that doesn't fit elsewhere.
+
+---
+
 ## Permissions Setup
 
 ### Automation Permission (Required for JXA)

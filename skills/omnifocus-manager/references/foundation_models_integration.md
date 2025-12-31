@@ -428,7 +428,7 @@ Until direct Foundation Models API is available:
 ## Resources
 
 **Skill References:**
-- `omni_automation.md` - OmniFocus Omni Automation API reference
+- `omnifocus_automation.md` - OmniFocus Omni Automation API reference
 - `omni_automation_shared.md` - Shared Omni Automation classes (Alert, Form, etc.)
 - `OmniFocus-API.md` - Complete OmniFocus API specification
 
