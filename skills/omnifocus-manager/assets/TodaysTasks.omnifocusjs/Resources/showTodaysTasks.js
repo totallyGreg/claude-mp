@@ -8,9 +8,8 @@
 (() => {
     const action = new PlugIn.Action(function(selection, sender) {
         try {
-            // Get all tasks
-            const doc = Document.defaultDocument;
-            const tasks = doc.flattenedTasks;
+            // Get all tasks using global variable
+            const tasks = flattenedTasks;
 
             // Calculate today's date range
             const today = new Date();

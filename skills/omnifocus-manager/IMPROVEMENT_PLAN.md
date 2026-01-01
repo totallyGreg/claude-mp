@@ -8,6 +8,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.4.0 | 2025-12-31 | Fixed contradictory examples - eliminated Document.defaultDocument from all code files |
 | 3.2.0 | 2025-12-31 | API documentation restructuring, code generation validation layer, and AITaskAnalyzer runtime fixes |
 | 3.1.0 | 2025-12-31 | Official template integration, plugin development workflow consolidation, and AITaskAnalyzer fixes |
 | 1.3.6 | 2025-12-28 | Added PlugIn API reference with validation checklist and fixed AITaskAnalyzer manifest |
@@ -20,6 +21,65 @@ This document tracks improvements, enhancements, and future development plans fo
 | 1.0.0 | 2025-12-19 | Initial release |
 
 ## Completed Improvements
+
+### v3.4.0 - Phase 1: Critical Example Fixes (2025-12-31)
+
+**Problem Addressed:**
+- Critical contradiction between documentation and examples caused runtime errors
+- SKILL.md (line 109) correctly stated: "Use global variables NOT Document.defaultDocument"
+- But example files (TodaysTasks.js, taskMetrics.js) used the wrong Document.defaultDocument pattern
+- Users copying examples got runtime error: "undefined is not an object (evaluating 'doc.flattenedTasks')"
+- Created confusion and blocked all plugin generation workflows
+
+**Root Cause:**
+- Examples were written before v3.2.0 API documentation restructuring
+- When v3.2.0 fixed AITaskAnalyzer to use global variables, example files weren't updated
+- Documentation evolved but code examples didn't follow
+- Result: Working examples contradicted correct guidance
+
+**Changes Made (Phase 1 - Critical Fixes):**
+
+1. **Fixed TodaysTasks.omnifocusjs** (1 location):
+   - Removed: `const doc = Document.defaultDocument; const tasks = doc.flattenedTasks;`
+   - Changed to: `const tasks = flattenedTasks;` (global variable)
+   - File: `assets/TodaysTasks.omnifocusjs/Resources/showTodaysTasks.js`
+
+2. **Fixed taskMetrics.js library** (8 locations):
+   - All 8 functions updated to use global variables
+   - Functions fixed: getTodayTasks, getOverdueTasks, getUpcomingTasks, getFlaggedTasks, getAvailableTasks, getTasksByTag, getTasksByProject, getSummaryStats
+   - Pattern: `Document.defaultDocument.flattenedTasks` → `flattenedTasks`
+   - File: `libraries/omni/taskMetrics.js`
+
+3. **Fixed patterns.js library** (5 locations):
+   - Fixed insight generation calls (3): Removed Document parameter, insights accesses globals directly
+   - Fixed helper functions (2): findTaskByName, findOrCreateTag now use global variables
+   - Pattern: `Document.defaultDocument.flattenedTasks` → `flattenedTasks`
+   - Pattern: `Document.defaultDocument.flattenedTags` → `flattenedTags`
+   - File: `libraries/omni/patterns.js`
+
+**Verification:**
+- ✅ Grep verification passed: Zero code files contain Document.defaultDocument
+- ✅ Only documentation/example files have it (as negative examples showing what's wrong)
+- ✅ All 3 files fixed (14 total changes across 3 files)
+- ✅ Examples now match documentation guidance
+
+**Impact:**
+- Eliminates #1 source of plugin runtime errors
+- Examples now demonstrate correct API patterns
+- Users can safely copy examples without hitting errors
+- Unblocks plugin generation workflow
+- Sets foundation for Phase 2 improvements (generator, templates, validation)
+
+**Files Modified:**
+- `assets/TodaysTasks.omnifocusjs/Resources/showTodaysTasks.js`
+- `libraries/omni/taskMetrics.js`
+- `libraries/omni/patterns.js`
+- `IMPROVEMENT_PLAN.md` (this file - version history update)
+
+**Status:** Phase 1 Complete ✅
+**Next Steps:** Phase 2 (Quick Path - plugin generator), Phase 3 (Validation & Discoverability), Phase 4 (Documentation Polish)
+
+---
 
 ### v3.2.0 - API Documentation & Code Generation Validation (2025-12-31)
 

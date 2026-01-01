@@ -67,7 +67,7 @@
                 const metrics = this.plugIn.library("taskMetrics");
                 const insights = this.plugIn.library("insightPatterns");
 
-                const insightResult = insights.generateInsights(Document.defaultDocument, {
+                const insightResult = insights.generateInsights({
                     patterns: config.patterns
                 });
 
@@ -331,7 +331,7 @@
                 };
 
                 // Step 2: Run insight analysis
-                const insightResult = insights.generateInsights(Document.defaultDocument);
+                const insightResult = insights.generateInsights();
 
                 // Step 3: Generate period-specific actions
                 const actions = this.generateReviewActions(config.period, taskGroups, insightResult);
@@ -401,7 +401,7 @@
                 );
 
                 // Run detection
-                const result = insights.generateInsights(Document.defaultDocument, {
+                const result = insights.generateInsights({
                     patterns: libraryPatterns
                 });
 
@@ -594,7 +594,7 @@
          * @private
          */
         lib.findTaskByName = function(name) {
-            const tasks = Document.defaultDocument.flattenedTasks;
+            const tasks = flattenedTasks;
             return tasks.find(t => t.name === name);
         };
 
@@ -603,8 +603,7 @@
          * @private
          */
         lib.findOrCreateTag = function(tagName) {
-            const doc = Document.defaultDocument;
-            let tag = doc.flattenedTags.find(t => t.name === tagName);
+            let tag = flattenedTags.find(t => t.name === tagName);
 
             if (!tag) {
                 const app = Application('OmniFocus');

@@ -29,8 +29,7 @@
          * @returns {Array} Array of task objects with normalized data
          */
         lib.getTodayTasks = function() {
-            const doc = Document.defaultDocument;
-            const tasks = doc.flattenedTasks;
+            const tasks = flattenedTasks;
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -57,8 +56,7 @@
          * @returns {Array} Array of overdue task objects
          */
         lib.getOverdueTasks = function() {
-            const doc = Document.defaultDocument;
-            const tasks = doc.flattenedTasks;
+            const tasks = flattenedTasks;
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -78,8 +76,7 @@
          * @returns {Array} Array of upcoming task objects
          */
         lib.getUpcomingTasks = function(days = 7) {
-            const doc = Document.defaultDocument;
-            const tasks = doc.flattenedTasks;
+            const tasks = flattenedTasks;
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -100,8 +97,7 @@
          * @returns {Array} Array of flagged task objects
          */
         lib.getFlaggedTasks = function() {
-            const doc = Document.defaultDocument;
-            const tasks = doc.flattenedTasks;
+            const tasks = flattenedTasks;
 
             const flaggedTasks = tasks.filter(task => {
                 return task.flagged && !task.completed && !task.dropped;
@@ -115,8 +111,7 @@
          * @returns {Array} Array of available task objects
          */
         lib.getAvailableTasks = function() {
-            const doc = Document.defaultDocument;
-            const tasks = doc.flattenedTasks;
+            const tasks = flattenedTasks;
 
             const availableTasks = tasks.filter(task => {
                 if (task.completed || task.dropped) return false;
@@ -132,8 +127,7 @@
          * @returns {Array} Array of tasks with the specified tag
          */
         lib.getTasksByTag = function(tagName) {
-            const doc = Document.defaultDocument;
-            const tasks = doc.flattenedTasks;
+            const tasks = flattenedTasks;
 
             const filtered = tasks.filter(task => {
                 if (task.completed || task.dropped) return false;
@@ -149,8 +143,7 @@
          * @returns {Array} Array of tasks in the specified project
          */
         lib.getTasksByProject = function(projectName) {
-            const doc = Document.defaultDocument;
-            const tasks = doc.flattenedTasks;
+            const tasks = flattenedTasks;
 
             const filtered = tasks.filter(task => {
                 if (task.completed || task.dropped) return false;
@@ -165,8 +158,7 @@
          * @returns {Object} Summary statistics object
          */
         lib.getSummaryStats = function() {
-            const doc = Document.defaultDocument;
-            const tasks = doc.flattenedTasks;
+            const tasks = flattenedTasks;
 
             const stats = {
                 total: tasks.length,
