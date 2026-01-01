@@ -68,6 +68,15 @@ osascript -l JavaScript scripts/manage_omnifocus.js create \
 
 ### 2. Create or Modify Plugins
 
+> ⚠️ **CRITICAL: Plugin Code Generation**
+>
+> **BEFORE generating ANY plugin code:**
+> 1. Read `references/code_generation_validation.md` - MANDATORY pre-generation checklist
+> 2. Verify APIs in `references/api_quick_reference.md` - Prevent hallucinated APIs
+> 3. Use templates or generator - Avoid manual coding when possible
+>
+> **Generator automatically validates with eslint_d. Manual code MUST be validated.**
+
 **New to plugins? Start here:**
 → **[Plugin Quickstart](references/quickstarts/plugin_quickstart.md)** - 5-minute tutorial
 
@@ -389,6 +398,7 @@ const tasks = metrics.getTodayTasks();
 
 ### API References
 
+- **[API Quick Reference](references/api_quick_reference.md)** - ⭐ Essential API patterns and anti-patterns
 - [OmniFocus API](references/OmniFocus-API.md) - Complete API specification
 - [Shared Classes](references/omni_automation_shared.md) - Alert, Form, FileSaver, etc.
 - [Database Schema](references/database_schema.md) - SQLite structure

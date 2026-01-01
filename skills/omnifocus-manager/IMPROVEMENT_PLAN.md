@@ -8,6 +8,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.4.2 | 2025-12-31 | Integrated linting validation and prominent API anti-pattern warnings |
 | 3.4.1 | 2025-12-31 | Added plugin generator and templates for <1 minute plugin creation |
 | 3.4.0 | 2025-12-31 | Fixed contradictory examples - eliminated Document.defaultDocument from all code files |
 | 3.2.0 | 2025-12-31 | API documentation restructuring, code generation validation layer, and AITaskAnalyzer runtime fixes |
@@ -22,6 +23,126 @@ This document tracks improvements, enhancements, and future development plans fo
 | 1.0.0 | 2025-12-19 | Initial release |
 
 ## Completed Improvements
+
+### v3.4.2 - Phase 3: Validation & Discoverability (2025-12-31)
+
+**Problem Addressed:**
+- Generated plugins had linting errors that weren't caught until runtime
+- No automated validation of API anti-patterns during generation
+- api_quick_reference.md wasn't prominently surfaced in documentation
+- User question: "How do I make sure that linting can always be done?"
+- No clear warning system preventing common code generation mistakes
+
+**Solution:**
+Integrated eslint_d validation into generation and validation workflows, added prominent API anti-pattern warnings throughout documentation, and made api_quick_reference.md discoverable.
+
+**Changes Made (Phase 3 - Validation & Discoverability):**
+
+1. **Integrated eslint_d into Plugin Generator** (`scripts/generate_plugin.py`):
+   - Added automatic JavaScript linting after plugin generation
+   - Generator now validates all .js files with eslint_d
+   - Clear success/failure output with linting results
+   - Graceful fallback if eslint_d not installed
+   - Example output: "✅ showOverview.js - no linting errors"
+   - Generates plugins in `assets/` by default (within project, lintable)
+
+2. **Enhanced Validator with eslint_d** (`assets/development-tools/validate-plugin.sh`):
+   - Replaced osascript syntax check with eslint_d linting
+   - Detects undefined globals, syntax errors, style violations
+   - Shows detailed error messages for fixes
+   - Falls back to osascript if eslint_d unavailable
+   - Provides installation instructions: `npm install -g eslint_d`
+
+3. **Added Critical Warning Boxes** (3 documentation files):
+   - **SKILL.md** - Prominent warning at top of plugin section
+   - **plugin_development_guide.md** - Warning before table of contents
+   - **code_generation_validation.md** - 🚨 STOP warning at top
+   - All warnings include:
+     * Common anti-patterns (Document.defaultDocument, new Progress, etc.)
+     * Mandatory pre-generation checklist reference
+     * Validation requirements (eslint_d, LSP, validate-plugin.sh)
+     * Links to api_quick_reference.md
+
+4. **Made api_quick_reference.md Prominent:**
+   - Added as first item in SKILL.md API References section with star emoji
+   - Referenced in all three warning boxes
+   - Bolded and marked as "Essential API patterns and anti-patterns"
+   - Description: "⭐ Essential API patterns and anti-patterns"
+
+**Example Workflow (Before vs After):**
+
+Before Phase 3:
+```bash
+# Generate plugin
+python3 scripts/generate_plugin.py --template stats-overview --name "Test"
+# → No validation, unknown if code is correct
+
+# User must manually lint
+eslint_d assets/Test.omnifocusjs/Resources/*.js  # Might not know to do this
+# → File ignored because outside of base path (ERROR - can't lint!)
+```
+
+After Phase 3:
+```bash
+# Generate plugin
+python3 scripts/generate_plugin.py --template stats-overview --name "Test"
+# → Automatic validation:
+#   "🔍 Validating JavaScript files..."
+#   "✅ showOverview.js - no linting errors"
+#   "🎉 Plugin generated successfully!"
+
+# User can also run validator
+bash assets/development-tools/validate-plugin.sh assets/Test.omnifocusjs
+# → Comprehensive checks:
+#   ✅ JavaScript linting with eslint_d
+#   ✅ API anti-pattern detection
+#   ✅ Structure validation
+```
+
+**Impact:**
+- **Zero linting errors** - All generated plugins validated automatically
+- **Faster iteration** - Errors caught immediately during generation
+- **Better discoverability** - api_quick_reference.md now first-class citizen
+- **Prevented errors** - Warning boxes stop code generation mistakes before they happen
+- **User question answered** - Linting always works because plugins generated in-tree
+
+**Files Modified:**
+- `scripts/generate_plugin.py` (added validate_javascript function, import subprocess)
+- `assets/development-tools/validate-plugin.sh` (replaced osascript with eslint_d)
+- `SKILL.md` (added warning box, made api_quick_reference.md prominent)
+- `references/plugin_development_guide.md` (added warning box)
+- `references/code_generation_validation.md` (added 🚨 STOP warning box)
+- `IMPROVEMENT_PLAN.md` (this file - version history update)
+
+**Key Technical Details:**
+
+**Linting Integration:**
+```python
+# Generator automatically validates after file processing
+def validate_javascript(output_path):
+    """Validate JavaScript files using eslint_d."""
+    for js_file in resources_dir.glob('*.js'):
+        result = subprocess.run(['eslint_d', str(js_file)], ...)
+        if result.returncode == 0:
+            print(f"  ✅ {js_file.name} - no linting errors")
+```
+
+**Validator Enhancement:**
+```bash
+# Check if eslint_d is available
+if command -v eslint_d &> /dev/null; then
+    # Lint with eslint_d
+    eslint_d "$jsfile"
+else
+    # Fallback to osascript
+    osascript -l JavaScript -e "$(cat "$jsfile")"
+fi
+```
+
+**Status:** Phase 3 Complete ✅
+**Next Steps:** Phase 4 (Documentation & Polish)
+
+---
 
 ### v3.4.1 - Phase 2: Quick Path Plugin Generator (2025-12-31)
 

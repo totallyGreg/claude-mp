@@ -8,6 +8,7 @@ Quickly create plugin bundles from templates with correct API patterns.
 import argparse
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -63,6 +64,52 @@ def camel_case(text):
     if not words:
         return ''
     return words[0].lower() + ''.join(word.capitalize() for word in words[1:])
+
+def validate_javascript(output_path):
+    """Validate JavaScript files using eslint_d."""
+    print(f"\n🔍 Validating JavaScript files...")
+
+    resources_dir = output_path / 'Resources'
+    if not resources_dir.exists():
+        return True
+
+    js_files = list(resources_dir.glob('*.js'))
+    if not js_files:
+        return True
+
+    errors = 0
+    for js_file in js_files:
+        try:
+            result = subprocess.run(
+                ['eslint_d', str(js_file)],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if result.returncode == 0:
+                print(f"  ✅ {js_file.name} - no linting errors")
+            else:
+                print(f"  ⚠️  {js_file.name} - linting issues found:")
+                print(result.stdout)
+                errors += 1
+        except subprocess.TimeoutExpired:
+            print(f"  ⚠️  {js_file.name} - validation timeout")
+            errors += 1
+        except FileNotFoundError:
+            print(f"  ℹ️  eslint_d not found - skipping validation")
+            print(f"     Install with: npm install -g eslint_d")
+            return True
+        except Exception as e:
+            print(f"  ⚠️  {js_file.name} - validation error: {e}")
+            errors += 1
+
+    if errors > 0:
+        print(f"\n⚠️  Found linting issues in {errors} file(s)")
+        print(f"   Run: eslint_d {output_path}/Resources/*.js")
+        return False
+
+    return True
 
 def generate_plugin(template, name, identifier=None, author=None, description=None, output_dir=None):
     """Generate a plugin from a template."""
@@ -139,13 +186,27 @@ def generate_plugin(template, name, identifier=None, author=None, description=No
                 continue
 
             file_path = Path(root_dir) / file
+
+            # Rename action.js to match ACTION_ID
+            if file == 'action.js' and 'Resources' in root_dir:
+                new_name = f"{action_id}.js"
+                new_path = Path(root_dir) / new_name
+                os.rename(file_path, new_path)
+                file_path = new_path
+                print(f"  → Renamed action.js to {new_name}")
+
             if process_file(file_path, variables):
                 processed += 1
 
     print(f"✅ Processed {processed} files")
 
-    # Success message
-    print(f"\n🎉 Plugin generated successfully!")
+    # Validate JavaScript files
+    if not validate_javascript(output_path):
+        print(f"\n⚠️  Plugin generated with linting warnings")
+        print(f"   Fix issues before installing to OmniFocus")
+    else:
+        # Success message
+        print(f"\n🎉 Plugin generated successfully!")
     print(f"\n📦 Installation:")
     print(f"   cp -r {output_path} ~/Library/Application\\ Scripts/com.omnigroup.OmniFocus3/Plug-Ins/")
     print(f"\n🧪 Testing:")

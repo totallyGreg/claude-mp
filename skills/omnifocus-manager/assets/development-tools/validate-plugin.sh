@@ -182,27 +182,106 @@ if [ $ARTIFACTS_FOUND -eq 0 ]; then
     echo -e "${GREEN}  ✅ No development artifacts found${NC}"
 fi
 
-# Check for basic JavaScript syntax errors in action files (basic check)
+# Check JavaScript files with eslint_d (if available)
 echo ""
-echo "✓ Checking JavaScript files for basic syntax..."
-JS_ERRORS=0
+echo "✓ Checking JavaScript files with linter..."
+
+# Check if eslint_d is available
+if command -v eslint_d &> /dev/null; then
+    JS_ERRORS=0
+
+    for jsfile in "$PLUGIN_PATH/Resources"/*.js; do
+        if [ -f "$jsfile" ]; then
+            filename=$(basename "$jsfile")
+
+            # Lint with eslint_d
+            if eslint_d "$jsfile" > /dev/null 2>&1; then
+                echo -e "${GREEN}  ✅ ${filename} - no linting errors${NC}"
+            else
+                echo -e "${RED}  ❌ ${filename} - linting errors detected${NC}"
+                eslint_d "$jsfile"
+                JS_ERRORS=1
+            fi
+        fi
+    done
+
+    if [ $JS_ERRORS -eq 1 ]; then
+        echo -e "${RED}  ❌ JavaScript linting errors found${NC}"
+        exit 1
+    fi
+else
+    echo -e "${YELLOW}  ⚠️  eslint_d not found - skipping lint check${NC}"
+    echo -e "  ℹ️  Install with: npm install -g eslint_d"
+    echo -e "  ℹ️  Falling back to basic syntax check..."
+
+    # Fallback to osascript for basic syntax check
+    JS_ERRORS=0
+    for jsfile in "$PLUGIN_PATH/Resources"/*.js; do
+        if [ -f "$jsfile" ]; then
+            filename=$(basename "$jsfile")
+
+            if osascript -l JavaScript -e "$(cat "$jsfile")" > /dev/null 2>&1; then
+                echo -e "${GREEN}  ✅ ${filename} - no syntax errors${NC}"
+            else
+                echo -e "${RED}  ❌ ${filename} - syntax errors detected${NC}"
+                JS_ERRORS=1
+            fi
+        fi
+    done
+
+    if [ $JS_ERRORS -eq 1 ]; then
+        echo -e "${RED}  ❌ JavaScript syntax errors found${NC}"
+        exit 1
+    fi
+fi
+
+# Check for API anti-patterns
+echo ""
+echo "✓ Checking for API anti-patterns..."
+API_ERRORS=0
 
 for jsfile in "$PLUGIN_PATH/Resources"/*.js; do
     if [ -f "$jsfile" ]; then
         filename=$(basename "$jsfile")
 
-        # Basic syntax check using osascript
-        if osascript -l JavaScript -e "$(cat "$jsfile")" > /dev/null 2>&1; then
-            echo -e "${GREEN}  ✅ ${filename} - no syntax errors${NC}"
-        else
-            echo -e "${RED}  ❌ ${filename} - syntax errors detected${NC}"
-            JS_ERRORS=1
+        # Check for Document.defaultDocument (should use global variables instead)
+        if grep -q "Document\.defaultDocument" "$jsfile"; then
+            echo -e "${RED}  ❌ ${filename} - uses Document.defaultDocument (use global variables: flattenedTasks, flattenedProjects, etc.)${NC}"
+            API_ERRORS=1
+        fi
+
+        # Check for hallucinated Progress class
+        if grep -q "new Progress" "$jsfile"; then
+            echo -e "${RED}  ❌ ${filename} - uses non-existent Progress class${NC}"
+            API_ERRORS=1
+        fi
+
+        # Check for FileType.fromExtension (doesn't exist)
+        if grep -q "FileType\.fromExtension" "$jsfile"; then
+            echo -e "${RED}  ❌ ${filename} - uses non-existent FileType.fromExtension()${NC}"
+            API_ERRORS=1
+        fi
+
+        # Check for wrong LanguageModel.Schema constructor
+        if grep -q "new LanguageModel\.Schema" "$jsfile"; then
+            echo -e "${RED}  ❌ ${filename} - uses wrong LanguageModel.Schema constructor (use LanguageModel.Schema.fromJSON())${NC}"
+            API_ERRORS=1
         fi
     fi
 done
 
-if [ $JS_ERRORS -eq 1 ]; then
-    echo -e "${RED}  ❌ JavaScript syntax errors found${NC}"
+if [ $API_ERRORS -eq 0 ]; then
+    echo -e "${GREEN}  ✅ No API anti-patterns detected${NC}"
+else
+    echo -e "${RED}  ❌ API anti-patterns found - see errors above${NC}"
+    echo ""
+    echo "Common fixes:"
+    echo "  • Document.defaultDocument → use global variables (flattenedTasks, flattenedProjects, etc.)"
+    echo "  • Progress → class doesn't exist, remove"
+    echo "  • FileType.fromExtension() → doesn't exist, use url.write() instead"
+    echo "  • new LanguageModel.Schema() → use LanguageModel.Schema.fromJSON()"
+    echo ""
+    echo "See: references/api_quick_reference.md for correct API patterns"
     exit 1
 fi
 

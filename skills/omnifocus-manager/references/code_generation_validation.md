@@ -5,6 +5,25 @@
 **Last Updated:** 2025-12-31
 **Target:** AI code generation for OmniFocus Omni Automation
 
+> 🚨 **STOP: READ THIS BEFORE GENERATING ANY CODE**
+>
+> **Failure to follow this guide results in broken plugins that won't run in OmniFocus.**
+>
+> This document is MANDATORY reading before generating plugin code. The checklist below is not optional.
+> Every checkbox must be completed BEFORE writing code. Skipping steps leads to:
+> - Runtime errors ("undefined is not an object")
+> - Hallucinated APIs that don't exist
+> - Constructor errors and type mismatches
+> - Plugins that fail to load
+>
+> **After reading this document:**
+> 1. Complete the MANDATORY Pre-Generation Checklist below
+> 2. Verify EVERY API in `api_quick_reference.md`
+> 3. Run `eslint_d` and LSP validation (zero tolerance for errors)
+> 4. Run `bash ../assets/development-tools/validate-plugin.sh <plugin-path>`
+>
+> **Do NOT proceed without completing the checklist.**
+
 ---
 
 ## ⚠️ MANDATORY Pre-Generation Checklist

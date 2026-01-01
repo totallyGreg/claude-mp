@@ -2,6 +2,28 @@
 
 Complete guide to creating, distributing, and maintaining OmniFocus plugins using the modular library system.
 
+> ⚠️ **CRITICAL: Plugin Code Generation Rules**
+>
+> Before generating ANY plugin code, you MUST:
+> 1. **Read `code_generation_validation.md`** - Complete MANDATORY pre-generation checklist
+> 2. **Use global variables** - `flattenedTasks`, `flattenedProjects`, `folders`, `flattenedTags`, `inbox`
+> 3. **NEVER use `Document.defaultDocument`** - This API doesn't exist in Omni Automation
+> 4. **Verify ALL APIs in `api_quick_reference.md`** - No hallucinated APIs
+> 5. **Run eslint_d validation** - Zero tolerance for linting errors
+>
+> **Common anti-patterns to avoid:**
+> - ❌ `Document.defaultDocument` → ✅ Use global variables
+> - ❌ `new Progress()` → ✅ Class doesn't exist
+> - ❌ `FileType.fromExtension()` → ✅ Method doesn't exist
+> - ❌ `new LanguageModel.Schema()` → ✅ Use `LanguageModel.Schema.fromJSON()`
+>
+> **After code generation:**
+> - Run `eslint_d` on all .js files (must return zero errors)
+> - Use vtsls LSP for semantic validation
+> - Run `bash ../assets/development-tools/validate-plugin.sh <plugin-path>`
+>
+> **See:** [Code Generation Validation Guide](code_generation_validation.md) for complete workflow
+
 ## Table of Contents
 
 1. [Quick Start](#quick-start)
