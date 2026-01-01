@@ -1,0 +1,19 @@
+{
+  "identifier": "{{IDENTIFIER}}",
+  "version": "1.0.0",
+  "author": "{{AUTHOR}}",
+  "description": "{{DESCRIPTION}}",
+  "label": "{{PLUGIN_NAME}}",
+  "mediumLabel": "Database Overview",
+  "paletteLabel": "{{PLUGIN_NAME}}",
+  "image": "chart.bar.xaxis",
+  "actions": [
+    {
+      "identifier": "showOverview",
+      "label": "Show Database Overview",
+      "mediumLabel": "Show Overview",
+      "paletteLabel": "Overview",
+      "image": "chart.bar.xaxis"
+    }
+  ]
+}

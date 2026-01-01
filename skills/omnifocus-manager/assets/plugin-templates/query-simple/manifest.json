@@ -1,0 +1,19 @@
+{
+  "identifier": "{{IDENTIFIER}}",
+  "version": "1.0.0",
+  "author": "{{AUTHOR}}",
+  "description": "{{DESCRIPTION}}",
+  "label": "{{PLUGIN_NAME}}",
+  "mediumLabel": "{{PLUGIN_NAME}}",
+  "paletteLabel": "{{PLUGIN_NAME}}",
+  "image": "{{ICON}}",
+  "actions": [
+    {
+      "identifier": "{{ACTION_ID}}",
+      "label": "{{ACTION_LABEL}}",
+      "mediumLabel": "{{ACTION_LABEL}}",
+      "paletteLabel": "{{ACTION_LABEL}}",
+      "image": "{{ICON}}"
+    }
+  ]
+}

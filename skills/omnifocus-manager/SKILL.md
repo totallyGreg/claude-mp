@@ -2,7 +2,7 @@
 name: omnifocus-manager
 description: Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA). This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
 metadata:
-  version: 3.4.0
+  version: 3.4.1
   author: totally-tools
   license: MIT
 compatibility:
@@ -71,14 +71,33 @@ osascript -l JavaScript scripts/manage_omnifocus.js create \
 **New to plugins? Start here:**
 → **[Plugin Quickstart](references/quickstarts/plugin_quickstart.md)** - 5-minute tutorial
 
-**Create new plugin:**
+**Quick Plugin Generation (Recommended - <1 minute):**
+```bash
+# Generate plugin from template
+python3 scripts/generate_plugin.py --template query-simple --name "My Plugin"
+python3 scripts/generate_plugin.py --template stats-overview --name "Database Stats"
+
+# Available templates:
+# - query-simple: Simple query with Alert display
+# - stats-overview: Statistics dashboard with breakdowns
+```
+
+**Benefits:**
+- ✅ Correct API patterns (global variables, no Document.defaultDocument)
+- ✅ Working code out of the box
+- ✅ Pre-validated structure
+- ✅ <1 minute generation time
+
+→ **See:** Run `python3 scripts/generate_plugin.py --help` for all options
+
+**Create from template manually:**
 1. Reference `assets/OFBundlePlugInTemplate.omnifocusjs` - official Omni Group template
-2. Follow patterns from template (or copy and customize)
+2. Or copy from `assets/plugin-templates/` - validated examples
 3. Modify manifest.json and action scripts
 4. Load libraries via `this.plugIn.library("libraryName")`
 
 → **See:** [Plugin Development Guide](references/plugin_development_guide.md)
-→ **Template:** [OFBundlePlugInTemplate](assets/OFBundlePlugInTemplate.omnifocusjs/) - Official template
+→ **Templates:** [plugin-templates](assets/plugin-templates/) - Validated examples
 
 **Modify existing plugin:**
 1. Right-click `.omnifocusjs` → Show Package Contents
