@@ -224,10 +224,9 @@ Provide concise insights on:
         }
     });
 
-    // Only enable if Apple Foundation Models is available
+    // Require macOS 26+ for Apple Foundation Models
     action.validate = function(selection, sender) {
-        const fmUtils = this.plugIn.library("foundationModelsUtils");
-        return fmUtils.validateActionAvailability();
+        return (Device.current.operatingSystemVersion.atLeast(new Version("26")));
     };
 
     return action;

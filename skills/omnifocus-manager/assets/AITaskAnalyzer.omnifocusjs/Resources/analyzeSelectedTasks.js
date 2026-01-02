@@ -234,11 +234,10 @@ Be specific and practical in your suggestions.`;
 		});
 	}
 
-	// Validation - require tasks selected AND LanguageModel available
+	// Require tasks selected AND macOS 26+ for Apple Foundation Models
 	action.validate = function(selection, sender) {
-		// Enable when at least one task is selected AND LanguageModel is available
-		const fmUtils = this.plugIn.library("foundationModelsUtils");
-		return (selection.tasks.length > 0) && fmUtils.validateActionAvailability();
+		return (selection.tasks.length > 0) &&
+			(Device.current.operatingSystemVersion.atLeast(new Version("26")));
 	};
 
 	return action;

@@ -8,6 +8,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.5.0 | 2026-01-02 | Comprehensive plugin generation: all formats (solitary/bundle), localization, Version("26") validation |
 | 3.4.2 | 2025-12-31 | Integrated linting validation and prominent API anti-pattern warnings |
 | 3.4.1 | 2025-12-31 | Added plugin generator and templates for <1 minute plugin creation |
 | 3.4.0 | 2025-12-31 | Fixed contradictory examples - eliminated Document.defaultDocument from all code files |
@@ -23,6 +24,93 @@ This document tracks improvements, enhancements, and future development plans fo
 | 1.0.0 | 2025-12-19 | Initial release |
 
 ## Completed Improvements
+
+### v3.5.0 - Comprehensive Plugin Generation (2026-01-02)
+
+**Problems Addressed:**
+1. Plugin names/labels showing as identifiers in Automation menu (missing localization)
+2. No action.validate for Foundation Models OS version checking
+3. Only bundle format supported; no solitary (single-file) plugin generation
+4. Missing documentation for cross-plugin calling, sender parameters, and preferences
+5. Templates lacked localization (en.lproj) structure
+
+**Solution:**
+Complete rewrite of plugin generation supporting all Omni Automation formats with intelligent format selection, proper localization, and comprehensive documentation.
+
+**Changes Made:**
+
+1. **Solitary Plugin Templates** (new):
+   - `assets/plugin-templates/solitary-action/` - Single-file action plugin
+   - `assets/plugin-templates/solitary-action-fm/` - Foundation Models action with Version("26") validation
+   - `assets/plugin-templates/solitary-library/` - Single-file library plugin
+   - All use comment-block metadata format: `/*{ "type": "action", ... }*/`
+
+2. **Bundle Template Localization** (fix for menu labels):
+   - Added `Resources/en.lproj/` to query-simple and stats-overview templates
+   - Created `manifest.strings` for plugin display name
+   - Created action `.strings` files for action labels
+   - Added `defaultLocale: "en"` to manifest.json
+   - Removed inline labels from manifest (now come from .strings)
+
+3. **AITaskAnalyzer Plugin Fixes**:
+   - Added `Resources/en.lproj/` with all localization files
+   - Updated `manifest.json` with `defaultLocale: "en"`, removed inline labels
+   - Updated all three action files with `action.validate` using `Version("26")`
+   - Bumped version to 3.1.0
+
+4. **New Reference Documentation**:
+   - Created `references/omni_plugin_patterns.md` (~400 lines)
+   - Covers: Cross-plugin calling, sender parameters, preferences API
+   - Includes: Localization, validation patterns, format selection guide
+   - Links to official Omni Automation documentation
+
+5. **Generator Script Rewrite** (`scripts/generate_plugin.py`):
+   - New `--format` parameter: solitary, solitary-fm, solitary-library, bundle
+   - Solitary formats generate single `.omnijs` file
+   - Bundle formats generate folder with localization
+   - Auto-generates all label variants (short, medium, long, palette)
+   - Renames action.strings along with action.js
+   - Updated help text with comprehensive examples
+
+**Plugin Format Selection Guide:**
+| Use Case | Format | Why |
+|----------|--------|-----|
+| Quick automation | solitary | Single file, easy to share |
+| Foundation Models | solitary-fm | Includes Version("26") validation |
+| Utility functions | solitary-library | Reusable across plugins |
+| Multiple actions | bundle | Organized, shared libraries |
+| Needs localization | bundle | Only bundles support .lproj |
+
+**Example Usage:**
+```bash
+# Simple single-file plugin
+python3 scripts/generate_plugin.py --format solitary --name "Quick Task Count"
+
+# Foundation Models plugin with OS validation
+python3 scripts/generate_plugin.py --format solitary-fm --name "AI Analyzer"
+
+# Library for reuse
+python3 scripts/generate_plugin.py --format solitary-library --name "My Utils"
+
+# Bundle with localization
+python3 scripts/generate_plugin.py --format bundle --template query-simple --name "My Plugin"
+```
+
+**Files Changed:**
+- `assets/plugin-templates/solitary-action/action.omnijs.template` (new)
+- `assets/plugin-templates/solitary-action-fm/action.omnijs.template` (new)
+- `assets/plugin-templates/solitary-library/library.omnijs.template` (new)
+- `assets/plugin-templates/query-simple/manifest.json` (modified)
+- `assets/plugin-templates/query-simple/Resources/en.lproj/*` (new)
+- `assets/plugin-templates/stats-overview/manifest.json` (modified)
+- `assets/plugin-templates/stats-overview/Resources/en.lproj/*` (new)
+- `assets/AITaskAnalyzer.omnifocusjs/manifest.json` (modified)
+- `assets/AITaskAnalyzer.omnifocusjs/Resources/en.lproj/*` (new)
+- `assets/AITaskAnalyzer.omnifocusjs/Resources/*.js` (modified - validate)
+- `scripts/generate_plugin.py` (rewritten)
+- `references/omni_plugin_patterns.md` (new)
+
+---
 
 ### v3.4.2 - Phase 3: Validation & Discoverability (2025-12-31)
 

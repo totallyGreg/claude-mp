@@ -1,0 +1,5 @@
+"label" = "{{ACTION_LABEL}}";
+"shortLabel" = "{{SHORT_LABEL}}";
+"mediumLabel" = "{{MEDIUM_LABEL}}";
+"longLabel" = "{{LONG_LABEL}}";
+"paletteLabel" = "{{PALETTE_LABEL}}";

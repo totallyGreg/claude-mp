@@ -1,0 +1,41 @@
+/*{
+	"type": "action",
+	"targets": ["omnifocus"],
+	"author": "{{AUTHOR}}",
+	"identifier": "{{IDENTIFIER}}",
+	"version": "1.0",
+	"description": "{{DESCRIPTION}}",
+	"label": "{{PLUGIN_NAME}}",
+	"shortLabel": "{{SHORT_LABEL}}",
+	"mediumLabel": "{{MEDIUM_LABEL}}",
+	"paletteLabel": "{{PALETTE_LABEL}}",
+	"image": "{{ICON}}"
+}*/
+(() => {
+	const action = new PlugIn.Action(function(selection, sender) {
+		try {
+			// Get tasks using global variable (NOT Document.defaultDocument)
+			const tasks = flattenedTasks.filter(task => {
+				return !task.completed && !task.dropped;
+			});
+
+			// Build summary message
+			const message = `Found ${tasks.length} active tasks.`;
+
+			// Display result
+			const alert = new Alert("{{PLUGIN_NAME}}", message);
+			alert.show();
+
+		} catch (error) {
+			const alert = new Alert("Error", error.message);
+			alert.show();
+		}
+	});
+
+	action.validate = function(selection, sender) {
+		// Return true to enable action, false to disable (gray out)
+		return true;
+	};
+
+	return action;
+})();
