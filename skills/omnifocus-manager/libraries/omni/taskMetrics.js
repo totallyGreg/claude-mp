@@ -21,8 +21,7 @@
  */
 
 (() => {
-    const taskMetrics = new PlugIn.Library(function() {
-        const lib = this;
+    var lib = new PlugIn.Library(new Version("1.0"));
 
         /**
          * Get tasks due or deferred to today
@@ -46,7 +45,7 @@
                 const isDeferredToday = defer && defer >= today && defer < tomorrow;
 
                 return isDueToday || isDeferredToday;
-            });
+            
 
             return todayTasks.map(task => this.normalizeTask(task));
         };
@@ -65,7 +64,7 @@
                 if (task.completed || task.dropped) return false;
                 const due = task.dueDate;
                 return due && due < today;
-            });
+            
 
             return overdueTasks.map(task => this.normalizeTask(task));
         };
@@ -87,7 +86,7 @@
                 if (task.completed || task.dropped) return false;
                 const due = task.dueDate;
                 return due && due >= today && due < futureDate;
-            });
+            
 
             return upcomingTasks.map(task => this.normalizeTask(task));
         };
@@ -101,7 +100,7 @@
 
             const flaggedTasks = tasks.filter(task => {
                 return task.flagged && !task.completed && !task.dropped;
-            });
+            
 
             return flaggedTasks.map(task => this.normalizeTask(task));
         };
@@ -116,7 +115,7 @@
             const availableTasks = tasks.filter(task => {
                 if (task.completed || task.dropped) return false;
                 return task.taskStatus === Task.Status.Available;
-            });
+            
 
             return availableTasks.map(task => this.normalizeTask(task));
         };
@@ -132,7 +131,7 @@
             const filtered = tasks.filter(task => {
                 if (task.completed || task.dropped) return false;
                 return task.tags.some(tag => tag.name === tagName);
-            });
+            
 
             return filtered.map(task => this.normalizeTask(task));
         };
@@ -148,7 +147,7 @@
             const filtered = tasks.filter(task => {
                 if (task.completed || task.dropped) return false;
                 return task.containingProject && task.containingProject.name === projectName;
-            });
+            
 
             return filtered.map(task => this.normalizeTask(task));
         };
@@ -208,7 +207,7 @@
                 if (task.containingProject) {
                     stats.uniqueProjects.add(task.containingProject.name);
                 }
-            });
+            
 
             stats.uniqueTags = Array.from(stats.uniqueTags).sort();
             stats.uniqueProjects = Array.from(stats.uniqueProjects).sort();
@@ -241,8 +240,7 @@
             };
         };
 
-        return lib;
-    });
+    
 
-    return taskMetrics;
+    return lib;
 })();

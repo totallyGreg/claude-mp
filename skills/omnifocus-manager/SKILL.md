@@ -1,6 +1,11 @@
 ---
 name: omnifocus-manager
-description: Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA). This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
+description: |
+  Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA).
+
+  WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries (taskMetrics, exportUtils, patterns) 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) CUSTOMIZE action files 6) TEST in OmniFocus. TypeScript generator validates during generation. Manual creation creates broken plugins.
+
+  This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
 metadata:
   version: 4.0.0
   author: totally-tools
@@ -35,9 +40,149 @@ This skill provides **execution-first architecture** for OmniFocus automation wi
 
 ---
 
+## ⚠️ MANDATORY PLUGIN GENERATION WORKFLOW
+
+When user requests plugin creation, follow these steps:
+
+### WORKFLOW (DO NOT SKIP):
+
+**1. CLASSIFY REQUEST**
+→ Use REQUEST CLASSIFICATION section
+→ Confirm: ONE-TIME query OR REUSABLE plugin?
+→ If ONE-TIME, execute script and STOP
+
+**2. SELECT FORMAT**
+→ Use PLUGIN FORMAT SELECTION decision tree
+→ Determine: solitary / solitary-fm / bundle / solitary-library
+→ If bundle, select template: query-simple or stats-overview
+
+**3. CHECK LIBRARIES**
+→ Use LIBRARY COMPOSITION PRIORITY
+→ Identify existing libraries covering requirements
+→ List libraries to declare in manifest.json (bundle only)
+
+**4. INVOKE GENERATOR**
+→ **ALWAYS** use: `node scripts/generate_plugin.js`
+→ **NEVER** use Write/Edit tools to create .omnijs or .omnifocusjs files
+→ Pass correct parameters: --format, --name, (--template if bundle)
+
+**5. CUSTOMIZE (if needed)**
+→ Read generated plugin code
+→ Edit action logic to add library calls from Step 3
+
+**6. TEST**
+→ Install: `cp -r *.omnifocusjs ~/Library/Application Scripts/com.omnigroup.OmniFocus3/Plug-Ins/`
+→ Restart OmniFocus
+→ Verify plugin appears in Automation menu
+
+### WHY MANDATORY:
+
+✅ **TypeScript generator:**
+- Validates code during generation (TypeScript Compiler API)
+- Type-checks against omnifocus.d.ts
+- Zero-tolerance (refuses to generate if errors exist)
+- Bundles libraries correctly (manifest.json + Resources/)
+- Creates working plugins on first try
+
+❌ **Manual creation fails:**
+- No validation → broken code
+- Library bundling errors → missing dependencies
+- Example: Manual plugins fail to install
+
+### ⛔ NEVER:
+- ❌ Create manifest.json with Write tool
+- ❌ Create action.js files with Write tool
+- ❌ Skip TypeScript validation
+
+### ✅ ALWAYS:
+- ✅ Use `node scripts/generate_plugin.js`
+- ✅ Let generator create all files
+- ✅ Test in OmniFocus before claiming success
+
+---
+
+## 🧪 VALIDATION & QUALITY ASSURANCE
+
+### After Skill Modifications
+
+**Quick validation (structure only):**
+```bash
+python3 /Users/gregwilliams/Documents/Projects/claude-mp/skills/skillsmith/scripts/evaluate_skill.py \
+  /Users/gregwilliams/Documents/Projects/claude-mp/skills/omnifocus-manager --quick
+```
+
+**Checks:** SKILL.md frontmatter, required fields, spec compliance
+
+**When to run:** After any SKILL.md changes
+
+### Plugin Validation
+
+**Automatic during generation:**
+- TypeScript generator validates syntax and types automatically
+- No manual validation needed if using generator
+
+**Success criteria:**
+- ✅ Generator reports "TypeScript validation passed"
+- ✅ Plugin installs without errors
+- ✅ Appears in OmniFocus Automation menu
+- ✅ Executes without runtime errors
+
+---
+
 ## Quick Decision Tree
 
 **START HERE: What do you want to do?**
+
+## 🚦 REQUEST CLASSIFICATION: Query vs Plugin Creation
+
+Determine user intent BEFORE taking action:
+
+**ONE-TIME Query** (Execute existing script):
+- Keywords: "show me", "what are", "analyze", "find", "list", "tell me"
+- Examples: "Show me today's tasks" → Execute JXA script
+- Action: Use `osascript -l JavaScript scripts/manage_omnifocus.js`
+
+**REUSABLE Plugin** (Generate plugin):
+- Keywords: "create a plugin", "make a plugin", "automate", "create an action"
+- Examples: "Create a plugin to show today's tasks" → Generate plugin
+- Action: Use `node scripts/generate_plugin.js`
+
+**Decision Rule:**
+```
+IF request contains ["create a plugin", "make a plugin", "automate", "build automation"]
+THEN → Plugin Creation Workflow
+ELSE → Query Execution Workflow
+```
+
+**If ambiguous, ask user:**
+"Do you want me to:
+A) Show you this data now (one-time query), or
+B) Create a reusable plugin for future use?"
+
+---
+
+## 🔀 PLUGIN FORMAT SELECTION
+
+**Q1: How many actions?**
+- ONE action, no AI → `--format solitary`
+- ONE action, with AI → `--format solitary-fm`
+- MULTIPLE actions → `--format bundle --template query-simple`
+- LIBRARY code (no UI) → `--format solitary-library`
+
+**Format Quick Reference:**
+| Format | Use When | Command |
+|--------|----------|---------|
+| solitary | Single action, no AI | `node scripts/generate_plugin.js --format solitary --name "Name"` |
+| solitary-fm | Single action with Apple Intelligence | `node scripts/generate_plugin.js --format solitary-fm --name "Name"` |
+| bundle | Multiple actions or localization | `node scripts/generate_plugin.js --format bundle --template query-simple --name "Name"` |
+| solitary-library | Reusable library code | `node scripts/generate_plugin.js --format solitary-library --name "Name"` |
+
+**Examples:**
+- "Plugin to show flagged tasks" → solitary (1 action, no AI)
+- "AI task analyzer" → solitary-fm (1 action, needs AI)
+- "Plugin with copy and save actions" → bundle (2 actions)
+
+---
 
 ### 1. Execute OmniFocus Operations
 
@@ -251,6 +396,39 @@ python3 scripts/analyze_insights.py
 ```
 
 → **See:** [Insight Patterns Guide](references/insight_patterns.md)
+
+---
+
+## 🧩 LIBRARY COMPOSITION PRIORITY
+
+**PHILOSOPHY:** Compose from libraries BEFORE generating new code
+
+### Available Libraries (`libraries/omni/`):
+- `taskMetrics.js` - getTodayTasks, getOverdueTasks, getCompletedToday, getFlaggedTasks
+- `exportUtils.js` - toJSON, toCSV, toMarkdown, toHTML, toClipboard, toFile
+- `completedTasksFormatter.js` - formatAsMarkdown (with project grouping)
+- `patterns.js` - queryAndAnalyzeWithAI, queryAndExport, batchUpdate
+- `insightPatterns.js` - detectStalledProjects, detectWaitingForAging
+
+### Workflow:
+1. **Check libraries** - Does functionality already exist?
+2. **Declare in manifest** - Add to "libraries" array (bundle plugins only)
+3. **Use in actions** - Call via `this.plugIn.library("libName")`
+
+**Example:** "Create plugin to show completed tasks"
+- ✅ Use: `taskMetrics.getCompletedToday()` + `completedTasksFormatter.formatAsMarkdown()`
+- ❌ Don't: Generate new completion-checking code from scratch
+
+**For bundle plugins**, declare in manifest.json:
+```json
+{
+  "libraries": [
+    {"identifier": "taskMetrics"},
+    {"identifier": "completedTasksFormatter"},
+    {"identifier": "exportUtils"}
+  ]
+}
+```
 
 ---
 

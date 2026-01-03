@@ -10,19 +10,18 @@
  *
  *   // In action script:
  *   const exporter = this.plugIn.library("exportUtils");
- *   await exporter.toClipboard(data, { format: 'json' });
+ *   await exporter.toClipboard(data, { format: 'json' 
  *
  * Usage (in Omni Automation console):
  *   // Load library code and evaluate
  *   const exporter = <paste this code>;
- *   await exporter.toFile(data, { format: 'markdown' });
+ *   await exporter.toFile(data, { format: 'markdown' 
  *
  * @version 3.0.0
  */
 
 (() => {
-    const exportUtils = new PlugIn.Library(function() {
-        const lib = this;
+    var lib = new PlugIn.Library(new Version("1.0"));
 
         /**
          * Copy data to system clipboard
@@ -154,9 +153,9 @@
                 const values = headers.map(header => {
                     const value = item[header];
                     return this.formatCSVValue(value);
-                });
+                
                 rows.push(values.join(","));
-            });
+            
 
             return rows.join("\n");
         };
@@ -259,9 +258,9 @@
                     if (Array.isArray(val)) return val.join(", ");
                     if (val instanceof Date) return val.toLocaleDateString();
                     return String(val).replace(/\|/g, "\\|");
-                });
+                
                 md += "| " + values.join(" | ") + " |\n";
-            });
+            
 
             return md;
         };
@@ -309,7 +308,7 @@
             let html = "<table>\n<thead>\n<tr>\n";
             headers.forEach(h => {
                 html += `<th>${this.escapeHTML(h)}</th>\n`;
-            });
+            
             html += "</tr>\n</thead>\n<tbody>\n";
 
             data.forEach(row => {
@@ -321,9 +320,9 @@
                         : val instanceof Date ? val.toLocaleDateString()
                         : String(val);
                     html += `<td>${this.escapeHTML(formatted)}</td>\n`;
-                });
+                
                 html += "</tr>\n";
-            });
+            
 
             html += "</tbody>\n</table>";
             return html;
@@ -345,8 +344,7 @@
                 .replace(/'/g, "&#039;");
         };
 
-        return lib;
-    });
+    
 
-    return exportUtils;
+    return lib;
 })();

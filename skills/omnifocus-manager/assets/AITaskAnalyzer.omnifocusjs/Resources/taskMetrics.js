@@ -75,5 +75,36 @@
 		};
 	};
 
+	lib.getCompletedToday = function() {
+		const tasks = flattenedTasks;
+
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const tomorrow = new Date(today);
+		tomorrow.setDate(tomorrow.getDate() + 1);
+
+		const completedToday = tasks.filter(task => {
+			if (!task.completed) return false;
+			const completionDate = task.completionDate;
+			return completionDate && completionDate >= today && completionDate < tomorrow;
+		});
+
+		return completedToday.map(lib.normalizeCompletedTask.bind(lib));
+	};
+
+	lib.normalizeCompletedTask = function(task) {
+		return {
+			name: task.name,
+			project: task.containingProject ? task.containingProject.name : null,
+			completionDate: task.completionDate,
+			completionTime: task.completionDate ?
+				task.completionDate.toLocaleTimeString('en-US', {
+					hour: 'numeric',
+					minute: '2-digit',
+					hour12: true
+				}) : null
+		};
+	};
+
 	return lib;
 })();

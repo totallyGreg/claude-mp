@@ -54,6 +54,397 @@ The quickstart covers:
 
 ---
 
+## Decision Flowcharts
+
+This section provides visual flowcharts to guide your plugin creation decisions.
+
+### Level 1: Query vs Plugin Classification
+
+```
+User Request
+     ↓
+Does request contain:
+- "create a plugin"
+- "make a plugin"
+- "automate"
+- "create an action"
+     ↓
+  ┌──NO──┐        ┌──YES──┐
+  ↓              ↓
+ONE-TIME         REUSABLE
+Query            Plugin
+  ↓              ↓
+Execute JXA      Go to Level 2
+script           (Format Selection)
+  ↓
+DONE
+```
+
+**Examples:**
+- "Show me today's tasks" → ONE-TIME Query
+- "Create a plugin to show today's tasks" → REUSABLE Plugin
+
+### Level 2: Format Selection
+
+```
+Plugin Needed
+     ↓
+How many actions?
+     ↓
+  ┌──────┬──────┬──────┐
+  ↓      ↓      ↓      ↓
+ONE    ONE    MULTI  LIBRARY
+action action actions (no UI)
+no AI  +AI
+  ↓      ↓      ↓      ↓
+solitary solitary bundle solitary-
+         -fm            library
+```
+
+**Decision Table:**
+| Actions | AI? | Format | Template |
+|---------|-----|--------|----------|
+| 1 | No | solitary | N/A |
+| 1 | Yes | solitary-fm | N/A |
+| 2+ | Any | bundle | query-simple or stats-overview |
+| 0 (lib) | N/A | solitary-library | N/A |
+
+### Level 3: Library Composition Check
+
+```
+Format Selected
+     ↓
+Check libraries/omni/
+     ↓
+Does functionality exist?
+     ↓
+  ┌──YES──┐        ┌──NO──┐
+  ↓               ↓
+Use existing      Generate
+libraries         new code
+  ↓               ↓
+Declare in        Add to
+manifest.json     template
+  ↓               ↓
+  └───────┬───────┘
+          ↓
+    Go to Level 4
+```
+
+**Available Libraries:**
+- `taskMetrics` - getTodayTasks, getOverdueTasks, getCompletedToday, getFlaggedTasks
+- `exportUtils` - toJSON, toCSV, toMarkdown, toHTML, toClipboard, toFile
+- `completedTasksFormatter` - formatAsMarkdown
+- `patterns` - queryAndAnalyzeWithAI, queryAndExport
+- `insightPatterns` - detectStalledProjects, detectWaitingForAging
+
+### Level 4: Generator Invocation
+
+```
+Libraries Identified
+     ↓
+Invoke TypeScript Generator
+     ↓
+node scripts/generate_plugin.js \
+  --format <FORMAT> \
+  --name "<NAME>" \
+  [--template <TEMPLATE>]
+     ↓
+Generator validates:
+- Syntax (TypeScript Compiler API)
+- Types (against omnifocus.d.ts)
+- API correctness
+     ↓
+  ┌──FAIL──┐        ┌──PASS──┐
+  ↓                 ↓
+Fix errors         Plugin created
+Retry              ↓
+                   Customize (add library calls)
+                   ↓
+                   Test in OmniFocus
+                   ↓
+                   DONE
+```
+
+### Complete End-to-End Workflow
+
+```
+User Request
+     ↓
+[Level 1] Classify: Query or Plugin?
+     ↓
+Plugin → [Level 2] Select Format
+     ↓
+[Level 3] Check Libraries
+     ↓
+[Level 4] Invoke Generator
+     ↓
+Customize with Libraries
+     ↓
+Test & Deploy
+```
+
+---
+
+## Complete Workflow Examples
+
+This section provides step-by-step examples for common plugin creation scenarios.
+
+### Example 1: One-Time Query (NOT a Plugin)
+
+**User Request:** "Show me today's tasks"
+
+**Step 1: Classification**
+- Keywords: "show me" → ONE-TIME query
+- **Decision:** Execute script, NOT a plugin
+
+**Action:**
+```bash
+osascript -l JavaScript scripts/manage_omnifocus.js today
+```
+
+**Result:** Tasks displayed immediately, no plugin created
+
+---
+
+### Example 2: Simple Query Plugin
+
+**User Request:** "Create a plugin to show flagged tasks"
+
+**Step 1: Classification**
+- Keywords: "create a plugin" → REUSABLE plugin
+- **Decision:** Plugin creation workflow
+
+**Step 2: Format Selection**
+- Actions: 1 (show flagged tasks)
+- AI: No
+- **Decision:** `--format solitary`
+
+**Step 3: Library Composition**
+- Check `taskMetrics.js`: ✅ `getFlaggedTasks()` exists
+- **Decision:** Use existing library
+
+**Step 4: Generator Invocation**
+```bash
+node scripts/generate_plugin.js --format solitary --name "Flagged Tasks"
+```
+
+**Step 5: Customize**
+Read generated `FlaggedTasks.omnijs` and add library call:
+```javascript
+const metrics = new PlugIn.Library("taskMetrics"); // Load library
+const flagged = metrics.getFlaggedTasks();
+const alert = new Alert("Flagged Tasks", `You have ${flagged.length} flagged tasks.`);
+await alert.show();
+```
+
+**Step 6: Test**
+```bash
+cp FlaggedTasks.omnijs ~/Library/Application\ Scripts/com.omnigroup.OmniFocus3/Plug-Ins/
+```
+Restart OmniFocus, verify plugin appears in Automation menu.
+
+---
+
+### Example 3: AI Task Analyzer
+
+**User Request:** "Create an AI analyzer for my tasks"
+
+**Step 1: Classification**
+- Keywords: "create" + "AI" → REUSABLE plugin with AI
+- **Decision:** Plugin creation workflow
+
+**Step 2: Format Selection**
+- Actions: 1 (analyze tasks)
+- AI: Yes (Apple Intelligence)
+- **Decision:** `--format solitary-fm`
+
+**Step 3: Library Composition**
+- Check `patterns.js`: ✅ `queryAndAnalyzeWithAI()` exists
+- **Decision:** Use existing library
+
+**Step 4: Generator Invocation**
+```bash
+node scripts/generate_plugin.js --format solitary-fm --name "AI Task Analyzer"
+```
+
+**Step 5: Customize**
+Add library call to generated plugin:
+```javascript
+const patterns = new PlugIn.Library("patterns");
+const result = await patterns.queryAndAnalyzeWithAI({
+  query: { filter: "today" },
+  analysisType: "productivity-insights"
+});
+```
+
+**Step 6: Test**
+Requires OmniFocus 4.8+, macOS 15.2+, Apple Silicon.
+
+---
+
+### Example 4: Multiple Actions Plugin (CompletedTasksSummary - The CORRECT Way)
+
+**User Request:** "Create a plugin with copy and save actions for completed tasks"
+
+**Step 1: Classification**
+- Keywords: "create a plugin" → REUSABLE plugin
+- **Decision:** Plugin creation workflow
+
+**Step 2: Format Selection**
+- Actions: 2 (copy to clipboard + save to file)
+- AI: No
+- **Decision:** `--format bundle --template query-simple`
+
+**Step 3: Library Composition**
+- Check libraries:
+  - ✅ `taskMetrics.getCompletedToday()` - Get completed tasks
+  - ✅ `completedTasksFormatter.formatAsMarkdown()` - Format output
+  - ✅ `exportUtils.toClipboard()` and `exportUtils.toFile()` - Export
+- **Decision:** Use all three libraries
+
+**Step 4: Generator Invocation**
+```bash
+node scripts/generate_plugin.js \
+  --format bundle \
+  --template query-simple \
+  --name "Completed Tasks Summary"
+```
+
+**Step 5: Customize**
+
+**5a. Update manifest.json** to declare libraries:
+```json
+{
+  "identifier": "com.totallytools.omnifocus.completed-tasks-summary",
+  "libraries": [
+    {"identifier": "taskMetrics"},
+    {"identifier": "completedTasksFormatter"},
+    {"identifier": "exportUtils"}
+  ],
+  "actions": [
+    {"identifier": "copyToClipboard", "label": "Copy Completed Tasks to Clipboard"},
+    {"identifier": "saveToFile", "label": "Save Completed Tasks to File"}
+  ]
+}
+```
+
+**5b. Edit Resources/copyToClipboard.js:**
+```javascript
+(() => {
+  const action = new PlugIn.Action(async function(selection, sender) {
+    const metrics = this.plugIn.library("taskMetrics");
+    const formatter = this.plugIn.library("completedTasksFormatter");
+    const exporter = this.plugIn.library("exportUtils");
+
+    const tasks = metrics.getCompletedToday();
+    const markdown = formatter.formatAsMarkdown(tasks);
+    exporter.toClipboard(markdown);
+
+    const alert = new Alert("Success", "Completed tasks copied to clipboard!");
+    await alert.show();
+  });
+
+  return action;
+})();
+```
+
+**5c. Edit Resources/saveToFile.js:** (similar pattern)
+
+**Step 6: Test**
+```bash
+cp -r CompletedTasksSummary.omnifocusjs ~/Library/Application\ Scripts/com.omnigroup.OmniFocus3/Plug-Ins/
+```
+
+**Why This Works (vs Manual Creation):**
+- ✅ Generator created proper bundle structure
+- ✅ Manifest.json properly formatted
+- ✅ Localization files included automatically
+- ✅ Libraries correctly bundled
+- ✅ Plugin installs and executes successfully
+
+---
+
+### Example 5: Custom Utility Library
+
+**User Request:** "Create utility functions for date handling"
+
+**Step 1: Classification**
+- Keywords: "create" + "utility functions" → Library (no UI)
+- **Decision:** Plugin creation workflow
+
+**Step 2: Format Selection**
+- Actions: 0 (library only, no UI actions)
+- **Decision:** `--format solitary-library`
+
+**Step 3: Library Composition**
+- Check `dateUtils.js`: ❌ Need custom date utilities
+- **Decision:** Generate new library
+
+**Step 4: Generator Invocation**
+```bash
+node scripts/generate_plugin.js --format solitary-library --name "Date Utilities"
+```
+
+**Step 5: Customize**
+Add utility functions to generated library:
+```javascript
+(() => {
+  const dateUtils = new PlugIn.Library(new Version("1.0"));
+
+  dateUtils.addBusinessDays = function(date, days) {
+    // Implementation
+  };
+
+  dateUtils.getWeekNumber = function(date) {
+    // Implementation
+  };
+
+  return dateUtils;
+})();
+```
+
+**Step 6: Test**
+Install and use from other plugins via `this.plugIn.library("dateUtils")`.
+
+---
+
+## Decision Summary Table
+
+| User Intent | Classification | Format | Libraries | Generator Command |
+|-------------|----------------|--------|-----------|-------------------|
+| "Show today's tasks" | ONE-TIME | N/A | N/A | Execute JXA script |
+| "Plugin: flagged tasks" | Plugin | solitary | taskMetrics | `--format solitary` |
+| "AI analyzer" | Plugin | solitary-fm | patterns | `--format solitary-fm` |
+| "Copy/save completed" | Plugin | bundle | taskMetrics + formatter + exporter | `--format bundle --template query-simple` |
+| "Utility functions" | Plugin | solitary-library | None | `--format solitary-library` |
+
+---
+
+## Common Mistakes to Avoid
+
+**Mistake 1: Creating plugin for one-time query**
+- ❌ "Show me today's tasks" → Creating plugin
+- ✅ "Show me today's tasks" → Execute JXA script
+
+**Mistake 2: Manual plugin creation**
+- ❌ Using Write tool to create manifest.json
+- ✅ Using `node scripts/generate_plugin.js`
+
+**Mistake 3: Ignoring existing libraries**
+- ❌ Generating new code when `taskMetrics.getCompletedToday()` exists
+- ✅ Checking libraries first, composing from existing code
+
+**Mistake 4: Wrong format selection**
+- ❌ Using `solitary` for multi-action plugin
+- ✅ Using `bundle` for 2+ actions
+
+**Mistake 5: Skipping library declaration**
+- ❌ Using library without declaring in manifest.json
+- ✅ Declaring all libraries in manifest "libraries" array
+
+---
+
 ## Official Plugin Template Reference
 
 ### OFBundlePlugInTemplate.omnifocusjs

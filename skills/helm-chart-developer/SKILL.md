@@ -1,6 +1,10 @@
 ---
 name: helm-chart-developer
 description: Expert guidance for Helm chart development, testing, security, OCI registries, and Helm 4 features. Use when creating charts, implementing tests, signing charts, working with OCI registries, or migrating to Helm 4.
+metadata:
+  version: 1.0.0
+  author: totally-tools
+  license: MIT
 ---
 
 # Helm Chart Developer Skill

@@ -19,8 +19,7 @@
  */
 
 (() => {
-    const insightPatterns = new PlugIn.Library(function() {
-        const lib = this;
+    var lib = new PlugIn.Library(new Version("1.0"));
 
         /**
          * Detect projects with no available next actions
@@ -51,9 +50,9 @@
                         details: `This project has ${tasks.length} tasks but none are available to work on.`,
                         recommendation: "Add concrete next action, mark tasks as waiting, or put project On Hold",
                         project: project.name
-                    });
+                    
                 }
-            });
+            
 
             return insights;
         };
@@ -72,12 +71,12 @@
                 if (t.completed) return false;
                 const tags = t.tags;
                 return tags.some(tag => tag.name.toLowerCase().includes('waiting'));
-            });
+            
 
             const agingWaiting = waitingTasks.filter(t => {
                 const added = t.addedDate;
                 return added && added < cutoffDate;
-            });
+            
 
             if (agingWaiting.length > 0) {
                 const taskList = agingWaiting.slice(0, 5).map(t => {
@@ -92,7 +91,7 @@
                     title: `${agingWaiting.length} tasks tagged 'Waiting For' are older than 30 days`,
                     details: `Top items:\n${taskList}${agingWaiting.length > 5 ? '\n  ...' : ''}`,
                     recommendation: "Follow up on these items or re-evaluate if still blocked"
-                });
+                
             }
 
             return insights;
@@ -115,7 +114,7 @@
                     if (t.completed) return false;
                     const due = t.dueDate;
                     return due && due < now;
-                });
+                
 
                 if (overdueTasks.length >= 10) {
                     const oldestOverdue = Math.max(...overdueTasks.map(t =>
@@ -130,9 +129,9 @@
                         details: `Oldest is ${oldestOverdue} days overdue. This suggests unrealistic planning or scope issues.`,
                         recommendation: "Reschedule with realistic dates, drop low-priority tasks, or split into smaller projects",
                         project: project.name
-                    });
+                    
                 }
-            });
+            
 
             return insights;
         };
@@ -153,7 +152,7 @@
                 const oldItems = inboxTasks.filter(t => {
                     const added = t.addedDate;
                     return added && added < cutoffDate;
-                });
+                
 
                 insights.push({
                     category: "HEALTH",
@@ -162,7 +161,7 @@
                     title: `Inbox contains ${inboxTasks.length} unprocessed items`,
                     details: `${oldItems.length} items are older than 7 days. Processing is falling behind capture.`,
                     recommendation: "Schedule 15-30 minutes to process inbox to zero. Review each item and move to projects or delete."
-                });
+                
             }
 
             return insights;
@@ -179,7 +178,7 @@
                 if (t.completed) return false;
                 const project = t.containingProject;
                 return !project || project.status === Project.Status.Active;
-            });
+            
 
             const taglessTasks = activeTasks.filter(t => t.tags.length === 0);
 
@@ -193,7 +192,7 @@
                     title: `${taglessTasks.length} tasks (${percentage}%) have no tags`,
                     details: "Tasks without tags can't be filtered by context (@home, @office, @phone, etc.)",
                     recommendation: "Add context tags to enable filtering. Consider creating 'Next Actions by Context' perspective."
-                });
+                
             }
 
             return insights;
@@ -217,7 +216,7 @@
                 if (words.length > 5) { // Avoid very short patterns
                     taskNameCounts[words] = (taskNameCounts[words] || 0) + 1;
                 }
-            });
+            
 
             // Find patterns that repeat
             Object.keys(taskNameCounts).forEach(pattern => {
@@ -229,9 +228,9 @@
                         title: `Pattern detected: '${pattern}...' created ${taskNameCounts[pattern]} times`,
                         details: "Creating similar tasks repeatedly suggests template opportunity.",
                         recommendation: "Consider creating a task template plugin or repeating task for this pattern."
-                    });
+                    
                 }
-            });
+            
 
             return insights;
         };
@@ -257,7 +256,7 @@
                         title: `${flaggedTasks.length} of ${activeTasks.length} tasks (${Math.round(flaggedPercentage)}%) are flagged`,
                         details: "When most tasks are flagged, flags lose their meaning as priority indicators.",
                         recommendation: "Flag <10% of tasks for true priorities only. Unflag completed or non-critical items."
-                    });
+                    
                 } else if (flaggedPercentage < 5 && activeTasks.length > 20) {
                     insights.push({
                         category: "OPPORTUNITY",
@@ -266,7 +265,7 @@
                         title: `Only ${flaggedTasks.length} of ${activeTasks.length} tasks are flagged`,
                         details: "Flags help highlight top priorities for quick access.",
                         recommendation: "Consider flagging 5-10% of tasks that are most important or time-sensitive."
-                    });
+                    
                 }
             }
 
@@ -366,7 +365,7 @@
                     report += `\n⚠️  ${i.title}\n`;
                     report += `    ${i.details}\n`;
                     report += `    → ${i.recommendation}\n`;
-                });
+                
                 report += "\n";
             }
 
@@ -377,7 +376,7 @@
                     report += `\n⚠️  ${i.title}\n`;
                     report += `    ${i.details}\n`;
                     report += `    → ${i.recommendation}\n`;
-                });
+                
                 report += "\n";
             }
 
@@ -388,7 +387,7 @@
                     report += `\n💡 ${i.title}\n`;
                     report += `    ${i.details}\n`;
                     report += `    → ${i.recommendation}\n`;
-                });
+                
                 report += "\n";
             }
 
@@ -408,8 +407,7 @@
             return report;
         };
 
-        return lib;
-    });
+    
 
-    return insightPatterns;
+    return lib;
 })();

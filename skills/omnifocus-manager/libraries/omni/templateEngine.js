@@ -10,17 +10,16 @@
  *
  *   // In action script:
  *   const engine = this.plugIn.library("templateEngine");
- *   const result = engine.createFromTemplate(doc, "weekly_review", {WEEK: "2025-W01"});
+ *   const result = engine.createFromTemplate(doc, "weekly_review", {WEEK: "2025-W01"
  *
  * Usage (in Omni Automation console):
  *   // Load library code and evaluate
  *   const engine = <paste this code>;
- *   const result = engine.createFromTemplate(document, "weekly_review", {});
+ *   const result = engine.createFromTemplate(document, "weekly_review", {
  */
 
 (() => {
-    const templateEngine = new PlugIn.Library(function() {
-        const lib = this;
+    var lib = new PlugIn.Library(new Version("1.0"));
 
         /**
          * Load templates from JSON file
@@ -97,17 +96,17 @@
                     // Replace all {{VARIABLE}} placeholders
                     value = value.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
                         return variables[varName] || match;
-                    });
+                    
                 } else if (Array.isArray(value)) {
                     // Handle arrays (like tags)
                     value = value.map(item => {
                         if (typeof item === 'string') {
                             return item.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
                                 return variables[varName] || match;
-                            });
+                            
                         }
                         return item;
-                    });
+                    
                 }
 
                 result[key] = value;
@@ -139,7 +138,7 @@
                                 variables.add(match[1]);
                             }
                         }
-                    });
+                    
                 }
             }
 
@@ -182,7 +181,7 @@
             // Create the task
             const task = app.Task({
                 name: taskData.name
-            });
+            
 
             // Set note if provided
             if (taskData.note) {
@@ -218,7 +217,7 @@
                 if (!project && taskData.create_project) {
                     project = app.Project({
                         name: taskData.project
-                    });
+                    
                     doc.projects.push(project);
                 }
             }
@@ -241,12 +240,12 @@
                     if (!tag) {
                         tag = app.Tag({
                             name: tagName
-                        });
+                        
                         doc.tags.push(tag);
                     }
 
                     task.addTag(tag);
-                });
+                
             }
 
             // Handle defer date if specified as days before meeting
@@ -324,7 +323,7 @@
                     tags: template.tags || [],
                     estimate: template.estimate || 'N/A',
                     variables: this.extractVariables(template)
-                });
+                
             }
 
             return {
@@ -356,8 +355,7 @@
             };
         };
 
-        return lib;
-    });
+    
 
-    return templateEngine;
+    return lib;
 })();
