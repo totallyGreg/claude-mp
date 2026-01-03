@@ -2,14 +2,15 @@
 name: omnifocus-manager
 description: Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA). This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
 metadata:
-  version: 3.5.0
+  version: 4.0.0
   author: totally-tools
   license: MIT
 compatibility:
   platforms: [macos]
   requires:
     - OmniFocus 3 or 4
-    - Python 3.6+ (for database queries)
+    - Node.js 18+ (for TypeScript plugin generation)
+    - Python 3.6+ (for legacy database queries)
     - macOS with automation permissions
 ---
 
@@ -68,36 +69,50 @@ osascript -l JavaScript scripts/manage_omnifocus.js create \
 
 ### 2. Create or Modify Plugins
 
-> ⚠️ **CRITICAL: Plugin Code Generation**
+> ⚠️ **CRITICAL: Plugin Code Generation with TypeScript**
 >
-> **BEFORE generating ANY plugin code:**
-> 1. Read `references/code_generation_validation.md` - MANDATORY pre-generation checklist
+> **The skill now uses TypeScript-based plugin generation with LSP validation:**
+> 1. TypeScript generator validates code DURING generation (not after)
+> 2. Type definitions catch API errors before file creation
+> 3. Generated plugins include type annotations for better documentation
+>
+> **Before generating plugins:**
+> 1. Read `references/code_generation_validation.md` - Validation guidelines
 > 2. Verify APIs in `references/api_quick_reference.md` - Prevent hallucinated APIs
-> 3. Use templates or generator - Avoid manual coding when possible
+> 3. Use TypeScript generator - Automatic validation included
 >
-> **Generator automatically validates with eslint_d. Manual code MUST be validated.**
+> **TypeScript Development Environment:** `typescript/` directory contains:
+> - `omnifocus.d.ts` - Official OmniFocus API type definitions (1,698 lines)
+> - `omnifocus-extensions.d.ts` - LanguageModel API for Apple Intelligence
+> - `tsconfig.json` - TypeScript configuration
+> - `README.md` - Setup guide for LSP development
 
 **New to plugins? Start here:**
 → **[Plugin Quickstart](references/quickstarts/plugin_quickstart.md)** - 5-minute tutorial
 
-**Quick Plugin Generation (Recommended - <1 minute):**
+**Quick Plugin Generation with TypeScript (Recommended - <1 minute):**
 ```bash
-# Generate plugin from template
-python3 scripts/generate_plugin.py --template query-simple --name "My Plugin"
-python3 scripts/generate_plugin.py --template stats-overview --name "Database Stats"
+# Generate plugin from TypeScript template
+node scripts/generate_plugin.js --format solitary --name "My Plugin"
+node scripts/generate_plugin.js --format solitary-fm --name "AI Analyzer"
+node scripts/generate_plugin.js --format solitary-library --name "My Utils"
 
-# Available templates:
-# - query-simple: Simple query with Alert display
-# - stats-overview: Statistics dashboard with breakdowns
+# Available formats:
+# - solitary: Single-file action plugin (.omnijs)
+# - solitary-fm: Action with Foundation Models/Apple Intelligence
+# - solitary-library: Single-file library plugin
+# - bundle: Bundle plugin with localization (requires --template)
 ```
 
 **Benefits:**
-- ✅ Correct API patterns (global variables, no Document.defaultDocument)
-- ✅ Working code out of the box
-- ✅ Pre-validated structure
+- ✅ TypeScript LSP validation during generation
+- ✅ Type-safe API usage (catches errors before file creation)
+- ✅ Type annotations in generated code (inline documentation)
+- ✅ Correct API patterns (validated against .d.ts files)
 - ✅ <1 minute generation time
 
-→ **See:** Run `python3 scripts/generate_plugin.py --help` for all options
+→ **See:** Run `node scripts/generate_plugin.js --help` for all options
+→ **TypeScript Guide:** `typescript/README.md` for manual development with LSP
 
 **Create from template manually:**
 1. Reference `assets/OFBundlePlugInTemplate.omnifocusjs` - official Omni Group template
@@ -115,57 +130,70 @@ python3 scripts/generate_plugin.py --template stats-overview --name "Database St
 
 → **See:** [Plugin Development Guide](references/plugin_development_guide.md#modifying-plugins)
 
-**Plugin Code Generation (MANDATORY WORKFLOW):**
+**Plugin Code Generation with TypeScript (RECOMMENDED WORKFLOW):**
 
-⚠️ **CRITICAL:** Never generate plugin code without completing this workflow.
+⚠️ **IMPORTANT:** The TypeScript generator validates code automatically during generation.
 
-**BEFORE Code Generation:**
+**TypeScript Generator Workflow (AUTOMATED):**
 
-**Step 1: Complete Pre-Generation Checklist (REQUIRED)**
-1. Open `references/code_generation_validation.md`
-2. Read the "MANDATORY Pre-Generation Checklist" at top
-3. Complete ALL checkbox items before proceeding
-
-**Step 2: Verify Constructor Patterns (REQUIRED)**
-1. For PlugIn.Library: Review `assets/OFBundlePlugInTemplate.omnifocusjs/Resources/` patterns
-2. Confirm: `var lib = new PlugIn.Library(new Version("1.0"));`
-3. For other classes: Check constructor signature in `references/OmniFocus-API.md`
-
-**Step 3: Verify APIs (REQUIRED)**
-1. Check EVERY API in `references/api_quick_reference.md`
-2. Verify properties (no `()`) vs methods (with `()`)
-3. Use global variables (flattenedTasks, folders) NOT Document.defaultDocument
-
-**AFTER Code Generation (MANDATORY VALIDATION):**
-
-**Step 4: Validate with ESLint and LSP**
-1. Run `eslint_d` on ALL generated .js files (syntax, style, undefined globals)
-2. Use vtsls LSP for semantic validation (type checking, API correctness)
-3. Fix ALL errors before proceeding (zero tolerance)
-4. Verify no hallucinated APIs
-5. Confirm correct constructor patterns
-
-**ESLint validation (REQUIRED):**
+**Step 1: Generate Plugin**
 ```bash
-# From omnifocus-manager directory
-eslint_d assets/YourPlugin.omnifocusjs/Resources/*.js
-
-# Must return zero errors before code is acceptable
+node scripts/generate_plugin.js --format solitary --name "My Plugin"
 ```
 
-**What ESLint catches:**
-- Undefined globals (hallucinated APIs like `Document.defaultDocument`, `Progress`)
-- Syntax errors (`.bind(this)` on arrow functions)
-- Style violations
-- Unreachable code
+**What happens automatically:**
+1. ✅ Loads TypeScript template with type annotations
+2. ✅ Substitutes variables (name, identifier, etc.)
+3. ✅ Validates syntax against TypeScript Compiler API
+4. ✅ Checks code against omnifocus.d.ts and omnifocus-extensions.d.ts
+5. ✅ Refuses to generate if validation fails (zero-tolerance)
+6. ✅ Auto-renames .ts → .omnijs for deployment
 
-**What vtsls LSP catches:**
-- Type mismatches (passing function when Version expected)
-- Incorrect constructor arguments
-- Property/method confusion (calling property as method)
-- Semantic errors not caught by ESLint
+**Step 2: Install and Test**
+```bash
+# Generated plugin is ready for installation
+cp assets/MyPlugin.omnijs ~/Library/Application\ Scripts/com.omnigroup.OmniFocus3/Plug-Ins/
+```
+
+**Optional: Manual TypeScript Development with LSP**
+
+For manual plugin development with full LSP support (autocomplete, type-checking):
+
+**Step 1: Set Up TypeScript Environment**
+1. Read `typescript/README.md` for setup instructions
+2. Install TypeScript Language Server (if not already installed):
+   ```bash
+   sudo npm install -g typescript typescript-language-server
+   ```
+
+**Step 2: Develop with TypeScript**
+1. Create `.ts` file in `typescript/` directory
+2. Use LSP for autocomplete and type-checking while coding
+3. TypeScript validates against `omnifocus.d.ts` and `omnifocus-extensions.d.ts`
+
+**Step 3: Deploy**
+1. Rename `.ts` to `.omnijs` or `.omnifocusjs`
+2. Install in OmniFocus Plug-Ins directory
+
+**What TypeScript LSP catches during development:**
+- ✅ Undefined APIs (hallucinated APIs like `Document.defaultDocument`, `Progress`)
+- ✅ Type mismatches (passing function when Version expected)
+- ✅ Incorrect constructor arguments
+- ✅ Property/method confusion (calling property as method)
+- ✅ Syntax errors (`.bind(this)` on arrow functions)
+- ✅ Semantic errors
+
+**Legacy Validation (Manual Code Only):**
+
+If generating code manually without TypeScript generator:
+
+```bash
+# ESLint validation (catches undefined globals, syntax errors)
+eslint_d assets/YourPlugin.omnifocusjs/Resources/*.js
+```
 
 **Complete documentation:**
+- TypeScript guide: `typescript/README.md`
 - Validation rules: `references/code_generation_validation.md`
 - Plugin patterns: `references/plugin_development_guide.md`
 - API reference: `references/OmniFocus-API.md`, `references/api_quick_reference.md`

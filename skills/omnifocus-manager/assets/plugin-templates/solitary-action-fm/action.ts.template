@@ -1,0 +1,80 @@
+/*{
+	"type": "action",
+	"targets": ["omnifocus"],
+	"author": "{{AUTHOR}}",
+	"identifier": "{{IDENTIFIER}}",
+	"version": "1.0",
+	"description": "{{DESCRIPTION}}",
+	"label": "{{PLUGIN_NAME}}",
+	"shortLabel": "{{SHORT_LABEL}}",
+	"mediumLabel": "{{MEDIUM_LABEL}}",
+	"paletteLabel": "{{PALETTE_LABEL}}",
+	"image": "apple.intelligence"
+}*/
+(() => {
+	const action = new PlugIn.Action(async function(selection: Selection, sender: MenuItem | ToolbarItem) {
+		try {
+			// Check if Foundation Models are available
+			if (typeof LanguageModel === 'undefined' || typeof LanguageModel.Session === 'undefined') {
+				const alert: Alert = new Alert(
+					"Apple Intelligence Required",
+					"This feature requires:\n" +
+					"- OmniFocus 4.8+\n" +
+					"- macOS 15.2+ or iOS 18.2+\n" +
+					"- Apple Silicon or iPhone 15 Pro+\n" +
+					"- Apple Intelligence enabled in Settings"
+				);
+				alert.show();
+				return;
+			}
+
+			// Get tasks using global variable
+			const tasks: Array<Task> = flattenedTasks.filter((task: Task) => {
+				return !task.completed && !task.dropped;
+			}).slice(0, 10); // Limit for context window
+
+			// Build task summary for AI
+			const taskSummary = tasks.map((t: Task) => ({
+				name: t.name,
+				project: t.containingProject ? t.containingProject.name : "Inbox",
+				flagged: t.flagged
+			}));
+
+			// Create AI session
+			const session: LanguageModel.Session = new LanguageModel.Session();
+
+			// Define response schema (OmniFocus format, NOT JSON Schema)
+			const schema: LanguageModel.Schema = LanguageModel.Schema.fromJSON({
+				name: "analysis-schema",
+				properties: [
+					{name: "summary"},
+					{name: "recommendation"}
+				]
+			});
+
+			// Get AI analysis
+			const prompt: string = `Analyze these tasks and provide brief insights:\n${JSON.stringify(taskSummary, null, 2)}`;
+			const resultJSON: string = await session.respondWithSchema(prompt, schema);
+
+			// Parse JSON response
+			const result: {summary: string; recommendation: string} = JSON.parse(resultJSON);
+
+			// Display result
+			const message: string = `${result.summary || "Analysis complete."}\n\nRecommendation: ${result.recommendation || "Focus on flagged items first."}`;
+			const alert: Alert = new Alert("{{PLUGIN_NAME}}", message);
+			alert.show();
+
+		} catch (error) {
+			const err = error as Error;
+			const alert: Alert = new Alert("Error", err.message);
+			alert.show();
+		}
+	});
+
+	action.validate = function(selection: Selection, sender: MenuItem | ToolbarItem): boolean {
+		// Check if LanguageModel is available (OmniFocus 4.8+)
+		return typeof LanguageModel !== 'undefined';
+	};
+
+	return action;
+})();

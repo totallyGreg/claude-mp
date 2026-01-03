@@ -8,6 +8,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 4.0.0 | 2026-01-02 | **MAJOR**: TypeScript-based plugin generation with LSP validation - Python generator removed |
 | 3.5.0 | 2026-01-02 | Comprehensive plugin generation: all formats (solitary/bundle), localization, Version("26") validation |
 | 3.4.2 | 2025-12-31 | Integrated linting validation and prominent API anti-pattern warnings |
 | 3.4.1 | 2025-12-31 | Added plugin generator and templates for <1 minute plugin creation |
@@ -24,6 +25,80 @@ This document tracks improvements, enhancements, and future development plans fo
 | 1.0.0 | 2025-12-19 | Initial release |
 
 ## Completed Improvements
+
+### v4.0.0 - TypeScript-Based Plugin Generation (2026-01-02)
+
+**Problems Addressed:**
+1. Python generator creates JavaScript via string substitution (language mismatch)
+2. Validation happens post-generation (errors created before caught)
+3. No type-checking during generation (API hallucinations possible)
+4. Manual validation checklist required (error-prone)
+5. No LSP integration for development
+
+**Solution:**
+Complete migration from Python-based string templating to TypeScript-based plugin generation with integrated LSP validation using TypeScript Compiler API.
+
+**Architecture Change:**
+```
+Old: Python → string replace → .js → eslint_d → manual checklist → maybe works
+New: TypeScript → TS Compiler API → validate → .ts → auto-rename → .omnijs → works
+```
+
+**Changes Made:**
+
+1. **TypeScript Development Environment** (`typescript/`):
+   - `omnifocus.d.ts` - Official OmniFocus API type definitions (1,698 lines from Omni Automation)
+   - `omnifocus-extensions.d.ts` - LanguageModel API for Apple Intelligence (OmniFocus 4.8+)
+   - `tsconfig.json` - ES7 target configuration
+   - `README.md` - Comprehensive setup and LSP usage guide
+   - `example-plugin.ts` - Sample plugin demonstrating TypeScript workflow
+
+2. **TypeScript Generator** (`scripts/`):
+   - `generate_plugin.ts` - New TypeScript-based generator (400+ lines)
+   - `generate_plugin.js` - Compiled JavaScript executable
+   - `package.json` - npm package with TypeScript dependencies
+   - `tsconfig.json` - Generator's own TypeScript configuration
+   - **Removed**: `generate_plugin.py` (deprecated Python generator)
+
+3. **TypeScript Templates** (`assets/plugin-templates/`):
+   - Converted all templates to TypeScript format (.ts.template)
+   - `solitary-action/action.ts.template` - With full type annotations
+   - `solitary-action-fm/action.ts.template` - Fixed LanguageModel schema format
+   - `solitary-library/library.ts.template` - Typed library functions
+   - All templates include: Selection, MenuItem, ToolbarItem, Task, Alert types
+
+4. **Generator Features**:
+   - ✅ Type-safe variable substitution
+   - ✅ TypeScript Compiler API validation during generation
+   - ✅ Automatic .ts → .omnijs renaming for deployment
+   - ✅ Detailed error reporting with line numbers
+   - ✅ Zero-tolerance: refuses to generate if syntax errors exist
+   - ✅ Generated plugins include type annotations (valid JavaScript)
+
+5. **Updated Documentation**:
+   - Updated SKILL.md to reference TypeScript generator
+   - Updated compatibility requirements (Node.js 18+)
+   - Added TypeScript LSP workflow documentation
+   - Maintained backward compatibility notes for manual validation
+
+**Benefits:**
+- **Language Alignment**: TypeScript generator for JavaScript output (vs Python → JS)
+- **Native Validation**: TypeScript Compiler API provides type-checking during generation
+- **LSP Integration**: Natural integration with vtsls LSP
+- **Error Prevention**: Catches API errors before file creation (not after)
+- **Better Templates**: Fixed LanguageModel schema format issues in Foundation Models template
+- **Developer Experience**: Type annotations in generated code provide inline documentation
+
+**Breaking Changes:**
+- Generator command changed: `python3 scripts/generate_plugin.py` → `node scripts/generate_plugin.js`
+- New requirement: Node.js 18+ (for TypeScript)
+- Python generator removed (no backward compatibility)
+
+**Migration Path:**
+- Existing plugins unaffected (only generation changes)
+- Template variable names unchanged
+- Output format identical (.omnijs / .omnifocusjs)
+- ESLint validation still available for manual code
 
 ### v3.5.0 - Comprehensive Plugin Generation (2026-01-02)
 

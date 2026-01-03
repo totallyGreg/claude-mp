@@ -1,0 +1,30 @@
+{
+  "name": "omnifocus-plugin-generator",
+  "version": "4.0.0",
+  "description": "TypeScript-based OmniFocus plugin generator with LSP validation",
+  "main": "generate_plugin.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "generate": "node generate_plugin.js"
+  },
+  "keywords": [
+    "omnifocus",
+    "omni-automation",
+    "plugin",
+    "generator",
+    "typescript"
+  ],
+  "author": "OmniFocus Manager Skill",
+  "license": "MIT",
+  "dependencies": {
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

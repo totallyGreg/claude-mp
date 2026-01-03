@@ -1,0 +1,99 @@
+/*{
+	"type": "library",
+	"targets": ["omnifocus"],
+	"identifier": "{{IDENTIFIER}}",
+	"version": "1.0"
+}*/
+(() => {
+	const lib: any = new PlugIn.Library(new Version("1.0"));
+
+	/**
+	 * Get active (non-completed, non-dropped) tasks
+	 * @returns Array of active task objects
+	 */
+	lib.getActiveTasks = function(): Array<Task> {
+		return flattenedTasks.filter((task: Task) => {
+			return !task.completed && !task.dropped;
+		});
+	};
+
+	/**
+	 * Get tasks due today
+	 * @returns Array of tasks due today
+	 */
+	lib.getTodayTasks = function(): Array<Task> {
+		const today: Date = new Date();
+		today.setHours(0, 0, 0, 0);
+		const tomorrow: Date = new Date(today);
+		tomorrow.setDate(tomorrow.getDate() + 1);
+
+		return flattenedTasks.filter((task: Task) => {
+			if (task.completed || task.dropped) return false;
+			const due: Date | null = task.dueDate;
+			return due && due >= today && due < tomorrow;
+		});
+	};
+
+	/**
+	 * Get overdue tasks
+	 * @returns Array of overdue tasks
+	 */
+	lib.getOverdueTasks = function(): Array<Task> {
+		const today: Date = new Date();
+		today.setHours(0, 0, 0, 0);
+
+		return flattenedTasks.filter((task: Task) => {
+			if (task.completed || task.dropped) return false;
+			const due: Date | null = task.dueDate;
+			return due && due < today;
+		});
+	};
+
+	/**
+	 * Get flagged tasks
+	 * @returns Array of flagged tasks
+	 */
+	lib.getFlaggedTasks = function(): Array<Task> {
+		return flattenedTasks.filter((task: Task) => {
+			return task.flagged && !task.completed && !task.dropped;
+		});
+	};
+
+	/**
+	 * Normalize task to a plain object for serialization
+	 * @param task - OmniFocus task object
+	 * @returns Plain object with task properties
+	 */
+	lib.normalizeTask = function(task: Task): object {
+		return {
+			name: task.name,
+			project: task.containingProject ? task.containingProject.name : null,
+			tags: task.tags.map((tag: Tag) => tag.name),
+			dueDate: task.dueDate,
+			deferDate: task.deferDate,
+			flagged: task.flagged,
+			completed: task.completed,
+			estimatedMinutes: task.estimatedMinutes,
+			note: task.note || ""
+		};
+	};
+
+	/**
+	 * Display library info in console
+	 */
+	lib.info = function(): void {
+		const props: string[] = Object.getOwnPropertyNames(lib);
+		props.forEach((propName: string, index: number) => {
+			if (index !== 0) console.log(" ");
+			console.log("*", propName);
+			const item: any = lib[propName];
+			if (typeof item === "function") {
+				console.log(item.toString());
+			} else if (item instanceof Version) {
+				console.log(item.versionString);
+			}
+		});
+	};
+
+	return lib;
+})();
