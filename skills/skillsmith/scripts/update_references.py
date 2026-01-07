@@ -264,13 +264,6 @@ def validate_references_structure(skill_path: Path) -> Dict:
         except Exception as e:
             issues.append(f'{ref_file.name}: Cannot read file - {str(e)}')
 
-    # Check if REFERENCE.md exists for skills with 3+ references
-    ref_files = scan_references_directory(skill_path)
-    catalog_file = refs_dir / 'REFERENCE.md'
-
-    if len(ref_files) >= 3 and not catalog_file.exists():
-        warnings.append(f'REFERENCE.md recommended for skills with {len(ref_files)} references')
-
     valid = len(issues) == 0
 
     return {

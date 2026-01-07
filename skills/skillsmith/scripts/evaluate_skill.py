@@ -49,8 +49,60 @@ from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
 
-# Import basic validation from quick_validate.py
-from quick_validate import validate_skill
+# Previously imported from quick_validate.py (now deleted - functionality integrated below)
+# from quick_validate import validate_skill
+
+# Inlined validate_skill function (previously from quick_validate.py)
+def validate_skill(skill_path):
+    """Basic validation of a skill - inlined from quick_validate.py"""
+    skill_path = Path(skill_path)
+
+    # Check SKILL.md exists
+    skill_md = skill_path / 'SKILL.md'
+    if not skill_md.exists():
+        return False, "SKILL.md not found", None
+
+    # Read and validate frontmatter
+    content = skill_md.read_text()
+    if not content.startswith('---'):
+        return False, "No YAML frontmatter found", None
+
+    # Extract frontmatter
+    match = re.match(r'^---\n(.*?)\n---', content, re.DOTALL)
+    if not match:
+        return False, "Invalid frontmatter format", None
+
+    frontmatter = match.group(1)
+
+    # Check required fields
+    if 'name:' not in frontmatter:
+        return False, "Missing 'name' in frontmatter", None
+    if 'description:' not in frontmatter:
+        return False, "Missing 'description' in frontmatter", None
+
+    # Extract name for validation
+    name_match = re.search(r'name:\s*(.+)', frontmatter)
+    if name_match:
+        name = name_match.group(1).strip()
+        # Check naming convention (hyphen-case: lowercase with hyphens)
+        if not re.match(r'^[a-z0-9-]+$', name):
+            return False, f"Name '{name}' should be hyphen-case (lowercase letters, digits, and hyphens only)", None
+        if name.startswith('-') or name.endswith('-') or '--' in name:
+            return False, f"Name '{name}' cannot start/end with hyphen or contain consecutive hyphens", None
+
+    # Extract and validate description
+    desc_match = re.search(r'description:\s*(.+)', frontmatter)
+    if desc_match:
+        description = desc_match.group(1).strip()
+        # Check for angle brackets
+        if '<' in description or '>' in description:
+            return False, "Description cannot contain angle brackets (< or >)", None
+
+    # Extract version for potential use by other scripts
+    version_match = re.search(r'version:\s*(.+)', frontmatter)
+    skill_version = version_match.group(1).strip() if version_match else None
+
+    return True, "Skill is valid!", skill_version
 
 
 # ============================================================================
@@ -178,6 +230,7 @@ def quick_validate(skill_path, check_improvement_plan=False):
 
     Uses validate_skill() from quick_validate.py for basic validation,
     optionally adds IMPROVEMENT_PLAN validation (custom enhancement).
+    Enhanced with metadata.version checking.
 
     Returns: {
         'valid': bool,
@@ -189,6 +242,50 @@ def quick_validate(skill_path, check_improvement_plan=False):
 
     # Basic structure validation (imported from quick_validate.py)
     struct_valid, struct_message, skill_version = validate_skill(skill_path)
+
+    # Enhanced version checking (check metadata.version specifically)
+    if struct_valid:
+        try:
+            skill_md = Path(skill_path) / 'SKILL.md'
+            content = skill_md.read_text()
+            match = re.match(r'^---\n(.*?)\n---', content, re.DOTALL)
+            if match:
+                import yaml
+                try:
+                    frontmatter = yaml.safe_load(match.group(1))
+
+                    # Check for version in metadata (preferred location)
+                    has_metadata_version = (
+                        isinstance(frontmatter, dict) and
+                        'metadata' in frontmatter and
+                        isinstance(frontmatter['metadata'], dict) and
+                        'version' in frontmatter['metadata']
+                    )
+
+                    # Check for version at top level (deprecated)
+                    has_toplevel_version = (
+                        isinstance(frontmatter, dict) and
+                        'version' in frontmatter and
+                        'metadata' not in frontmatter
+                    )
+
+                    # Use metadata.version if available, otherwise top-level version
+                    if has_metadata_version:
+                        skill_version = frontmatter['metadata']['version']
+                    elif has_toplevel_version:
+                        skill_version = frontmatter['version']
+                        struct_message = f"{struct_message} (Note: using deprecated 'version' field; prefer 'metadata.version')"
+                    elif not skill_version:
+                        # No version found in either location
+                        struct_valid = False
+                        struct_message = "Missing version field (should be in metadata.version)"
+
+                except yaml.YAMLError:
+                    # YAML parsing failed, but quick_validate already caught this
+                    pass
+        except Exception:
+            # File read error, but quick_validate already caught this
+            pass
 
     result = {
         'valid': struct_valid,

@@ -327,6 +327,68 @@ When updating existing skills to meet specification:
    - Check all requirements met
    - Test skill functionality
 
+---
+
+## Specification Validation Checklist
+
+Ensure skills comply with the AgentSkills specification before distribution or after major updates.
+
+### 1. Frontmatter Compliance
+
+- [ ] `name` field present (1-64 chars, lowercase alphanumeric + hyphens)
+- [ ] `name` matches directory name
+- [ ] `description` field present (max 1024 chars, non-empty)
+- [ ] `description` uses third-person and includes triggering keywords
+- [ ] Optional fields properly formatted: `license`, `compatibility`, `metadata`
+
+### 2. Structure Compliance
+
+- [ ] SKILL.md exists at skill root
+- [ ] Directory follows naming conventions (lowercase, hyphens only)
+- [ ] Supporting directories use correct names: `scripts/`, `references/`, `assets/`
+- [ ] File references use relative paths
+- [ ] Reference chains remain one-level deep
+
+### 3. Progressive Disclosure
+
+- [ ] SKILL.md body under 500 lines
+- [ ] Detailed content moved to references/
+- [ ] Metadata (~100 tokens) provides clear skill purpose
+- [ ] Instructions (<5000 tokens) provide actionable guidance
+
+### 4. Content Quality
+
+- [ ] Writing uses imperative/infinitive form
+- [ ] Instructions are clear and actionable
+- [ ] Examples demonstrate concrete usage
+- [ ] Bundled resources are properly referenced
+
+### 5. Reference Organization
+
+- [ ] references/ directory uses one-level depth (no nested subdirectories)
+- [ ] References are mentioned contextually in SKILL.md
+- [ ] No duplicate or overlapping reference content detected
+- [ ] FORMS.md included if skill uses structured data collection
+
+### Validation Tools
+
+Use these tools to validate specification compliance:
+
+```bash
+# Comprehensive evaluation with metrics and spec validation (recommended)
+python3 scripts/evaluate_skill.py <skill-path>
+
+# Quick validation for pre-commit hooks and CI/CD
+python3 scripts/evaluate_skill.py <skill-path> --quick
+
+# Deep multi-phase research analysis for improvement planning
+python3 scripts/research_skill.py <skill-path>
+```
+
+For detailed tool documentation, see `validation_tools_guide.md`.
+
+---
+
 ## Version History
 
 - **v1.0** - Initial AgentSkills specification release

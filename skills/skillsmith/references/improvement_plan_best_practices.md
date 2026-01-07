@@ -116,7 +116,7 @@ git commit -m "feat: Add enhanced validation feature"
 version: 1.5.0
 
 # c) Run validation
-python3 scripts/quick_validate.py --check-improvement-plan skills/my-skill
+python3 scripts/evaluate_skill.py --quick --check-improvement-plan skills/my-skill
 
 # d) Sync marketplace (if using pre-commit hook, this happens automatically)
 python3 scripts/sync_marketplace_versions.py
@@ -315,7 +315,7 @@ Update the content:
 
 ### Step 7: Update SKILL.md and Sync
 - Update version in SKILL.md frontmatter
-- Run validation: `python3 scripts/quick_validate.py --check-improvement-plan`
+- Run validation: `python3 scripts/evaluate_skill.py --quick --check-improvement-plan`
 - Sync marketplace (automatic with pre-commit hook)
 
 **This workflow is intentionally simple**: decide version, cut, update header, paste at top, add to table, enhance details, update SKILL.md. No complex reorganization needed.
@@ -455,7 +455,7 @@ version: 1.5.0
 
 **Detection:**
 ```bash
-$ python3 scripts/quick_validate.py --check-improvement-plan .
+$ python3 scripts/evaluate_skill.py --quick --check-improvement-plan .
 
 ❌ Version 1.5.0 in SKILL.md shows 'TBD' in IMPROVEMENT_PLAN.md
    → Replace 'TBD' with completion date (YYYY-MM-DD) before release
@@ -477,7 +477,7 @@ version: 1.5.0
 
 **Detection:**
 ```bash
-$ python3 scripts/quick_validate.py --check-improvement-plan .
+$ python3 scripts/evaluate_skill.py --quick --check-improvement-plan .
 
 ⚠️  SKILL.md version (1.5.0) differs from latest IMPROVEMENT_PLAN.md version (1.4.0)
    → This may be intentional if you haven't updated IMPROVEMENT_PLAN.md yet
@@ -497,7 +497,7 @@ $ python3 scripts/quick_validate.py --check-improvement-plan .
 
 **Detection:**
 ```bash
-$ python3 scripts/quick_validate.py --check-improvement-plan .
+$ python3 scripts/evaluate_skill.py --quick --check-improvement-plan .
 
 ⚠️  Version history dates may not be in chronological order
    → Consider ordering newest versions first
@@ -540,7 +540,7 @@ Before releasing a new version, follow the Planned → Completed workflow:
   - Add "Impact" section
 - [ ] **Update** "Last Updated" in Planned Improvements section
 - [ ] **Update** version in SKILL.md frontmatter
-- [ ] **Run validation**: `python3 scripts/quick_validate.py --check-improvement-plan <skill-path>`
+- [ ] **Run validation**: `python3 scripts/evaluate_skill.py --quick --check-improvement-plan <skill-path>`
 - [ ] **Fix** any validation errors
 - [ ] **Sync marketplace**: Automatic via pre-commit hook (or run `python3 scripts/sync_marketplace_versions.py`)
 - [ ] **Commit** release: `git commit -m "chore: Release v{version}"`
@@ -578,12 +578,12 @@ Multiple planned improvements can be combined into a single release version when
 
 **Basic skill validation:**
 ```bash
-python3 scripts/quick_validate.py skills/my-skill
+python3 scripts/evaluate_skill.py --quick skills/my-skill
 ```
 
 **With IMPROVEMENT_PLAN.md checking:**
 ```bash
-python3 scripts/quick_validate.py --check-improvement-plan skills/my-skill
+python3 scripts/evaluate_skill.py --quick --check-improvement-plan skills/my-skill
 ```
 
 **Expected output (all good):**
