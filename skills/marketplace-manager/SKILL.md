@@ -369,6 +369,12 @@ git commit --no-verify
 - Delete old branch or use different name
 - Complete or abandon existing plan first
 
+## Advanced Topics
+
+For comprehensive marketplace distribution guidance, see:
+
+- **`references/marketplace_distribution_guide.md`** - Complete distribution workflow, best practices, troubleshooting
+
 ## See Also
 
 - **skillsmith** - Creates and improves skills
