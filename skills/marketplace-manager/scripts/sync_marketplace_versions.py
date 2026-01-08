@@ -53,18 +53,19 @@ def extract_frontmatter_version(skill_md_path):
         in_metadata = False
 
         for line in frontmatter.split('\n'):
-            line = line.strip()
+            stripped = line.strip()
+            is_indented = line.startswith(' ') or line.startswith('\t')
 
-            if line.startswith('metadata:'):
+            if stripped.startswith('metadata:'):
                 in_metadata = True
-            elif in_metadata and line.startswith('version:'):
+            elif in_metadata and stripped.startswith('version:'):
                 # metadata.version (preferred)
-                metadata_version = line.split(':', 1)[1].strip().strip('"').strip("'")
+                metadata_version = stripped.split(':', 1)[1].strip().strip('"').strip("'")
                 in_metadata = False
-            elif not in_metadata and line.startswith('version:'):
+            elif not in_metadata and stripped.startswith('version:'):
                 # deprecated version field
-                version = line.split(':', 1)[1].strip().strip('"').strip("'")
-            elif line and not line.startswith(' ') and not line.startswith('-'):
+                version = stripped.split(':', 1)[1].strip().strip('"').strip("'")
+            elif stripped and not is_indented and not stripped.startswith('-'):
                 in_metadata = False
 
         # Return preferred version

@@ -1,7 +1,8 @@
 ---
 name: obsidian-pkm-manager
-version: 1.0.0
 description: Expert guidance for managing Obsidian-based Personal Knowledge Management (PKM) systems. This skill should be used when organizing, optimizing, or evolving note-taking workflows in Obsidian, including template creation with Templater, relationship management with Bases, vault structure analysis, frontmatter design, and metadata strategies. Particularly useful for creating automatic note organization systems, temporal rollup structures (daily to yearly), and maintaining job-agnostic organizational patterns.
+metadata:
+  version: "1.0.0"
 ---
 
 # Obsidian PKM Manager

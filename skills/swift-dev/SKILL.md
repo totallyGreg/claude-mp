@@ -1,7 +1,8 @@
 ---
 name: swift-dev
 description: Expert guidance for Swift development including SwiftUI, iOS/macOS frameworks, Server-side Swift, and Objective-C to Swift 6 migration. Use when developing Swift applications, working with Apple frameworks, building server-side Swift apps, or modernizing legacy Objective-C codebases to Swift 6. Supports Swift 5.0-6.0 with version annotations and live documentation fetching.
-version: 1.1.0
+metadata:
+  version: "1.1.0"
 ---
 
 # Swift Development Expert
