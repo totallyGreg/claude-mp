@@ -119,6 +119,20 @@
       "skills": [
         "./skills/marketplace-manager"
       ]
+    },
+    {
+      "name": "ai-risk-mapper",
+      "description": "AI security risk assessment using CoSAI Risk Map framework",
+      "category": "security",
+      "version": "1.0.0",
+      "author": {
+        "name": "J. Greg Williams",
+        "email": "283704+totallyGreg@users.noreply.github.com"
+      },
+      "source": "./",
+      "skills": [
+        "./skills/ai-risk-mapper"
+      ]
     }
   ]
 }
