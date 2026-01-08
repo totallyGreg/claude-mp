@@ -8,92 +8,22 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.3.0 | 2026-01-07 | Critical bug fixes: utils.py dependency, schema compliance, metadata.version parsing |
 | 1.1.0 | 2025-12-22 | Added plugin versioning strategies, validation command, pre-commit hook |
 | 1.0.0 | 2025-12-21 | Initial release |
 
 ## 🔮 Planned Improvements
-> Last Updated: 2025-12-22
+> Last Updated: 2026-01-07
 
 **Note:** Planned improvements are tracked by NUMBER, not version. Version numbers are only assigned when releasing.
 
 ### Critical Priority (Blocking Issues)
 
-#### 1. Missing utils.py Dependency
-**Goal:** Fix broken scripts by adding missing utils.py module
+_No critical blocking issues at this time._
 
-**Problem:**
-- All three scripts (`add_to_marketplace.py`, `sync_marketplace_versions.py`, `detect_version_changes.py`) import from `utils` module
-- The `utils.py` file does not exist in `scripts/` directory
-- Scripts will fail immediately on execution with ImportError
-- This is a critical blocker preventing any script functionality
+### Resolved Issues (Kept for Reference)
 
-**Proposed Solution:**
-- Copy `utils.py` from `skills/skillsmith/scripts/utils.py` to `skills/marketplace-manager/scripts/utils.py`
-- Verify all imported functions are present: `get_repo_root`, `print_verbose_info`, `validate_repo_structure`
-- Test all three scripts to ensure they run without import errors
-
-**Files to Modify:**
-- Create: `scripts/utils.py` (copy from skillsmith)
-
-**Success Criteria:**
-- All three scripts execute without ImportError
-- Repository root detection works correctly
-- Verbose mode displays path information
-- Validation checks work as expected
-
-#### 2. Fix add_to_marketplace.py Incorrect Schema
-**Goal:** Correct marketplace.json structure to match official schema
-
-**Problem:**
-- Line 31 in `add_to_marketplace.py` creates incorrect structure:
-  ```python
-  "metadata": {"description": "", "version": "1.0.0"}
-  ```
-- Official schema requires top-level fields:
-  ```json
-  {
-    "version": "1.0.0",
-    "description": "..."
-  }
-  ```
-- This violates the official marketplace.json schema at `https://anthropic.com/claude-code/marketplace.schema.json`
-- Marketplaces created with this script will be non-compliant
-
-**Proposed Solution:**
-- Update `load_marketplace()` function (lines 21-33):
-  ```python
-  return {
-      "name": "",
-      "version": "1.0.0",
-      "description": "",
-      "owner": {"name": "", "email": ""},
-      "plugins": [],
-  }
-  ```
-- Update `init_marketplace()` function (lines 46-56):
-  ```python
-  marketplace_data = {
-      "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-      "name": name,
-      "version": "1.0.0",
-      "description": description,
-      "owner": {"name": owner_name, "email": owner_email},
-      "plugins": [],
-  }
-  ```
-- Update all references from `metadata.description` and `metadata.version` to top-level fields
-- Lines to modify: 31, 48, 121, 122, 203-229
-
-**Files to Modify:**
-- `scripts/add_to_marketplace.py` (lines 31, 48, 121-122, 203-229)
-
-**Success Criteria:**
-- `init` command creates marketplace.json with correct top-level structure
-- All metadata operations work with top-level version and description
-- Generated marketplace.json validates against official schema
-- Existing valid marketplace.json files are not corrupted
-
-#### 3. Document "strict" Field in References (RESOLVED - NOT AN ISSUE)
+#### Document "strict" Field in References (RESOLVED - NOT AN ISSUE)
 **Goal:** Document the "strict" field which is part of official plugin specification
 
 **Resolution:**
@@ -105,32 +35,6 @@ This document tracks improvements, enhancements, and future development plans fo
 **Status:** No changes needed - field is valid and properly used
 
 **Note:** For complete "strict" field documentation, consult official docs at https://code.claude.com/docs/en/plugins-reference
-
-#### 4. Fix sync_marketplace_versions.py metadata.version Parsing
-**Goal:** Support both metadata.version and deprecated version fields correctly
-
-**Problem:**
-- `extract_frontmatter_version()` function (lines 23-52) only looks for top-level `version:` field
-- Line 44 regex: `r'^version:\s*([^\n]+)'` cannot parse nested `metadata.version`
-- Skills using correct `metadata.version` format (as per Agent Skills spec) will not be detected
-- Script claims to support metadata.version but doesn't actually parse it
-
-**Proposed Solution:**
-- Rewrite `extract_frontmatter_version()` to use same parsing logic as `detect_version_changes.py` (lines 77-102)
-- Parse both nested `metadata.version` (preferred) and top-level `version` (deprecated)
-- Return tuple: `(version_string, is_deprecated)` for better reporting
-- Add warning when deprecated `version` field is used
-
-**Files to Modify:**
-- `scripts/sync_marketplace_versions.py` (lines 23-52, function rewrite)
-- Update caller (line 114) to handle tuple return value
-
-**Success Criteria:**
-- Correctly extracts version from `metadata.version` field
-- Falls back to deprecated `version` field if metadata.version not found
-- Warns users when deprecated version field is used
-- All skills in marketplace sync correctly regardless of version field format
-
 
 ### Medium Priority
 
@@ -299,6 +203,45 @@ This document tracks improvements, enhancements, and future development plans fo
 ## ✅ Recent Improvements (Completed)
 > Sorted by: Newest first
 
+### v1.3.0 - Critical Bug Fixes (2026-01-07)
+
+**Critical Bug Fixes:**
+
+1. **Fixed Missing utils.py Dependency (Issue #1)**
+   - Added `scripts/utils.py` module with shared utility functions
+   - Implemented `get_repo_root()` for repository root detection
+   - Implemented `print_verbose_info()` for verbose output
+   - Implemented `validate_repo_structure()` for repository validation
+   - All scripts now execute without ImportError
+   - Repository root detection works correctly across different working directories
+
+2. **Fixed Incorrect marketplace.json Schema (Issue #2)**
+   - Updated `load_marketplace()` to use correct top-level structure
+   - Updated `init_marketplace()` to generate compliant marketplace.json
+   - Changed from nested `metadata.version`/`metadata.description` to top-level `version`/`description`
+   - Now complies with official schema at https://anthropic.com/claude-code/marketplace.schema.json
+   - Generated marketplace.json files validate against official schema
+
+3. **Fixed metadata.version Parsing (Issue #4)**
+   - Rewrote `extract_frontmatter_version()` in sync_marketplace_versions.py
+   - Now correctly parses nested `metadata.version` field (Agent Skills spec preferred format)
+   - Falls back to deprecated top-level `version` field for backward compatibility
+   - Warns users when deprecated `version` field is used
+   - Skills using either version format now sync correctly
+
+**Files Modified:**
+- `scripts/sync_marketplace_versions.py` - Fixed metadata.version parsing (lines 23-70)
+- `scripts/add_to_marketplace.py` - Fixed marketplace.json schema (lines 28-56)
+
+**Files Created:**
+- `scripts/utils.py` - Shared utility functions (3,853 bytes)
+
+**Impact:**
+- All critical blocking issues resolved
+- Scripts now fully functional and spec-compliant
+- Marketplace.json files validate against official schema
+- Supports both old and new version field formats
+
 ### v1.1.0 - Plugin Versioning & Validation (2025-12-22)
 
 **Major Features:**
@@ -341,9 +284,6 @@ This document tracks improvements, enhancements, and future development plans fo
 
 **Files Created:**
 - `scripts/pre-commit.template` - Git pre-commit hook
-
-**Bug Fixes:**
-- Critical issues #1-4 resolved in v1.0.1 (utils.py, schema fixes, metadata.version parsing)
 
 ### v1.0.0 - Initial Release (2025-12-21)
 
