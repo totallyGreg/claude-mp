@@ -1,3 +1,6 @@
+# /// script
+# dependencies = []
+# ///
 """Shared utilities for skillsmith scripts."""
 
 import sys

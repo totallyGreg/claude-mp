@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "pyyaml>=6.0.1",
+# ]
+# ///
 """
 Comprehensive skill evaluation and validation
 
@@ -11,23 +16,23 @@ Provides comprehensive skill assessment including:
 
 Usage:
     # Quick validation (fast, structure-only)
-    python3 evaluate_skill.py <skill-path> --quick
-    python3 evaluate_skill.py <skill-path> --quick --check-improvement-plan
+    uv run scripts/evaluate_skill.py <skill-path> --quick
+    uv run scripts/evaluate_skill.py <skill-path> --quick --check-improvement-plan
 
     # Baseline evaluation
-    python3 evaluate_skill.py <skill-path>
+    uv run scripts/evaluate_skill.py <skill-path>
 
     # Compare original vs improved
-    python3 evaluate_skill.py <skill-path> --compare <original-path>
+    uv run scripts/evaluate_skill.py <skill-path> --compare <original-path>
 
     # With functionality validation
-    python3 evaluate_skill.py <skill-path> --validate-functionality
+    uv run scripts/evaluate_skill.py <skill-path> --validate-functionality
 
     # Store metrics in skill metadata
-    python3 evaluate_skill.py <skill-path> --store-metrics
+    uv run scripts/evaluate_skill.py <skill-path> --store-metrics
 
     # Full evaluation with all options
-    python3 evaluate_skill.py <skill-path> --compare <original-path> --validate-functionality --store-metrics --format json
+    uv run scripts/evaluate_skill.py <skill-path> --compare <original-path> --validate-functionality --store-metrics --format json
 
 Options:
     --quick                   Fast validation mode (structure only)
@@ -224,6 +229,107 @@ def validate_improvement_plan(skill_path, skill_version=None):
         return False, f"❌ Error validating IMPROVEMENT_PLAN.md: {e}"
 
 
+# ============================================================================
+# Python Script PEP 723 Validation
+# ============================================================================
+
+
+def check_python_scripts_pep723(skill_dir):
+    """
+    Check if Python scripts use PEP 723 inline metadata.
+
+    Args:
+        skill_dir: Path to skill directory
+
+    Returns:
+        Tuple of (issues, warnings) lists
+    """
+    issues = []
+    warnings = []
+    scripts_dir = Path(skill_dir) / "scripts"
+
+    if not scripts_dir.exists():
+        return issues, warnings
+
+    python_scripts = list(scripts_dir.glob("*.py"))
+
+    if not python_scripts:
+        return issues, warnings
+
+    scripts_without_pep723 = []
+
+    for script in python_scripts:
+        try:
+            content = script.read_text(encoding='utf-8')
+
+            # Check for PEP 723 metadata block
+            has_pep723 = "# /// script" in content
+
+            if not has_pep723:
+                scripts_without_pep723.append(script.name)
+
+        except Exception as e:
+            warnings.append(f"Could not read {script.name}: {e}")
+
+    if scripts_without_pep723:
+        issues.append(
+            f"Python scripts missing PEP 723 metadata: {', '.join(scripts_without_pep723)}\n"
+            f"   All Python scripts in skills MUST use PEP 723 inline metadata for uv execution.\n"
+            f"   Load skillsmith's references/python_uv_guide.md for conversion guidance.\n"
+            f"   See: https://peps.python.org/pep-0723/"
+        )
+
+    return issues, warnings
+
+
+def check_uv_compatibility(skill_dir):
+    """
+    Check if skill with Python scripts declares uv compatibility.
+
+    Args:
+        skill_dir: Path to skill directory
+
+    Returns:
+        Tuple of (issues, warnings) lists
+    """
+    issues = []
+    warnings = []
+
+    scripts_dir = Path(skill_dir) / "scripts"
+    skill_md = Path(skill_dir) / "SKILL.md"
+
+    # Check if there are Python scripts
+    if not scripts_dir.exists():
+        return issues, warnings
+
+    python_scripts = list(scripts_dir.glob("*.py"))
+    if not python_scripts:
+        return issues, warnings
+
+    # If Python scripts exist, check compatibility field
+    try:
+        content = skill_md.read_text(encoding='utf-8')
+
+        # Check if compatibility mentions uv
+        if 'compatibility:' in content:
+            # Extract compatibility section (simplified check)
+            if 'uv' not in content.lower():
+                warnings.append(
+                    "Skill has Python scripts but compatibility field doesn't mention 'uv'.\n"
+                    "   Add 'Requires uv for Python script execution' to compatibility field."
+                )
+        else:
+            warnings.append(
+                "Skill has Python scripts but no compatibility field.\n"
+                "   Add compatibility field mentioning uv requirement."
+            )
+
+    except Exception as e:
+        warnings.append(f"Could not verify uv compatibility: {e}")
+
+    return issues, warnings
+
+
 def quick_validate(skill_path, check_improvement_plan=False):
     """
     Perform quick validation of skill structure
@@ -304,6 +410,22 @@ def quick_validate(skill_path, check_improvement_plan=False):
             'message': ip_message
         }
         result['valid'] = struct_valid and ip_valid
+
+    # Python PEP 723 validation
+    pep723_issues, pep723_warnings = check_python_scripts_pep723(skill_path)
+    uv_issues, uv_warnings = check_uv_compatibility(skill_path)
+
+    all_pep723_issues = pep723_issues + uv_issues
+    all_pep723_warnings = pep723_warnings + uv_warnings
+
+    if all_pep723_issues or all_pep723_warnings:
+        result['pep723'] = {
+            'issues': all_pep723_issues,
+            'warnings': all_pep723_warnings
+        }
+        # PEP 723 issues make the skill invalid
+        if all_pep723_issues:
+            result['valid'] = False
 
     return result
 
@@ -1277,6 +1399,23 @@ def print_quick_validation_text(validation_result):
 
         if not ip['valid']:
             sys.exit(1)
+
+    # PEP 723 validation
+    if 'pep723' in validation_result:
+        pep723 = validation_result['pep723']
+
+        if pep723['issues']:
+            print()
+            print("❌ PEP 723 ISSUES:")
+            for issue in pep723['issues']:
+                print(issue)
+            sys.exit(1)
+
+        if pep723['warnings']:
+            print()
+            print("⚠️  PEP 723 WARNINGS:")
+            for warning in pep723['warnings']:
+                print(warning)
 
     sys.exit(0)
 

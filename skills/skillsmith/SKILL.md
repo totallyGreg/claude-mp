@@ -3,8 +3,8 @@ name: skillsmith
 description: Guide for creating and improving effective skills. This skill should be used when users want to create, update, or improve skills that extend Claude's capabilities with specialized knowledge, workflows, or tool integrations.
 metadata:
   author: J. Greg Williams
-  version: "3.0.0"
-compatibility: Requires python3 for validation and evaluation scripts
+  version: "3.1.0"
+compatibility: Requires python3 and uv for script execution and validation
 license: Complete terms in LICENSE.txt
 ---
 
@@ -66,6 +66,7 @@ Executable code (Python/Bash/etc.) for tasks that require deterministic reliabil
 - **Example**: `scripts/rotate_pdf.py` for PDF rotation tasks
 - **Benefits**: Token efficient, deterministic, may be executed without loading into context
 - **Note**: Scripts may still need to be read by Claude for patching or environment-specific adjustments
+- **Python scripts**: MUST use PEP 723 inline metadata for uv execution. See `references/python_uv_guide.md` for details.
 
 ##### References (`references/`)
 
@@ -181,6 +182,8 @@ Also, delete any example files and directories not needed for the skill. The ini
 
 **Writing Style:** Write the entire skill using **imperative/infinitive form** (verb-first instructions), not second person. Use objective, instructional language (e.g., "To accomplish X, do Y" rather than "You should do X" or "If you need to do X"). This maintains consistency and clarity for AI consumption.
 
+**Progressive Disclosure:** Keep SKILL.md lean (<500 lines). See `references/progressive_disclosure_discipline.md` before adding detailed content.
+
 **Specification Compliance:** Ensure the skill follows AgentSkills specification requirements:
 - Verify frontmatter contains required `name` and `description` fields
 - Confirm `name` follows naming conventions (lowercase, alphanumeric, hyphens only)
@@ -255,6 +258,8 @@ After testing the skill, users may request improvements. Often this happens righ
 For detailed guidance on specific topics, see these reference files:
 
 - **`references/agentskills_specification.md`** - Complete AgentSkills specification, validation checklist, naming rules
+- **`references/progressive_disclosure_discipline.md`** - Avoiding documentation bloat and maintaining lean SKILL.md
+- **`references/python_uv_guide.md`** - Python scripts best practices with uv and PEP 723 inline metadata
 - **`references/validation_tools_guide.md`** - Comprehensive documentation for evaluate_skill.py and research_skill.py
 - **`references/improvement_workflow_guide.md`** - Detailed improvement routing logic and workflows
 - **`references/reference_management_guide.md`** - Managing reference files and documentation

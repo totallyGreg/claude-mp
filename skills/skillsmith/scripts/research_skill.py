@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = []
+# ///
 """
 Deep research analysis for skills
 
@@ -6,7 +9,7 @@ Implements 7-phase research workflow to understand skills and identify
 improvement opportunities.
 
 Usage:
-    python3 research_skill.py <skill-path> [--output research.json]
+    uv run scripts/research_skill.py <skill-path> [--output research.json]
 
 Research Phases:
     1. Understand Intent - What the skill does, when to use it

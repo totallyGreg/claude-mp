@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = []
+# ///
 """
 Skill Initializer - Creates a new skill from template
 
 Usage:
-    init_skill.py <skill-name> [--path <path>] [--verbose]
+    uv run scripts/init_skill.py <skill-name> [--path <path>] [--verbose]
 
 Examples:
-    init_skill.py my-new-skill
-    init_skill.py my-api-helper --path /custom/location
-    init_skill.py custom-skill --verbose
+    uv run scripts/init_skill.py my-new-skill
+    uv run scripts/init_skill.py my-api-helper --path /custom/location
+    uv run scripts/init_skill.py custom-skill --verbose
 """
 
 import argparse
@@ -106,18 +109,34 @@ Files not intended to be loaded into context, but rather used within the output 
 """
 
 EXAMPLE_SCRIPT = '''#!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   # Add dependencies here with version constraints:
+#   # "requests>=2.31.0,<3.0.0",
+#   # "pyyaml>=6.0.1",
+# ]
+# ///
 """
 Example helper script for {skill_name}
 
-This is a placeholder script that can be executed directly.
-Replace with actual implementation or delete if not needed.
+This script uses PEP 723 inline metadata for dependency management.
+
+Usage:
+    uv run scripts/example.py
+
+Dependencies are declared in the # /// script block above.
+Uncomment and add dependencies as needed.
 
 Example real scripts from other skills:
 - pdf/scripts/fill_fillable_fields.py - Fills PDF form fields
 - pdf/scripts/convert_pdf_to_images.py - Converts PDF pages to images
+
+For comprehensive guidance on Python scripts in skills, see:
+references/python_uv_guide.md in the skillsmith skill.
 """
 
 def main():
+    """Main entry point for the script."""
     print("This is an example script for {skill_name}")
     # TODO: Add actual script logic here
     # This could be data processing, file conversion, API calls, etc.

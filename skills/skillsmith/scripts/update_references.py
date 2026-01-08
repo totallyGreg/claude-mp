@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = []
+# ///
 """
 Reference Management Tool for AgentSkills
 
@@ -6,9 +9,9 @@ Validates that all reference files in references/ directory are mentioned
 contextually in SKILL.md, maintaining AgentSkills one-level reference architecture.
 
 Usage:
-    update_references.py <skill-path>
-    update_references.py <skill-path> --detect-duplicates
-    update_references.py <skill-path> --validate-structure
+    uv run scripts/update_references.py <skill-path>
+    uv run scripts/update_references.py <skill-path> --detect-duplicates
+    uv run scripts/update_references.py <skill-path> --validate-structure
 
 Features:
     - Scans references/ directory and extracts metadata from each file
