@@ -1,6 +1,6 @@
 ---
 name: marketplace-manager
-description: Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance. Supports programmatic invocation by other skills (e.g., Skillsmith) for automated version management. Use when adding skills to marketplace, updating skill versions, syncing marketplace.json, or managing plugin distributions. Triggers when user mentions marketplace, version sync, or when invoked by other skills.
+description: This skill should be used when managing Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance. Supports programmatic invocation by other skills for automated version management. Use when adding skills to marketplace, updating skill versions, syncing marketplace.json, or managing plugin distributions.
 metadata:
   version: "1.3.0"
 compatibility: Requires git repository with .claude-plugin/marketplace.json
@@ -118,40 +118,13 @@ python3 scripts/add_to_marketplace.py create-plugin <plugin-name> --skill <skill
 
 ### Marketplace Structure
 
-The marketplace.json defines marketplace metadata and plugins:
-
-```json
-{
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "my-marketplace",
-  "version": "2.0.0",
-  "description": "Marketplace description",
-  "owner": {
-    "name": "Your Name",
-    "email": "email@example.com"
-  },
-  "plugins": [
-    {
-      "name": "plugin-name",
-      "description": "Plugin description",
-      "category": "development",
-      "version": "1.0.0",
-      "author": {
-        "name": "Your Name",
-        "email": "email@example.com"
-      },
-      "source": "./",
-      "skills": ["./skills/skill-one", "./skills/skill-two"]
-    }
-  ]
-}
-```
-
 **Key principles:**
-- Plugin versions should match skill versions
+- Plugin versions should match skill versions (see "Version Management" section)
 - Use sync script to maintain synchronization
 - Each plugin can contain multiple related skills
-- Skills are referenced by relative paths
+- Skills are referenced by relative paths from marketplace root
+
+For complete marketplace.json schema reference and field documentation, see `references/plugin_marketplace_guide.md`.
 
 ## Git Integration
 
@@ -320,54 +293,7 @@ For plugins containing multiple components (skills, MCP servers, etc.):
 
 ## Troubleshooting
 
-### Hook Issues
-
-**Hook not syncing marketplace.json:**
-```bash
-# Check hook status
-python3 skills/marketplace-manager/scripts/validate_hook.py
-
-# Reinstall if needed
-bash skills/marketplace-manager/scripts/install_hook.sh --force
-```
-
-**Hook shows version mismatch warning:**
-- This means the installed hook is outdated
-- Run: `bash skills/marketplace-manager/scripts/install_hook.sh`
-- Hook will auto-update to latest version
-
-**Hook not found errors:**
-- The hook uses dynamic path discovery
-- If scripts are moved/renamed, hook will find them automatically
-- First checks specific path, then searches entire repository
-
-**Hook not executable:**
-```bash
-chmod +x .git/hooks/pre-commit
-```
-
-**Want to bypass hook temporarily:**
-```bash
-git commit --no-verify
-```
-
-**Hook blocking commits:**
-- Check error message for specific issue
-- Run sync manually: `python3 skills/marketplace-manager/scripts/sync_marketplace_versions.py`
-- Fix reported issues, then commit again
-- Or bypass with `--no-verify` if urgent
-
-### Script Issues
-
-**Cannot find skill:**
-- Check skill name spelling
-- Verify skill is in repository or installed
-- Use full path if needed
-
-**Plan already exists:**
-- Check for existing planning branch
-- Delete old branch or use different name
-- Complete or abandon existing plan first
+For detailed troubleshooting guidance on hook issues, script problems, path resolution, and validation errors, see `references/troubleshooting.md`.
 
 ## Advanced Topics
 
