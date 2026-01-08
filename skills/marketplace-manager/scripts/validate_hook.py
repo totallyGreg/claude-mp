@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = []
+# ///
 """
 validate_hook.py - Validates marketplace-manager pre-commit hook installation
 

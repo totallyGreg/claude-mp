@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = []
+# ///
 """
 Add a skill to the Claude Code plugin marketplace.
 

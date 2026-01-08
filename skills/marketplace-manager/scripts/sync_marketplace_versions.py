@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = []
+# ///
 """
 Sync skill versions from SKILL.md files to marketplace.json.
 

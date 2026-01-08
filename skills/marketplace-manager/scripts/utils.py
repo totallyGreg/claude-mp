@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# /// script
+# dependencies = []
+# ///
 """Shared utilities for skillsmith scripts."""
 
 import sys

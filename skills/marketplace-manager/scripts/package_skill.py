@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = []
+# ///
 """
 Skill Packager - Creates a distributable zip file of a skill folder
 

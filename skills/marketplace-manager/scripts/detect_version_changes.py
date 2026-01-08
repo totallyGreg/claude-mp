@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = []
+# ///
 """
 Detect version mismatches between SKILL.md and marketplace.json
 
