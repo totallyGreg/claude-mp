@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = []
+# ///
 """
 CoSAI Schema Fetcher
 
@@ -6,7 +9,7 @@ Downloads and caches the latest CoSAI Risk Map schemas from the GitHub repositor
 Provides local access to YAML data files and JSON schemas for validation and analysis.
 
 Usage:
-    python3 fetch_cosai_schemas.py [--force] [--cache-dir PATH]
+    uv run scripts/fetch_cosai_schemas.py [--force] [--cache-dir PATH]
 
 Options:
     --force         Force re-download even if cache exists

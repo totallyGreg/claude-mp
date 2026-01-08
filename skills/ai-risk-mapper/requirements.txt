@@ -1,4 +1,0 @@
-# Python dependencies for ai-risk-mapper skill
-
-# YAML parsing for CoSAI schema files
-PyYAML>=6.0

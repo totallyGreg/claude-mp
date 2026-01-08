@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = []
+# ///
 """
 CoSAI Risk Assessment Report Generator
 
@@ -6,7 +9,7 @@ Generates comprehensive risk assessment reports from analysis results.
 Supports multiple output formats including Markdown, HTML, and JSON.
 
 Usage:
-    python3 generate_report.py --analysis FILE --output FILE [options]
+    uv run scripts/generate_report.py --analysis FILE --output FILE [options]
 
 Options:
     --analysis FILE       JSON file with risk analysis results

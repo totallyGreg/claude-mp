@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "pyyaml>=6.0.1",
+# ]
+# ///
 """
 CoSAI Risk Analyzer
 
@@ -6,7 +11,7 @@ Analyzes AI systems to identify applicable security risks from the CoSAI Risk Ma
 Can analyze codebases, architecture descriptions, or system configurations.
 
 Usage:
-    python3 analyze_risks.py --target <path_or_description> [options]
+    uv run scripts/analyze_risks.py --target <path_or_description> [options]
 
 Options:
     --target PATH         Path to codebase, config file, or system description

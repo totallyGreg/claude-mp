@@ -1,6 +1,10 @@
 ---
 name: ai-risk-mapper
 description: This skill should be used when identifying, analyzing, and mitigating security risks in Artificial Intelligence systems using the CoSAI (Coalition for Secure AI) Risk Map framework. Use when assessing AI system security, conducting risk analysis for LLM applications, ML pipelines, model training/serving infrastructure, or generating compliance reports aligned with MITRE ATLAS, NIST AI RMF, OWASP Top 10 for LLM, and STRIDE frameworks. Applicable to both Model Creator and Model Consumer personas across Data, Infrastructure, Model, and Application lifecycle stages.
+metadata:
+  version: "1.0.0"
+  author: J. Greg Williams
+compatibility: Requires python3 and uv for script execution
 ---
 
 # AI Risk Mapper
@@ -43,19 +47,13 @@ Follow this end-to-end workflow for comprehensive AI security risk assessment:
 
 ### Step 1: Prepare the Environment
 
-**Install Python dependencies:**
-
-```bash
-pip install -r requirements.txt
-```
-
-This installs PyYAML for parsing CoSAI YAML schema files.
-
 **Fetch CoSAI schemas** (required for first-time use or framework updates):
 
 ```bash
-python3 scripts/fetch_cosai_schemas.py
+uv run scripts/fetch_cosai_schemas.py
 ```
+
+The script automatically handles dependencies (PyYAML for parsing CoSAI YAML schema files).
 
 This downloads and caches:
 - 5 YAML data files (risks, controls, components, personas, self-assessment)
@@ -114,7 +112,7 @@ system_profile:
 **Run automated risk analysis:**
 
 ```bash
-python3 scripts/analyze_risks.py \
+uv run scripts/analyze_risks.py \
   --target /path/to/codebase \
   --persona ModelConsumer \
   --output json > analysis_results.json
@@ -197,7 +195,7 @@ Each identified risk includes `relevant_controls` listing applicable CoSAI contr
 **Create comprehensive assessment report:**
 
 ```bash
-python3 scripts/generate_report.py \
+uv run scripts/generate_report.py \
   --analysis analysis_results.json \
   --output ai_security_assessment.md \
   --format markdown \
@@ -389,7 +387,7 @@ After implementing controls:
 Generate reports from existing analysis results without re-running assessment:
 
 ```bash
-python3 scripts/generate_report.py \
+uv run scripts/generate_report.py \
   --analysis previous_analysis.json \
   --output updated_report.html \
   --format html \
@@ -479,10 +477,10 @@ Set up continuous risk monitoring:
 
 ```bash
 # Schedule periodic assessments
-cron: 0 0 * * 0 python3 scripts/analyze_risks.py --target /app --output weekly_scan.json
+cron: 0 0 * * 0 uv run scripts/analyze_risks.py --target /app --output weekly_scan.json
 
 # Alert on new critical risks
-python3 scripts/analyze_risks.py \
+uv run scripts/analyze_risks.py \
   --target /app \
   --severity-filter Critical \
   --output json | notify_team.sh
