@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Skill(skillsmith)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "WebFetch(domain:omni-automation.com)",
+      "Bash(eslint_d:*)"
     ]
   }
 }

@@ -1,0 +1,19 @@
+{
+  "identifier": "com.totallytools.omnifocus.overview",
+  "version": "1.0.1",
+  "author": "totally-tools",
+  "description": "Display comprehensive overview of OmniFocus database with detailed breakdowns",
+  "label": "Overview",
+  "mediumLabel": "Database Overview",
+  "paletteLabel": "Overview",
+  "image": "chart.bar.xaxis",
+  "actions": [
+    {
+      "identifier": "showOverview",
+      "label": "Show Database Overview",
+      "mediumLabel": "Show Overview",
+      "paletteLabel": "Overview",
+      "image": "chart.bar.xaxis"
+    }
+  ]
+}

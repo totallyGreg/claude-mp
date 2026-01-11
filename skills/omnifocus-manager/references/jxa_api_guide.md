@@ -178,7 +178,7 @@ chmod +x hello-omnifocus.js
 
 The omnifocus-manager skill provides modular libraries for common operations. Instead of writing query/mutation logic yourself, import and use these libraries.
 
-**Library location:** `libraries/jxa/`
+**Library location:** `scripts/libraries/jxa/`
 
 **Available libraries:**
 - `taskQuery.js` - Query operations (today, overdue, flagged, search)
@@ -186,7 +186,7 @@ The omnifocus-manager skill provides modular libraries for common operations. In
 - `dateUtils.js` - Date parsing and formatting helpers
 - `argParser.js` - Command-line argument parsing
 
-**See:** [Libraries README](../libraries/README.md) for complete documentation.
+**See:** [Libraries README](../scripts/libraries/README.md) for complete documentation.
 
 ### Loading Libraries
 
@@ -199,7 +199,7 @@ ObjC.import('Foundation');
 
 // Helper function to load library
 function loadLibrary(filename) {
-    const path = '../../libraries/jxa/' + filename;
+    const path = '../../scripts/libraries/jxa/' + filename;
     return eval($.NSString.alloc.initWithContentsOfFileEncodingError(
         path, $.NSUTF8StringEncoding, null
     ).js);
@@ -318,7 +318,7 @@ function run(argv) {
 ObjC.import('Foundation');
 
 function loadLibrary(filename) {
-    const path = '../../libraries/jxa/' + filename;
+    const path = '../../scripts/libraries/jxa/' + filename;
     return eval($.NSString.alloc.initWithContentsOfFileEncodingError(
         path, $.NSUTF8StringEncoding, null
     ).js);
@@ -352,7 +352,7 @@ function run(argv) {
 **See also:**
 - [Standalone examples](../assets/examples/standalone/) - Minimal library usage
 - [JXA script examples](../assets/examples/jxa-scripts/) - Complete workflows
-- [Libraries README](../libraries/README.md) - Complete API documentation
+- [Libraries README](../scripts/libraries/README.md) - Complete API documentation
 
 ---
 
@@ -1407,10 +1407,10 @@ if (!isRunning) {
 **Solutions:**
 ```javascript
 // Use absolute paths for cron jobs
-const path = '/full/path/to/libraries/jxa/taskQuery.js';
+const path = '/full/path/to/scripts/libraries/jxa/taskQuery.js';
 
 // Use relative paths for manual execution
-const path = '../../libraries/jxa/taskQuery.js';
+const path = '../../scripts/libraries/jxa/taskQuery.js';
 
 // Debug: Print current directory
 console.log($.NSFileManager.defaultManager.currentDirectoryPath.js);
@@ -1506,7 +1506,7 @@ try {
 
 **Local documentation:**
 - **JXA Quickstart:** [quickstarts/jxa_quickstart.md](quickstarts/jxa_quickstart.md) - 5-minute tutorial
-- **Libraries README:** [../libraries/README.md](../libraries/README.md) - Complete library API
+- **Libraries README:** [../scripts/libraries/README.md](../scripts/libraries/README.md) - Complete library API
 - **Examples:** [../assets/examples/](../assets/examples/) - Standalone scripts and complete workflows
 - **OmniFocus API:** [OmniFocus-API.md](OmniFocus-API.md) - Comprehensive API reference
 
@@ -1546,7 +1546,7 @@ open -a "Script Editor" /Applications/OmniFocus.app
 For issues with:
 - **JXA syntax:** See Mac Automation Scripting Guide
 - **OmniFocus API:** See OmniFocus AppleScript documentation or scripting dictionary
-- **Libraries:** See [../libraries/README.md](../libraries/README.md)
+- **Libraries:** See [../scripts/libraries/README.md](../scripts/libraries/README.md)
 - **Script issues:** Check Troubleshooting section above
 
 ---

@@ -5,10 +5,10 @@ This reference consolidates proven patterns and best practices for OmniFocus Omn
 **📍 Related Documentation:**
 - **[Plugin Development Guide](plugin_development_guide.md)** - Complete plugin creation guide
 - **[JXA API Guide](jxa_api_guide.md)** - Command-line automation reference
-- **[Libraries README](../libraries/README.md)** - Modular library system for reusable patterns
+- **[Libraries README](../scripts/libraries/README.md)** - Modular library system for reusable patterns
 - **[Workflows Guide](workflows.md)** - Ready-to-use automation patterns
 
-**💡 Key Recommendation:** Use the modular library system (`libraries/`) instead of writing automation from scratch. Libraries provide tested, reusable patterns for common operations.
+**💡 Key Recommendation:** Use the modular library system (`scripts/libraries/`) instead of writing automation from scratch. Libraries provide tested, reusable patterns for common operations.
 
 ## Core Principles
 

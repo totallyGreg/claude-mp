@@ -1,0 +1,48 @@
+{
+  "identifier": "com.totallytools.omnifocus.tree-explorer",
+  "version": "1.0.0",
+  "defaultLocale": "en",
+  "author": "TotallyTools",
+  "description": "Explore and export OmniFocus hierarchy as tree structures. Supports Markdown, JSON, OPML exports and OmniFocus 4 interactive navigation.",
+  "label": "Tree Explorer",
+  "paletteLabel": "Tree Explorer",
+  "image": "arrow.triangle.branch",
+  "actions": [
+    {
+      "identifier": "exportMarkdown",
+      "label": "Export Hierarchy to Markdown",
+      "shortLabel": "Markdown Export",
+      "paletteLabel": "Export Hierarchy to Markdown",
+      "image": "doc.text"
+    },
+    {
+      "identifier": "exportJSON",
+      "label": "Export Hierarchy to JSON",
+      "shortLabel": "JSON Export",
+      "paletteLabel": "Export Hierarchy to JSON",
+      "image": "doc.plaintext"
+    },
+    {
+      "identifier": "exportOPML",
+      "label": "Export Hierarchy to OPML",
+      "shortLabel": "OPML Export",
+      "paletteLabel": "Export Hierarchy to OPML",
+      "image": "doc.richtext"
+    },
+    {
+      "identifier": "revealSelected",
+      "label": "Reveal Selected in Window (OF4)",
+      "shortLabel": "Reveal",
+      "paletteLabel": "Reveal Selected in Window",
+      "image": "eye"
+    }
+  ],
+  "libraries": [
+    {
+      "identifier": "treeBuilder"
+    },
+    {
+      "identifier": "exportUtils"
+    }
+  ]
+}

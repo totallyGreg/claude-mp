@@ -7,7 +7,7 @@ description: |
 
   This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
 metadata:
-  version: 4.0.0
+  version: 4.1.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -15,7 +15,6 @@ compatibility:
   requires:
     - OmniFocus 3 or 4
     - Node.js 18+ (for TypeScript plugin generation)
-    - Python 3.6+ (for legacy database queries)
     - macOS with automation permissions
 ---
 
@@ -24,6 +23,13 @@ compatibility:
 ## What is OmniFocus?
 
 **OmniFocus** is a task management application for macOS and iOS that implements the Getting Things Done (GTD) methodology. It helps you capture, organize, and track tasks, projects, and goals with features like projects, tags, perspectives, defer/due dates, and repeating tasks.
+
+When you strip down OmniFocus to its essence, you’ll find a few simple concepts:
+
+- That big projects can be broken down into smaller tasks to make them easier to tackle.
+- That those tasks can be categorized to help you tackle them more efficiently.
+- That our computing devices can take some of the load off our overwhelmed minds by tracking when tasks will become available and when they’re due.
+- And that this sort of trusted system works best when it can quickly and easily capture whatever is on your mind, while also giving you tools to review your system to regain control and focus.
 
 ## What This Skill Does
 
@@ -65,19 +71,24 @@ When user requests plugin creation, follow these steps:
 → **ALWAYS** use: `node scripts/generate_plugin.js`
 → **NEVER** use Write/Edit tools to create .omnijs or .omnifocusjs files
 → Pass correct parameters: --format, --name, (--template if bundle)
+→ Generator validates automatically - no separate validation needed
 
 **5. CUSTOMIZE (if needed)**
 → Read generated plugin code
 → Edit action logic to add library calls from Step 3
+→ **If creating new libraries**: Test in Automation Console first
+→ **Keep bundle clean**: No .eslintrc, validation scripts, or test files
 
-**6. TEST**
+**6. TEST IN OMNIFOCUS**
 → Install: `cp -r *.omnifocusjs ~/Library/Application Scripts/com.omnigroup.OmniFocus3/Plug-Ins/`
 → Restart OmniFocus
-→ Verify plugin appears in Automation menu
+→ Test in Automation Console (`⌘⌥⇧C`) before full install
+→ Verify plugin appears in Automation menu and works correctly
 
 ### WHY MANDATORY:
 
 ✅ **TypeScript generator:**
+
 - Validates code during generation (TypeScript Compiler API)
 - Type-checks against omnifocus.d.ts
 - Zero-tolerance (refuses to generate if errors exist)
@@ -85,16 +96,19 @@ When user requests plugin creation, follow these steps:
 - Creates working plugins on first try
 
 ❌ **Manual creation fails:**
+
 - No validation → broken code
 - Library bundling errors → missing dependencies
 - Example: Manual plugins fail to install
 
 ### ⛔ NEVER:
+
 - ❌ Create manifest.json with Write tool
 - ❌ Create action.js files with Write tool
 - ❌ Skip TypeScript validation
 
 ### ✅ ALWAYS:
+
 - ✅ Use `node scripts/generate_plugin.js`
 - ✅ Let generator create all files
 - ✅ Test in OmniFocus before claiming success
@@ -106,6 +120,7 @@ When user requests plugin creation, follow these steps:
 ### After Skill Modifications
 
 **Quick validation (structure only):**
+
 ```bash
 python3 /Users/gregwilliams/Documents/Projects/claude-mp/skills/skillsmith/scripts/evaluate_skill.py \
   /Users/gregwilliams/Documents/Projects/claude-mp/skills/omnifocus-manager --quick
@@ -117,11 +132,33 @@ python3 /Users/gregwilliams/Documents/Projects/claude-mp/skills/skillsmith/scrip
 
 ### Plugin Validation
 
-**Automatic during generation:**
-- TypeScript generator validates syntax and types automatically
-- No manual validation needed if using generator
+**All validation happens in the generator:**
+
+- TypeScript generator (`scripts/generate_plugin.ts`) validates during generation
+- Uses TypeScript Compiler API for syntax and type checking
+- Checks against `omnifocus.d.ts` and `omnifocus-extensions.d.ts`
+- Refuses to generate if any errors exist (zero-tolerance)
+- No separate validation tools needed
+
+**When creating complex plugins with custom libraries:**
+
+⚠️ **If you need to manually create library files:**
+
+1. **DON'T**: Create separate validation scripts or test files
+2. **DO**: Test in OmniFocus Automation Console (`⌘⌥⇧C`)
+3. **DO**: Add validation checks to the generator if insufficient
+4. **DO**: Keep plugin bundles clean (no .eslintrc, test scripts, etc.)
+
+**Plugin bundle should only contain:**
+
+- `manifest.json` (generated)
+- `Resources/` directory with `.js` action files
+- `README.md` (user documentation)
+- `INSTALL.md` (installation instructions - optional)
+- `TROUBLESHOOTING.md` (troubleshooting guide - optional)
 
 **Success criteria:**
+
 - ✅ Generator reports "TypeScript validation passed"
 - ✅ Plugin installs without errors
 - ✅ Appears in OmniFocus Automation menu
@@ -138,16 +175,19 @@ python3 /Users/gregwilliams/Documents/Projects/claude-mp/skills/skillsmith/scrip
 Determine user intent BEFORE taking action:
 
 **ONE-TIME Query** (Execute existing script):
+
 - Keywords: "show me", "what are", "analyze", "find", "list", "tell me"
 - Examples: "Show me today's tasks" → Execute JXA script
 - Action: Use `osascript -l JavaScript scripts/manage_omnifocus.js`
 
 **REUSABLE Plugin** (Generate plugin):
+
 - Keywords: "create a plugin", "make a plugin", "automate", "create an action"
 - Examples: "Create a plugin to show today's tasks" → Generate plugin
 - Action: Use `node scripts/generate_plugin.js`
 
 **Decision Rule:**
+
 ```
 IF request contains ["create a plugin", "make a plugin", "automate", "build automation"]
 THEN → Plugin Creation Workflow
@@ -164,6 +204,7 @@ B) Create a reusable plugin for future use?"
 ## 🔀 PLUGIN FORMAT SELECTION
 
 **Q1: How many actions?**
+
 - ONE action, no AI → `--format solitary`
 - ONE action, with AI → `--format solitary-fm`
 - MULTIPLE actions → `--format bundle --template query-simple`
@@ -178,6 +219,7 @@ B) Create a reusable plugin for future use?"
 | solitary-library | Reusable library code | `node scripts/generate_plugin.js --format solitary-library --name "Name"` |
 
 **Examples:**
+
 - "Plugin to show flagged tasks" → solitary (1 action, no AI)
 - "AI task analyzer" → solitary-fm (1 action, needs AI)
 - "Plugin with copy and save actions" → bundle (2 actions)
@@ -187,15 +229,18 @@ B) Create a reusable plugin for future use?"
 ### 1. Execute OmniFocus Operations
 
 **Query tasks (read data):**
+
 ```bash
 # Use existing JXA script
 osascript -l JavaScript scripts/manage_omnifocus.js today
 osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7
 osascript -l JavaScript scripts/manage_omnifocus.js search --query "meeting"
 ```
+
 → **See:** [JXA API Guide](references/jxa_api_guide.md#cli-command-reference)
 
 **Create/modify tasks (write data):**
+
 ```bash
 # Quick capture (cross-platform)
 open "omnifocus:///add?name=Task&autosave=true"
@@ -204,9 +249,11 @@ open "omnifocus:///add?name=Task&autosave=true"
 osascript -l JavaScript scripts/manage_omnifocus.js create \
   --name "Task" --project "Work" --due "2025-12-31"
 ```
+
 → **See:** [URL Scheme Guide](references/omnifocus_url_scheme.md) or [JXA API Guide](references/jxa_api_guide.md#task-management-commands)
 
 **Run existing plugins:**
+
 - Install `assets/TodaysTasks.omnifocusjs` - Today's task viewer
 - Install `assets/AITaskAnalyzer.omnifocusjs` - AI-powered analysis
 
@@ -217,16 +264,19 @@ osascript -l JavaScript scripts/manage_omnifocus.js create \
 > ⚠️ **CRITICAL: Plugin Code Generation with TypeScript**
 >
 > **The skill now uses TypeScript-based plugin generation with LSP validation:**
+>
 > 1. TypeScript generator validates code DURING generation (not after)
 > 2. Type definitions catch API errors before file creation
 > 3. Generated plugins include type annotations for better documentation
 >
 > **Before generating plugins:**
+>
 > 1. Read `references/code_generation_validation.md` - Validation guidelines
 > 2. Verify APIs in `references/api_quick_reference.md` - Prevent hallucinated APIs
 > 3. Use TypeScript generator - Automatic validation included
 >
 > **TypeScript Development Environment:** `typescript/` directory contains:
+>
 > - `omnifocus.d.ts` - Official OmniFocus API type definitions (1,698 lines)
 > - `omnifocus-extensions.d.ts` - LanguageModel API for Apple Intelligence
 > - `tsconfig.json` - TypeScript configuration
@@ -236,6 +286,7 @@ osascript -l JavaScript scripts/manage_omnifocus.js create \
 → **[Plugin Quickstart](references/quickstarts/plugin_quickstart.md)** - 5-minute tutorial
 
 **Quick Plugin Generation with TypeScript (Recommended - <1 minute):**
+
 ```bash
 # Generate plugin from TypeScript template
 node scripts/generate_plugin.js --format solitary --name "My Plugin"
@@ -250,6 +301,7 @@ node scripts/generate_plugin.js --format solitary-library --name "My Utils"
 ```
 
 **Benefits:**
+
 - ✅ TypeScript LSP validation during generation
 - ✅ Type-safe API usage (catches errors before file creation)
 - ✅ Type annotations in generated code (inline documentation)
@@ -260,6 +312,7 @@ node scripts/generate_plugin.js --format solitary-library --name "My Utils"
 → **TypeScript Guide:** `typescript/README.md` for manual development with LSP
 
 **Create from template manually:**
+
 1. Reference `assets/OFBundlePlugInTemplate.omnifocusjs` - official Omni Group template
 2. Or copy from `assets/plugin-templates/` - validated examples
 3. Modify manifest.json and action scripts
@@ -269,6 +322,7 @@ node scripts/generate_plugin.js --format solitary-library --name "My Utils"
 → **Templates:** [plugin-templates](assets/plugin-templates/) - Validated examples
 
 **Modify existing plugin:**
+
 1. Right-click `.omnifocusjs` → Show Package Contents
 2. Edit `manifest.json` or `Resources/*.js` files
 3. Restart OmniFocus to reload
@@ -282,11 +336,13 @@ node scripts/generate_plugin.js --format solitary-library --name "My Utils"
 **TypeScript Generator Workflow (AUTOMATED):**
 
 **Step 1: Generate Plugin**
+
 ```bash
 node scripts/generate_plugin.js --format solitary --name "My Plugin"
 ```
 
 **What happens automatically:**
+
 1. ✅ Loads TypeScript template with type annotations
 2. ✅ Substitutes variables (name, identifier, etc.)
 3. ✅ Validates syntax against TypeScript Compiler API
@@ -295,6 +351,7 @@ node scripts/generate_plugin.js --format solitary --name "My Plugin"
 6. ✅ Auto-renames .ts → .omnijs for deployment
 
 **Step 2: Install and Test**
+
 ```bash
 # Generated plugin is ready for installation
 cp assets/MyPlugin.omnijs ~/Library/Application\ Scripts/com.omnigroup.OmniFocus3/Plug-Ins/
@@ -305,6 +362,7 @@ cp assets/MyPlugin.omnijs ~/Library/Application\ Scripts/com.omnigroup.OmniFocus
 For manual plugin development with full LSP support (autocomplete, type-checking):
 
 **Step 1: Set Up TypeScript Environment**
+
 1. Read `typescript/README.md` for setup instructions
 2. Install TypeScript Language Server (if not already installed):
    ```bash
@@ -312,15 +370,18 @@ For manual plugin development with full LSP support (autocomplete, type-checking
    ```
 
 **Step 2: Develop with TypeScript**
+
 1. Create `.ts` file in `typescript/` directory
 2. Use LSP for autocomplete and type-checking while coding
 3. TypeScript validates against `omnifocus.d.ts` and `omnifocus-extensions.d.ts`
 
 **Step 3: Deploy**
+
 1. Rename `.ts` to `.omnijs` or `.omnifocusjs`
 2. Install in OmniFocus Plug-Ins directory
 
 **What TypeScript LSP catches during development:**
+
 - ✅ Undefined APIs (hallucinated APIs like `Document.defaultDocument`, `Progress`)
 - ✅ Type mismatches (passing function when Version expected)
 - ✅ Incorrect constructor arguments
@@ -338,6 +399,7 @@ eslint_d assets/YourPlugin.omnifocusjs/Resources/*.js
 ```
 
 **Complete documentation:**
+
 - TypeScript guide: `typescript/README.md`
 - Validation rules: `references/code_generation_validation.md`
 - Plugin patterns: `references/plugin_development_guide.md`
@@ -349,12 +411,14 @@ eslint_d assets/YourPlugin.omnifocusjs/Resources/*.js
 → **[JXA Quickstart](references/quickstarts/jxa_quickstart.md)** - 5-minute tutorial
 
 **Command-line automation (Mac only):**
-- Use modular libraries from `libraries/jxa/`
+
+- Use modular libraries from `scripts/libraries/jxa/`
 - See examples in `assets/examples/jxa-scripts/`
 
 → **See:** [JXA API Guide](references/jxa_api_guide.md)
 
 **Cross-platform quick capture:**
+
 - Use URL scheme for task creation
 - Perfect for embedding in notes (Obsidian, etc.)
 
@@ -369,11 +433,13 @@ eslint_d assets/YourPlugin.omnifocusjs/Resources/*.js
 → **[GTD Overview](references/gtd_overview.md)** - Navigation hub for all GTD resources
 
 **Quick reference:**
+
 - [GTD Context](references/gtd_context.md) - Brief principles overview
 - [GTD Methodology](references/gtd_methodology.md) - Complete implementation guide
 - [Workflows](references/workflows.md) - Practical automation patterns
 
 **Learn OmniFocus concepts:**
+
 - Projects vs Tasks vs Tags
 - Perspectives and views
 - Defer/due dates
@@ -384,12 +450,14 @@ eslint_d assets/YourPlugin.omnifocusjs/Resources/*.js
 ### 5. Analyze Tasks for Insights
 
 **AI-powered analysis (OmniFocus 4.8+):**
+
 - Install `assets/AITaskAnalyzer.omnifocusjs` plugin
 - Requires macOS 15.2+ / iOS 18.2+ with Apple Silicon
 
 → **See:** [Foundation Models Integration](references/foundation_models_integration.md)
 
 **Pattern detection (works on all versions):**
+
 ```bash
 # Detect stalled projects, over-committed, etc.
 python3 scripts/analyze_insights.py
@@ -403,7 +471,8 @@ python3 scripts/analyze_insights.py
 
 **PHILOSOPHY:** Compose from libraries BEFORE generating new code
 
-### Available Libraries (`libraries/omni/`):
+### Available Libraries (`scripts/libraries/omni/`):
+
 - `taskMetrics.js` - getTodayTasks, getOverdueTasks, getCompletedToday, getFlaggedTasks
 - `exportUtils.js` - toJSON, toCSV, toMarkdown, toHTML, toClipboard, toFile
 - `completedTasksFormatter.js` - formatAsMarkdown (with project grouping)
@@ -411,21 +480,24 @@ python3 scripts/analyze_insights.py
 - `insightPatterns.js` - detectStalledProjects, detectWaitingForAging
 
 ### Workflow:
+
 1. **Check libraries** - Does functionality already exist?
 2. **Declare in manifest** - Add to "libraries" array (bundle plugins only)
 3. **Use in actions** - Call via `this.plugIn.library("libName")`
 
 **Example:** "Create plugin to show completed tasks"
+
 - ✅ Use: `taskMetrics.getCompletedToday()` + `completedTasksFormatter.formatAsMarkdown()`
 - ❌ Don't: Generate new completion-checking code from scratch
 
 **For bundle plugins**, declare in manifest.json:
+
 ```json
 {
   "libraries": [
-    {"identifier": "taskMetrics"},
-    {"identifier": "completedTasksFormatter"},
-    {"identifier": "exportUtils"}
+    { "identifier": "taskMetrics" },
+    { "identifier": "completedTasksFormatter" },
+    { "identifier": "exportUtils" }
   ]
 }
 ```
@@ -436,49 +508,61 @@ python3 scripts/analyze_insights.py
 
 **Instead of generating code from scratch, use the modular library system:**
 
-**Location:** `libraries/`
+**Location:** `scripts/libraries/`
 
 **Available libraries:**
 
 **JXA Libraries** (Mac command-line):
+
 - `taskQuery.js` - Query operations (today, overdue, flagged, search)
 - `taskMutation.js` - Create, update, complete, delete tasks
 - `dateUtils.js` - Date parsing and formatting
 - `argParser.js` - Command-line argument parsing
 
 **Omni Libraries** (Mac + iOS plugins):
+
 - `taskMetrics.js` - Task data collection (PlugIn.Library)
+- `treeBuilder.js` - ⭐ **NEW v4.1** - OmniFocus 4 tree API support (PlugIn.Library)
+  - Database tree building with metrics/health integration
+  - Export to Markdown/JSON/OPML formats for outliner apps
+  - Window tree manipulation (reveal/select/expand/collapse nodes)
+  - Graceful degradation for OmniFocus 3 (exports work, window ops require OF4)
+  - **See:** TreeExplorer.omnifocusjs plugin for usage examples
 - `exportUtils.js` - Export to JSON/CSV/Markdown/HTML (PlugIn.Library)
 - `insightPatterns.js` - Pattern detection (PlugIn.Library)
 - `templateEngine.js` - Template-based task creation (PlugIn.Library)
 - `patterns.js` - ⭐ MCP-ready composable patterns with Foundation Models (PlugIn.Library)
 
 **Shared Libraries** (Cross-platform):
+
 - `urlBuilder.js` - URL scheme helper
 
-**See complete documentation:** [Libraries README](libraries/README.md)
+**See complete documentation:** [Libraries README](scripts/libraries/README.md)
 
 ### Usage Patterns
 
 **Pattern 1: Standalone (load and call):**
+
 ```javascript
-const taskQuery = loadLibrary('libraries/jxa/taskQuery.js');
-const tasks = taskQuery.getTodayTasks(doc);
+const taskQuery = loadLibrary('scripts/libraries/jxa/taskQuery.js')
+const tasks = taskQuery.getTodayTasks(doc)
 ```
 
 **Pattern 2: JXA Scripts (compose workflow):**
+
 ```javascript
 #!/usr/bin/osascript -l JavaScript
-const taskQuery = loadLibrary('libraries/jxa/taskQuery.js');
-const tasks = taskQuery.getTodayTasks(app.defaultDocument);
+const taskQuery = loadLibrary('scripts/libraries/jxa/taskQuery.js')
+const tasks = taskQuery.getTodayTasks(app.defaultDocument)
 // ... use tasks
 ```
 
 **Pattern 3: OmniFocus Plugins (PlugIn.Library):**
+
 ```javascript
 // In manifest.json: "libraries": ["taskMetrics"]
-const metrics = this.plugIn.library("taskMetrics");
-const tasks = metrics.getTodayTasks();
+const metrics = this.plugIn.library('taskMetrics')
+const tasks = metrics.getTodayTasks()
 ```
 
 **See examples:** `assets/examples/` directory
@@ -490,17 +574,20 @@ const tasks = metrics.getTodayTasks();
 **All examples are in:** `assets/examples/`
 
 **Standalone** - Minimal library usage:
+
 - `query-today.js` - Load taskQuery, get today's tasks
 - `create-task.js` - Load taskMutation, create task
 - `build-url.js` - Load urlBuilder, generate URL
 
 **JXA Scripts** - Complete workflows:
+
 - `check-today.js` - Daily task report with priorities
 - `bulk-create.js` - Create multiple tasks from templates
 - `weekly-review.js` - Complete GTD weekly review
 - `generate-report.js` - Export tasks to various formats
 
 **Plugins** - Reusable OmniFocus actions:
+
 - `SimpleQuery.omnifocusjs` - Query using taskMetrics library
 - `BulkOperations.omnifocusjs` - Batch operations using patterns library
 - `URLGenerator.omnifocusjs` - URL generation using urlBuilder library
@@ -519,6 +606,7 @@ const tasks = metrics.getTodayTasks();
 **Use for:** Reusable plugins, cross-platform automation
 
 **Features:**
+
 - Cross-platform (Mac + iOS)
 - PlugIn.Library pattern for modular code
 - Direct property access: `task.name` (not `task.name()`)
@@ -537,6 +625,7 @@ const tasks = metrics.getTodayTasks();
 **Use for:** Scripts, scheduled tasks, external automation
 
 **Features:**
+
 - Full AppleScript API access
 - Method call syntax: `task.name()` (not `task.name`)
 - Modular libraries (taskQuery, taskMutation, dateUtils)
@@ -554,6 +643,7 @@ const tasks = metrics.getTodayTasks();
 **Use for:** Quick capture, embedding in notes, shortcuts
 
 **Features:**
+
 - Fastest task creation
 - Perfect for embedding in Markdown notes
 - Bulk import via TaskPaper format
@@ -583,21 +673,25 @@ const tasks = metrics.getTodayTasks();
 ### Comprehensive Guides
 
 **Plugin Development:**
+
 - **[Plugin Development Guide](references/plugin_development_guide.md)** - Complete plugin creation guide
 - [Plugin Installation](references/plugin_installation.md) - Installing and using plugins
 
 **Automation:**
+
 - **[JXA API Guide](references/jxa_api_guide.md)** - Complete JXA reference
 - [Omni Automation Guide](references/omnifocus_automation.md) - Cross-platform automation
 - [URL Scheme Reference](references/omnifocus_url_scheme.md) - Quick capture and embedding
 
 **GTD Methodology:**
+
 - **[GTD Overview](references/gtd_overview.md)** - Navigation hub for GTD resources
 - [GTD Context](references/gtd_context.md) - Brief GTD principles
 - [GTD Methodology](references/gtd_methodology.md) - Complete implementation guide
 - [Workflows](references/workflows.md) - Practical automation patterns
 
 **Advanced:**
+
 - [Foundation Models Integration](references/foundation_models_integration.md) - AI-powered automation
 - [Automation Best Practices](references/automation_best_practices.md) - Patterns and principles
 - [Insight Patterns](references/insight_patterns.md) - Pattern detection catalog
@@ -612,7 +706,7 @@ const tasks = metrics.getTodayTasks();
 
 ### Resources
 
-- [Libraries README](libraries/README.md) - Modular library documentation
+- [Libraries README](scripts/libraries/README.md) - Modular library documentation
 - [Examples README](assets/examples/README.md) - Working code examples
 - [Assets README](assets/README.md) - Plugins and templates overview
 - [Troubleshooting](references/troubleshooting.md) - Common issues and solutions
@@ -624,16 +718,19 @@ const tasks = metrics.getTodayTasks();
 This skill prioritizes **executing existing code** over generating new code:
 
 **Low-cost operations (80% of use cases):**
+
 - Execute existing scripts: `osascript scripts/manage_omnifocus.js today`
 - Run installed plugins: Click action in OmniFocus menu
 - Use URL scheme: `open "omnifocus:///add?name=Task&autosave=true"`
 
 **Medium-cost operations (15% of use cases):**
+
 - Compose from libraries: Load taskQuery + taskMutation
 - Customize examples: Copy from `assets/examples/` and modify
 - Assemble patterns: Use patterns.js for complex workflows
 
 **High-cost operations (5% of use cases):**
+
 - Generate novel code: Only when no pattern exists
 - Create new patterns: Offer to add to skill repertoire
 
@@ -646,6 +743,7 @@ This skill prioritizes **executing existing code** over generating new code:
 ### "What should I work on today?"
 
 **Execute:**
+
 ```bash
 osascript -l JavaScript scripts/manage_omnifocus.js today
 ```
@@ -655,11 +753,13 @@ Or install plugin: `assets/TodaysTasks.omnifocusjs`
 ### "Create a task"
 
 **Quick (URL):**
+
 ```bash
 open "omnifocus:///add?name=Task&autosave=true"
 ```
 
 **Detailed (JXA):**
+
 ```bash
 osascript -l JavaScript scripts/manage_omnifocus.js create \
   --name "Task" --project "Work" --due "2025-12-31"
@@ -677,6 +777,7 @@ osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7
 Install and run `assets/AITaskAnalyzer.omnifocusjs`
 
 **Pattern detection (all versions):**
+
 ```bash
 python3 scripts/analyze_insights.py
 ```
@@ -684,6 +785,7 @@ python3 scripts/analyze_insights.py
 ### "Create a weekly review plugin"
 
 **Compose from example:**
+
 1. Copy `assets/examples/plugins/SimpleQuery.omnifocusjs`
 2. Modify for weekly review workflow
 3. Use libraries: taskMetrics, exportUtils, insightPatterns
@@ -695,10 +797,12 @@ python3 scripts/analyze_insights.py
 ### Permission Issues
 
 **Automation Permission (JXA):**
+
 - System Settings → Privacy & Security → Automation
 - Enable OmniFocus for Terminal
 
 **Full Disk Access (Database queries):**
+
 - System Settings → Privacy & Security → Full Disk Access
 - Add Terminal app
 
@@ -720,6 +824,7 @@ python3 scripts/analyze_insights.py
 **Current version:** 3.1.0
 
 **What's new in 3.1:**
+
 - ⭐ Official plugin template reference (OFBundlePlugInTemplate)
 - ⭐ Comprehensive plugin testing workflows
 - ⭐ Plugin distribution checklist
@@ -728,7 +833,8 @@ python3 scripts/analyze_insights.py
 - Plugin validation and testing best practices
 
 **What's new in 3.0:**
-- ⭐ Modular library system (`libraries/`)
+
+- ⭐ Modular library system (`scripts/libraries/`)
 - ⭐ Execution-first architecture (80/15/5 split)
 - ⭐ Comprehensive examples (`assets/examples/`)
 - ⭐ Progressive disclosure documentation

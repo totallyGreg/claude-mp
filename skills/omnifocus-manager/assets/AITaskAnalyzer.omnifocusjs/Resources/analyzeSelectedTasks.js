@@ -11,89 +11,84 @@
  * - Apple Silicon or iPhone 15 Pro+ for on-device AI
  */
 
-(() => {
-	const action = new PlugIn.Action(async function(selection, sender) {
-		// Load foundationModelsUtils library first
-		const fmUtils = this.plugIn.library("foundationModelsUtils");
+;(() => {
+  const action = new PlugIn.Action(async function (selection, sender) {
+    // Load foundationModelsUtils library first
+    const fmUtils = this.plugIn.library('foundationModelsUtils')
 
-		// Check availability IMMEDIATELY before doing anything else
-		if (!fmUtils.isAvailable()) {
-			fmUtils.showUnavailableAlert();
-			return;
-		}
+    // Check availability IMMEDIATELY before doing anything else
+    if (!fmUtils.isAvailable()) {
+      fmUtils.showUnavailableAlert()
+      return
+    }
 
-		try {
-			// Validation
-			const tasks = selection.tasks;
+    try {
+      // Validation
+      const tasks = selection.tasks
 
-			if (tasks.length === 0) {
-				throw new Error("Please select at least one task to analyze.");
-			}
+      if (tasks.length === 0) {
+        throw new Error('Please select at least one task to analyze.')
+      }
 
-			// Limit to 5 tasks to avoid long processing times
-			if (tasks.length > 5) {
-				throw new Error("Please select 5 or fewer tasks. AI analysis can take time for multiple tasks.");
-			}
+      // Limit to 5 tasks to avoid long processing times
+      if (tasks.length > 5) {
+        throw new Error(
+          'Please select 5 or fewer tasks. AI analysis can take time for multiple tasks.'
+        )
+      }
 
-			// AI Analysis - session may be invalid
-			const session = fmUtils.createSession();
+      // AI Analysis - session may be invalid
+      const session = fmUtils.createSession()
 
-			const results = [];
+      const results = []
 
-			for (const task of tasks) {
-				// Build context for the AI
-				const taskContext = buildTaskContext(task);
+      for (const task of tasks) {
+        // Build context for the AI
+        const taskContext = buildTaskContext(task)
 
-				// Define the analysis schema using OmniFocus format
-				const schema = LanguageModel.Schema.fromJSON({
-						name: "task-analysis-schema",
-						properties: [
-							{
-								name: "clarity",
-								description: "How clear and actionable the task is (1-10)"
-							},
-							{
-								name: "suggestedName",
-								description: "Improved task name if current one could be clearer",
-								isOptional: true
-							},
-							{
-								name: "suggestedTags",
-								description: "2-3 relevant tags based on task content",
-								schema: {arrayOf: {constant: "tag"}}
-							},
-							{
-								name: "priority",
-								description: "Suggested priority level",
-								schema: {
-									anyOf: [
-										{constant: "high"},
-										{constant: "medium"},
-										{constant: "low"}
-									]
-								}
-							},
-							{
-								name: "estimatedMinutes",
-								description: "Estimated time to complete in minutes",
-								isOptional: true
-							},
-							{
-								name: "improvements",
-								description: "Specific suggestions for improving the task",
-								schema: {arrayOf: {constant: "improvement"}}
-							},
-							{
-								name: "missingInfo",
-								description: "Information that would help complete this task",
-								isOptional: true,
-								schema: {arrayOf: {constant: "info"}}
-							}
-						]
-					});
+        // Define the analysis schema using OmniFocus format
+        const schema = LanguageModel.Schema.fromJSON({
+          name: 'task-analysis-schema',
+          properties: [
+            {
+              name: 'clarity',
+              description: 'How clear and actionable the task is (1-10)',
+            },
+            {
+              name: 'suggestedName',
+              description: 'Improved task name if current one could be clearer',
+              isOptional: true,
+            },
+            {
+              name: 'suggestedTags',
+              description: '2-3 relevant tags based on task content',
+              schema: { arrayOf: { constant: 'tag' } },
+            },
+            {
+              name: 'priority',
+              description: 'Suggested priority level (high, medium, or low)',
+            },
+            {
+              name: 'estimatedMinutes',
+              description: 'Estimated time to complete in minutes',
+              isOptional: true,
+            },
+            {
+              name: 'improvements',
+              description: 'Specific suggestions for improving the task',
+              schema: { arrayOf: { constant: 'improvement' } },
+            },
+            {
+              name: 'missingInfo',
+              description: 'Information that would help complete this task',
+              isOptional: true,
+              schema: { arrayOf: { constant: 'info' } },
+            },
+          ],
+        })
 
-					// Craft the prompt
-					const prompt = `Analyze this OmniFocus task and provide structured feedback:
+        // Craft the prompt
+        const prompt = `Analyze this OmniFocus task and provide structured feedback:
 
 TASK DETAILS:
 ${taskContext}
@@ -107,138 +102,139 @@ Please analyze:
 6. What specific improvements would make this task better?
 7. What information is missing that would help complete this task?
 
-Be specific and practical in your suggestions.`;
+Be specific and practical in your suggestions.`
 
-					// Get AI analysis
-					const response = await session.respondWithSchema(prompt, schema);
-					const analysis = JSON.parse(response);
+        // Get AI analysis
+        const response = await session.respondWithSchema(prompt, schema)
+        const analysis = JSON.parse(response)
 
-				results.push({
-					task: task,
-					analysis: analysis
-				});
-			}
+        results.push({
+          task: task,
+          analysis: analysis,
+        })
+      }
 
-			// Display Results
-			displayResults(results);
+      // Display Results
+      displayResults(results)
+    } catch (err) {
+      new Alert(err.name, err.message).show()
+      console.error(err)
+    }
+  })
 
-		} catch(err) {
-			new Alert(err.name, err.message).show();
-			console.error(err);
-		}
-	});
+  // Helper Functions
 
-	// Helper Functions
+  /**
+   * Build comprehensive context about a task for AI analysis
+   */
+  function buildTaskContext(task) {
+    const lines = []
 
-	/**
-	 * Build comprehensive context about a task for AI analysis
-	 */
-	function buildTaskContext(task) {
-		const lines = [];
+    lines.push(`Name: ${task.name}`)
 
-		lines.push(`Name: ${task.name}`);
+    if (task.note) {
+      lines.push(`Note: ${task.note}`)
+    }
 
-		if (task.note) {
-			lines.push(`Note: ${task.note}`);
-		}
+    if (task.containingProject) {
+      lines.push(`Project: ${task.containingProject.name}`)
+    }
 
-		if (task.containingProject) {
-			lines.push(`Project: ${task.containingProject.name}`);
-		}
+    if (task.tags.length > 0) {
+      lines.push(`Current Tags: ${task.tags.map((t) => t.name).join(', ')}`)
+    }
 
-		if (task.tags.length > 0) {
-			lines.push(`Current Tags: ${task.tags.map(t => t.name).join(', ')}`);
-		}
+    if (task.dueDate) {
+      const dueStr = task.dueDate.toLocaleDateString()
+      lines.push(`Due Date: ${dueStr}`)
+    }
 
-		if (task.dueDate) {
-			const dueStr = task.dueDate.toLocaleDateString();
-			lines.push(`Due Date: ${dueStr}`);
-		}
+    if (task.deferDate) {
+      const deferStr = task.deferDate.toLocaleDateString()
+      lines.push(`Defer Date: ${deferStr}`)
+    }
 
-		if (task.deferDate) {
-			const deferStr = task.deferDate.toLocaleDateString();
-			lines.push(`Defer Date: ${deferStr}`);
-		}
+    if (task.estimatedMinutes) {
+      lines.push(`Current Estimate: ${task.estimatedMinutes} minutes`)
+    }
 
-		if (task.estimatedMinutes) {
-			lines.push(`Current Estimate: ${task.estimatedMinutes} minutes`);
-		}
+    lines.push(`Flagged: ${task.flagged ? 'Yes' : 'No'}`)
 
-		lines.push(`Flagged: ${task.flagged ? 'Yes' : 'No'}`);
+    return lines.join('\n')
+  }
 
-		return lines.join('\n');
-	}
+  /**
+   * Display analysis results in a formatted alert
+   */
+  function displayResults(results) {
+    let message = ''
 
-	/**
-	 * Display analysis results in a formatted alert
-	 */
-	function displayResults(results) {
-		let message = "";
+    results.forEach((result, index) => {
+      const { task, analysis } = result
 
-		results.forEach((result, index) => {
-			const { task, analysis } = result;
+      if (index > 0) message += '\n\n' + '='.repeat(40) + '\n\n'
 
-			if (index > 0) message += "\n\n" + "=".repeat(40) + "\n\n";
+      message += `TASK: ${task.name}\n\n`
 
-			message += `TASK: ${task.name}\n\n`;
+      // Clarity score
+      message += `Clarity Score: ${analysis.clarity}/10\n`
 
-			// Clarity score
-			message += `Clarity Score: ${analysis.clarity}/10\n`;
+      // Suggested improvements
+      if (analysis.suggestedName) {
+        message += `\nSuggested Name:\n→ ${analysis.suggestedName}\n`
+      }
 
-			// Suggested improvements
-			if (analysis.suggestedName) {
-				message += `\nSuggested Name:\n→ ${analysis.suggestedName}\n`;
-			}
+      // Priority and estimate
+      message += `\nPriority: ${analysis.priority.toUpperCase()}\n`
+      if (analysis.estimatedMinutes) {
+        message += `Est. Time: ${analysis.estimatedMinutes} minutes\n`
+      }
 
-			// Priority and estimate
-			message += `\nPriority: ${analysis.priority.toUpperCase()}\n`;
-			if (analysis.estimatedMinutes) {
-				message += `Est. Time: ${analysis.estimatedMinutes} minutes\n`;
-			}
+      // Tags
+      if (analysis.suggestedTags && analysis.suggestedTags.length > 0) {
+        message += `\nSuggested Tags:\n`
+        analysis.suggestedTags.forEach((tag) => {
+          message += `  • ${tag}\n`
+        })
+      }
 
-			// Tags
-			if (analysis.suggestedTags.length > 0) {
-				message += `\nSuggested Tags:\n`;
-				analysis.suggestedTags.forEach(tag => {
-					message += `  • ${tag}\n`;
-				});
-			}
+      // Improvements
+      if (analysis.improvements && analysis.improvements.length > 0) {
+        message += `\nImprovements:\n`
+        analysis.improvements.forEach((improvement) => {
+          message += `  • ${improvement}\n`
+        })
+      }
 
-			// Improvements
-			if (analysis.improvements.length > 0) {
-				message += `\nImprovements:\n`;
-				analysis.improvements.forEach(improvement => {
-					message += `  • ${improvement}\n`;
-				});
-			}
+      // Missing info
+      if (analysis.missingInfo && analysis.missingInfo.length > 0) {
+        message += `\nMissing Information:\n`
+        analysis.missingInfo.forEach((info) => {
+          message += `  • ${info}\n`
+        })
+      }
+    })
 
-			// Missing info
-			if (analysis.missingInfo && analysis.missingInfo.length > 0) {
-				message += `\nMissing Information:\n`;
-				analysis.missingInfo.forEach(info => {
-					message += `  • ${info}\n`;
-				});
-			}
-		});
+    // Show results
+    const alert = new Alert('AI Task Analysis', message)
+    alert.addOption('Copy to Clipboard')
+    alert.addOption('Done')
 
-		// Show results
-		const alert = new Alert("AI Task Analysis", message);
-		alert.addOption("Copy to Clipboard");
-		alert.addOption("Done");
+    alert.show().then((buttonIndex) => {
+      if (buttonIndex === 0) {
+        // Copy to clipboard
+        Pasteboard.general.string = message
+      }
+    })
+  }
 
-		alert.show().then(buttonIndex => {
-			if (buttonIndex === 0) {
-				// Copy to clipboard
-				Pasteboard.general.string = message;
-			}
-		});
-	}
+  // Require tasks selected AND macOS 26+ for Apple Foundation Models
+  action.validate = function (selection, sender) {
+    return (
+      selection.tasks.length > 0 &&
+      Device.current.operatingSystemVersion.atLeast(new Version('26'))
+    )
+  }
 
-	// Require tasks selected AND macOS 26+ for Apple Foundation Models
-	action.validate = function(selection, sender) {
-		return (selection.tasks.length > 0) &&
-			(Device.current.operatingSystemVersion.atLeast(new Version("26")));
-	};
-
-	return action;
-})();
+  return action
+})()

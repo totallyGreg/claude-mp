@@ -1,10 +1,11 @@
 # AI Analyzer - OmniFocus Plugin
 
-Comprehensive AI-powered analysis for OmniFocus using **Apple Foundation Models (Apple Intelligence)** with three powerful modes:
+Comprehensive AI-powered analysis for OmniFocus using **Apple Foundation Models (Apple Intelligence)** with four powerful modes:
 
 1. **Task Analyzer** - Daily task insights, priorities, and workload assessment
 2. **Project Analyzer** - Recursive project hierarchy analysis with optional tagging and Markdown reports
 3. **Selected Task Analyzer** - Detailed per-task analysis with clarity scoring and improvement suggestions
+4. **Hierarchical Analyzer** (NEW in v3.2) - Configurable depth analysis with GTD-aligned insights across your entire system
 
 ## Features
 
@@ -36,6 +37,19 @@ Comprehensive AI-powered analysis for OmniFocus using **Apple Foundation Models 
 - 📄 **Markdown Reports**: Export comprehensive analysis reports (optional)
 - 📈 **Metrics Dashboard**: Detailed statistics on folders, projects, tasks, and tags
 
+### Hierarchical Analysis (NEW in v3.2)
+- 🔧 **Configurable Depth Levels**: Choose analysis scope (Folders Only / Folders + Projects / Complete Hierarchy)
+- 📊 **Organizational Health Scoring**: Assess folder structure quality, balance, and GTD alignment (1-10 score)
+- 🌊 **Flow & Bottleneck Detection**: Identify stalled projects, missing next actions, and progress blockers
+- ⚖️ **Workload Distribution Analysis**: Evaluate task distribution, overcommitment, and capacity balance
+- 🔍 **Review Quality Assessment**: Detect neglected areas, aging tasks, and review gaps
+- 📝 **Task Clarity Scoring**: Assess individual task actionability and GTD next action quality
+- 🎯 **GTD Alignment Score**: Overall system health score based on Getting Things Done principles
+- 🧩 **Composable Parser Architecture**: Modular analysis using folderParser, projectParser, and taskParser libraries
+- 📦 **Hierarchical Batching**: Smart context window management for large hierarchies
+- 📄 **Comprehensive Markdown Reports**: Detailed multi-level analysis with executive summary
+- 💾 **Export Options**: Save to file or copy to clipboard
+
 ## Requirements
 
 - **OmniFocus 4.8** or later
@@ -54,10 +68,11 @@ Comprehensive AI-powered analysis for OmniFocus using **Apple Foundation Models 
 
 3. **Verify Installation**:
    - Go to Tools → AI Analyzer
-   - You should see three options:
+   - You should see four options:
      - "Analyze My Tasks"
      - "Analyze Projects"
      - "Analyze Selected"
+     - "Analyze Hierarchy"
 
 ## Usage
 
@@ -394,6 +409,169 @@ When "Tag projects needing exposition" is enabled:
 
 5. Use tag in perspectives to review flagged projects
 
+### Hierarchical Analysis (NEW in v3.2)
+
+**What It Analyzes:**
+- Configurable depth: Folders only, Folders + Projects, or Complete Hierarchy including tasks
+- System-wide organizational structure and GTD health
+- Flow analysis across all projects
+- Task quality and workload distribution across your entire system
+
+**How to Run:**
+
+**Method 1: Via Tools Menu**
+1. Open OmniFocus
+2. Go to **Tools → AI Analyzer → Analyze Hierarchy**
+3. Fill in the configuration form:
+   - **Analysis Depth**: Choose scope
+     - **Folders Only** - Quick organizational structure analysis
+     - **Folders + Projects** - Standard analysis with flow/bottleneck detection
+     - **Complete Hierarchy** - Deep analysis including task quality
+   - **Starting Folder**: Select specific folder or "All Folders"
+   - **Include Subfolders Recursively**: Enable for complete hierarchy (default: true)
+   - **Generate Markdown Report**: Create formatted report (default: true)
+   - **Save Report to File**: Export to file vs. clipboard (default: false)
+4. Click "Analyze"
+5. Wait for AI analysis (10-60 seconds depending on hierarchy size)
+6. Review comprehensive report with GTD-aligned insights
+
+**Method 2: Via Automation Console**
+```javascript
+PlugIn.find("com.totallytools.omnifocus.ai-task-analyzer")
+  .action("analyzeHierarchy")
+  .perform()
+```
+
+**Depth Level Guide:**
+
+| Depth Level | Analyzes | Use When | Analysis Time |
+|-------------|----------|----------|---------------|
+| Folders Only | Organizational structure, folder metrics | Quick system health check | 10-20 seconds |
+| Folders + Projects | + Flow analysis, bottlenecks, stalled projects | Weekly review, comprehensive overview | 20-40 seconds |
+| Complete Hierarchy | + Task quality, workload, clarity scoring | Deep GTD audit, quarterly review | 40-60 seconds |
+
+**Sample Output:**
+
+```markdown
+# OmniFocus Hierarchical Analysis Report
+
+**Generated:** 2026-01-10 14:30:00
+**Scope:** All Folders
+**Depth:** Folders + Projects
+
+---
+
+## Executive Summary
+
+**Overall GTD Alignment Score:** 7.2/10
+
+**Scope:**
+- Total Folders: 8
+- Total Projects: 47
+- Overall Completion Rate: 43%
+
+**Key Findings:**
+- Organizational Health: 8.0/10
+- Stalled Projects: 3
+- Healthy Projects: 32
+
+---
+
+## 1. Organizational Health (Folders)
+
+**Score:** 8.0/10
+
+**Strengths:**
+- ✅ Clear separation between work and personal areas
+- ✅ Logical folder grouping by life area
+- ✅ Balanced project distribution
+
+**Concerns:**
+- ⚠️ "Personal" folder has lower completion rate (35%)
+- ⚠️ "Someday" folder not reviewed recently (90+ days)
+
+**Recommendations:**
+1. Review and prune stalled personal projects
+2. Schedule monthly review for Someday/Maybe items
+3. Consider archiving completed projects from 2025
+
+---
+
+## 2. Flow & Bottlenecks (Projects)
+
+**Healthy Projects:** 32
+**Stalled Projects:** 3
+
+### Bottlenecks Detected:
+
+**1. Website Redesign** (ID: abc123)
+- Issue: No available next actions
+- Days Stalled: 12
+- Recommendation: Add concrete next action or put project on hold
+
+**2. Q1 Planning** (ID: def456)
+- Issue: Overdue task accumulation (8 overdue tasks)
+- Recommendation: Reschedule with realistic dates or split into smaller milestones
+
+**3. Newsletter Setup** (ID: ghi789)
+- Issue: Missing context (no project note)
+- Recommendation: Define clear completion criteria and success metrics
+
+### Priority Projects:
+
+**1. Client Proposal** 🔴 High Urgency
+- Due in 3 days with several tasks remaining
+
+**2. Team Onboarding** 🟡 Medium Urgency
+- Blocking other team members, needs next actions defined
+
+---
+
+## 3. GTD Alignment
+
+**Score:** 7.2/10
+
+**Strengths:**
+- Good folder structure supporting contexts
+- Most projects have defined next actions
+- Regular use of tags for filtering
+
+**Improvements Needed:**
+- Add project notes to 5 projects lacking context
+- Increase review frequency (30+ days on some projects)
+- Clarify vague task language
+
+---
+
+Generated by AITaskAnalyzer v3.2.0
+Powered by Apple Foundation Models (on-device AI)
+```
+
+**Usage Tips:**
+- Run **Folders Only** for quick daily/weekly system health checks
+- Use **Folders + Projects** during weekly reviews to identify bottlenecks
+- Run **Complete Hierarchy** quarterly for comprehensive GTD audit
+- Export reports to track improvement trends over time
+- Focus on GTD Alignment Score as your north star metric
+- Use bottleneck and priority recommendations as action items
+
+**Context Window Management:**
+The hierarchical batcher intelligently splits large hierarchies into batches:
+- Folder level: ~20,000 characters per batch
+- Project level: ~18,000 characters per batch
+- Task level: Maximum 15 tasks per project
+
+This ensures analysis stays within Apple Foundation Models context limits even for very large OmniFocus databases.
+
+**Architecture:**
+The Hierarchical Analyzer uses four composable parser libraries:
+- `folderParser.js` - Extract folder metrics and hierarchy
+- `projectParser.js` - Parse projects with GTD health indicators
+- `taskParser.js` - Assess task clarity and actionability
+- `hierarchicalBatcher.js` - Manage context windows and AI prompts
+
+This modular design allows for flexible, maintainable analysis at any depth level.
+
 ## How It Works
 
 ### Task Analysis Architecture
@@ -414,6 +592,29 @@ When "Tag projects needing exposition" is enabled:
 6. **Optional Tagging**: Add `needs-exposition` tag to flagged projects
 7. **Report Generation**: Format comprehensive Markdown report
 8. **File Export**: FileSaver API for Markdown document
+
+### Hierarchical Analysis Architecture
+
+1. **Configuration Form**: User selects depth level, folder scope, and export options
+2. **Composable Parsing**: Parse hierarchy to selected depth using modular parser libraries
+   - `folderParser.js` - Extract folder metrics and health indicators
+   - `projectParser.js` - Parse projects with GTD health assessment
+   - `taskParser.js` - Assess task clarity and actionability
+3. **Hierarchical Batching**: Create context-friendly batches by level
+   - Folder level: Aggregate metrics batches (~20K chars)
+   - Project level: Per-folder project batches (~18K chars)
+   - Task level: Per-project task batches (max 15 tasks)
+4. **Level-by-Level AI Analysis**: Process batches sequentially
+   - Generate GTD-aligned prompts for each level
+   - Apply level-specific JSON schemas for structured output
+   - Aggregate insights across all batches
+5. **Insight Aggregation**: Combine results from all levels
+   - Organizational health from folder analysis
+   - Flow/bottlenecks from project analysis
+   - Workload distribution from task analysis
+   - Calculate overall GTD alignment score
+6. **Report Generation**: Create comprehensive Markdown report with executive summary
+7. **Export**: Save to file or copy to clipboard
 
 ### Privacy & Security
 
@@ -569,6 +770,23 @@ let expositionTag = doc.tags.byName("your-custom-tag");
 - **Someday/Maybe**: Identifies candidates for deferral
 
 ## Version History
+
+### v3.2.0 (2026-01-10)
+- **NEW**: Hierarchical Analyzer action for system-wide analysis with configurable depth
+- **NEW**: Four composable parser libraries (folderParser, projectParser, taskParser, hierarchicalBatcher)
+- **NEW**: Configurable analysis depth levels (Folders Only / Folders + Projects / Complete Hierarchy)
+- **NEW**: Organizational health scoring (1-10) for folder structure assessment
+- **NEW**: Flow and bottleneck detection across all projects
+- **NEW**: Workload distribution analysis for task balance
+- **NEW**: Task clarity scoring with GTD actionability assessment
+- **NEW**: GTD Alignment Score - overall system health metric
+- **NEW**: Hierarchical batching for context window management (supports large hierarchies)
+- **NEW**: Level-by-level AI analysis with GTD-aligned prompts
+- **NEW**: Comprehensive Markdown reports with executive summary
+- **NEW**: Export to file or clipboard options
+- **IMPROVED**: Modular architecture with composable parser libraries
+- **IMPROVED**: Smart batch splitting for Foundation Model context limits
+- Enhanced documentation with depth level guides and usage tips
 
 ### v3.0.0 (2025-12-31)
 - **FIXED**: Corrected all library files to use proper OFBundlePlugInTemplate patterns

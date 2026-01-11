@@ -5,12 +5,45 @@
  * Generates OmniFocus plugins from TypeScript templates with integrated LSP validation.
  * Replaces the Python-based generator with TypeScript Compiler API validation.
  *
+ * DECISION TREE: Two Independent Choices
+ *
+ * Question 1: Plugin Structure
+ *   SOLITARY (single file) when:
+ *     - Single action only
+ *     - No shared libraries between actions
+ *     - Simple, focused task
+ *     - Quick prototyping
+ *
+ *   BUNDLE (folder) when:
+ *     - Multiple related actions (e.g., "Export Markdown", "Export JSON")
+ *     - Shared libraries between actions
+ *     - Localization support needed (en.lproj/)
+ *     - Complex plugin with resources
+ *     - Organized contextual automation tools
+ *
+ * Question 2: Application Scope (File Extension)
+ *   .omnijs when:
+ *     - Works across ALL Omni apps (OmniFocus, OmniGraffle, OmniOutliner, OmniPlan)
+ *     - Uses only cross-app compatible APIs
+ *     - Rare until skill expands beyond OmniFocus
+ *
+ *   .omnifocusjs when:
+ *     - OmniFocus-specific functionality (default for this skill)
+ *     - Uses OmniFocus-specific objects (Task, Project, Folder, Tag, etc.)
+ *     - Most plugins fall into this category
+ *
+ * Valid Combinations:
+ *   - Solitary .omnijs (single action, cross-app)
+ *   - Solitary .omnifocusjs (single action, OF-only) ← Most common
+ *   - Bundle .omnijs (multi-action, cross-app)
+ *   - Bundle .omnifocusjs (multi-action, OF-only) ← Complex plugins
+ *
  * Usage:
  *   node generate_plugin.js --format solitary --name "My Plugin"
  *   node generate_plugin.js --format solitary-fm --name "AI Analyzer"
  *   node generate_plugin.js --format bundle --template query-simple --name "Tasks"
  *
- * @version 4.0.0
+ * @version 4.1.0
  * @author OmniFocus Manager Skill
  */
 import * as ts from 'typescript';
@@ -118,27 +151,20 @@ class PluginGenerator {
             console.log(`\n🔨 Generating ${options.format} plugin...`);
             console.log(`   Plugin: ${options.name}`);
             console.log(`   Format: ${FORMATS[options.format]}\n`);
-            // 1. Load template
-            const template = await this.loadTemplate(options);
-            // 2. Prepare variables and substitute
+
+            // Prepare variables
             const variables = prepareVariables(options);
-            const code = substituteVariables(template, variables);
-            // 3. CRITICAL: Validate with TypeScript compiler
-            console.log('🔍 Validating TypeScript...');
-            const validation = await this.validateTypeScript(code, variables.ACTION_ID);
-            if (!validation.success) {
-                console.log('\n❌ TypeScript validation failed:');
-                validation.errors.forEach((err, i) => {
-                    const location = err.line !== undefined ? `Line ${err.line + 1}${err.column !== undefined ? `:${err.column + 1}` : ''}` : '';
-                    console.log(`   ${i + 1}. ${location ? location + ' - ' : ''}${err.message}`);
-                });
-                return { success: false, errors: validation.errors.map(e => e.message) };
+
+            let deployPath;
+
+            if (options.format === 'bundle') {
+                // Generate bundle folder structure
+                deployPath = await this.generateBundle(options, variables);
+            } else {
+                // Generate single-file plugin
+                deployPath = await this.generateSolitary(options, variables);
             }
-            console.log('   ✅ TypeScript validation passed\n');
-            // 4. Write .ts file
-            const tsFilePath = await this.writeTsFile(code, options);
-            // 5. Auto-rename to .omnijs/.omnifocusjs
-            const deployPath = await this.renameForDeployment(tsFilePath, options.format);
+
             console.log('🎉 Plugin generated successfully!\n');
             console.log('📦 Installation:');
             if (options.format === 'bundle') {
@@ -157,6 +183,152 @@ class PluginGenerator {
             const message = error instanceof Error ? error.message : String(error);
             console.error(`\n❌ Error: ${message}\n`);
             return { success: false, errors: [message] };
+        }
+    }
+
+    /**
+     * Generate solitary (single-file) plugin
+     */
+    async generateSolitary(options, variables) {
+        // 1. Load template
+        const template = await this.loadTemplate(options);
+        // 2. Substitute variables
+        const code = substituteVariables(template, variables);
+        // 3. CRITICAL: Validate with TypeScript compiler
+        console.log('🔍 Validating TypeScript...');
+        const validation = await this.validateTypeScript(code, variables.ACTION_ID);
+        if (!validation.success) {
+            console.log('\n❌ TypeScript validation failed:');
+            validation.errors.forEach((err, i) => {
+                const location = err.line !== undefined ? `Line ${err.line + 1}${err.column !== undefined ? `:${err.column + 1}` : ''}` : '';
+                console.log(`   ${i + 1}. ${location ? location + ' - ' : ''}${err.message}`);
+            });
+            throw new Error('TypeScript validation failed');
+        }
+        console.log('   ✅ TypeScript validation passed\n');
+        // 4. Write .ts file
+        const tsFilePath = await this.writeTsFile(code, options);
+        // 5. Auto-rename to .omnijs
+        const deployPath = await this.renameForDeployment(tsFilePath, options.format);
+        return deployPath;
+    }
+
+    /**
+     * Generate bundle plugin with folder structure
+     */
+    async generateBundle(options, variables) {
+        if (!options.template) {
+            throw new Error('Bundle format requires --template option');
+        }
+
+        const outputDir = options.outputDir || path.join(this.skillRoot, 'assets');
+        const bundleName = `${options.name.replace(/\s+/g, '')}`;
+        const bundlePath = path.join(outputDir, `${bundleName}.omnifocusjs`);
+        const resourcesPath = path.join(bundlePath, 'Resources');
+
+        console.log('📁 Creating bundle structure...');
+
+        // 1. Create bundle directory structure
+        await fs.mkdir(bundlePath, { recursive: true });
+        await fs.mkdir(resourcesPath, { recursive: true });
+        console.log(`   ✅ Created ${bundlePath}/`);
+        console.log(`   ✅ Created ${bundlePath}/Resources/`);
+
+        // 2. Generate manifest.json
+        const manifestTemplate = await this.loadManifestTemplate(options.template);
+        const manifestContent = substituteVariables(manifestTemplate, variables);
+        const manifestPath = path.join(bundlePath, 'manifest.json');
+        await fs.writeFile(manifestPath, manifestContent, 'utf-8');
+        console.log(`   ✅ Created ${bundlePath}/manifest.json\n`);
+
+        // 3. Copy/generate action files from template
+        const templateDir = path.join(this.skillRoot, 'assets', 'plugin-templates', options.template);
+        const templateResourcesDir = path.join(templateDir, 'Resources');
+
+        // Copy action files
+        const resourceFiles = await fs.readdir(templateResourcesDir);
+        for (const file of resourceFiles) {
+            const filePath = path.join(templateResourcesDir, file);
+            const stat = await fs.stat(filePath);
+
+            if (stat.isFile() && file.endsWith('.js')) {
+                // Load, substitute variables, validate, and copy
+                const actionTemplate = await fs.readFile(filePath, 'utf-8');
+                const actionCode = substituteVariables(actionTemplate, variables);
+
+                // Validate action code
+                console.log(`🔍 Validating ${file}...`);
+                const validation = await this.validateTypeScript(actionCode, file.replace('.js', ''));
+                if (!validation.success) {
+                    console.log(`\n❌ TypeScript validation failed for ${file}:`);
+                    validation.errors.forEach((err, i) => {
+                        const location = err.line !== undefined ? `Line ${err.line + 1}${err.column !== undefined ? `:${err.column + 1}` : ''}` : '';
+                        console.log(`   ${i + 1}. ${location ? location + ' - ' : ''}${err.message}`);
+                    });
+                    throw new Error(`TypeScript validation failed for ${file}`);
+                }
+                console.log(`   ✅ Validation passed\n`);
+
+                // Write to bundle
+                const destPath = path.join(resourcesPath, file);
+                await fs.writeFile(destPath, actionCode, 'utf-8');
+                console.log(`   ✅ Created ${bundlePath}/Resources/${file}`);
+            } else if (stat.isDirectory()) {
+                // Copy directories (like en.lproj for localization)
+                const destDir = path.join(resourcesPath, file);
+                await this.copyDirectory(filePath, destDir);
+                console.log(`   ✅ Copied ${bundlePath}/Resources/${file}/`);
+            }
+        }
+
+        // 4. Copy README if exists
+        const readmePath = path.join(templateDir, 'README.md');
+        if (fsSync.existsSync(readmePath)) {
+            const readmeContent = await fs.readFile(readmePath, 'utf-8');
+            const readmeSubstituted = substituteVariables(readmeContent, variables);
+            await fs.writeFile(path.join(bundlePath, 'README.md'), readmeSubstituted, 'utf-8');
+            console.log(`   ✅ Created ${bundlePath}/README.md`);
+        }
+
+        return bundlePath;
+    }
+
+    /**
+     * Copy directory recursively
+     */
+    async copyDirectory(src, dest) {
+        await fs.mkdir(dest, { recursive: true });
+        const entries = await fs.readdir(src);
+
+        for (const entry of entries) {
+            const srcPath = path.join(src, entry);
+            const destPath = path.join(dest, entry);
+            const stat = await fs.stat(srcPath);
+
+            if (stat.isDirectory()) {
+                await this.copyDirectory(srcPath, destPath);
+            } else {
+                await fs.copyFile(srcPath, destPath);
+            }
+        }
+    }
+
+    /**
+     * Load manifest template for bundle
+     */
+    async loadManifestTemplate(templateName) {
+        const manifestPath = path.join(
+            this.skillRoot,
+            'assets',
+            'plugin-templates',
+            templateName,
+            'manifest.json'
+        );
+
+        try {
+            return await fs.readFile(manifestPath, 'utf-8');
+        } catch (error) {
+            throw new Error(`Manifest template not found: ${manifestPath}`);
         }
     }
     /**
@@ -350,6 +522,34 @@ function printUsage() {
     console.log(`
 OmniFocus Plugin Generator (TypeScript)
 
+📋 DECISION TREE: Two Independent Choices
+
+  Question 1: Plugin Structure
+    SOLITARY (single file) when:
+      ✓ Single action only
+      ✓ No shared libraries
+      ✓ Simple, focused task
+      ✓ Quick prototyping
+
+    BUNDLE (folder) when:
+      ✓ Multiple related actions
+      ✓ Shared libraries between actions
+      ✓ Localization support needed (en.lproj/)
+      ✓ Complex plugin with resources
+
+  Question 2: Application Scope (File Extension)
+    .omnijs when:
+      • Cross-app compatible (OmniFocus, OmniGraffle, OmniOutliner, OmniPlan)
+      • Rare until skill expands beyond OmniFocus
+
+    .omnifocusjs when:
+      • OmniFocus-specific (default for this skill)
+      • Uses OmniFocus objects (Task, Project, Folder, Tag)
+
+  Valid Combinations:
+    • Solitary .omnijs, Solitary .omnifocusjs ← Most common
+    • Bundle .omnijs, Bundle .omnifocusjs ← Complex plugins
+
 Usage:
   node generate_plugin.js [options]
 
@@ -366,14 +566,17 @@ Optional Options:
   --help, -h                    Show this help message
 
 Examples:
-  # Simple solitary plugin
-  node generate_plugin.js --format solitary --name "My Quick Action"
+  # Simple solitary plugin (single action)
+  node generate_plugin.js --format solitary --name "Quick Capture"
 
-  # Solitary plugin with Foundation Models
+  # Solitary plugin with Foundation Models (AI features)
   node generate_plugin.js --format solitary-fm --name "AI Task Analyzer"
 
-  # Bundle plugin
-  node generate_plugin.js --format bundle --template query-simple --name "My Tasks"
+  # Bundle plugin with multiple actions
+  node generate_plugin.js --format bundle --template query-simple --name "Task Explorer"
+
+  # Library for reuse across plugins
+  node generate_plugin.js --format solitary-library --name "MyUtilities"
 
 Available Formats:
 ${Object.entries(FORMATS).map(([name, desc]) => `  ${name.padEnd(20)} ${desc}`).join('\n')}

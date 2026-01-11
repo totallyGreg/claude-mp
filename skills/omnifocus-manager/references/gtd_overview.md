@@ -280,7 +280,7 @@ python3 scripts/weekly_review.py
 - Pattern composition
 - Template engine
 
-**See:** [Libraries README](../libraries/README.md)
+**See:** [Libraries README](../scripts/libraries/README.md)
 
 ### High-Cost Operations (Novel Generation)
 
@@ -377,7 +377,7 @@ python3 scripts/weekly_review.py
 **Automation Tools:**
 - [JXA API Guide](jxa_api_guide.md) - Command-line automation
 - [Plugin Development Guide](plugin_development_guide.md) - OmniFocus plugins
-- [Libraries README](../libraries/README.md) - Modular libraries
+- [Libraries README](../scripts/libraries/README.md) - Modular libraries
 
 **Examples:**
 - [Assets Examples](../assets/examples/README.md) - Working code examples
@@ -440,7 +440,7 @@ Capture → Clarify → Organize → Reflect → Engage
 **Practical Automation:**
 - [Workflows](workflows.md) - Ready-to-use scripts
 - [JXA Quickstart](quickstarts/jxa_quickstart.md) - 5-minute tutorial
-- [Libraries README](../libraries/README.md) - Modular tools
+- [Libraries README](../scripts/libraries/README.md) - Modular tools
 
 **Advanced Topics:**
 - [Plugin Development](plugin_development_guide.md) - Create custom plugins

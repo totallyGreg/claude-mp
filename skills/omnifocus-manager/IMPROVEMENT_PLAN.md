@@ -8,6 +8,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 4.1.0 | 2026-01-11 | **MINOR**: OmniFocus 4 tree API support, bundle generation fixes, decision tree clarity |
 | 4.0.0 | 2026-01-02 | **MAJOR**: TypeScript-based plugin generation with LSP validation - Python generator removed |
 | 3.5.0 | 2026-01-02 | Comprehensive plugin generation: all formats (solitary/bundle), localization, Version("26") validation |
 | 3.4.2 | 2025-12-31 | Integrated linting validation and prominent API anti-pattern warnings |
@@ -25,6 +26,49 @@ This document tracks improvements, enhancements, and future development plans fo
 | 1.0.0 | 2025-12-19 | Initial release |
 
 ## Completed Improvements
+
+### v4.1.0 - OmniFocus 4 Tree API Support (2026-01-11)
+
+**Added:**
+- **treeBuilder.js library** (`libraries/omni/treeBuilder.js`) - OmniFocus 4 node tree outline functionality
+  - Database tree building: `buildTreeFromDatabase()`, `buildTreeFromFolder()`, `buildTreeFromProject()`
+  - Tree utilities: `traverseTree()`, `flattenTree()`, `findNodeById()`, `filterNodes()`, `getTreeStatistics()`
+  - Export formats: `exportToMarkdown()`, `exportToJSON()`, `exportToOPML()` for outliner app compatibility
+  - OmniFocus 4 window tree API: `buildTreeFromWindow()`, `revealNodes()`, `selectNodes()`, `expandNodes()`, `collapseNodes()`
+  - Composable design leveraging existing parsers (folderParser, projectParser, taskParser)
+  - Graceful degradation for OmniFocus 3 (exports work, window operations require OF4)
+
+- **Bundle plugin generation** (`scripts/generate_plugin.js` v4.1.0)
+  - Proper folder structure creation: Creates `.omnifocusjs/` directories with `Resources/` subdirectory
+  - Manifest generation with variable substitution
+  - Multiple action file support
+  - Localization directory copying (en.lproj, etc.)
+  - README template support
+  - Fixes critical bug where bundles were created as single files
+
+- **TreeExplorer.omnifocusjs** - Example bundle plugin demonstrating treeBuilder
+  - 4 actions: Export to Markdown, Export to JSON, Export to OPML, Reveal Selected in Window (OF4)
+  - Shows proper library declaration in manifest.json
+  - Demonstrates OmniFocus 4 TreeNode API usage
+
+**Fixed:**
+- **Decision tree clarity** - Separated two independent choices in generator documentation:
+  - Plugin structure: Solitary (single file) vs Bundle (folder)
+  - Application scope: .omnijs (cross-app) vs .omnifocusjs (OF-specific)
+  - Previously conflated these concepts causing confusion
+
+**Documentation:**
+- Added treeBuilder to SKILL.md library list
+- Updated PLUGIN-GENERATION-GUIDE.md with bundle creation workflow
+- Clarified .omnijs vs .omnifocusjs distinction
+- Added TreeExplorer as reference implementation
+
+**Impact:**
+- Significantly improves plugin generation capabilities
+- Enables OmniFocus 4 window manipulation features
+- Provides hierarchical export for outliner apps (MindNode, OmniOutliner, etc.)
+
+---
 
 ### v4.0.0 - TypeScript-Based Plugin Generation (2026-01-02)
 
