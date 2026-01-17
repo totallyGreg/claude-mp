@@ -18,11 +18,87 @@ This document tracks improvements, enhancements, and future development plans fo
 | 1.0.0 | Initial | Initial skillsmith implementation with packaging and marketplace support |
 
 ## 🔮 Planned Improvements
-> Last Updated: 2025-12-22
+> Last Updated: 2026-01-17
 
 ### High Priority
 
-#### 1. Enhanced Skill Validation
+#### 1. Mandatory Post-Change Validation Enforcement
+**Goal:** Ensure validation runs after ANY skill changes and all errors are reported/addressed
+
+**Problem Identified:**
+During omnifocus-manager consolidation, the PEP 723 warning was noted but not reported to user or addressed. Validation should be mandatory, not optional.
+
+**Planned Features:**
+- Add validation step to all skill modification workflows in SKILL.md
+- Create "validation gate" concept - block completion if errors exist
+- Require explicit acknowledgment to defer errors (not silently ignore)
+- Add `--strict` flag that fails on warnings, not just errors
+- Document validation as final step in ANY skill change
+
+**Implementation:**
+- Update SKILL.md Step 7 (Iterate) with mandatory validation
+- Enhance `evaluate_skill.py` with `--strict` mode
+- Add validation reminders to improvement workflow documentation
+
+#### 2. Reference Consolidation Verification
+**Goal:** Prevent content loss when consolidating references
+
+**Problem Identified:**
+During omnifocus-manager consolidation, pre-existing consolidated files (gtd_guide.md, jxa_guide.md, omni_automation_guide.md) were assumed complete without verification.
+
+**Planned Features:**
+- Add verification checklist to reference_management_guide.md
+- Create "consolidation audit" workflow:
+  - Before: List all content sections in files being consolidated
+  - After: Verify all sections appear in new file
+- Consider adding script to detect content loss (diff-based)
+- Document verification as required step in consolidation workflow
+
+**Implementation:**
+- Update `references/reference_management_guide.md` with consolidation verification section
+- Add consolidation checklist to SKILL.md
+
+#### 3. Improvement Lifecycle Clarification
+**Goal:** Clear guidance on tracking ideas → improvements → changes with git workflow
+
+**Problem Identified:**
+Confusion between:
+- Claude Code's `PLAN.md` (ephemeral, per-session planning)
+- Skillsmith's `IMPROVEMENT_PLAN.md` (persistent, versioned improvements)
+- Ad-hoc planning docs like `consolidation_plan.md`
+
+**Planned Features:**
+- Document clear lifecycle: Idea → IMPROVEMENT_PLAN.md → Branch → Implementation → Commit → Version bump
+- Clarify when to use PLAN.md vs IMPROVEMENT_PLAN.md
+- Add guidance on git branching for improvements (feature branches)
+- Document handling of ad-hoc planning documents (delete after completion or archive)
+
+**Implementation:**
+- Add "Improvement Lifecycle" section to improvement_plan_best_practices.md
+- Clarify relationship with Claude Code's planning features
+- Add git workflow recommendations
+
+#### 4. Skill Artifact Ignore Patterns
+**Goal:** Prevent common generated files from being committed to skills
+
+**Problem Identified:**
+During omnifocus-manager consolidation, `package-lock.json` was accidentally committed. Common skill artifacts should be documented and optionally gitignored.
+
+**Planned Features:**
+- Document common skill artifacts that should typically be ignored:
+  - `package-lock.json`, `node_modules/`
+  - `__pycache__/`, `*.pyc`
+  - `.DS_Store`
+  - Build artifacts
+- Add `.gitignore` template to `init_skill.py` generation
+- Consider skill-level `.gitignore` vs project-level patterns
+
+**Implementation:**
+- Update `init_skill.py` to optionally generate `.gitignore`
+- Add documentation to SKILL.md about common artifacts
+- Document in reference_management_guide.md or new artifacts guide
+
+#### 5. Enhanced Skill Validation
 **Goal:** Expand validation capabilities to catch more issues before packaging/deployment
 
 **Planned Features:**
@@ -38,7 +114,7 @@ This document tracks improvements, enhancements, and future development plans fo
 - Add option for "strict" vs "lenient" validation modes
 - Provide actionable error messages with suggestions
 
-#### 2. Multi-Skill Version Management
+#### 6. Multi-Skill Version Management
 **Goal:** Support skills with different versions within the same plugin
 
 **Current Limitation:**
@@ -50,7 +126,7 @@ This document tracks improvements, enhancements, and future development plans fo
 - Document best practices for multi-skill plugin versioning
 - Consider adding per-skill version tracking in marketplace.json (if schema supports)
 
-#### 3. Skill Template Improvements
+#### 7. Skill Template Improvements
 **Goal:** Make init_skill.py generate more useful templates
 
 **Planned Enhancements:**
@@ -62,7 +138,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ### Medium Priority
 
-#### 4. Marketplace Analytics and Reporting
+#### 8. Marketplace Analytics and Reporting
 **Goal:** Help marketplace maintainers understand their plugin ecosystem
 
 **Planned Features:**
@@ -74,7 +150,7 @@ This document tracks improvements, enhancements, and future development plans fo
   - Identify stale skills (no recent updates)
 - Generate markdown report for README or documentation
 
-#### 5. Skill Update Helper
+#### 9. Skill Update Helper
 **Goal:** Streamline the process of updating existing skills
 
 **Planned Features:**
@@ -86,7 +162,7 @@ This document tracks improvements, enhancements, and future development plans fo
   - Run validation and sync
 - Integration with git workflow for atomic updates
 
-#### 6. Better Documentation Generation
+#### 10. Better Documentation Generation
 **Goal:** Auto-generate marketplace documentation from skills
 
 **Planned Features:**
@@ -97,7 +173,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ### Low Priority
 
-#### 7. Skill Testing Framework
+#### 11. Skill Testing Framework
 **Goal:** Enable automated testing of skills
 
 **Conceptual Features:**
@@ -112,7 +188,7 @@ This document tracks improvements, enhancements, and future development plans fo
 - Would need to test that Claude can successfully execute instructions
 - May require integration with Claude Code's testing infrastructure
 
-#### 8. Skill Migration Tools
+#### 12. Skill Migration Tools
 **Goal:** Help users migrate skills between formats or marketplaces
 
 **Planned Features:**
@@ -121,7 +197,7 @@ This document tracks improvements, enhancements, and future development plans fo
 - Update skills to new schema versions
 - Batch operations for marketplace reorganization
 
-#### 9. Marketplace Dependency Management
+#### 13. Marketplace Dependency Management
 **Goal:** Support skills that depend on other skills or external resources
 
 **Conceptual Features:**
