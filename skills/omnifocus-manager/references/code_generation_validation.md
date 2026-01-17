@@ -467,13 +467,125 @@ eslint_d plugin.js
 
 ## See Also
 
-- **Quick API Lookup:** `api_quick_reference.md`
-- **Complete API:** `OmniFocus-API.md`
-- **Working Examples:** `../assets/examples/code-generation-patterns/`
-- **Plugin Guide:** `plugin_development_guide.md`
+- **API Reference:** `api_reference.md` - Complete API with quick lookup tables
+- **Full API Spec:** `OmniFocus-API.md` - Raw API specification
+- **Working Examples:** `../assets/examples/` - Code patterns and templates
+- **Omni Automation Guide:** `omni_automation_guide.md` - Plugin development
 
 ---
 
-**Generated:** 2025-12-31
-**Version:** 3.2.0
+## Build-Time Validation Strategy
+
+This section describes the automated validation pipeline used by the TypeScript generator (`scripts/generate_plugin.ts`). Understanding this strategy helps ensure plugins are valid by construction.
+
+### Build-Time vs Run-Time Distinction
+
+A critical concept is the separation of environments:
+
+| Environment | Description | Available APIs |
+|-------------|-------------|----------------|
+| **Build-Time** | Where code is *generated* (Node.js) | TypeScript Compiler, ESLint, full Node.js |
+| **Run-Time** | Where plugins *execute* (OmniFocus) | JavaScriptCore, Omni Automation APIs only |
+
+**Strategy:** Leverage the powerful build-time environment to guarantee the code's correctness for the constrained run-time environment.
+
+### Multi-Layered Validation Pipeline
+
+The generator implements a two-layer validation strategy:
+
+#### Layer 1: Static Validation (Pre-Runtime)
+
+This layer catches >95% of errors before code is ever run.
+
+```
+1. Generator composes full plugin code in TypeScript
+         ↓
+2. TypeScript Compiler API type-checks against omnifocus.d.ts
+         ↓
+3. Type-checking fails? → STOP, report errors
+         ↓
+4. Type-checking passes → Emit JavaScript
+         ↓
+5. ESLint validates emitted JavaScript
+         ↓
+6. Lint errors? → STOP, report errors
+         ↓
+7. All passes → Plugin ready for installation
+```
+
+#### Layer 2: Runtime Testing (Essential)
+
+Static analysis cannot catch all runtime-specific logic errors.
+
+1. Install the generated plugin in OmniFocus
+2. Test in Automation Console (`⌘⌥⇧C`)
+3. Trigger actions from Automation menu
+4. Verify end-to-end workflow
+
+### TypeScript Compiler API Integration
+
+The generator uses the TypeScript Compiler API to validate code:
+
+```javascript
+// Simplified generator validation logic
+const program = ts.createProgram([generatedCode], compilerOptions);
+const diagnostics = [
+    ...program.getSyntacticDiagnostics(),
+    ...program.getSemanticDiagnostics()
+];
+
+if (diagnostics.length > 0) {
+    // Zero-tolerance: refuse to emit if any errors
+    reportErrors(diagnostics);
+    process.exit(1);
+}
+```
+
+**What TypeScript catches:**
+- Undefined APIs (hallucinated APIs like `Document.defaultDocument`, `Progress`)
+- Type mismatches (passing function when Version expected)
+- Incorrect constructor arguments
+- Property/method confusion (calling property as method)
+- Syntax errors
+
+### ESLint Integration
+
+After TypeScript validation passes, ESLint enforces style and best practices:
+
+```bash
+# The generator runs this automatically
+eslint_d assets/GeneratedPlugin.omnifocusjs/Resources/*.js
+```
+
+**Key configuration:** The `eslint.config.js` defines OmniFocus globals (`flattenedTasks`, `Alert`, `PlugIn`, etc.) to prevent false `no-undef` errors.
+
+### Why This Matters
+
+| Without Validation | With Validation |
+|--------------------|-----------------|
+| Runtime crashes ("undefined is not an object") | Caught at build time |
+| Hallucinated APIs | Type-checked against .d.ts |
+| Property/method confusion | Semantic analysis catches |
+| Plugin won't load | Validated before deployment |
+
+### Using the Generator
+
+```bash
+# Generate with automatic validation
+node scripts/generate_plugin.js --format solitary --name "My Plugin"
+
+# What happens automatically:
+# 1. Loads TypeScript template
+# 2. Substitutes variables
+# 3. Validates with TypeScript Compiler API
+# 4. Runs ESLint
+# 5. Only emits if ALL checks pass
+```
+
+**Zero-Tolerance Policy:** The generator refuses to emit JavaScript if ANY validation error is found.
+
+---
+
+**Generated:** 2026-01-17
+**Version:** 4.1.0
 **Purpose:** Prevent code generation failures through systematic validation
