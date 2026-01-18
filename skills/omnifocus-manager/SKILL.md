@@ -3,11 +3,11 @@ name: omnifocus-manager
 description: |
   Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA).
 
-  WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries (taskMetrics, exportUtils, patterns) 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) CUSTOMIZE action files 6) TEST in OmniFocus. TypeScript generator validates during generation. Manual creation creates broken plugins.
+  WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries (taskMetrics, exportUtils, patterns) 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) CUSTOMIZE action files 6) VALIDATE via `bash assets/development-tools/validate-plugin.sh` 7) TEST in OmniFocus. TypeScript validation catches API errors. Manual creation creates broken plugins.
 
   This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
 metadata:
-  version: 4.2.0
+  version: 4.3.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -82,6 +82,28 @@ cp -r *.omnifocusjs ~/Library/Application\ Scripts/com.omnigroup.OmniFocus3/Plug
 | Type-checks against omnifocus.d.ts | Broken code |
 | Zero-tolerance (refuses on errors) | Runtime failures |
 | Creates working plugins | Missing dependencies |
+
+**CRITICAL:** Never use Write/Edit tools for plugin files. Always use the generator.
+
+### VALIDATE PLUGINS
+
+After any plugin changes, run the validation script:
+
+```bash
+bash assets/development-tools/validate-plugin.sh assets/YourPlugin.omnifocusjs
+```
+
+Validation checks:
+- Manifest structure and required fields
+- Action and library file existence
+- JavaScript linting (eslint_d or osascript)
+- **TypeScript type-checking** against `typescript/omnifocus.d.ts`
+- API anti-patterns (Document.defaultDocument, Progress class, etc.)
+
+TypeScript validation catches critical errors like:
+- `FileSaver.show()` missing FileWrapper argument
+- `task.name()` vs `task.name` (method vs property)
+- `new LanguageModel.Schema()` vs `LanguageModel.Schema.fromJSON()`
 
 ---
 
@@ -287,9 +309,10 @@ See `references/troubleshooting.md` for complete troubleshooting guide.
 
 ## Version Information
 
-**Current version:** 4.2.0
+**Current version:** 4.3.0
 
 **Recent changes:**
+- v4.3.0: TypeScript validation in validate-plugin.sh, System Discovery feature (AITaskAnalyzer v3.3.2)
 - v4.2.0: Consolidated references, integrated TypeScript validation strategy
 - v4.1.0: OmniFocus 4 tree API support, treeBuilder library
 - v4.0.0: TypeScript-based plugin generation with LSP validation

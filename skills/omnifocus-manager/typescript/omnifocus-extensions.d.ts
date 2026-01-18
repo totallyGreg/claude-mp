@@ -131,37 +131,63 @@ declare namespace LanguageModel {
 // Additional Type Refinements
 // ============================================================================
 
-/**
- * Selection object passed to plugin actions
- *
- * Note: Full definition should be in omnifocus.d.ts
- * Added here for template type-safety if missing from base definitions
- */
-declare class Selection {
-    readonly tasks: Array<Task>;
-    readonly projects: Array<Project>;
-    readonly folders: Array<Folder>;
-    readonly tags: Array<Tag>;
-    readonly document: Document;
+// Note: Selection, MenuItem, and ToolbarItem are already defined in omnifocus.d.ts
+// Do not redeclare them here to avoid duplicate identifier errors
+
+// ============================================================================
+// Global Variables
+// These are available in the OmniFocus Automation environment
+// ============================================================================
+
+/** All tasks in the database, flattened */
+declare const flattenedTasks: TaskArray;
+
+/** All projects in the database, flattened */
+declare const flattenedProjects: ProjectArray;
+
+/** All folders in the database, flattened */
+declare const flattenedFolders: FolderArray;
+
+/** All tags in the database, flattened */
+declare const flattenedTags: TagArray;
+
+/** Top-level folders */
+declare const folders: FolderArray;
+
+/** Top-level tags */
+declare const tags: Tags;
+
+/** The inbox */
+declare const inbox: Inbox;
+
+/** The library (root of folder hierarchy) */
+declare const library: Library;
+
+/** Console for logging (lowercase, not the Console class) */
+declare const console: Console;
+
+/** The current application */
+declare const app: Application;
+
+// ============================================================================
+// URL Extensions
+// These methods exist in OmniFocus but aren't in the 2021 type definitions
+// ============================================================================
+
+declare interface URL {
+    /**
+     * Write string content to the URL (file)
+     * @param content String content to write
+     */
+    write(content: string): void;
 }
 
-/**
- * Menu item sender for plugin actions
- *
- * Note: Full definition should be in omnifocus.d.ts
- * Added here for template type-safety if missing from base definitions
- */
-declare class MenuItem {
-    readonly title: string;
-}
+// ============================================================================
+// FileSaver Extensions
+// Additional properties that exist in newer OmniFocus versions
+// ============================================================================
 
-/**
- * Toolbar item sender for plugin actions
- *
- * Note: Full definition should be in omnifocus.d.ts
- * Added here for template type-safety if missing from base definitions
- */
-declare class ToolbarItem {
-    readonly label: string;
-    readonly image: string | null;
+declare interface FileSaver {
+    /** Default filename for the save dialog */
+    defaultFileName: string;
 }
