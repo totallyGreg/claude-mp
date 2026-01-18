@@ -1,0 +1,29 @@
+{
+  "identifier": "com.totallytools.omnifocus.completed-tasks-summary",
+  "version": "1.0.0",
+  "defaultLocale": "en",
+  "author": "totally-tools",
+  "description": "Daily completed tasks summary with project grouping. Copy to clipboard or save to file.",
+  "image": "checkmark.circle.fill",
+  "libraries": [
+    {"identifier": "taskMetrics"},
+    {"identifier": "completedTasksFormatter"},
+    {"identifier": "exportUtils"}
+  ],
+  "actions": [
+    {
+      "identifier": "copyToClipboard",
+      "label": "Copy Completed Tasks to Clipboard",
+      "mediumLabel": "Copy Completed Tasks",
+      "shortLabel": "Copy Completed",
+      "image": "doc.on.clipboard"
+    },
+    {
+      "identifier": "saveToFile",
+      "label": "Save Completed Tasks to File",
+      "mediumLabel": "Save Completed Tasks",
+      "shortLabel": "Save Completed",
+      "image": "square.and.arrow.down"
+    }
+  ]
+}

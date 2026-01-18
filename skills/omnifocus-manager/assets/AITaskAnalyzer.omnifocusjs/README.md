@@ -793,7 +793,7 @@ let expositionTag = doc.tags.byName("your-custom-tag");
 - **FIXED**: Changed library pattern from incorrect `new PlugIn.Library(function() {...})` to correct `new PlugIn.Library(new Version("3.0"))`
 - **IMPROVED**: Added libraries declaration to manifest.json following official Omni Group template structure
 - **CLEANED**: Removed development artifacts (TESTING.md, TROUBLESHOOTING.md, validate-structure.sh, test-libraries.js)
-- **NOTE**: For plugin development and testing tools, see the omnifocus-manager skill's `assets/development-tools/` directory
+- **NOTE**: For plugin development and testing tools, see the omnifocus-manager skill's `scripts/` directory
 
 ### v2.1.0 (2025-12-28)
 - **NEW**: Selected Task Analyzer action for detailed per-task analysis

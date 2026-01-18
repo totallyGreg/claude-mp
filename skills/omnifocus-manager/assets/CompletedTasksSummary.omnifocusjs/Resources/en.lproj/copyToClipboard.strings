@@ -1,0 +1,7 @@
+{
+    "label" = "Copy Completed Tasks to Clipboard";
+    "mediumLabel" = "Copy Completed Tasks";
+    "shortLabel" = "Copy Completed";
+    "paletteLabel" = "Copy Completed Tasks";
+    "longLabel" = "Copy today's completed tasks to clipboard";
+}

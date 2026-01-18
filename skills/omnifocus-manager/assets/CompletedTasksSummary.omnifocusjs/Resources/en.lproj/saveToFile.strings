@@ -1,0 +1,7 @@
+{
+    "label" = "Save Completed Tasks to File";
+    "mediumLabel" = "Save Completed Tasks";
+    "shortLabel" = "Save Completed";
+    "paletteLabel" = "Save Completed Tasks";
+    "longLabel" = "Save today's completed tasks to a file";
+}

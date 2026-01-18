@@ -3,7 +3,7 @@ name: omnifocus-manager
 description: |
   Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA).
 
-  WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries (taskMetrics, exportUtils, patterns) 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) CUSTOMIZE action files 6) VALIDATE via `bash assets/development-tools/validate-plugin.sh` 7) TEST in OmniFocus. TypeScript validation catches API errors. Manual creation creates broken plugins.
+  WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries (taskMetrics, exportUtils, patterns) 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) CUSTOMIZE action files 6) VALIDATE via `bash scripts/validate-plugin.sh` 7) TEST in OmniFocus. TypeScript validation catches API errors. Manual creation creates broken plugins.
 
   This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
 metadata:
@@ -20,6 +20,82 @@ compatibility:
 
 # OmniFocus Manager
 
+## ⚡ CRITICAL: Plugin Generation Workflow (READ FIRST)
+
+**If user requests "create plugin" or "make plugin", follow these EXACT steps:**
+
+### STEP 1: CLASSIFY (No thinking required)
+```
+Keywords in request → Classification:
+- "create plugin", "make plugin", "generate plugin" → PLUGIN GENERATION (continue to step 2)
+- "show me", "what tasks", "analyze" → QUERY/EXECUTION (use manage_omnifocus.js, STOP)
+```
+
+### STEP 2: SELECT FORMAT (Choose one)
+```
+Plugin requirements → Format:
+- Single action, no AI     → --format solitary
+- Single action, with AI   → --format solitary-fm
+- Multiple actions         → --format bundle --template <name>
+- Library for reuse        → --format solitary-library
+```
+
+### STEP 3: INVOKE GENERATOR (MANDATORY - TypeScript validation automatic)
+```bash
+node scripts/generate_plugin.js --format <FORMAT> --name "<NAME>"
+```
+
+**🚫 RED FLAG:** If about to use Write or Edit tool for .js/.omnijs files → STOP, use generator instead
+
+### STEP 4: VALIDATE (MANDATORY - Always run)
+```bash
+bash scripts/validate-plugin.sh <generated-plugin-path>
+```
+
+**Zero tolerance:** If validation fails, fix errors and re-validate before proceeding.
+
+### STEP 5: REPORT SUCCESS
+```
+✅ Plugin generated: <path>
+✅ TypeScript validation: PASSED
+✅ Plugin validation: PASSED
+✅ Ready for installation
+
+Installation:
+cp -r <path> ~/Library/Application\ Scripts/com.omnigroup.OmniFocus3/Plug-Ins/
+```
+
+---
+
+**COMPLIANCE SELF-CHECK:**
+- [ ] Used generate_plugin.js (NOT Write/Edit)
+- [ ] TypeScript validation ran during generation
+- [ ] Ran validate-plugin.sh after generation
+- [ ] All validations passed
+- [ ] Reported results to user
+
+If you skipped ANY step above, you did it wrong. Go back and follow the workflow.
+
+---
+
+## Why TypeScript Validation is Mandatory
+
+The generator (`scripts/generate_plugin.js`) automatically validates ALL generated code against:
+- `typescript/omnifocus.d.ts` - Official OmniFocus API type definitions
+- `typescript/omnifocus-extensions.d.ts` - Foundation Models API types
+
+**This catches errors BEFORE they break in OmniFocus:**
+- ❌ `FileSaver.show()` missing argument → ✅ `FileSaver.show(wrapper)`
+- ❌ `task.name()` (method) → ✅ `task.name` (property)
+- ❌ `new LanguageModel.Schema()` → ✅ `LanguageModel.Schema.fromJSON()`
+- ❌ `Document.defaultDocument` (anti-pattern) → ✅ Use `flattenedTasks`
+
+**Zero-tolerance policy:** Generator refuses to create plugins with TypeScript errors.
+
+You don't need to understand TypeScript - the generator handles it automatically.
+
+---
+
 ## What is OmniFocus?
 
 **OmniFocus** is a task management application for macOS and iOS implementing the Getting Things Done (GTD) methodology. It helps capture, organize, and track tasks with projects, tags, perspectives, defer/due dates, and repeating tasks.
@@ -34,76 +110,6 @@ This skill provides **execution-first architecture** for OmniFocus automation:
 4. **Analyze tasks with AI** - Use Apple Foundation Models for insights
 
 **Execution priority:** 80% execute existing code, 15% compose from libraries, 5% generate new code.
-
----
-
-## MANDATORY PLUGIN GENERATION WORKFLOW
-
-When user requests plugin creation, follow these steps:
-
-### WORKFLOW (DO NOT SKIP):
-
-**1. CLASSIFY REQUEST**
-- Keywords: "create a plugin", "make a plugin" → Plugin Creation
-- Keywords: "show me", "what are", "analyze" → Execute JXA script, STOP
-
-**2. SELECT FORMAT**
-- ONE action, no AI → `--format solitary`
-- ONE action, with AI → `--format solitary-fm`
-- MULTIPLE actions → `--format bundle --template query-simple`
-- LIBRARY code → `--format solitary-library`
-
-**3. CHECK LIBRARIES** (`scripts/libraries/omni/`)
-- `taskMetrics.js` - getTodayTasks, getOverdueTasks, getCompletedToday
-- `exportUtils.js` - toJSON, toCSV, toMarkdown, toHTML
-- `patterns.js` - queryAndAnalyzeWithAI, queryAndExport
-
-**4. INVOKE GENERATOR**
-```bash
-node scripts/generate_plugin.js --format solitary --name "My Plugin"
-```
-- **ALWAYS** use the generator - **NEVER** use Write/Edit tools for plugins
-- Generator validates automatically via TypeScript Compiler API
-
-**5. CUSTOMIZE (if needed)**
-- Edit action logic to add library calls
-- Test in Automation Console (`Cmd+Opt+Shift+C`) first
-
-**6. TEST IN OMNIFOCUS**
-```bash
-cp -r *.omnifocusjs ~/Library/Application\ Scripts/com.omnigroup.OmniFocus3/Plug-Ins/
-```
-
-### WHY MANDATORY:
-
-| TypeScript Generator | Manual Creation |
-|---------------------|-----------------|
-| Validates during generation | No validation |
-| Type-checks against omnifocus.d.ts | Broken code |
-| Zero-tolerance (refuses on errors) | Runtime failures |
-| Creates working plugins | Missing dependencies |
-
-**CRITICAL:** Never use Write/Edit tools for plugin files. Always use the generator.
-
-### VALIDATE PLUGINS
-
-After any plugin changes, run the validation script:
-
-```bash
-bash assets/development-tools/validate-plugin.sh assets/YourPlugin.omnifocusjs
-```
-
-Validation checks:
-- Manifest structure and required fields
-- Action and library file existence
-- JavaScript linting (eslint_d or osascript)
-- **TypeScript type-checking** against `typescript/omnifocus.d.ts`
-- API anti-patterns (Document.defaultDocument, Progress class, etc.)
-
-TypeScript validation catches critical errors like:
-- `FileSaver.show()` missing FileWrapper argument
-- `task.name()` vs `task.name` (method vs property)
-- `new LanguageModel.Schema()` vs `LanguageModel.Schema.fromJSON()`
 
 ---
 
@@ -135,19 +141,16 @@ See `references/omnifocus_url_scheme.md` for URL scheme.
 
 ### 2. Create or Modify Plugins
 
-**Generate plugin (recommended):**
+**→ See ⚡ CRITICAL workflow at top of this document**
+
+Quick reference:
 ```bash
-node scripts/generate_plugin.js --format solitary --name "My Plugin"
-node scripts/generate_plugin.js --format solitary-fm --name "AI Analyzer"
-node scripts/generate_plugin.js --format bundle --template query-simple --name "Task Tools"
+node scripts/generate_plugin.js --format <solitary|solitary-fm|bundle> --name "Plugin Name"
+bash scripts/validate-plugin.sh <generated-plugin-path>
 ```
 
-See `references/omni_automation_guide.md` for plugin development.
+See `references/omni_automation_guide.md` for plugin development details.
 See `references/code_generation_validation.md` for validation rules.
-
-**TypeScript Development:** The `typescript/` directory contains:
-- `omnifocus.d.ts` - Official OmniFocus API type definitions
-- `omnifocus-extensions.d.ts` - LanguageModel API for Apple Intelligence
 
 ### 3. Automate via Scripts or URLs
 

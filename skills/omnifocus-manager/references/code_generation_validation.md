@@ -20,7 +20,7 @@
 > 1. Complete the MANDATORY Pre-Generation Checklist below
 > 2. Verify EVERY API in `api_quick_reference.md`
 > 3. Run `eslint_d` and LSP validation (zero tolerance for errors)
-> 4. Run `bash ../assets/development-tools/validate-plugin.sh <plugin-path>`
+> 4. Run `bash ../scripts/validate-plugin.sh <plugin-path>`
 >
 > **Do NOT proceed without completing the checklist.**
 

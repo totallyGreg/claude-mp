@@ -8,6 +8,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 4.4.0 | 2026-01-18 | **MINOR**: Deterministic plugin generation workflow, Agent Skill compliance, refinement documentation |
 | 4.1.0 | 2026-01-11 | **MINOR**: OmniFocus 4 tree API support, bundle generation fixes, decision tree clarity |
 | 4.0.0 | 2026-01-02 | **MAJOR**: TypeScript-based plugin generation with LSP validation - Python generator removed |
 | 3.5.0 | 2026-01-02 | Comprehensive plugin generation: all formats (solitary/bundle), localization, Version("26") validation |
@@ -26,6 +27,100 @@ This document tracks improvements, enhancements, and future development plans fo
 | 1.0.0 | 2025-12-19 | Initial release |
 
 ## Completed Improvements
+
+### v4.4.0 - Deterministic Plugin Generation Workflow (2026-01-18)
+
+**Problem Addressed:**
+Agents frequently skip critical workflow steps when generating plugins despite clear instructions:
+- Don't use `generate_plugin.js` (try to use Write/Edit instead)
+- Don't run TypeScript validation
+- Don't run `validate-plugin.sh` after generation
+
+**Root Cause:**
+- Workflow buried in middle of SKILL.md (started at line 98)
+- Organization violations (tools in wrong directories)
+- Weak enforcement language ("MANDATORY" sounded optional)
+- No self-check mechanisms
+
+**Solution:**
+Complete SKILL.md restructuring and organizational improvements to make plugin generation deterministic and impossible to skip.
+
+**Changes Made:**
+
+1. **SKILL.md Restructuring:**
+   - **⚡ CRITICAL workflow moved to top** (immediately after frontmatter, line 23)
+   - Added visual markers: ⚡ CRITICAL, 🚫 RED FLAG, ✅ SUCCESS
+   - Removed redundant "MANDATORY PLUGIN GENERATION WORKFLOW" section (68 lines)
+   - Added "COMPLIANCE SELF-CHECK" with checkboxes
+   - Added "Why TypeScript Validation is Mandatory" section
+   - Updated Quick Decision Tree to reference top workflow
+   - Strong enforcement language: "Zero tolerance", "If you skipped ANY step, you did it wrong"
+
+2. **Script Organization (Agent Skill Compliance):**
+   - **Moved validation tools from `assets/development-tools/` to `scripts/`:**
+     - `validate-plugin.sh`
+     - `test-plugin-libraries.js`
+     - `validate-js-syntax.js`
+     - `validation-README.md`
+   - Removed empty `assets/development-tools/` directory
+   - All executables now in `scripts/` following Agent Skill specification
+   - Updated all references (5 files) to new paths
+
+3. **Template Documentation:**
+   - Created `assets/plugin-templates/README.md`
+   - Documented all template formats with usage examples
+   - Added template variable reference
+   - Included validation information
+   - Warned against manual template modification
+
+4. **Refinement Documentation:**
+   - Created `refinement-errors.md` for skillsmith improvement
+   - Documented 10 categories of errors found during refinement:
+     - Organization violations (tools in wrong directories)
+     - Progressive disclosure failures (workflow buried)
+     - Enforcement gaps (weak language)
+     - Reference chain issues (broken paths)
+     - Feature status ambiguity
+   - Provided specific skillsmith improvement recommendations
+
+**Files Modified:**
+- `SKILL.md` - Complete restructuring with CRITICAL workflow at top
+- `references/code_generation_validation.md` - Updated tool paths
+- `assets/AITaskAnalyzer.omnifocusjs/README.md` - Updated tool references
+- `IMPROVEMENT_PLAN.md` - Updated all historical references
+
+**Files Created:**
+- `assets/plugin-templates/README.md` - Template usage documentation
+- `refinement-errors.md` - Lessons for skillsmith improvement
+
+**Files Moved:**
+- `assets/development-tools/validate-plugin.sh` → `scripts/validate-plugin.sh`
+- `assets/development-tools/test-plugin-libraries.js` → `scripts/test-plugin-libraries.js`
+- `assets/development-tools/validate-js-syntax.js` → `scripts/validate-js-syntax.js`
+- `assets/development-tools/README.md` → `scripts/validation-README.md`
+
+**Impact:**
+- **Workflow now impossible to miss** - appears in first 50 lines with CRITICAL marker
+- **Agent Skill specification compliant** - tools in correct directories
+- **Self-enforcing** - compliance checklist ensures agents verify their work
+- **Deterministic** - clear step-by-step workflow with zero ambiguity
+- **Maintainable** - single source of truth, no duplication
+
+**Success Criteria:**
+When agent sees "create a plugin for X", it should:
+1. Immediately invoke `node scripts/generate_plugin.js`
+2. Wait for automatic TypeScript validation
+3. Run `bash scripts/validate-plugin.sh`
+4. Report all results
+
+**No thinking, no shortcuts, no skipped steps.**
+
+**Documentation for Future:**
+- `refinement-errors.md` provides detailed lessons for improving skillsmith
+- Captures what went wrong and how to prevent in future skills
+- Template improvements, enforcement patterns, validation checks
+
+---
 
 ### v4.1.0 - OmniFocus 4 Tree API Support (2026-01-11)
 
@@ -253,7 +348,7 @@ Integrated eslint_d validation into generation and validation workflows, added p
    - Example output: "✅ showOverview.js - no linting errors"
    - Generates plugins in `assets/` by default (within project, lintable)
 
-2. **Enhanced Validator with eslint_d** (`assets/development-tools/validate-plugin.sh`):
+2. **Enhanced Validator with eslint_d** (`scripts/validate-plugin.sh`):
    - Replaced osascript syntax check with eslint_d linting
    - Detects undefined globals, syntax errors, style violations
    - Shows detailed error messages for fixes
@@ -299,7 +394,7 @@ python3 scripts/generate_plugin.py --template stats-overview --name "Test"
 #   "🎉 Plugin generated successfully!"
 
 # User can also run validator
-bash assets/development-tools/validate-plugin.sh assets/Test.omnifocusjs
+bash scripts/validate-plugin.sh assets/Test.omnifocusjs
 # → Comprehensive checks:
 #   ✅ JavaScript linting with eslint_d
 #   ✅ API anti-pattern detection
@@ -315,7 +410,7 @@ bash assets/development-tools/validate-plugin.sh assets/Test.omnifocusjs
 
 **Files Modified:**
 - `scripts/generate_plugin.py` (added validate_javascript function, import subprocess)
-- `assets/development-tools/validate-plugin.sh` (replaced osascript with eslint_d)
+- `scripts/validate-plugin.sh` (replaced osascript with eslint_d)
 - `SKILL.md` (added warning box, made api_quick_reference.md prominent)
 - `references/plugin_development_guide.md` (added warning box)
 - `references/code_generation_validation.md` (added 🚨 STOP warning box)
@@ -766,7 +861,7 @@ The combination of quick reference documentation, validation layer, working exam
      - Version management guidelines
    - **Consolidated knowledge:** Single source of truth for plugin development (following AgentSkills spec: avoid duplication)
 
-3. **Created Development Tools Directory (`assets/development-tools/`):**
+3. **Created Development Tools Directory (`scripts/`):**
    - **`README.md`** (~250 lines): Purpose, usage guide, workflow integration
    - **`validate-plugin.sh`** (~220 lines): Automated plugin structure validation
      - Validates manifest.json is valid JSON
@@ -819,9 +914,9 @@ The combination of quick reference documentation, validation layer, working exam
      - Reference to skill's development-tools/ for testing
 
 **Files Created:**
-- `assets/development-tools/README.md` (250 lines)
-- `assets/development-tools/validate-plugin.sh` (220 lines)
-- `assets/development-tools/test-plugin-libraries.js` (140 lines)
+- `scripts/README.md` (250 lines)
+- `scripts/validate-plugin.sh` (220 lines)
+- `scripts/test-plugin-libraries.js` (140 lines)
 
 **Files Modified:**
 - `assets/README.md` (+60 lines - Official template documentation)
