@@ -115,9 +115,80 @@ def validate_skill(skill_path):
 # ============================================================================
 
 
+def validate_improvement_plan_table_format(content):
+    """
+    Validate new table-based IMPROVEMENT_PLAN.md format
+
+    Returns: (valid: bool, issues: [str], warnings: [str])
+    """
+    issues = []
+    warnings = []
+
+    # Check for Planned Improvements section
+    has_planned = '## 🔮 Planned Improvements' in content or '## Planned Improvements' in content
+    has_completed = '## ✅ Completed Improvements' in content or '## Completed Improvements' in content
+
+    if not has_planned and not has_completed:
+        # Might be old format, skip table validation
+        return True, issues, warnings
+
+    # Validate Planned Improvements table structure
+    if has_planned:
+        # Check for table with required columns
+        planned_section = content.split('## 🔮 Planned Improvements' if '## 🔮 Planned Improvements' in content else '## Planned Improvements')[1]
+        planned_section = planned_section.split('##')[0]  # Get section until next heading
+
+        # Check for table headers
+        if '| Issue |' not in planned_section and '|Issue|' not in planned_section:
+            issues.append("Planned Improvements section missing table headers (Issue, Priority, Title, Status)")
+        else:
+            # Check for required columns
+            required_cols = ['Issue', 'Priority', 'Title', 'Status']
+            for col in required_cols:
+                if col not in planned_section:
+                    issues.append(f"Planned Improvements table missing '{col}' column")
+
+            # Check for issue number format (#XXX)
+            issue_lines = [line for line in planned_section.split('\n') if line.strip().startswith('|') and '---' not in line and 'Issue' not in line]
+            for line in issue_lines:
+                parts = [p.strip() for p in line.split('|')[1:-1]]
+                if len(parts) > 0:
+                    issue_num = parts[0]
+                    if issue_num and issue_num.upper() not in ['TBD', 'N/A'] and not issue_num.startswith('#'):
+                        warnings.append(f"Issue number should use #XXX format: '{issue_num}'")
+
+    # Validate Completed Improvements table structure
+    if has_completed:
+        completed_section = content.split('## ✅ Completed Improvements' if '## ✅ Completed Improvements' in content else '## Completed Improvements')[1]
+        completed_section = completed_section.split('##')[0]
+
+        # Check for table headers
+        if '| Version |' not in completed_section and '|Version|' not in completed_section:
+            issues.append("Completed Improvements section missing table headers (Version, Date, Issue, Title, Key Changes)")
+        else:
+            # Check for required columns
+            required_cols = ['Version', 'Date', 'Issue', 'Title', 'Key Changes']
+            for col in required_cols:
+                if col not in completed_section:
+                    issues.append(f"Completed Improvements table missing '{col}' column")
+
+            # Check for issue number format (#XXX)
+            issue_lines = [line for line in completed_section.split('\n') if line.strip().startswith('|') and '---' not in line and 'Version' not in line]
+            for line in issue_lines:
+                parts = [p.strip() for p in line.split('|')[1:-1]]
+                if len(parts) >= 3:  # Version, Date, Issue at minimum
+                    issue_num = parts[2]
+                    if issue_num and issue_num.upper() not in ['TBD', 'N/A'] and not issue_num.startswith('#'):
+                        warnings.append(f"Issue number should use #XXX format: '{issue_num}'")
+
+    return len(issues) == 0, issues, warnings
+
+
 def validate_improvement_plan(skill_path, skill_version=None):
     """
-    Validate IMPROVEMENT_PLAN.md completeness and consistency (from quick_validate.py)
+    Validate IMPROVEMENT_PLAN.md completeness and consistency
+
+    Supports both old format (Version History table) and new format (Planned/Completed tables)
 
     Returns: (valid: bool, message: str)
     """
@@ -134,6 +205,25 @@ def validate_improvement_plan(skill_path, skill_version=None):
         content = improvement_plan.read_text()
         lines = content.split('\n')
 
+        # Check for new table format first
+        has_new_format = ('## 🔮 Planned Improvements' in content or '## Planned Improvements' in content) and \
+                        ('## ✅ Completed Improvements' in content or '## Completed Improvements' in content)
+
+        if has_new_format:
+            # Validate new table format
+            table_valid, table_issues, table_warnings = validate_improvement_plan_table_format(content)
+            errors.extend(table_issues)
+            warnings.extend(table_warnings)
+
+            # Return results
+            if errors:
+                return False, '\n\n'.join(['❌ ' + e for e in errors])
+            elif warnings:
+                return True, '\n\n'.join(['⚠️  ' + w for w in warnings])
+            else:
+                return True, "✓ IMPROVEMENT_PLAN.md table format is valid"
+
+        # Fall back to old format validation
         # Find version history table
         version_history_start = None
         for i, line in enumerate(lines):
@@ -142,7 +232,7 @@ def validate_improvement_plan(skill_path, skill_version=None):
                 break
 
         if version_history_start is None:
-            return True, "✓ IMPROVEMENT_PLAN.md exists but no version history found"
+            return True, "✓ IMPROVEMENT_PLAN.md exists but no recognized format found"
 
         # Parse version history table
         versions = []

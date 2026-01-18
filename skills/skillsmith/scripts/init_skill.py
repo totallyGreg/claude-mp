@@ -24,6 +24,8 @@ from utils import get_repo_root
 SKILL_TEMPLATE = """---
 name: {skill_name}
 description: [TODO: Complete and informative explanation of what the skill does and when to use it. Include WHEN to use this skill - specific scenarios, file types, or tasks that trigger it.]
+metadata:
+  version: 1.0.0
 ---
 
 # {skill_title}
@@ -225,96 +227,55 @@ IMPROVEMENT_PLAN_TEMPLATE = """# {skill_title} - Improvement Plan
 
 This document tracks improvements, enhancements, and future development plans for the {skill_name} skill.
 
-## Version History
+**Key Principle**: GitHub Issues are the canonical source of truth for work tracking. This file provides a simple summary that reflects issue state.
 
-| Version | Date | Description |
-|---------|------|-------------|
-| 1.0.0 | {date} | Initial release |
+## Workflow
+
+```
+docs/lessons/         →  docs/plans/           →  GitHub Issues      →  IMPROVEMENT_PLAN.md
+(Post-work learnings)    (Pre-work planning)      (Active tracking)      (Issue state summary)
+                                                  (SOURCE OF TRUTH)
+```
+
+See repository's `/WORKFLOW.md` for complete documentation.
 
 ## 🔮 Planned Improvements
-> Last Updated: {date}
 
-**Note:** Planned improvements are tracked by NUMBER, not version. Version numbers are only assigned when releasing.
+| Issue | Priority | Title | Status |
+|-------|----------|-------|--------|
+| TBD   | Medium   | Example future enhancement | Planning |
 
-### High Priority
+_For details, see linked GitHub issues._
 
-#### 1. Example Enhancement
-**Goal:** Brief description of what this improvement aims to achieve
+**To add new improvements:**
+1. Create GitHub issue with task checklist
+2. Add row to this table with issue number
+3. Update Status as work progresses (Open → In Progress → see Completed)
 
-**Problem:**
-- Describe what doesn't work well now
+## ✅ Completed Improvements
 
-**Proposed Solution:**
-- Outline the approach
-- Key implementation details
+| Version | Date | Issue | Title | Key Changes |
+|---------|------|-------|-------|-------------|
+| v1.0.0  | {date} | N/A | Initial release | • Created SKILL.md with core functionality<br>• Added example scripts, references, and assets<br>• Established skill structure |
 
-**Files to Modify:**
-- List target files
-
-**Success Criteria:**
-- How to measure if this is done correctly
-
-### Medium Priority
-
-#### 2. Another Planned Feature
-TODO: Add medium priority improvements
-
-### Low Priority
-
-#### 3. Future Enhancement
-TODO: Add low priority improvements
-
----
-
-## Technical Debt
-
-### Code Quality
-- TODO: Track code quality issues
-
-### Documentation
-- TODO: Track documentation gaps
-
-## Enhancement Requests
-
-*Track feature requests and suggestions from users here*
-
----
-
-## ✅ Recent Improvements (Completed)
-> Sorted by: Newest first
-
-### v1.0.0 - Initial Release ({date})
-
-**Initial Features:**
-- TODO: Document initial capabilities
-- TODO: List key features implemented
-
-**Files Created:**
-- `SKILL.md` - Main skill definition
-- `scripts/` - Example scripts directory
-- `references/` - Example references directory
-- `assets/` - Example assets directory
-
-## Contributing
-
-To suggest improvements to this skill:
-
-1. Add enhancement requests to the "Enhancement Requests" section
-2. Discuss technical approaches in "Planned Improvements"
-3. Track implementation progress
-4. When complete, follow the Planned → Completed workflow:
-   - Cut section from Planned Improvements
-   - Update header: "### v{{version}} - {{name}} ({{date}})"
-   - Paste at top of Recent Improvements (Completed)
-   - Update version history table with actual date
-   - Add implementation details
+_For implementation details, see closed issues and docs/lessons/._
 
 ## Notes
 
-- This improvement plan should be excluded from skill packaging (see .skillignore)
-- Update "Last Updated" timestamp in Planned Improvements when making changes
-- Update version history when releasing new versions
-- Link to relevant issues/PRs in your repository if applicable
+**Workflow:**
+1. Simple changes: Commit directly to main
+2. Complex work: Create GitHub issue → Add to Planned table → Implement → Move to Completed table on release
+
+**On Release (two-commit pattern):**
+- Commit 1: Implementation changes (version unchanged)
+- Commit 2: Move issue from Planned → Completed table, bump version in SKILL.md, close issue
+
+**Key Changes column:**
+- Use 2-3 bullet points for compact historical summary
+- Link to docs/lessons/ for complex work retrospectives
+- Keep entries scannable at a glance
+
+**This file travels with the skill** when distributed, so it provides important historical context. Detailed planning and discussion should live in GitHub issues.
 """
 
 

@@ -8,6 +8,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.2.0 | 2026-01-18 | Added table-based IMPROVEMENT_PLAN.md format and workflow documentation |
 | 1.8.0 | 2025-12-23 | Added AgentSkills specification as core domain knowledge |
 | 1.7.0 | 2025-12-22 | Conciseness optimization - moved research documentation to references/ |
 | 1.5.0 | 2025-12-20 | IMPROVEMENT_PLAN.md restructuring and rename to skillsmith |
