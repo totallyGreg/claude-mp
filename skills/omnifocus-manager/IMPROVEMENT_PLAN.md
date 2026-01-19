@@ -61,7 +61,6 @@ Complete SKILL.md restructuring and organizational improvements to make plugin g
      - `validate-plugin.sh`
      - `test-plugin-libraries.js`
      - `validate-js-syntax.js`
-     - `validation-README.md`
    - Removed empty `assets/development-tools/` directory
    - All executables now in `scripts/` following Agent Skill specification
    - Updated all references (5 files) to new paths
@@ -97,7 +96,6 @@ Complete SKILL.md restructuring and organizational improvements to make plugin g
 - `assets/development-tools/validate-plugin.sh` → `scripts/validate-plugin.sh`
 - `assets/development-tools/test-plugin-libraries.js` → `scripts/test-plugin-libraries.js`
 - `assets/development-tools/validate-js-syntax.js` → `scripts/validate-js-syntax.js`
-- `assets/development-tools/README.md` → `scripts/validation-README.md`
 
 **Impact:**
 - **Workflow now impossible to miss** - appears in first 50 lines with CRITICAL marker

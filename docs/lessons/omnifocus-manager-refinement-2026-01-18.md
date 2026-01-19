@@ -359,6 +359,121 @@ After implementing these skillsmith improvements:
 
 ---
 
+## Release Process Failures (Post-Commit Verification)
+
+After commit 3c3b40e claimed to implement v4.4.0, post-commit verification revealed several failures in the release process itself.
+
+### Error 11: Version bump not applied
+
+**What was wrong:**
+- Commit message claimed "v4.4.0"
+- IMPROVEMENT_PLAN.md version history table listed v4.4.0
+- But SKILL.md still showed `version: 4.3.0` in two places (frontmatter and footer)
+
+**Why this matters:**
+- Version is the canonical identifier for skill state
+- Discrepancy between commit message and actual version creates confusion
+- Cannot verify what version is actually deployed
+
+**Skillsmith improvement:**
+- Version bump should be part of release checklist
+- Consider automated version validation before commit
+- Release script could verify version consistency across files
+
+### Error 12: Moved files not tested after move
+
+**What was wrong:**
+- `validation-README.md` moved from `assets/development-tools/` to `scripts/`
+- Internal relative paths still referenced old locations:
+  - `../omnifocus-manager/assets/development-tools/validate-plugin.sh`
+  - `../../references/plugin_development_guide.md`
+- Nobody ran the commands in the README to verify they worked
+
+**Why this matters:**
+- Moving files breaks relative paths
+- Documentation becomes misleading
+- Users following instructions hit errors
+
+**Skillsmith improvement:**
+- After moving files, test any commands/paths they contain
+- Automated path validation in moved files
+- Release checklist: "Did you test all moved files?"
+
+### Error 13: validate-plugin.sh had silent failure
+
+**What was wrong:**
+- TypeScript path was `../../typescript` (wrong)
+- Should have been `../typescript` (sibling to scripts/)
+- Script silently skipped TypeScript validation with a warning
+- Bug existed since the file was moved but was never caught
+
+**Why this matters:**
+- Silent failures hide broken functionality
+- Validation that doesn't run provides false confidence
+- Path bugs after file moves are common
+
+**Skillsmith improvement:**
+- Test validation scripts on real plugins after any changes
+- Consider failing loudly instead of warning and continuing
+- Path validation: verify referenced directories exist
+
+### Error 14: Redundant documentation moved instead of deleted
+
+**What was wrong:**
+- `validation-README.md` duplicated content already in SKILL.md
+- Was moved to `scripts/` when it should have been deleted
+- Nothing referenced it; served no purpose
+- Had 7+ broken path references after move
+
+**Why this matters:**
+- Cruft accumulates if not actively removed
+- Moving redundant files wastes effort maintaining them
+- "Where should this go?" is wrong question; ask "Is this needed?"
+
+**Skillsmith improvement:**
+- Before moving files, ask: "Is this file even necessary?"
+- Check if content is duplicated elsewhere
+- Check if anything references the file
+- Delete redundant documentation, don't relocate it
+
+### Error 15: No post-commit verification
+
+**What was wrong:**
+- Commit claimed "Update all references (5 files) to new paths"
+- This was not verified by actually running the tools
+- `validate-plugin.sh` was broken and nobody noticed
+- Validation-README.md had broken paths and nobody noticed
+
+**Why this matters:**
+- Claims in commit messages must be verifiable
+- "Update all references" requires testing, not just editing
+- Without verification, bugs ship as "fixes"
+
+**Skillsmith improvement:**
+- Release checklist: Run affected tools after changes
+- For validation tooling changes: test on a real plugin
+- Don't trust "find and replace" - verify functionality
+
+---
+
+## Summary: Release Process Improvements
+
+### Pre-Release Checklist
+- [ ] Version bumped in ALL locations (frontmatter + footer)
+- [ ] All moved files tested (commands, paths work)
+- [ ] Redundant files deleted, not moved
+- [ ] Validation scripts tested on real plugins
+- [ ] Reference paths verified (not just edited)
+
+### Questions Before Moving Files
+1. Is this file even necessary?
+2. Does anything reference it?
+3. Is content duplicated elsewhere?
+4. If moving: did I update internal paths?
+5. If moving: did I test commands in the file?
+
+---
+
 ## Conclusion
 
 The omnifocus-manager skill evolved organically from v1.0 to v4.3.0, accumulating technical debt along the way. The main issue: **agents skip critical steps because workflow is buried and enforcement is weak**.
@@ -368,3 +483,5 @@ The omnifocus-manager skill evolved organically from v1.0 to v4.3.0, accumulatin
 **Solution:** Deterministic workflow with impossible-to-miss structure.
 
 **For skillsmith:** Enforce these patterns from the start to prevent drift.
+
+**Additional lesson from v4.4.0 release:** Release process itself needs verification. Commit messages claiming changes were made doesn't mean they were made correctly. Post-commit verification caught 5 additional errors that shipped in the "fix" commit.
