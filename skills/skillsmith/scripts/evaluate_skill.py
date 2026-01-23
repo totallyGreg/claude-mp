@@ -34,12 +34,19 @@ Usage:
     # Full evaluation with all options
     uv run scripts/evaluate_skill.py <skill-path> --compare <original-path> --validate-functionality --store-metrics --format json
 
+    # Export version history table row for IMPROVEMENT_PLAN.md
+    uv run scripts/evaluate_skill.py <skill-path> --export-table-row --version 2.0.0 --issue 123
+    uv run scripts/evaluate_skill.py <skill-path> --export-table-row --version 1.0.0
+
 Options:
     --quick                   Fast validation mode (structure only)
     --check-improvement-plan  Validate IMPROVEMENT_PLAN.md (requires --quick)
     --compare <path>          Compare against original skill version
     --validate-functionality  Run functionality validation tests
     --store-metrics          Store metrics in SKILL.md metadata
+    --export-table-row       Export version history table row (requires --version)
+    --version <version>      Version number for table row export (e.g., 2.0.0)
+    --issue <number>         GitHub issue number for table row export (optional)
     --format json|text       Output format (default: text)
     --output <file>          Save results to file
 """
@@ -1639,6 +1646,9 @@ def main():
     compare_with = None
     validate_func = False
     store_metrics_flag = False
+    export_table_row = False
+    version_number = None
+    issue_number = None
     output_format = 'text'
     output_file = None
 
@@ -1661,6 +1671,15 @@ def main():
         elif arg == '--store-metrics':
             store_metrics_flag = True
             i += 1
+        elif arg == '--export-table-row':
+            export_table_row = True
+            i += 1
+        elif arg == '--version' and i + 1 < len(sys.argv):
+            version_number = sys.argv[i + 1]
+            i += 2
+        elif arg == '--issue' and i + 1 < len(sys.argv):
+            issue_number = sys.argv[i + 1]
+            i += 2
         elif arg == '--format' and i + 1 < len(sys.argv):
             output_format = sys.argv[i + 1]
             i += 2
@@ -1672,6 +1691,62 @@ def main():
             sys.exit(1)
 
     try:
+        # Export table row mode
+        if export_table_row:
+            if not version_number:
+                print("❌ Error: --export-table-row requires --version <version>")
+                sys.exit(1)
+
+            # Calculate metrics
+            metrics = calculate_all_metrics(skill_path)
+
+            # Get today's date
+            today = datetime.now().strftime("%Y-%m-%d")
+
+            # Format issue link or dash
+            if issue_number:
+                # Try to detect GitHub repo URL from git remote
+                try:
+                    git_remote = subprocess.run(
+                        ['git', 'config', '--get', 'remote.origin.url'],
+                        capture_output=True,
+                        text=True,
+                        cwd=Path(skill_path).parent if Path(skill_path).is_file() else skill_path
+                    )
+                    if git_remote.returncode == 0:
+                        remote_url = git_remote.stdout.strip()
+                        # Convert git@github.com:user/repo.git to https://github.com/user/repo
+                        if remote_url.startswith('git@github.com:'):
+                            repo_path = remote_url.replace('git@github.com:', '').replace('.git', '')
+                            github_url = f"https://github.com/{repo_path}"
+                        elif 'github.com' in remote_url:
+                            github_url = remote_url.replace('.git', '')
+                        else:
+                            github_url = "https://github.com/user/repo"
+                        issue_link = f"[#{issue_number}]({github_url}/issues/{issue_number})"
+                    else:
+                        issue_link = f"[#{issue_number}](link)"
+                except:
+                    issue_link = f"[#{issue_number}](link)"
+            else:
+                issue_link = "-"
+
+            # Get skill name for summary (use last part of path as default)
+            skill_name = metrics.get('skill_name', Path(skill_path).name)
+            summary = f"{skill_name} v{version_number}"
+
+            # Extract metric scores
+            conc = int(metrics['conciseness']['score'])
+            comp = int(metrics['complexity']['score'])
+            spec = int(metrics['spec_compliance']['score'])
+            disc = int(metrics['progressive_disclosure']['score'])
+            overall = int(metrics['overall_score'])
+
+            # Output table row
+            table_row = f"| {version_number} | {today} | {issue_link} | {summary} | {conc} | {comp} | {spec} | {disc} | {overall} |"
+            print(table_row)
+            sys.exit(0)
+
         # Quick validation mode
         if quick_mode:
             validation_result = quick_validate(skill_path, check_improvement_plan)
