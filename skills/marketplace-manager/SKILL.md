@@ -126,6 +126,168 @@ python3 scripts/add_to_marketplace.py create-plugin <plugin-name> --skill <skill
 
 For complete marketplace.json schema reference and field documentation, see `references/plugin_marketplace_guide.md`.
 
+## Marketplace Operations
+
+The marketplace-manager skill provides three powerful automation tools for managing your plugin marketplace.
+
+### Deprecating Skills
+
+Use `deprecate_skill.py` to safely remove skills from your marketplace with automated cleanup guidance:
+
+```bash
+# Dry-run to preview changes
+python3 scripts/deprecate_skill.py --skill skill-name \
+  --reason "Superseded by new-skill" \
+  --migration-notes "Use new-skill instead" \
+  --dry-run
+
+# Actually deprecate (with confirmation prompt)
+python3 scripts/deprecate_skill.py --skill skill-name \
+  --reason "Superseded by new-skill" \
+  --migration-notes "Use new-skill instead"
+
+# Auto-confirm for scripted workflows
+python3 scripts/deprecate_skill.py --skill skill-name \
+  --reason "No longer maintained" \
+  --yes
+```
+
+**What it does:**
+1. Removes plugin from marketplace.json
+2. Scans all SKILL.md files for references to deprecated skill
+3. Reports which skills reference the deprecated skill (with line numbers)
+4. Creates migration guide in `docs/lessons/` (optional)
+5. Generates cleanup checklist saved to `deprecate-{skill}-checklist.txt`
+
+**Cleanup checklist includes:**
+- Skills that reference the deprecated skill (need manual updates)
+- Command to delete skill files (`git rm -r skills/{skill}/`)
+- Reminder to commit changes
+- User notification steps (if applicable)
+
+**Example output:**
+```
+📦 Found plugin: skill-planner v1.1.0
+   Description: Manages improvement planning lifecycle...
+   Source: ./skills/skill-planner
+
+🔍 Scanning for references to 'skill-planner'...
+
+⚠️  Found 2 skill(s) with references:
+   • marketplace-manager (4 reference(s))
+   • skillsmith (2 reference(s))
+
+📋 Deprecation Plan:
+   1. Remove 'skill-planner' from marketplace.json
+   2. Reason: Superseded by WORKFLOW.md GitHub Issues pattern
+   3. Create migration guide in docs/lessons/
+   4. Report 2 skill(s) that need manual updates
+```
+
+### Analyzing Bundling Opportunities
+
+Use `analyze_bundling.py` to discover which skills should be bundled together as multi-skill plugins:
+
+```bash
+# Analyze and show recommendations
+python3 scripts/analyze_bundling.py
+
+# Output as JSON for programmatic use
+python3 scripts/analyze_bundling.py --format json
+
+# Interactive bundling workflow
+python3 scripts/analyze_bundling.py --interactive
+
+# Adjust minimum affinity score threshold
+python3 scripts/analyze_bundling.py --min-score 30
+```
+
+**Affinity scoring** (0-100 scale):
+- Same category: +30 points
+- Cross-references: +40 points
+- Bidirectional references: +20 bonus points
+- Similar descriptions: +10 points
+
+**What it analyzes:**
+1. Skills by category grouping
+2. Cross-skill references in SKILL.md files
+3. Pairwise bundling affinity scores
+4. Recommended bundle names and descriptions
+
+**Example output:**
+```
+Bundling Recommendations
+======================================================================
+
+1. Bundle: skillsmith + marketplace-manager
+   Affinity Score: 80/100
+   Reasons:
+     • Both in 'development' category
+     • skillsmith references marketplace-manager
+
+   Suggested Bundle:
+     Name: skill-development-toolkit
+     Description: Combines skillsmith, marketplace-manager for integrated workflow
+```
+
+**Creating bundles:**
+
+Once you've identified a good bundling opportunity:
+
+```bash
+# Create multi-skill bundle
+python3 scripts/add_to_marketplace.py create-plugin skill-development-toolkit \
+  "Integrated toolkit for skill development and marketplace management" \
+  --skills ./skills/skillsmith ./skills/marketplace-manager
+```
+
+**Bundling considerations:**
+- Keep individual plugin distributions for users who only need one skill
+- Bundle tightly-coupled skills (frequent cross-references)
+- Bundle skills in same category with complementary functionality
+- Consider user experience: is the bundle more useful than individual skills?
+
+### Generating Utils Templates
+
+Use `generate_utils_template.py` to create consistent utils.py files for new skills:
+
+```bash
+# Generate utils.py for a new skill
+python3 scripts/generate_utils_template.py --skill my-new-skill
+
+# Overwrite existing utils.py (use carefully)
+python3 scripts/generate_utils_template.py --skill existing-skill --force
+
+# Generate with verbose output
+python3 scripts/generate_utils_template.py --skill my-skill --verbose
+```
+
+**What it generates:**
+
+The template includes standard utility functions:
+- `find_repo_root()` - Auto-detect repository root
+- `get_repo_root()` - Get repo root with verbose mode
+- `print_verbose_info()` - Display path resolution details
+- `validate_repo_structure()` - Check repository structure
+
+**Template customization:**
+
+Edit `scripts/templates/utils.py.template` to add skill-specific utilities. The template uses `{SKILL_NAME}` placeholder which gets replaced during generation.
+
+**Why code duplication?**
+
+In marketplace context, plugins must be self-contained for independent distribution. Users install individual skills, so each needs its own utils.py. Templates ensure this duplication is **consistent** across all skills.
+
+**Usage in skill scripts:**
+
+```python
+#!/usr/bin/env python3
+from utils import get_repo_root
+
+repo_root = get_repo_root(args.path, verbose=args.verbose)
+marketplace_path = repo_root / '.claude-plugin' / 'marketplace.json'
+```
+
 ## Git Integration
 
 ### Pre-Commit Hook
