@@ -19,7 +19,42 @@ This document tracks improvements, enhancements, and future development plans fo
 | 1.0.0 | Initial | Initial skillsmith implementation with packaging and marketplace support |
 
 ## 🔮 Planned Improvements
-> Last Updated: 2026-01-17
+> Last Updated: 2026-01-22
+
+### Critical Priority
+
+| Issue | Priority | Title | Status |
+|-------|----------|-------|--------|
+| [#5](https://github.com/totallyGreg/claude-mp/issues/5) | High | Remove skill-planner references | Blocked by #4 |
+
+#### [#5](https://github.com/totallyGreg/claude-mp/issues/5) Remove skill-planner References
+**Goal:** Update skillsmith to remove all references to deprecated skill-planner
+
+**Background:**
+skill-planner is being deprecated in favor of WORKFLOW.md GitHub Issues pattern. skillsmith currently references skill-planner for complex improvements delegation, but this creates competing sources of truth.
+
+**Prerequisites:**
+- Issue #4 must be complete (marketplace-manager deprecation automation)
+
+**Proposed Changes:**
+- Remove skill-planner references from SKILL.md
+- Update `references/improvement_workflow_guide.md` to remove delegation logic
+- Document WORKFLOW.md as the standard planning pattern
+- Update IMPROVEMENT_PLAN.md to reflect completion
+
+**Files to Modify:**
+- `SKILL.md` - Remove skill-planner references
+- `references/improvement_workflow_guide.md` - Remove delegation section
+- `IMPROVEMENT_PLAN.md` - Track completion
+
+**Success Criteria:**
+- ✅ No references to skill-planner in skillsmith
+- ✅ WORKFLOW.md documented as standard pattern
+- ✅ Improvement routing uses GitHub Issues workflow
+
+**Version Bump:** Current → Next PATCH (documentation update)
+
+**Related Issue:** Part of marketplace-manager issue #5
 
 ### High Priority
 

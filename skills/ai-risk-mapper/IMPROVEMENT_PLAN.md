@@ -11,99 +11,56 @@ This document tracks improvements, enhancements, and future development plans fo
 | 1.0.0 | 2026-01-07 | Initial release |
 
 ## 🔮 Planned Improvements
-> Last Updated: 2026-01-07
+> Last Updated: 2026-01-22
 
-**Note:** Planned improvements are tracked by NUMBER, not version. Version numbers are only assigned when releasing.
+**Note:** GitHub Issues are the canonical source of truth. See linked issues for detailed planning and task tracking.
 
-### High Priority
+### Active Improvements
 
-#### 1. Enhanced Risk Analysis with LLM Integration
-**Goal:** Improve automated risk detection using LLM-based semantic analysis instead of simple keyword matching
+| Issue | Priority | Title | Status |
+|-------|----------|-------|--------|
+| [#2](https://github.com/totallyGreg/claude-mp/issues/2) | Critical | Add workflow automation and offline support (v1.1.0) | Open |
+| [#3](https://github.com/totallyGreg/claude-mp/issues/3) | High | Restructure SKILL.md for conciseness (v2.0.0) | Open |
 
-**Problem:**
-- Current `analyze_risks.py` uses basic keyword heuristics which may miss risks
-- Cannot understand complex architectural patterns or data flows
-- Limited to predefined indicators
-
-**Proposed Solution:**
-- Integrate with Claude API for semantic code/architecture analysis
-- Parse code structure, dependencies, and configurations
-- Generate context-aware risk assessments with high confidence
-- Support multiple programming languages and frameworks
-
-**Files to Modify:**
-- `scripts/analyze_risks.py` - Add LLM-based analysis mode
-- `requirements.txt` - Add anthropic SDK dependency
-- `SKILL.md` - Document LLM analysis workflow
-
-**Success Criteria:**
-- Higher detection accuracy (fewer false positives/negatives)
-- Ability to analyze complex architectural patterns
-- Detailed, context-aware risk rationales
-
-### Medium Priority
-
-#### 2. Interactive Risk Visualization Dashboard
-**Goal:** Create HTML dashboard for interactive risk exploration and control planning
+#### [#2](https://github.com/totallyGreg/claude-mp/issues/2) Add Workflow Automation and Offline Support
+**Goal:** Transform ai-risk-mapper from documentation-oriented to action-oriented automation skill
 
 **Problem:**
-- Current reports are static Markdown/HTML
-- Hard to explore relationships between risks, controls, and components
-- No visual representation of risk landscape
+- Skill invocation displays 539-line documentation instead of executing workflow
+- SSL certificate failures block workflow (corporate proxies)
+- No bundled offline schemas for graceful degradation
+- No automatic orchestration of fetch → analyze → report workflow
 
 **Proposed Solution:**
-- Generate interactive D3.js dashboard
-- Show risk heatmap by severity and lifecycle stage
-- Visualize risk-to-control mappings
-- Interactive filtering and drill-down
-
-**Files to Modify:**
-- `scripts/generate_report.py` - Add dashboard generation mode
-- `assets/dashboard_template.html` - New interactive template
-
-**Success Criteria:**
-- Visual risk heatmap
-- Interactive filtering by persona, lifecycle, severity
-- Clickable risk-to-control navigation
-
-#### 3. Control Implementation Tracker
-**Goal:** Build tracking system for control implementation status and effectiveness
-
-**Problem:**
-- No built-in way to track control deployment progress
-- Can't monitor which controls are implemented vs planned
-- No mechanism to verify control effectiveness over time
-
-**Proposed Solution:**
-- Create SQLite database for control tracking
-- Add CLI commands for updating implementation status
-- Generate progress reports showing control coverage
-- Track control effectiveness metrics
-
-**Files to Modify:**
-- `scripts/track_controls.py` - New control tracking script
-- `references/FORMS.md` - Expand control implementation forms
-
-**Success Criteria:**
-- Persistent storage of control implementation data
-- Progress reports showing % implementation by category
-- Historical tracking of control effectiveness
-
-### Low Priority
-
-#### 4. Integration with CI/CD Pipelines
-**Goal:** Provide pre-built GitHub Actions / GitLab CI templates for automated risk assessment
+- Create `scripts/orchestrate_risk_assessment.py` orchestrator
+- Bundle CoSAI schemas in `assets/cosai-schemas/` for offline mode
+- Update `fetch_cosai_schemas.py` with SSL bypass + bundled fallback
+- Update `SKILL.md` with orchestrator invocation as first action
+- Add graceful manual analysis mode when automation unavailable
 
 **Files to Create:**
-- `.github/workflows/ai-security-scan.yml` - Example GitHub Action
-- `.gitlab-ci-example.yml` - Example GitLab CI configuration
-
-#### 5. Custom Risk and Control Definitions
-**Goal:** Allow organizations to define custom risks and controls beyond CoSAI framework
+- `scripts/orchestrate_risk_assessment.py` - Workflow orchestrator
+- `assets/cosai-schemas/yaml/*.yaml` - 5 bundled YAML schemas
+- `assets/cosai-schemas/schemas/*.json` - 5 bundled JSON schemas
 
 **Files to Modify:**
-- `scripts/analyze_risks.py` - Support loading custom risk definitions
-- `references/custom_risks_template.yaml` - Template for custom risks
+- `scripts/fetch_cosai_schemas.py` - Add SSL bypass + bundled fallback
+- `SKILL.md` - Add "When Invoked" section at top
+- `IMPROVEMENT_PLAN.md` - Track completion
+
+**Success Criteria:**
+- ✅ Skill invocation automatically runs orchestrator
+- ✅ SSL failures gracefully fallback to bundled schemas
+- ✅ Complete workflow executes without manual intervention
+- ✅ Manual mode available when automation fails
+
+**Version Bump:** 1.0.0 → 1.1.0 (MINOR - new features, backward compatible)
+
+**Plan:** See docs/plans/2026-01-22-ai-risk-mapper-automation-overhaul.md Phase 1
+
+**Note:** Benefits from marketplace-manager evolution (#4) - clean source paths prevent nested skill issues
+
+_For details, task checklists, and discussion, see the linked GitHub issues._
 
 ---
 

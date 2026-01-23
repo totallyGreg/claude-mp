@@ -128,24 +128,31 @@ def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
     for plugin in plugins:
         plugin_name = plugin.get('name', '(unnamed)')
         skills = plugin.get('skills', [])
+        source = plugin.get('source', './')
 
         if not skills:
             print(f"ℹ️  Plugin '{plugin_name}' has no skills, skipping")
             continue
 
-        # Check if multi-skill plugin
-        is_multi_skill = len(skills) > 1
+        # Resolve source directory
+        source_path_clean = source.lstrip('./')
+        source_dir = repo_root / source_path_clean if source_path_clean else repo_root
+
+        # Check if multi-skill plugin (skills array has multiple entries, not all "./")
+        is_multi_skill = len(skills) > 1 or (len(skills) == 1 and skills[0] != './')
 
         # For plugins with multiple skills, check all skill versions
         if is_multi_skill:
             skill_versions = []
             for skill_path in skills:
                 skill_path_clean = skill_path.lstrip('./')
-                skill_md = repo_root / skill_path_clean / 'SKILL.md'
+                # Resolve skill path relative to source
+                skill_dir = source_dir / skill_path_clean if skill_path_clean else source_dir
+                skill_md = skill_dir / 'SKILL.md'
                 if skill_md.exists():
                     version, _ = extract_frontmatter_version(skill_md)
                     if version:
-                        skill_versions.append((skill_path_clean, version))
+                        skill_versions.append((skill_path_clean or source, version))
 
             if skill_versions:
                 current_plugin_version = plugin.get('version', '1.0.0')
@@ -168,9 +175,9 @@ def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
                     print(f"✓ Plugin '{plugin_name}' version matches at least one skill")
             continue
 
-        # Single-skill plugin handling
-        first_skill_path = skills[0].lstrip('./')
-        skill_md = repo_root / first_skill_path / 'SKILL.md'
+        # Single-skill plugin handling (skills = ["./"])
+        # SKILL.md is in the source directory
+        skill_md = source_dir / 'SKILL.md'
 
         if not skill_md.exists():
             print(f"⚠️  SKILL.md not found for plugin '{plugin_name}': {skill_md}")
@@ -179,12 +186,12 @@ def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
         skill_version, is_deprecated = extract_frontmatter_version(skill_md)
 
         if not skill_version:
-            print(f"ℹ️  No version found in {first_skill_path}/SKILL.md, skipping plugin '{plugin_name}'")
+            print(f"ℹ️  No version found in {source}/SKILL.md, skipping plugin '{plugin_name}'")
             continue
 
         if is_deprecated:
             print(f"⚠️  Plugin '{plugin_name}' skill uses deprecated 'version' field")
-            print(f"   Please use 'metadata.version' instead in {first_skill_path}/SKILL.md")
+            print(f"   Please use 'metadata.version' instead in {source}/SKILL.md")
 
         current_plugin_version = plugin.get('version', '1.0.0')
 
@@ -193,11 +200,11 @@ def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
                 # Manual mode: warn only, don't update
                 print(f"⚠️  Version mismatch for plugin '{plugin_name}':")
                 print(f"   Plugin version: {current_plugin_version}")
-                print(f"   Skill version:  {skill_version} (from {first_skill_path}/SKILL.md)")
+                print(f"   Skill version:  {skill_version} (from {source}/SKILL.md)")
                 print(f"   → Please update plugin version manually in marketplace.json")
                 warnings.append({
                     'plugin': plugin_name,
-                    'skill': first_skill_path,
+                    'skill': source,
                     'skill_version': skill_version,
                     'plugin_version': current_plugin_version
                 })
@@ -205,7 +212,7 @@ def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
                 # Auto mode: update single-skill plugins
                 print(f"🔄 Updating plugin '{plugin_name}':")
                 print(f"   {current_plugin_version} → {skill_version}")
-                print(f"   (from {first_skill_path}/SKILL.md)")
+                print(f"   (from {source}/SKILL.md)")
 
                 if not dry_run:
                     plugin['version'] = skill_version

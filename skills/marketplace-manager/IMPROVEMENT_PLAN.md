@@ -13,13 +13,99 @@ This document tracks improvements, enhancements, and future development plans fo
 | 1.0.0 | 2025-12-21 | Initial release |
 
 ## 🔮 Planned Improvements
-> Last Updated: 2026-01-07
+> Last Updated: 2026-01-22
 
 **Note:** Planned improvements are tracked by NUMBER, not version. Version numbers are only assigned when releasing.
 
 ### Critical Priority (Blocking Issues)
 
-_No critical blocking issues at this time._
+| Issue | Priority | Title | Status |
+|-------|----------|-------|--------|
+| [#4](https://github.com/totallyGreg/claude-mp/issues/4) | Critical | Core marketplace operations automation (v1.4.0) | Open |
+| [#5](https://github.com/totallyGreg/claude-mp/issues/5) | High | Deprecate skill-planner skill (v1.5.0) | Blocked by #4 |
+
+#### [#4](https://github.com/totallyGreg/claude-mp/issues/4) Core Marketplace Operations Automation
+**Goal:** Fix critical source path misconfiguration and add marketplace automation tools
+
+**Problem:**
+- All 9 plugins use `"source": "./"` causing users to install entire repository
+- Results in nested skill confusion and bloated installations
+- No automation for deprecation, validation, or bundling operations
+- Code duplication needs template consistency
+
+**Proposed Solution:**
+- Create `scripts/fix_source_paths.py` - Correct source paths in marketplace.json
+- Create `scripts/deprecate_skill.py` - Automated skill deprecation workflow
+- Create `scripts/validate_marketplace.py` - Comprehensive marketplace validation
+- Create `scripts/analyze_bundling.py` - Recommend bundling opportunities
+- Create `scripts/generate_utils_template.py` - Generate consistent utils.py
+- Create `scripts/templates/utils.py.template` - Utils template file
+- Update SKILL.md with "Marketplace Operations" section
+- Fix all 9 plugin source paths
+
+**Files to Create:**
+- `scripts/fix_source_paths.py`
+- `scripts/deprecate_skill.py`
+- `scripts/validate_marketplace.py`
+- `scripts/analyze_bundling.py`
+- `scripts/generate_utils_template.py`
+- `scripts/templates/utils.py.template`
+
+**Files to Modify:**
+- `.claude-plugin/marketplace.json` - Fix source paths
+- `SKILL.md` - Add marketplace operations section
+- `IMPROVEMENT_PLAN.md` - Track completion
+
+**Success Criteria:**
+- ✅ All plugins use correct source paths (self-contained distributions)
+- ✅ Deprecation automation ready for skill-planner removal
+- ✅ Marketplace validation prevents future source path errors
+- ✅ Bundling logic can recommend skill-development-toolkit
+- ✅ Utils template ensures consistency across skills
+
+**Version Bump:** 1.3.0 → 1.4.0 (MINOR - new features)
+
+**Plan:** See docs/plans/2026-01-22-marketplace-manager-evolution.md Phase 1
+
+#### [#5](https://github.com/totallyGreg/claude-mp/issues/5) Deprecate skill-planner Skill
+**Goal:** Remove obsolete skill-planner skill from marketplace
+
+**Problem:**
+- skill-planner uses git branch workflow (PLAN.md in branches)
+- Conflicts with WORKFLOW.md GitHub Issues pattern (current standard)
+- Competing sources of truth (PLAN.md vs GitHub Issues)
+- skill-planner unused - recent plans use docs/plans/ + GitHub Issues
+
+**Prerequisites:**
+- Issue #4 must be complete (deprecation automation must exist)
+
+**Proposed Solution:**
+- Run deprecation automation to remove from marketplace.json
+- Update skillsmith to remove skill-planner references
+- Create migration guide in docs/lessons/
+- Delete skills/skill-planner/ (git rm, no archive)
+
+**Files to Modify:**
+- `.claude-plugin/marketplace.json` - Remove skill-planner
+- `skills/skillsmith/SKILL.md` - Remove skill-planner references
+- `skills/skillsmith/references/improvement_workflow_guide.md` - Remove delegation logic
+- `skills/marketplace-manager/IMPROVEMENT_PLAN.md` - Track completion
+- `skills/skillsmith/IMPROVEMENT_PLAN.md` - Document removal
+
+**Files to Create:**
+- `docs/lessons/workflow-simplification.md` - Migration guide
+
+**Files to Delete:**
+- `skills/skill-planner/` - Entire directory (git rm)
+
+**Success Criteria:**
+- ✅ skill-planner removed from marketplace
+- ✅ skillsmith no longer references skill-planner
+- ✅ Single source of truth: WORKFLOW.md pattern only
+
+**Version Bump:** 1.4.0 → 1.5.0 (MINOR - marketplace change)
+
+**Plan:** See docs/plans/2026-01-22-marketplace-manager-evolution.md Phase 2
 
 ### Resolved Issues (Kept for Reference)
 

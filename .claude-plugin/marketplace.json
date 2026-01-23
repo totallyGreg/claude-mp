@@ -17,9 +17,9 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./",
+      "source": "./skills/terminal-guru",
       "skills": [
-        "./skills/terminal-guru"
+        "./"
       ]
     },
     {
@@ -31,9 +31,9 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./",
+      "source": "./skills/helm-chart-developer",
       "skills": [
-        "./skills/helm-chart-developer"
+        "./"
       ]
     },
     {
@@ -45,9 +45,9 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./",
+      "source": "./skills/skillsmith",
       "skills": [
-        "./skills/skillsmith"
+        "./"
       ]
     },
     {
@@ -59,9 +59,9 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./",
+      "source": "./skills/swift-dev",
       "skills": [
-        "./skills/swift-dev"
+        "./"
       ]
     },
     {
@@ -73,9 +73,9 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./",
+      "source": "./skills/obsidian-pkm-manager",
       "skills": [
-        "./skills/obsidian-pkm-manager"
+        "./"
       ]
     },
     {
@@ -87,9 +87,9 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./",
+      "source": "./skills/omnifocus-manager",
       "skills": [
-        "./skills/omnifocus-manager"
+        "./"
       ]
     },
     {
@@ -101,9 +101,9 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./",
+      "source": "./skills/skill-planner",
       "skills": [
-        "./skills/skill-planner"
+        "./"
       ]
     },
     {
@@ -115,9 +115,9 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./",
+      "source": "./skills/marketplace-manager",
       "skills": [
-        "./skills/marketplace-manager"
+        "./"
       ]
     },
     {
@@ -129,9 +129,9 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./",
+      "source": "./skills/ai-risk-mapper",
       "skills": [
-        "./skills/ai-risk-mapper"
+        "./"
       ]
     }
   ]

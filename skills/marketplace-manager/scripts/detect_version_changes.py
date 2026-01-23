@@ -134,9 +134,16 @@ def detect_version_changes(repo_root, marketplace_data):
     for plugin in marketplace_data.get('plugins', []):
         plugin_name = plugin.get('name', 'unknown')
         plugin_version = plugin.get('version', 'unknown')
+        source = plugin.get('source', './')
+
+        # Resolve source directory
+        source_path_clean = source.lstrip('./')
+        source_dir = repo_root / source_path_clean if source_path_clean else repo_root
 
         for skill_path_str in plugin.get('skills', []):
-            skill_path = repo_root / skill_path_str.lstrip('./')
+            skill_path_clean = skill_path_str.lstrip('./')
+            # Resolve skill path relative to source
+            skill_path = source_dir / skill_path_clean if skill_path_clean else source_dir
 
             # Read skill version
             skill_version, is_deprecated = read_skill_version(skill_path)

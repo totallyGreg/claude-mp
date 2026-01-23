@@ -106,18 +106,33 @@ def create_plugin(marketplace_data, plugin_name, plugin_description, skill_paths
     # Normalize skill paths
     normalized_skills = [f"./{path.strip('./')}" for path in skill_paths]
 
+    # Determine source path
+    # For single-skill plugins (1:1 mapping): source = skill path, skills = ["./"]
+    # For multi-skill plugins (bundles): source = common parent, skills = relative paths
+    if len(normalized_skills) == 1:
+        # Single skill plugin - use skill directory as source
+        source_path = normalized_skills[0]
+        skills_list = ["./"]
+    else:
+        # Multi-skill bundle - use common parent as source
+        # For now, keep current behavior (will be enhanced in future)
+        # TODO: Implement proper bundling logic in analyze_bundling.py
+        source_path = "./"
+        skills_list = normalized_skills
+
     # Create new plugin
     new_plugin = {
         "name": plugin_name,
         "description": plugin_description,
-        "source": "./",
+        "source": source_path,
         "strict": False,
-        "skills": normalized_skills,
+        "skills": skills_list,
     }
 
     marketplace_data["plugins"].append(new_plugin)
     print(f"✅ Created new plugin: {plugin_name}")
-    print(f"   Added {len(normalized_skills)} skill(s)")
+    print(f"   Source: {source_path}")
+    print(f"   Skills: {skills_list}")
     return True
 
 
@@ -415,9 +430,15 @@ def validate_marketplace(marketplace_path, repo_root, output_format='text'):
 
             # Validate skill paths
             if 'skills' in plugin and isinstance(plugin['skills'], list):
+                # Get source path for resolving skill paths
+                source_path = plugin.get('source', './')
+                source_path_clean = source_path.lstrip('./')
+                source_dir = repo_root / source_path_clean if source_path_clean else repo_root
+
                 for skill_idx, skill_path in enumerate(plugin['skills']):
                     skill_path_clean = skill_path.lstrip('./')
-                    skill_dir = repo_root / skill_path_clean
+                    # Resolve skill path relative to source path
+                    skill_dir = source_dir / skill_path_clean if skill_path_clean else source_dir
 
                     # Check if path starts with './'
                     if not skill_path.startswith('./'):
