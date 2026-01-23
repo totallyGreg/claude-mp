@@ -110,7 +110,7 @@
       "name": "marketplace-manager",
       "description": "Manages Claude Code plugin marketplace operations including version syncing and marketplace.json maintenance",
       "category": "development",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
