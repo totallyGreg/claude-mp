@@ -22,9 +22,9 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Issue | Priority | Title | Status |
 |-------|----------|-------|--------|
-| [#5](https://github.com/totallyGreg/claude-mp/issues/5) | High | Deprecate skill-planner skill (v1.5.0) | Ready to start |
+| [#5](https://github.com/totallyGreg/claude-mp/issues/5) | High | Deprecate skill-planner skill (v1.5.0) | In Progress |
 
-#### [#5](https://github.com/totallyGreg/claude-mp/issues/5) Deprecate skill-planner Skill
+#### [#5](https://github.com/totallyGreg/claude-mp/issues/5) Deprecate skill-planner Skill (IN PROGRESS)
 **Goal:** Remove obsolete skill-planner skill from marketplace
 
 **Problem:**

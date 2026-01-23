@@ -208,19 +208,19 @@ python3 scripts/research_skill.py skills/omnifocus-manager --output research.jso
 - **Planning major improvements** - Understanding skill architecture and opportunities
 - **Unfamiliar skills** - Learning what a skill does and how it's structured
 - **Refactoring decisions** - Identifying technical debt and improvement areas
-- **Integration with skill-planner** - Providing research data for systematic improvement workflows
+- **Integration with WORKFLOW.md** - Providing research data for systematic improvement workflows
 
-## Integration with skill-planner
+## Integration with WORKFLOW.md Pattern
 
-Research findings integrate seamlessly with skill-planner for improvement workflows:
+Research findings integrate seamlessly with the WORKFLOW.md pattern for improvement workflows:
 
 **Workflow:**
 1. User: "I want to improve skillsmith"
-2. skill-planner invokes skillsmith research
+2. Skillsmith runs research_skill.py for baseline analysis
 3. Research analyzes skill and identifies issues
-4. skill-planner creates improvement plan with research findings
-5. Plan includes baseline metrics and specific opportunities
-6. User refines and approves plan
+4. Create GitHub Issue with research findings
+5. Add to IMPROVEMENT_PLAN.md with baseline metrics
+6. Create docs/plans/ planning doc with research data
 7. Implementation guided by objective metrics
 
 **Benefits:**
@@ -262,7 +262,7 @@ Research generates structured JSON with all findings:
 }
 ```
 
-This structured format enables programmatic consumption by skill-planner and other tools.
+This structured format enables programmatic consumption by GitHub Issues and planning documents.
 
 ## Best Practices for Research
 
@@ -284,7 +284,7 @@ This structured format enables programmatic consumption by skill-planner and oth
 - Low progressive disclosure: Better separation of concerns
 
 **Acting on findings:**
-- Use skill-planner for systematic improvements
+- Use WORKFLOW.md pattern for systematic improvements (GitHub Issues + IMPROVEMENT_PLAN.md)
 - Address violations before warnings
 - Prioritize opportunities with highest impact
 - Measure before/after to validate improvements

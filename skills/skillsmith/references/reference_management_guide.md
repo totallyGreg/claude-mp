@@ -290,7 +290,7 @@ When skillsmith handles quick updates involving new references:
 
 ### Complex Improvements
 
-When skill-planner coordinates complex improvements:
+When following the WORKFLOW.md pattern for complex improvements:
 
 1. Planning phase identifies needed references
 2. Implementation adds references and contextual mentions

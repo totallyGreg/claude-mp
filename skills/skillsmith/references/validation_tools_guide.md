@@ -221,7 +221,7 @@ Deep multi-phase research analysis tool for understanding skills and identifying
 - **Opportunities identification** - Enhancement possibilities
 - **Domain classification** - Categorize skill domain
 - **Complexity assessment** - Evaluate implementation complexity
-- **Integration points** - skill-planner compatibility
+- **Integration points** - WORKFLOW.md pattern compatibility
 
 ### Usage
 
@@ -255,7 +255,7 @@ Research analysis is valuable when:
 - **Planning major improvements** - Before significant changes
 - **Understanding unfamiliar skills** - Learning existing skills
 - **Identifying refactoring opportunities** - Finding enhancement areas
-- **Preparing for skill-planner** - Pre-planning research
+- **Preparing for GitHub Issues** - Pre-planning research for WORKFLOW.md pattern
 - **Domain analysis** - Understanding skill categorization
 - **Competitive analysis** - Comparing with similar skills
 
@@ -284,17 +284,18 @@ Complexity: High
 ...
 ```
 
-### Integration with skill-planner
+### Integration with WORKFLOW.md Pattern
 
-research_skill.py is automatically invoked by skill-planner during complex improvements:
+research_skill.py is used during complex improvements following the WORKFLOW.md pattern:
 
 ```
 User: "Improve the skillsmith skill"
-→ Skillsmith routes to skill-planner (complex)
-→ skill-planner runs research_skill.py automatically
-→ Research findings inform improvement plan
-→ User reviews plan and approves
-→ Implementation proceeds with research context
+→ Skillsmith identifies as complex improvement
+→ Skillsmith runs research_skill.py for baseline analysis
+→ Research findings inform GitHub Issue creation
+→ Issue includes baseline metrics and opportunities
+→ IMPROVEMENT_PLAN.md updated with research context
+→ Implementation proceeds with data-driven approach
 ```
 
 ---
@@ -308,7 +309,7 @@ User: "Improve the skillsmith skill"
 | **Output** | Metrics and pass/fail | Insights and recommendations |
 | **When** | After changes, validation | Before changes, planning |
 | **Scope** | Structural and quantitative | Contextual and qualitative |
-| **Integration** | CI/CD, pre-commit hooks | skill-planner workflow |
+| **Integration** | CI/CD, pre-commit hooks | WORKFLOW.md pattern (GitHub Issues) |
 
 ---
 
@@ -479,7 +480,7 @@ python3 scripts/evaluate_skill.py <skill-path> --compare baseline.json
 1. **Run before major changes** - Informed improvement planning
 2. **Save research output** - Reference during implementation
 3. **Review all 7 phases** - Comprehensive understanding
-4. **Let skill-planner handle it** - Automatic for complex improvements
+4. **Link in GitHub Issues** - Include research findings in issue body
 5. **Use for learning** - Understand unfamiliar skills
 
 ---

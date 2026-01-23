@@ -45,7 +45,7 @@ marketplace-manager can be invoked programmatically by other skills (e.g., Skill
 
 **Workflow Integration:**
 - **Quick updates**: Skillsmith → marketplace-manager → commit (single flow)
-- **Complex updates**: skill-planner → Skillsmith → marketplace-manager → commit to plan branch
+- **Complex updates**: Skillsmith (WORKFLOW.md pattern) → marketplace-manager → commit
 - **Manual fallback**: Users can always run scripts directly
 
 **Commands Used:**

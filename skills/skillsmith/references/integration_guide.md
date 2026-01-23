@@ -1,6 +1,6 @@
 # Skillsmith Integration Guide
 
-This guide provides detailed information about how Skillsmith coordinates with skill-planner and marketplace-manager to handle skill improvements and distribution.
+This guide provides detailed information about how Skillsmith coordinates with marketplace-manager to handle skill improvements and distribution, following the WORKFLOW.md pattern.
 
 ## Architecture Overview
 
@@ -12,10 +12,12 @@ User Request → Skillsmith (Main Actor)
                     |   ├── Auto PATCH version
                     |   └── Call marketplace-manager → Commit
                     |
-                    └── Complex Update? → Invoke skill-planner
-                        ├── skill-planner workflow (research → plan → approve → implement)
+                    └── Complex Update? → WORKFLOW.md Pattern
+                        ├── Create GitHub Issue with task checklist
+                        ├── Add to IMPROVEMENT_PLAN.md table
+                        ├── Create docs/plans/ planning doc if needed
                         ├── Ask user: MINOR or MAJOR version?
-                        └── Call marketplace-manager → Commit to plan branch
+                        └── Call marketplace-manager → Commit changes
 ```
 
 ## Complexity Classification Criteria
@@ -67,7 +69,7 @@ User Request → Skillsmith (Main Actor)
 
 ---
 
-### Complex Improvements (Delegate to skill-planner)
+### Complex Improvements (WORKFLOW.md Pattern)
 
 **Characteristics:**
 - Multi-file or multi-concern changes
@@ -198,42 +200,49 @@ def determine_complexity(request, analysis):
 
 **Skillsmith behavior:**
 - Skips complexity analysis
-- Immediately invokes skill-planner
-- Follows complete planning workflow
-- User maintains full control over plan approval
+- Immediately follows WORKFLOW.md pattern
+- Creates GitHub Issue with task checklist
+- User maintains full control over implementation
 
 ---
 
 ## Integration Patterns
 
-### Skillsmith → skill-planner
+### WORKFLOW.md Pattern for Complex Improvements
 
-**Invocation Context:**
+**Pattern Steps:**
 ```
-Skillsmith: "Invoking skill-planner for complex improvement to {skill-name}..."
+Skillsmith: "Following WORKFLOW.md pattern for complex improvement to {skill-name}..."
 
-Context passed to skill-planner:
-- Skill name and path
-- User's improvement goal
-- Initial complexity analysis (why planning was chosen)
-- Current skill version
+Steps executed:
+1. Create GitHub Issue:
+   - Issue title: Clear, actionable description
+   - Issue body: Task checklist with all work items
+   - Labels: enhancement, breaking-change (if applicable)
+   - Link to docs/plans/ if planning doc exists
+
+2. Update IMPROVEMENT_PLAN.md:
+   - Add row to "Planned Improvements" table
+   - Link to GitHub Issue (source of truth)
+   - Status: "Open"
+
+3. Create docs/plans/ planning doc (optional):
+   - Name: YYYY-MM-DD-skill-name-feature.md
+   - Design details, architecture, trade-offs
+   - Ephemeral (can be deleted after completion)
+
+4. Implementation:
+   - Work through task checklist
+   - Check off tasks in GitHub Issue as completed
+   - Research with scripts/research_skill.py if needed
 ```
 
-**skill-planner Returns:**
-```
-Results returned to Skillsmith:
-- Implementation complete: yes/no
-- Changes made: list of modified files
-- Before/after metrics
-- Plan status: approved → implemented
-- Plan branch: plan/{skill-name}-{desc}-{date}
-```
-
-**Skillsmith Next Actions:**
-1. Reviews implementation results
-2. Asks user: "Version bump? MINOR (new feature) or MAJOR (breaking change)?"
-3. Updates metadata.version in SKILL.md
+**After Implementation:**
+1. Skillsmith asks user: "Version bump? MINOR (new feature) or MAJOR (breaking change)?"
+2. Updates metadata.version in SKILL.md
+3. Updates IMPROVEMENT_PLAN.md (move to Completed section)
 4. Calls marketplace-manager for version sync
+5. Closes GitHub Issue
 
 ### Skillsmith → marketplace-manager
 
@@ -311,7 +320,7 @@ Results returned to Skillsmith:
 ### Complex Improvement Flow
 
 ```
-1. User: "Restructure skill-planner to improve progressive disclosure"
+1. User: "Restructure skillsmith to improve progressive disclosure"
    ↓
 2. Skillsmith analyzes complexity
    - Files: 1 (SKILL.md)
@@ -321,48 +330,50 @@ Results returned to Skillsmith:
    - Decision: COMPLEX
    ↓
 3. Skillsmith informs user
-   - "This requires systematic planning. Invoking skill-planner..."
+   - "This requires systematic planning. Following WORKFLOW.md pattern..."
    ↓
-4. Skillsmith invokes skill-planner
-   - Passes: skill-name, improvement goal, context
+4. Skillsmith creates GitHub Issue
+   - Title: "Restructure skillsmith for better progressive disclosure"
+   - Body: Task checklist with all work items
+   - Labels: enhancement
+   - gh issue create returns: Issue #42
    ↓
-5. skill-planner executes workflow
-   - Phase 1: Research (runs research_skill.py)
-   - Phase 2: Plan (creates PLAN.md in plan branch)
-   - User can refine plan multiple times
-   - Phase 3: Approve (user explicitly approves)
-   - Phase 4: Implement (makes changes in plan branch)
+5. Skillsmith updates IMPROVEMENT_PLAN.md
+   - Adds row to "Planned Improvements" table
+   - Links to GitHub Issue #42
+   - Status: "Open"
    ↓
-6. skill-planner returns to Skillsmith
-   - Implementation complete
-   - Before/after metrics
-   - Plan branch: plan/skill-planner-progressive-20251223
+6. Skillsmith creates planning doc (optional)
+   - docs/plans/2026-01-23-skillsmith-progressive-disclosure.md
+   - Design details and approach
    ↓
-7. Skillsmith asks user for version
+7. Skillsmith implements changes
+   - Research with scripts/research_skill.py
+   - Restructure SKILL.md sections
+   - Check off tasks in GitHub Issue as completed
+   ↓
+8. Skillsmith asks user for version
    - "Version bump? MINOR (new feature) or MAJOR (breaking)?"
    - User selects: MINOR
    - Skillsmith updates: 1.0.0 → 1.1.0
    ↓
-8. Skillsmith calls marketplace-manager
-   - "Sync and commit to plan branch"
+9. Skillsmith calls marketplace-manager
+   - "Sync and commit changes"
    ↓
-9. marketplace-manager syncs and commits
-   - Updates marketplace.json: 1.0.0 → 1.1.0
-   - Commits to plan branch
-   - Asks about push → YES
-   ↓
-10. User tests changes in plan branch
-    - Verifies improvements
-    - Runs validation scripts
+10. marketplace-manager syncs and commits
+    - Updates marketplace.json: 1.0.0 → 1.1.0
+    - Commits to main
+    - Asks about push → YES
     ↓
-11. User merges plan branch to main
-    - git merge plan/skill-planner-progressive-20251223
+11. Skillsmith updates IMPROVEMENT_PLAN.md
+    - Moves from Planned to Completed section
+    - Adds completion date and summary
     ↓
-12. skill-planner detects merge
-    - Archives PLAN.md to completed/
-    - Updates plan status: completed
+12. Skillsmith closes GitHub Issue #42
+    - All tasks checked off
+    - Issue status: Closed
     ↓
-13. Done! Complex improvement complete with full audit trail
+13. Done! Complex improvement complete with full audit trail in GitHub
 ```
 
 ---
@@ -377,7 +388,7 @@ Results returned to Skillsmith:
 
 **Skillsmith response:**
 - "Understood. Switching to systematic planning."
-- Invokes skill-planner with original request
+- Follows WORKFLOW.md pattern (GitHub Issue + IMPROVEMENT_PLAN.md)
 - Notes for future: user's complexity preference
 
 **Scenario**: Skillsmith chooses complex but change is actually simple
@@ -391,15 +402,14 @@ Results returned to Skillsmith:
 
 ### Integration Failures
 
-**Scenario**: skill-planner fails during implementation
-
-**skill-planner returns:** Error message and partial state
+**Scenario**: Implementation fails during complex improvement
 
 **Skillsmith response:**
-1. Reports error to user
-2. Offers manual fallback: "Continue manually in plan branch?"
-3. Preserves plan branch and state for debugging
-4. Does NOT auto-bump version or call marketplace-manager
+1. Reports error to user with specific failure details
+2. Preserves GitHub Issue with unchecked tasks for visibility
+3. Updates IMPROVEMENT_PLAN.md status to reflect blockage
+4. Offers manual fallback: "Continue manually or debug?"
+5. Does NOT auto-bump version or call marketplace-manager
 
 **Scenario**: marketplace-manager sync fails
 
@@ -424,10 +434,10 @@ Results returned to Skillsmith:
 
 ### For Complex Improvements
 
-1. **Don't rush approval**: Let skill-planner's approval gates work
+1. **Document thoroughly**: Create clear GitHub Issues with comprehensive task checklists
 2. **Respect user override**: If they want quick, trust their judgment
 3. **Metrics matter**: Show before/after comparisons from evaluate_skill.py
-4. **Plan branches are safe**: Encourage testing before merge
+4. **Track progress**: Check off tasks in GitHub Issues as work completes
 
 ### For All Improvements
 
@@ -470,7 +480,8 @@ Instead of binary quick/complex:
 
 ## See Also
 
-- **skill-planner** - Systematic planning workflow for complex improvements
+- **WORKFLOW.md** - Repository-wide workflow pattern documentation
+- **GitHub Issues** - Source of truth for complex improvement tracking
 - **marketplace-manager** - Version syncing and marketplace distribution
 - **AgentSkills Specification** - `agentskills_specification.md` in this directory
 - **Research Guide** - `research_guide.md` for evaluation tools and metrics

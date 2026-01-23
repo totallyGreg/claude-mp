@@ -6,7 +6,7 @@ This reference provides detailed guidance on how skillsmith routes and handles s
 
 ## Overview
 
-Skillsmith is the main entry point for all skill-related work and intelligently routes improvement requests based on complexity. This guide explains how skillsmith determines whether to handle improvements directly or delegate to skill-planner.
+Skillsmith is the main entry point for all skill-related work and intelligently routes improvement requests based on complexity. This guide explains how skillsmith determines whether to handle improvements directly or use the WORKFLOW.md pattern for complex changes.
 
 ---
 
@@ -14,7 +14,7 @@ Skillsmith is the main entry point for all skill-related work and intelligently 
 
 ### Quick Updates (Handled Directly by Skillsmith)
 
-Quick updates are simple, low-risk changes that skillsmith handles directly without invoking skill-planner.
+Quick updates are simple, low-risk changes that skillsmith handles directly without requiring a GitHub Issue or planning document.
 
 **Qualifying Changes:**
 - Adding reference files to `references/`
@@ -42,9 +42,9 @@ Quick updates are simple, low-risk changes that skillsmith handles directly with
 
 ---
 
-### Complex Improvements (Delegated to skill-planner)
+### Complex Improvements (WORKFLOW.md Pattern)
 
-Complex improvements require systematic planning and are delegated to the skill-planner skill for comprehensive handling.
+Complex improvements require systematic planning and follow the WORKFLOW.md pattern with GitHub Issues as the source of truth.
 
 **Qualifying Changes:**
 - Restructuring SKILL.md sections (> 50 lines)
@@ -59,19 +59,29 @@ Complex improvements require systematic planning and are delegated to the skill-
 
 **Workflow:**
 1. Skillsmith analyzes the request and determines it's complex
-2. Informs user: "This requires systematic planning. Invoking skill-planner..."
-3. Invokes **skill-planner** with improvement context
-4. skill-planner executes complete workflow:
+2. Informs user: "This requires systematic planning. Following WORKFLOW.md pattern..."
+3. Create GitHub Issue with task checklist:
+   - Use `gh issue create` with comprehensive task list
+   - Link to any planning docs in `docs/plans/`
+   - Add appropriate labels (enhancement, breaking-change, etc.)
+4. Add to skill's IMPROVEMENT_PLAN.md table:
+   - Add row to "Planned Improvements" section
+   - Link to GitHub Issue (source of truth)
+   - Mark status as "Open"
+5. Create planning document in `docs/plans/` if needed:
+   - Name format: `YYYY-MM-DD-skill-name-feature.md`
+   - Ephemeral - can be deleted after completion
+   - Referenced from GitHub Issue
+6. Implement changes:
    - Research current state (using `research_skill.py`)
-   - Create improvement plan (PLAN.md in git branch)
-   - Refinement loop (user can iterate on plan)
-   - User approval (explicit approval gate)
-   - Implementation (in plan branch)
-5. skill-planner returns results to Skillsmith
-6. Skillsmith asks user: "Version bump? MINOR (new feature) or MAJOR (breaking)?"
-7. Updates `metadata.version` based on user selection
-8. User manually tests and merges plan branch to main
-9. skill-planner detects merge and archives completed plan
+   - Make changes following the plan
+   - Check off tasks in GitHub Issue as completed
+7. Skillsmith asks user: "Version bump? MINOR (new feature) or MAJOR (breaking)?"
+8. Updates `metadata.version` based on user selection
+9. Update IMPROVEMENT_PLAN.md:
+   - Move from Planned to Completed section
+   - Add completion date and summary
+10. Close GitHub Issue when all work is complete
 
 ---
 
@@ -112,7 +122,7 @@ Say any of these to skip planning for a complex change:
 Say any of these to force systematic planning for a simple change:
 - "use planning"
 - "create a plan"
-- "invoke skill-planner"
+- "create a GitHub Issue"
 - "plan this improvement"
 
 ---
@@ -153,14 +163,14 @@ Increment patch version for fixes and minor updates:
 
 ## Integration with Other Skills
 
-### skill-planner Integration
+### WORKFLOW.md Pattern
 
-skill-planner is invoked for complex improvements and provides:
-- Multi-phase research analysis
-- Structured improvement planning
-- Git branch-based workflow
-- User approval gates
-- Implementation tracking
+The WORKFLOW.md pattern is used for complex improvements and provides:
+- GitHub Issues as source of truth
+- IMPROVEMENT_PLAN.md table for tracking
+- Ephemeral planning docs in `docs/plans/`
+- Task checklists in issues
+- Cross-machine accessibility
 
 **When to use:**
 - Complex changes requiring research
@@ -214,7 +224,7 @@ User: "Add an example showing how to use research_skill.py"
 ```
 User: "Simplify the skill creation process to 5 steps instead of 6"
 → Complex: Structure change, > 50 lines, workflow modification
-→ Invoke skill-planner
+→ Use WORKFLOW.md pattern (GitHub Issue + IMPROVEMENT_PLAN.md + docs/plans/)
 → User selects MINOR or MAJOR: 1.0.0 → 2.0.0 (breaking workflow)
 ```
 
@@ -222,7 +232,7 @@ User: "Simplify the skill creation process to 5 steps instead of 6"
 ```
 User: "Add a script to automatically generate skill documentation"
 → Complex: New script, multi-file (script + SKILL.md docs)
-→ Invoke skill-planner
+→ Use WORKFLOW.md pattern (GitHub Issue + planning doc)
 → User selects MINOR: 1.0.0 → 1.1.0 (new feature)
 ```
 
@@ -230,7 +240,7 @@ User: "Add a script to automatically generate skill documentation"
 ```
 User: "Refactor the validation system to use a plugin architecture"
 → Complex: Multi-file, breaking change, architectural
-→ Invoke skill-planner
+→ Use WORKFLOW.md pattern with detailed planning in docs/plans/
 → User selects MAJOR: 1.5.0 → 2.0.0 (breaking change)
 ```
 
@@ -245,10 +255,10 @@ User: "Refactor the validation system to use a plugin architecture"
 4. Commit promptly after validation passes
 
 ### For Complex Improvements
-1. Provide clear improvement goals to skill-planner
-2. Participate in plan refinement loop
-3. Explicitly approve plan before implementation
-4. Test thoroughly in plan branch before merging
+1. Create GitHub Issue with clear improvement goals and task checklist
+2. Add to IMPROVEMENT_PLAN.md table linking to issue
+3. Create planning doc in docs/plans/ if needed for design work
+4. Check off tasks in GitHub Issue as you complete them
 5. Choose appropriate version bump (MINOR vs MAJOR)
 
 ### For Users
@@ -288,16 +298,16 @@ User: "Handle this quickly - restructure the examples section"
 - If you want MINOR/MAJOR, say "use planning" to force complex workflow
 
 **For complex improvements:**
-- Skill-planner asks you to select MINOR or MAJOR
+- Skillsmith asks you to select MINOR or MAJOR
 - Provide your preferred version when prompted
 
 ---
 
 ## Related Skills
 
-- **skill-planner** - Systematic planning for complex improvements
+- **WORKFLOW.md** - Repository-wide workflow pattern (GitHub Issues + IMPROVEMENT_PLAN.md)
 - **marketplace-manager** - Publishing and version synchronization
-- **research_skill.py** - Deep skill analysis (used by skill-planner)
+- **research_skill.py** - Deep skill analysis (used for complex improvements)
 - **evaluate_skill.py** - Validation and metrics (used in both workflows)
 
 ---

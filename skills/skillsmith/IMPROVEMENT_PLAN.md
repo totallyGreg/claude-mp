@@ -25,9 +25,9 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Issue | Priority | Title | Status |
 |-------|----------|-------|--------|
-| [#5](https://github.com/totallyGreg/claude-mp/issues/5) | High | Remove skill-planner references | Blocked by #4 |
+| [#5](https://github.com/totallyGreg/claude-mp/issues/5) | High | Remove skill-planner references | In Progress |
 
-#### [#5](https://github.com/totallyGreg/claude-mp/issues/5) Remove skill-planner References
+#### [#5](https://github.com/totallyGreg/claude-mp/issues/5) Remove skill-planner References (IN PROGRESS)
 **Goal:** Update skillsmith to remove all references to deprecated skill-planner
 
 **Background:**

@@ -247,7 +247,7 @@ After testing the skill, users may request improvements. Often this happens righ
 8. Optionally sync to marketplace
 
 **For complex improvements:**
-- Consider using the **skill-planner** skill for systematic planning
+- Use WORKFLOW.md pattern: Create GitHub Issue → Add to IMPROVEMENT_PLAN.md → Plan in docs/plans/
 - See `references/improvement_workflow_guide.md` for detailed improvement workflows
 - Research skill opportunities with `scripts/research_skill.py`
 
@@ -265,7 +265,7 @@ For detailed guidance on specific topics, see these reference files:
 - **`references/reference_management_guide.md`** - Managing reference files and documentation
 - **`references/improvement_plan_best_practices.md`** - Version history and planning documentation
 - **`references/research_guide.md`** - Research phases, metrics interpretation, evaluation workflows
-- **`references/integration_guide.md`** - Integration patterns with skill-planner and marketplace-manager
+- **`references/integration_guide.md`** - Integration patterns with marketplace-manager
 - **`references/FORMS.md`** - Form templates for structured data collection
 
 For marketplace distribution, see the **marketplace-manager** skill.
