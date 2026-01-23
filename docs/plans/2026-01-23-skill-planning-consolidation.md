@@ -390,58 +390,81 @@ uv run scripts/sync_improvement_plan.py skills/omnifocus-manager
 
 This keeps IMPROVEMENT_PLAN.md in sync with GitHub Issues (single source of truth).
 
-### Phase 4: Audit and Create GitHub Issues for Current Work
+### Phase 4: Audit and Create Consolidation Issues
 
-**IMPORTANT:** Do NOT blindly create issues for every planned item. Many may already be implemented or need re-evaluation.
+**Simplified Approach:** Create ONE consolidation issue per skill to track all planned work from IMPROVEMENT_PLAN.md.
 
 **For each skill with planned improvements:**
 
-1. **Run audit_improvements.py first** (if available):
+1. **Run audit_improvements.py first:**
    ```bash
-   uv run skills/skillsmith/scripts/audit_improvements.py skills/terminal-guru
+   uv run skills/skillsmith/scripts/audit_improvements.py skills/terminal-guru --verbose
    ```
    This detects what's actually completed vs still needed.
 
-2. **For skills with MANY planned items (>10 items or >1000 lines):**
-   - Create ONE consolidation issue to track all ideas
-   - Example: "terminal-guru: Review and triage planned improvements"
-   - Body: List all current planned items with checkboxes
-   - Label: `skill:terminal-guru`, `type:triage`
-   - Later, break into focused issues as priorities clarify
+2. **Create ONE consolidation issue per skill:**
+   - Title format: "{skill-name}: Migrate and triage planned improvements"
+   - Label: `enhancement`
+   - Body: List all planned items with checkboxes and audit status
+   - Include audit results (✅ Completed / 🟡 Partial / ❌ Not Started)
+   - Note which items may be obsolete or already implemented
 
-3. **For skills with FEW planned items (<10 items, clearly defined):**
-   - Review each item manually
-   - If already implemented: Skip (just update IMPROVEMENT_PLAN.md to completed)
-   - If still needed: Create focused GitHub Issue
-   - If unclear: Add to consolidation issue for triage
+3. **Triage happens later:**
+   - Use consolidation issue to review each item
+   - Create focused issues for confirmed priorities
+   - Mark obsolete items as such
+   - Update IMPROVEMENT_PLAN.md to completed section for already-done work
 
-**Example for terminal-guru (2138 lines, many planned items):**
+**Example for terminal-guru:**
 
-Create ONE consolidation issue:
 ```
-Title: "terminal-guru: Review and triage 15 planned improvements"
-Label: skill:terminal-guru, type:triage
+Title: "terminal-guru: Migrate and triage planned improvements"
+Label: enhancement
 
 Body:
-Current IMPROVEMENT_PLAN.md lists 15 planned improvements. Need to:
-- [ ] 1. Enhanced ANSI Color Support - Review if already implemented
-- [ ] 2. Zsh Performance Optimization - Review if already implemented
-- [ ] 3. Terminfo Database Validation - Review if still needed
-- [ ] (etc for all 15)
+Current IMPROVEMENT_PLAN.md lists 15 planned improvements. Audit results:
 
-Next steps:
-1. Run audit_improvements.py to detect completed work
-2. Review each item for current relevance
-3. Create focused issues for confirmed priorities
+✅ **Completed (move to version history):**
+- [ ] #1: Enhanced ANSI Color Support - scripts/ansi_parser.py exists, 3 commits
+
+🟡 **Partial (needs review):**
+- [ ] #2: Zsh Performance Optimization - scripts/zsh_benchmark.py exists, no completion marker
+- [ ] #3: Terminfo Database Validation - Some work done, unclear if complete
+
+❌ **Not Started:**
+- [ ] #4: Unicode rendering improvements - No evidence found
+- [ ] (etc for remaining items)
+
+**Next steps:**
+1. Review completed items and update IMPROVEMENT_PLAN.md
+2. Determine which partial items need focused issues
+3. Evaluate if not-started items are still needed
 4. Archive or remove obsolete items
 ```
 
-**Example for swift-dev (130 lines, 3 clear items):**
+**Example for swift-dev:**
 
-Review each item individually:
-- Item 1: "Add Swift 6 migration guide" → Already done? Check references/
-- Item 2: "Improve error messages" → Still needed? Create Issue #135
-- Item 3: "Add concurrency examples" → Obsolete? Remove from plan
+```
+Title: "swift-dev: Migrate and triage planned improvements"
+Label: enhancement
+
+Body:
+Current IMPROVEMENT_PLAN.md lists 3 planned improvements. Audit results:
+
+✅ **Completed:**
+- [ ] #1: Add Swift 6 migration guide - Found in references/migration_guide.md
+
+🟡 **Partial:**
+- [ ] #2: Improve error messages - Some improvements made, unclear if complete
+
+❌ **Not Started:**
+- [ ] #3: Add concurrency examples - No evidence found, may be obsolete
+
+**Next steps:**
+1. Verify Swift 6 guide completeness and move to version history
+2. Review error message improvements
+3. Determine if concurrency examples are still needed
+```
 
 ### Phase 5: Standardize IMPROVEMENT_PLAN.md Format
 
