@@ -223,59 +223,40 @@ Note: This is a text placeholder. Actual assets can be any file type.
 
 IMPROVEMENT_PLAN_TEMPLATE = """# {skill_title} - Improvement Plan
 
-## Overview
+## Version History
 
-This document tracks improvements, enhancements, and future development plans for the {skill_name} skill.
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
+|---------|------|-------|---------|------|------|------|------|---------|
+| 1.0.0 | {date} | - | Initial release | - | - | - | - | - |
 
-**Key Principle**: GitHub Issues are the canonical source of truth for work tracking. This file provides a simple summary that reflects issue state.
+**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure (0-100 scale)
 
-## Workflow
+## Active Work
 
-```
-docs/lessons/         →  docs/plans/           →  GitHub Issues      →  IMPROVEMENT_PLAN.md
-(Post-work learnings)    (Pre-work planning)      (Active tracking)      (Issue state summary)
-                                                  (SOURCE OF TRUTH)
-```
+No active improvements yet. Create GitHub Issues for planned work.
 
-See repository's `/WORKFLOW.md` for complete documentation.
+See GitHub Issues for detailed plans and task checklists.
 
-## 🔮 Planned Improvements
+## Known Issues
 
-| Issue | Priority | Title | Status |
-|-------|----------|-------|--------|
-| TBD   | Medium   | Example future enhancement | Planning |
+None yet. Report issues at https://github.com/{{{{repo}}}}/issues
 
-_For details, see linked GitHub issues._
+## Archive
 
-**To add new improvements:**
-1. Create GitHub issue with task checklist
-2. Add row to this table with issue number
-3. Update Status as work progresses (Open → In Progress → see Completed)
+For complete development history:
+- Git commit history: `git log --grep="{skill_name}"`
+- Closed issues: https://github.com/{{{{repo}}}}/issues?q=label:enhancement+is:closed
+- Cross-skill learnings: docs/lessons/
 
-## ✅ Completed Improvements
+---
 
-| Version | Date | Issue | Title | Key Changes |
-|---------|------|-------|-------|-------------|
-| v1.0.0  | {date} | N/A | Initial release | • Created SKILL.md with core functionality<br>• Added example scripts, references, and assets<br>• Established skill structure |
+**Development Workflow:**
 
-_For implementation details, see closed issues and docs/lessons/._
-
-## Notes
-
-**Workflow:**
-1. Simple changes: Commit directly to main
-2. Complex work: Create GitHub issue → Add to Planned table → Implement → Move to Completed table on release
-
-**On Release (two-commit pattern):**
-- Commit 1: Implementation changes (version unchanged)
-- Commit 2: Move issue from Planned → Completed table, bump version in SKILL.md, close issue
-
-**Key Changes column:**
-- Use 2-3 bullet points for compact historical summary
-- Link to docs/lessons/ for complex work retrospectives
-- Keep entries scannable at a glance
-
-**This file travels with the skill** when distributed, so it provides important historical context. Detailed planning and discussion should live in GitHub issues.
+See repository `/WORKFLOW.md` for complete documentation on:
+- GitHub Issues as source of truth for ALL planning
+- IMPROVEMENT_PLAN.md format (this lightweight release notes + metrics)
+- Two-commit release strategy
+- Using `uv run scripts/evaluate_skill.py --export-table-row` to capture metrics
 """
 
 

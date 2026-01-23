@@ -2,48 +2,104 @@
 
 ## Overview
 
-The IMPROVEMENT_PLAN.md file is a living document that tracks your skill's evolution, planned improvements, and design decisions. It provides historical context for maintainers and helps organize development efforts.
+IMPROVEMENT_PLAN.md is a **lightweight release notes + metrics tracker**, not a planning document. It provides a bounded, scannable history of skill evolution.
+
+**Target Size:** 100-300 lines total (bounded and maintainable)
 
 **Purpose:**
-- Track version history with dates and descriptions (most relevant - at top)
-- Plan future enhancements organized by priority (forward-looking)
-- Document completed improvements with implementation details (historical - at bottom)
-- Capture design decisions and rationale
-- Identify and track technical debt
+- Track version history with metrics (Version History table)
+- List active work items (Active Work section linking to GitHub Issues)
+- Track known bugs (Known Issues section)
+- Provide archive pointers (Archive section)
 
-**Recommended Structure (most relevant first):**
-1. Overview
-2. Version History - Quick reference, always at top
-3. 🔮 Planned Improvements - What's coming next (tracked by NUMBER, not version)
-4. Technical Debt / Enhancement Requests - Informs future planning
-5. ✅ Recent Improvements (Completed) - Detailed history at bottom (tracked by VERSION)
-6. Contributing / Notes
+**Key Principle:** GitHub Issues are the canonical source of truth for ALL planning. IMPROVEMENT_PLAN.md just reflects issue state with version history and metrics.
 
-## Version Management Strategy
+## Standard Format
 
-### Key Principle: Planned by Number, Released by Version
+```markdown
+# {Skill Name} - Improvement Plan
 
-**IMPORTANT:** There's a critical distinction between planning and releasing:
+## Version History
 
-- **🔮 Planned Improvements**: Track by NUMBER (1, 2, 3...), organized by priority
-  - No version numbers assigned yet
-  - Flexible - can be reordered, combined, or split
-  - Example: "#### 1. Enhanced Skill Validation"
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
+|---------|------|-------|---------|------|------|------|------|---------|
+| 2.0.0 | 2026-01-18 | [#123](link) | TypeScript validation | 67 | 90 | 100 | 100 | 89 |
+| 1.5.0 | 2026-01-10 | [#120](link) | Plugin generation | 72 | 88 | 95 | 100 | 89 |
+| 1.0.0 | 2025-12-01 | - | Initial release | - | - | - | - | - |
 
-- **✅ Recent Improvements (Completed)**: Track by VERSION (v1.5.0, v1.4.0...)
-  - Version assigned at release time
-  - Permanent - part of version history
-  - Example: "### v1.5.0 - Enhanced Skill Validation (2025-12-20)"
+**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure (0-100 scale)
 
-**Why this matters:**
-- You might plan 5 improvements but not know which will be v1.6.0 vs v1.7.0
-- Some improvements might be combined into a single release
-- Others might be split across multiple releases
-- Version numbers are only assigned when you actually release
+## Active Work
+
+- [#125](link): Database optimization (In Progress)
+- [#126](link): UI redesign (Planning)
+
+See GitHub Issues for detailed plans and task checklists.
+
+## Known Issues
+
+- Performance degradation with >10k tasks ([#128](link))
+
+## Archive
+
+For complete development history:
+- Git commit history: `git log --grep="skill-name"`
+- Closed issues: https://github.com/user/repo/issues?q=label:enhancement+is:closed
+- Cross-skill learnings: docs/lessons/
+```
+
+**Size Breakdown:**
+- Version History table: ~20-50 lines (grows slowly, 1-2 rows per release)
+- Active Work: ~10-30 lines (current sprint only, links to issues)
+- Known Issues: ~5-20 lines (links to issues)
+- Archive section: ~10 lines (static)
+- **Total: 100-200 lines** (bounded, scannable)
+
+## GitHub Issue-Based Planning
+
+All detailed planning happens in GitHub Issues, not IMPROVEMENT_PLAN.md.
+
+### Creating Issues for Skill Improvements
+
+**Title format:** `skill-name: Feature description`
+
+**Example:**
+```bash
+gh issue create --title "omnifocus-manager: Add TypeScript validation" \
+  --label "enhancement" \
+  --body "**Goal**: Validate plugin code before execution
+
+**Plan**: See docs/plans/2026-01-20-typescript-validation.md
+
+**Tasks**:
+- [ ] Implement TypeScript compiler integration
+- [ ] Add validation to plugin execution
+- [ ] Create error reporting system
+- [ ] Update documentation
+- [ ] Add tests"
+```
+
+### Label Usage
+
+- **enhancement**: Skill-specific improvements
+- **bug**: Bug fixes
+- **documentation**: Documentation updates
+
+For multi-skill or repo-level work, use title prefix:
+- `"repo: Update WORKFLOW.md"` - Repo infrastructure
+- `"Standardize error handling across skills"` - Multi-skill pattern
+
+## Version Management
+
+### Semantic Versioning
+
+Follow semantic versioning (MAJOR.MINOR.PATCH):
+
+- **PATCH** (1.0.0 → 1.0.1): Bug fixes, typo corrections, minor docs
+- **MINOR** (1.0.0 → 1.1.0): New features, backward-compatible changes
+- **MAJOR** (1.0.0 → 2.0.0): Breaking changes, major rewrites
 
 ### Version Decision Tree
-
-Before starting work, ask: **Does this work warrant a version bump?**
 
 ```
 Does this change the skill's behavior or capabilities?
@@ -60,568 +116,414 @@ Does this change the skill's behavior or capabilities?
          │  - Bug fixes
          │  - Typo corrections
          │  - Minor documentation improvements
-         │  → Increment patch version
          │
          ├─ MINOR (1.4.0 → 1.5.0)
          │  - New features
          │  - Enhancements to existing features
          │  - Substantial documentation additions
-         │  → Increment minor version
          │
          └─ MAJOR (1.4.0 → 2.0.0)
             - Breaking changes
             - Skill renames
             - Major restructuring
-            → Increment major version
 ```
+
+## Release Workflow
 
 ### Two-Commit Strategy (Recommended)
 
-For any work that warrants a version bump, use this two-commit approach:
+For any work that warrants a version bump:
 
 #### Commit 1: Implementation Only
 
 ```bash
-# 1. Add improvement to IMPROVEMENT_PLAN.md Planned section (by NUMBER)
-# Example: "#### 1. Enhanced Skill Validation"
-# NO version number assigned yet
+# 1. Create GitHub issue with detailed tasks
+gh issue create --title "omnifocus-manager: Add task filtering" \
+  --label "enhancement" \
+  --body "**Goal**: Filter tasks by project
 
-# 2. Implement the changes
+**Tasks**:
+- [ ] Add filter parameter to query
+- [ ] Update documentation
+- [ ] Add tests"
+
+# Returns: Created issue #125
+
+# 2. Add to IMPROVEMENT_PLAN.md Active Work section
+# - [#125](link): Add task filtering (Planning)
+
+# 3. Implement the changes
 # Edit SKILL.md content, scripts, references, etc.
 
-# 3. Commit implementation (without version bump)
+# 4. Commit implementation (without version bump)
 git add skills/my-skill/
-git commit -m "feat: Add enhanced validation feature"
+git commit -m "feat(my-skill): Add task filtering (#125)"
 
 # SKILL.md version stays at current (e.g., 1.4.0)
-# IMPROVEMENT_PLAN.md shows numbered planned improvement
-# Marketplace.json unchanged
+# IMPROVEMENT_PLAN.md shows issue in Active Work
 ```
 
 #### Commit 2: Release (When Ready)
 
 ```bash
-# 1. Decide on version number based on decision tree
-# Example: Enhanced validation is a new feature → v1.5.0 (minor)
+# 1. Run evaluate_skill.py with --export-table-row flag
+cd skills/my-skill
+uv run ../../skillsmith/scripts/evaluate_skill.py . --export-table-row --version 2.1.0 --issue 125
 
-# 2. Follow pre-release checklist:
+# Output (ready to paste into IMPROVEMENT_PLAN.md):
+# | 2.1.0 | 2026-01-23 | [#125](https://github.com/user/repo/issues/125) | Add task filtering | 72 | 88 | 95 | 100 | 90 |
 
-# a) Move improvement from Planned to Completed in IMPROVEMENT_PLAN.md
-#    - Cut from "🔮 Planned Improvements" (numbered section)
-#    - Update header: "#### 1. Enhanced..." → "### v1.5.0 - Enhanced... (2025-12-20)"
-#    - Paste at TOP of "✅ Recent Improvements (Completed)"
-#    - Add to version history table: | 1.5.0 | 2025-12-20 | Description |
+# 2. Update IMPROVEMENT_PLAN.md:
+#    a) Copy the table row to Version History table (at top)
+#    b) Remove from Active Work section
 
-# b) Update SKILL.md frontmatter version
-version: 1.5.0
+# 3. Update SKILL.md frontmatter version
+# version: 2.1.0
 
-# c) Run validation
-python3 scripts/evaluate_skill.py --quick --check-improvement-plan skills/my-skill
+# 4. Commit release
+git add skills/my-skill/IMPROVEMENT_PLAN.md skills/my-skill/SKILL.md
+git commit -m "chore: Release my-skill v2.1.0
 
-# d) Sync marketplace (if using pre-commit hook, this happens automatically)
-python3 scripts/sync_marketplace_versions.py
+Closes #125"
 
-# 3. Commit release
-git add skills/my-skill/IMPROVEMENT_PLAN.md
-git add skills/my-skill/SKILL.md
-git add .claude-plugin/marketplace.json
-git commit -m "chore: Release my-skill v1.5.0"
-
-# 4. Push to remote
+# 5. Push to remote (GitHub automatically closes issue #125)
 git push
 ```
 
 ### Example: Full Workflow
 
-**Planning Phase:**
+**Phase 1: Planning & Implementation**
+
+1. Create GitHub Issue #125: "omnifocus-manager: Add task filtering"
+2. Add to IMPROVEMENT_PLAN.md Active Work: `- [#125](link): Add task filtering (Planning)`
+3. Implement feature with commits: `git commit -m "feat(omnifocus-manager): Add filtering (#125)"`
+4. Update status in Active Work: Change `(Planning)` to `(In Progress)`
+
+**Phase 2: Release**
+
+1. Run evaluate_skill.py:
+   ```bash
+   uv run scripts/evaluate_skill.py . --export-table-row --version 2.1.0 --issue 125
+   ```
+
+2. Update IMPROVEMENT_PLAN.md:
+   - Add exported row to Version History table (at top)
+   - Remove #125 from Active Work section
+
+3. Update SKILL.md: `version: 2.1.0`
+
+4. Commit release: `git commit -m "chore: Release v2.1.0\n\nCloses #125"`
+
+5. Push (issue auto-closes)
+
+**After Release:**
+
+Version History table now shows:
 ```markdown
-## 🔮 Planned Improvements
-> Last Updated: 2025-12-20
-
-### High Priority
-
-#### 1. Enhanced Skill Validation
-**Goal:** Expand validation capabilities
-**Planned Features:**
-- Validate skill references
-- Check for broken links
-...
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
+|---------|------|-------|---------|------|------|------|------|---------|
+| 2.1.0 | 2026-01-23 | [#125](link) | Add task filtering | 72 | 88 | 95 | 100 | 90 |
+| 2.0.0 | 2026-01-18 | [#123](link) | TypeScript validation | 67 | 90 | 100 | 100 | 89 |
 ```
 
-**After Implementation Commit:**
-- SKILL.md: `version: 1.4.0` (unchanged)
-- IMPROVEMENT_PLAN.md: Still shows "#### 1. Enhanced..." in Planned
-- Code changes committed
-
-**After Release Commit:**
-```markdown
-## Version History
-
-| Version | Date | Description |
-|---------|------|-------------|
-| 1.5.0 | 2025-12-20 | Enhanced skill validation |  ← Added
-| 1.4.0 | 2025-12-01 | Previous release |
-
-## 🔮 Planned Improvements
-> Last Updated: 2025-12-20
-
-### High Priority
-
-#### 2. Multi-Skill Version Management  ← Now #1 is gone
-...
-
-## ✅ Recent Improvements (Completed)
-> Sorted by: Newest first
-
-### v1.5.0 - Enhanced Skill Validation (2025-12-20)  ← Moved here
-
-**Goal:** Expand validation capabilities
-...
-```
-
-- SKILL.md: `version: 1.5.0` (updated)
-- marketplace.json: `version: 1.5.0` (synced)
-
-### Benefits of Two-Commit Strategy
-
-1. **Clear Separation**: Implementation vs release are distinct
-2. **Flexible Timing**: Can implement now, release later
-3. **Easy Rollback**: Can revert release commit without losing implementation
-4. **Batch Releases**: Combine multiple improvements into one release
-5. **Clean History**: Git history clearly shows what changed vs when it was released
-
-### When to Use Single Commit
-
-Single commit is acceptable for:
-- Trivial patches (typo fixes)
-- Urgent bug fixes that need immediate release
-- Very small improvements where implementation = release
-
-But when in doubt, use two commits.
-
-## Version History Maintenance
-
-### When to Add New Versions
-
-Add a new version entry when you:
-1. **Plan a new release** - Add with "TBD" date in "Planned Improvements"
-2. **Complete implementation** - Move to "Recent Improvements (Completed)"
-3. **Finalize for release** - Replace "TBD" with actual date, update SKILL.md version
-
-### Version History Table Format
-
-```markdown
-## Version History
-
-| Version | Date | Description |
-|---------|------|-------------|
-| 1.4.0 | 2025-12-01 | Added IMPROVEMENT_PLAN.md validation and guidance |
-| 1.3.0 | 2025-11-24 | IMPROVEMENT_PLAN.md standardization |
-| 1.2.0 | 2025-11-20 | Repository root auto-detection |
-| 1.1.0 | 2025-11-20 | Marketplace version sync automation |
-| 1.0.0 | Initial | Initial skill implementation |
-```
-
-**Best Practices:**
-- Order newest versions first (descending)
-- Use YYYY-MM-DD date format
-- Use "Initial" for first version date
-- Keep descriptions concise (one line)
-- Use "TBD" only for planned/in-progress versions
-
-### TBD Placeholder Usage
-
-**RECOMMENDED: Don't use TBD at all**
-
-With the numbered approach for planned improvements, you typically don't need TBD:
-
-```markdown
-## 🔮 Planned Improvements
-> Last Updated: 2025-12-20
-
-### High Priority
-
-#### 1. Enhanced Skill Validation  ← No version number yet
-**Goal:** Expand validation capabilities
-...
-
-## Version History
-
-| Version | Date | Description |
-|---------|------|-------------|
-| 1.4.0 | 2025-12-01 | Current release |  ← No TBD needed
-```
-
-**If you must use TBD** (e.g., you've committed to a specific version for a planned feature):
-
-```markdown
-## Version History
-
-| Version | Date | Description |
-|---------|------|-------------|
-| 1.5.0 | TBD | Feature X enhancement |  ← Acceptable (not released yet)
-| 1.4.0 | 2025-12-01 | Completed feature |    ← Has date (released)
-```
-
-**NEVER do this:**
-```markdown
-## ✅ Recent Improvements (Completed)
-
-### v1.5.0 - Feature X Enhancement
-
-...implementation complete...
-
-## Version History
-
-| Version | Date | Description |
-|---------|------|-------------|
-| 1.5.0 | TBD | Feature X enhancement |  ← ERROR: Completed but still TBD!
-```
-
-**Rule:** If a version is in "Recent Improvements (Completed)", it MUST have an actual date in the version history table.
-
-## Planned → Completed Workflow
-
-When completing a planned improvement and releasing a new version, follow this workflow:
-
-### Step 1: Decide Version Number
-Use the Version Decision Tree to determine the appropriate version number based on the change type (patch/minor/major).
-
-### Step 2: Cut from Planned Improvements
-Locate the entire numbered section for the improvement in "🔮 Planned Improvements" and cut it.
-
-### Step 3: Update Header with Version and Date
-Change the header format:
-- **From**: `#### 1. Enhanced Skill Validation` (numbered, no version)
-- **To**: `### v1.5.0 - Enhanced Skill Validation (2025-12-20)` (versioned with date)
-
-### Step 4: Paste at Top of Completed
-Paste the section at the **TOP** of "✅ Recent Improvements (Completed)". This automatically maintains chronological order (newest first).
-
-### Step 5: Add to Version History Table
-Add the new version to the version history table:
-- **Add**: `| 1.5.0 | 2025-12-20 | Enhanced skill validation |`
-- Place at top of table (newest first)
-
-**Note:** If you previously added an entry with TBD, replace it:
-- **From**: `| 1.5.0 | TBD | Feature Name |`
-- **To**: `| 1.5.0 | 2025-12-20 | Feature Name |`
-
-### Step 6: Enhance with Implementation Details
-Update the content:
-- Change "**Proposed Solution:**" → "**Solution Implemented:**"
-- Change "**Files to Modify:**" → "**Files Changed:**"
-- Add "**Impact:**" section describing user-facing benefits
-
-### Step 7: Update SKILL.md and Sync
-- Update version in SKILL.md frontmatter
-- Run validation: `python3 scripts/evaluate_skill.py --quick --check-improvement-plan`
-- Sync marketplace (automatic with pre-commit hook)
-
-**This workflow is intentionally simple**: decide version, cut, update header, paste at top, add to table, enhance details, update SKILL.md. No complex reorganization needed.
-
-### Workflow Example
-
-#### Phase 1: Planning
-```markdown
-## Version History
-
-| Version | Date | Description |
-|---------|------|-------------|
-| 1.4.0 | 2025-12-01 | Current release |  ← No future versions yet
-
-## 🔮 Planned Improvements
-> Last Updated: 2025-12-15
-
-### High Priority
-
-#### 1. Enhanced Skill Validation  ← Numbered, not versioned
-
-**Goal:** Improve validation coverage
-**Planned Features:**
-- Validate skill references
-- Check for broken links
-...
-```
-
-#### Phase 2: Implementation
-During implementation:
-- Code changes are made
-- Improvement stays numbered in "Planned Improvements"
-- SKILL.md version stays at 1.4.0
-- Commit implementation: `git commit -m "feat: Add enhanced validation"`
-
-#### Phase 3: Release
-When ready to release, follow the 7-step workflow:
-
-1. **Decide version**: Enhanced validation is a new feature → v1.5.0 (minor bump)
-2. **Cut** numbered improvement from Planned section
-3. **Update header**: `#### 1. Enhanced...` → `### v1.5.0 - Enhanced... (2025-12-15)`
-4. **Paste** at top of Completed section
-5. **Add to version history** table
-6. **Enhance** with implementation details
-7. **Update SKILL.md** and sync
-
-**After release commit:**
-
-```markdown
-## Version History
-
-| Version | Date | Description |
-|---------|------|-------------|
-| 1.5.0 | 2025-12-15 | Enhanced validation coverage |  ← Added
-| 1.4.0 | 2025-12-01 | Previous release |
-
-## 🔮 Planned Improvements
-> Last Updated: 2025-12-15
-
-### High Priority
-
-#### 1. Multi-Skill Version Management  ← Next improvement (renumbered from 2)
-...
-
-## ✅ Recent Improvements (Completed)
-> Sorted by: Newest first
-
-### v1.5.0 - Enhanced Skill Validation (2025-12-15)  ← Moved here with version
-
-**Goal:** Improve validation coverage
-
-**Solution Implemented:**
-...
-
-**Files Changed:**
-- scripts/validator.py
-
-**Impact:**
-- Better validation coverage
-...
-```
-
-**SKILL.md:**
-```yaml
----
-name: my-skill
-version: 1.5.0  ← Updated from 1.4.0
----
-```
-
-**marketplace.json:** (synced automatically via pre-commit hook)
-```json
-{
-  "version": "1.5.0"
-}
-```
-
-## Common Pitfalls
-
-### 1. Using Version Numbers in Planned Improvements
-
-**Problem:**
-```markdown
-## 🔮 Planned Improvements
-
-### High Priority - v1.6.0  ← ERROR: Planned improvements shouldn't have versions
-
-#### Enhanced Validation
-...
-```
-
-**Solution:**
-```markdown
-## 🔮 Planned Improvements
-
-### High Priority
-
-#### 1. Enhanced Validation  ← Correct: Numbered, not versioned
-...
-```
-
-**Why this matters:**
-- Version numbers should only be assigned when releasing
-- Planned improvements may be combined, split, or reordered
-- This prevents version confusion and orphaned version numbers
-
-### 2. Forgetting to Replace TBD (if you use it)
-
-**Problem:**
-```markdown
-# SKILL.md
-version: 1.5.0
-
-# IMPROVEMENT_PLAN.md
-| 1.5.0 | TBD | Description |
-```
-
-**Detection:**
-```bash
-$ python3 scripts/evaluate_skill.py --quick --check-improvement-plan .
-
-❌ Version 1.5.0 in SKILL.md shows 'TBD' in IMPROVEMENT_PLAN.md
-   → Replace 'TBD' with completion date (YYYY-MM-DD) before release
-   → File: IMPROVEMENT_PLAN.md line 123
-```
-
-**Fix:** Replace TBD with actual date before updating SKILL.md version
-
-### 2. Mismatched Versions
-
-**Problem:**
-```markdown
-# SKILL.md
-version: 1.5.0
-
-# IMPROVEMENT_PLAN.md - Version History
-| 1.4.0 | 2025-12-01 | Latest entry |
-```
-
-**Detection:**
-```bash
-$ python3 scripts/evaluate_skill.py --quick --check-improvement-plan .
-
-⚠️  SKILL.md version (1.5.0) differs from latest IMPROVEMENT_PLAN.md version (1.4.0)
-   → This may be intentional if you haven't updated IMPROVEMENT_PLAN.md yet
-```
-
-**Fix:** Add v1.5.0 entry to version history table
-
-### 3. Non-Chronological Dates
-
-**Problem:**
-```markdown
-| Version | Date | Description |
-|---------|------|-------------|
-| 1.5.0 | 2025-11-01 | Newer version |  ← Older date
-| 1.4.0 | 2025-12-01 | Older version |  ← Newer date
-```
-
-**Detection:**
-```bash
-$ python3 scripts/evaluate_skill.py --quick --check-improvement-plan .
-
-⚠️  Version history dates may not be in chronological order
-   → Consider ordering newest versions first
-```
-
-**Fix:** Ensure dates descend (newest → oldest)
-
-### 4. Completed Section Without Date
-
-**Problem:**
-```markdown
-## Recent Improvements (Completed)
-
-### v1.5.0 - Enhanced Validation
-
-Completed all implementation...
-
-## Version History
-
-| 1.5.0 | TBD | Description |  ← Still TBD despite completion
-```
-
-**Best Practice:** When moving an improvement to "Completed", add the completion date in both:
-- Section header: `### v1.5.0 - Enhanced Validation (2025-12-15)`
-- Version history: Replace TBD with actual date
+Active Work section now empty or shows next issues.
 
 ## Pre-Release Checklist
 
-Before releasing a new version, follow the Planned → Completed workflow:
+Before releasing a new version:
 
 - [ ] **Implementation complete** and tested
-- [ ] **Decide version number** using the Version Decision Tree (patch/minor/major)
-- [ ] **Cut** numbered improvement section from "🔮 Planned Improvements"
-- [ ] **Update** header with version and date: `#### 1. Name` → `### v{version} - Name (YYYY-MM-DD)`
-- [ ] **Paste** at TOP of "✅ Recent Improvements (Completed)"
-- [ ] **Add to version history** table: `| {version} | YYYY-MM-DD | Description |`
-- [ ] **Enhance** content:
-  - Change "Proposed Solution" → "Solution Implemented"
-  - Change "Files to Modify" → "Files Changed"
-  - Add "Impact" section
-- [ ] **Update** "Last Updated" in Planned Improvements section
-- [ ] **Update** version in SKILL.md frontmatter
-- [ ] **Run validation**: `python3 scripts/evaluate_skill.py --quick --check-improvement-plan <skill-path>`
-- [ ] **Fix** any validation errors
-- [ ] **Sync marketplace**: Automatic via pre-commit hook (or run `python3 scripts/sync_marketplace_versions.py`)
-- [ ] **Commit** release: `git commit -m "chore: Release v{version}"`
-- [ ] **Push** changes
+- [ ] **Decide version number** using Version Decision Tree (patch/minor/major)
+- [ ] **Run evaluate_skill.py** to capture metrics:
+  ```bash
+  uv run scripts/evaluate_skill.py . --export-table-row --version X.Y.Z --issue NNN
+  ```
+- [ ] **Update IMPROVEMENT_PLAN.md:**
+  - [ ] Add exported table row to Version History (at top)
+  - [ ] Remove completed issue from Active Work section
+  - [ ] Add any new bugs to Known Issues (if discovered)
+- [ ] **Update SKILL.md frontmatter:**
+  ```yaml
+  metadata:
+    version: X.Y.Z
+  ```
+- [ ] **Run validation** to ensure no regressions:
+  ```bash
+  uv run scripts/evaluate_skill.py . --quick
+  ```
+- [ ] **Commit release** referencing issue:
+  ```bash
+  git commit -m "chore: Release skill-name vX.Y.Z
 
-## Example: skillsmith v1.5.0
+  Closes #NNN"
+  ```
+- [ ] **Push** changes (GitHub auto-closes issue)
 
-The skillsmith skill follows these best practices itself. See `skills/skillsmith/IMPROVEMENT_PLAN.md` for a real example:
+## Metrics Tracking
 
-**Planning Phase:**
-- Two improvements planned (numbered, not versioned):
-  - IMPROVEMENT_PLAN.md restructuring
-  - Skillsmith rename
-- No version numbers assigned yet
+### Understanding Metrics
 
-**Implementation Phase (2 commits):**
-- Commit 1: Implemented IMPROVEMENT_PLAN.md restructuring
-- Commit 2: Implemented skillsmith rename
-- Both improvements stayed numbered in Planned section
-- SKILL.md stayed at v1.4.0
+Metrics are scored 0-100:
 
-**Release Phase (1 commit):**
-- Decided to combine both into v1.5.0 (minor bump - new features + breaking change)
-- Removed both numbered improvements from Planned
-- Created single v1.5.0 completed entry documenting both changes
-- Added to version history: `| 1.5.0 | 2025-12-20 | IMPROVEMENT_PLAN.md restructuring and rename to skillsmith |`
-- Updated SKILL.md: `version: 1.5.0`
-- Synced marketplace
-- Committed release
+- **Conciseness (Conc)**: How lean is SKILL.md? Lower token counts = higher scores
+- **Complexity (Comp)**: How manageable is the skill? Fewer files/lines = higher scores
+- **Spec Compliance (Spec)**: Does it follow AgentSkills specification? Full compliance = 100
+- **Progressive Disclosure (Disc)**: Are references used well? Good balance = higher scores
+- **Overall**: Weighted average of all metrics
 
-**Key Lesson:**
-Multiple planned improvements can be combined into a single release version when appropriate.
+### Using --export-table-row
 
-## Validation Commands
+The `--export-table-row` flag eliminates manual transcription errors:
 
-**Basic skill validation:**
 ```bash
-python3 scripts/evaluate_skill.py --quick skills/my-skill
+# Basic usage
+uv run scripts/evaluate_skill.py . --export-table-row --version 2.0.0 --issue 123
+
+# Output (ready to paste):
+| 2.0.0 | 2026-01-23 | [#123](https://github.com/user/repo/issues/123) | Description | 67 | 90 | 100 | 100 | 89 |
 ```
 
-**With IMPROVEMENT_PLAN.md checking:**
+**Parameters:**
+- `--version`: The version being released (e.g., 2.0.0)
+- `--issue`: The GitHub issue number being closed (optional)
+
+**Without issue number:**
 ```bash
-python3 scripts/evaluate_skill.py --quick --check-improvement-plan skills/my-skill
+uv run scripts/evaluate_skill.py . --export-table-row --version 1.0.0
+
+# Output:
+| 1.0.0 | 2026-01-23 | - | Initial release | 72 | 85 | 95 | 100 | 88 |
 ```
 
-**Expected output (all good):**
-```
-Skill is valid!
+### Tracking Quality Over Time
 
-✓ IMPROVEMENT_PLAN.md is complete and consistent
+Version History with metrics shows quality trends:
+
+```markdown
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
+|---------|------|-------|---------|------|------|------|------|---------|
+| 2.1.0 | 2026-01-23 | [#125](link) | Task filtering | 72 | 88 | 95 | 100 | 90 |
+| 2.0.0 | 2026-01-18 | [#123](link) | TS validation | 67 | 90 | 100 | 100 | 89 |
+| 1.5.0 | 2026-01-10 | [#120](link) | Plugin gen | 72 | 88 | 95 | 100 | 89 |
 ```
 
-**Expected output (needs fix):**
-```
-Skill is valid!
+**Analysis:**
+- Conciseness improved: 67 → 72 (removed unnecessary content)
+- Complexity stable: 88-90 (controlled growth)
+- Spec Compliance improved: 95 → 100 (fixed validation issues)
+- Overall trend: 89 → 90 (quality improving)
 
-❌ Version 1.5.0 in SKILL.md shows 'TBD' in IMPROVEMENT_PLAN.md
-   → Replace 'TBD' with completion date (YYYY-MM-DD) before release
-   → File: IMPROVEMENT_PLAN.md line 123
+Use "-" for historical versions where metrics weren't captured.
+
+## Common Pitfalls
+
+### 1. Detailed Planning in IMPROVEMENT_PLAN.md
+
+**Problem:**
+```markdown
+## Active Work
+
+- [#123](link): Add TypeScript validation (In Progress)
+  **Goal:** Validate plugin code before execution
+  **Planned Features:**
+  - Integrate TS compiler API
+  - Add validation to plugin execution
+  (500 lines of detailed planning...)
 ```
+
+**Solution:**
+Put detailed planning in the GitHub Issue #123, not IMPROVEMENT_PLAN.md:
+
+```markdown
+## Active Work
+
+- [#123](link): Add TypeScript validation (In Progress)
+
+See GitHub Issues for detailed plans and task checklists.
+```
+
+### 2. Missing Version History Metrics
+
+**Problem:**
+```markdown
+| Version | Date | Issue | Summary |
+|---------|------|-------|---------|
+| 2.0.0 | 2026-01-18 | [#123](link) | TypeScript validation |
+```
+
+**Solution:**
+Always include metrics columns (use `--export-table-row`):
+
+```markdown
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
+|---------|------|-------|---------|------|------|------|------|---------|
+| 2.0.0 | 2026-01-18 | [#123](link) | TypeScript validation | 67 | 90 | 100 | 100 | 89 |
+```
+
+### 3. Forgetting to Remove from Active Work
+
+**Problem:**
+After release, issue #123 is closed but still listed in Active Work section.
+
+**Solution:**
+When adding version row to Version History, also remove the issue from Active Work section.
+
+### 4. Not Referencing Issues in Commits
+
+**Problem:**
+```bash
+git commit -m "feat: Add TypeScript validation"
+```
+
+**Solution:**
+Always reference the issue number:
+```bash
+git commit -m "feat(skill-name): Add TypeScript validation (#123)"
+```
+
+This creates automatic GitHub issue links and helps track work.
+
+## Migration from Old Format
+
+If your skill has an old verbose IMPROVEMENT_PLAN.md format:
+
+### Old Format (Verbose)
+```markdown
+#### 1. Enhanced Skill Validation
+
+**Goal:** Improve validation coverage
+
+**Problem Identified:** Current validation misses several edge cases...
+(500 lines of detailed planning)
+
+**Planned Features:**
+- Feature 1 with extensive details
+- Feature 2 with implementation notes
+- Feature 3 with code examples
+```
+
+### New Format (Minimal)
+```markdown
+## Version History
+
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
+|---------|------|-------|---------|------|------|------|------|---------|
+| 2.0.0 | 2026-01-18 | [#130](link) | Enhanced validation | 68 | 90 | 100 | 100 | 90 |
+
+## Active Work
+
+- [#131](link): Next improvement (Planning)
+```
+
+### Migration Steps
+
+1. **Extract planned improvements** from old IMPROVEMENT_PLAN.md
+2. **Create GitHub Issues** for each active planned improvement:
+   - Copy detailed planning from IMPROVEMENT_PLAN.md into issue body
+   - Add task checklist in issue
+   - Get issue number (e.g., #130)
+3. **Update IMPROVEMENT_PLAN.md** to new format:
+   - Create Version History table with metrics
+   - Create Active Work section listing open issues
+   - Add Known Issues section (if any bugs)
+   - Add Archive section
+4. **Target size:** 100-300 lines total
+
+See issue #6 and `docs/plans/2026-01-23-skill-planning-consolidation.md` for detailed migration plan affecting multiple skills.
+
+## Examples from Real Skills
+
+### Example 1: Simple Skill (marketplace-manager)
+
+```markdown
+# Marketplace Manager - Improvement Plan
+
+## Version History
+
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
+|---------|------|-------|---------|------|------|------|------|---------|
+| 1.4.0 | 2026-01-22 | [#4](link) | Version sync automation | 75 | 92 | 100 | 100 | 92 |
+| 1.3.0 | 2026-01-18 | - | Marketplace hooks | 72 | 90 | 100 | 100 | 91 |
+| 1.0.0 | 2025-12-01 | - | Initial release | - | - | - | - | - |
+
+**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure (0-100 scale)
+
+## Active Work
+
+No active work. Future improvements tracked in GitHub Issues.
+
+## Known Issues
+
+None.
+
+## Archive
+
+For development history:
+- Git commits: `git log --grep="marketplace-manager"`
+- Closed issues: https://github.com/user/repo/issues?q=label:enhancement+is:closed
+```
+
+**Total: ~30 lines** (very lean skill)
+
+### Example 2: Skill with Active Work
+
+```markdown
+# OmniFocus Manager - Improvement Plan
+
+## Version History
+
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
+|---------|------|-------|---------|------|------|------|------|---------|
+| 4.4.0 | 2026-01-20 | [#10](link) | TypeScript validation | 60 | 88 | 100 | 100 | 87 |
+| 4.3.0 | 2026-01-15 | [#8](link) | Plugin generation | 65 | 85 | 100 | 100 | 87 |
+| 4.0.0 | 2026-01-10 | - | Major refactor | - | - | - | - | - |
+
+**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure (0-100 scale)
+
+## Active Work
+
+- [#12](link): Database optimization (In Progress)
+- [#13](link): Memory leak fix (Blocked by #12)
+- [#14](link): UI redesign (Planning)
+
+See GitHub Issues for detailed plans and task checklists.
+
+## Known Issues
+
+- Performance degradation with >10k tasks ([#15](link))
+- macOS 15.2 compatibility issue ([#16](link))
+
+## Archive
+
+For development history:
+- Git commits: `git log --grep="omnifocus-manager"`
+- Closed issues: https://github.com/user/repo/issues?q=label:enhancement+is:closed
+- Cross-skill learnings: docs/lessons/typescript-validation-patterns.md
+```
+
+**Total: ~40 lines** (bounded even with active work)
 
 ## Summary
 
 ### Key Principles
 
-1. **Structure**: Version History (top) → 🔮 Planned → Technical Debt → ✅ Completed (bottom)
-2. **Use TBD** for planned/in-progress versions in version history table
-3. **Follow 5-step workflow** when completing: Cut → Update header → Paste at top → Update table → Enhance
-4. **Replace TBD** when moving to completed AND before updating SKILL.md version
-5. **Update "Last Updated"** in Planned Improvements when making changes
-6. **Validate before release** with `--check-improvement-plan`
-7. **Keep dates chronological** (newest first in both table and completed section)
-8. **Use emoji indicators**: 🔮 for Planned, ✅ for Completed
+1. **Lightweight format**: 100-300 lines total, not 2000+
+2. **GitHub Issues are source of truth**: All detailed planning happens there
+3. **Version History with metrics**: Track quality over time with evaluate_skill.py
+4. **Active Work links to issues**: Just list issue numbers and status
+5. **Use --export-table-row**: Eliminates manual transcription errors
+6. **Two-commit strategy**: Implementation separate from release
+7. **Reference issues in commits**: `git commit -m "feat(skill): Description (#123)"`
 
-### Simple Workflow
+### Simple Release Workflow
 
-**Completing an improvement is intentionally simple:**
-- Cut from Planned Improvements
-- Update header with date
-- Paste at top of Recent Improvements (Completed)
-- Update version history table
-- Enhance with implementation details
+1. Create GitHub Issue with detailed tasks
+2. Add to Active Work section in IMPROVEMENT_PLAN.md
+3. Implement changes (commits reference issue #)
+4. Run `evaluate_skill.py --export-table-row`
+5. Add row to Version History, remove from Active Work
+6. Update SKILL.md version
+7. Commit release: `chore: Release vX.Y.Z\n\nCloses #N`
+8. Push (issue auto-closes)
 
-This ensures your skill's development history is clear, complete, and consistent, while making the transition from planned to completed straightforward.
+This ensures your skill's development history is clear, bounded, and maintainable while keeping detailed planning in GitHub Issues where it belongs.
