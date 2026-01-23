@@ -159,6 +159,62 @@ Closes #123"
 - IMPROVEMENT_PLAN.md now shows historical record in Completed table
 - Issue remains searchable with full implementation discussion
 
+### 6. Closing an Issue
+
+**CRITICAL**: Before closing any GitHub Issue, complete this checklist to ensure the issue is properly documented and closed:
+
+**Closing an Issue Checklist:**
+
+```bash
+# 1. Verify all work is complete
+# - [ ] All checkboxes in issue description are checked (if applicable)
+# - [ ] All commits reference the issue number (#N)
+# - [ ] All planned tasks completed
+
+# 2. Update issue status
+gh issue edit N --body "$(cat issue-body-with-checkboxes-updated.md)"
+
+# 3. Add final completion comment with results
+gh issue comment N --body "✅ Complete: [summary of results, metrics, commits]"
+
+# 4. Create follow-up issues if needed
+gh issue create --title "follow-up task" --body "Related: #N"
+
+# 5. Close issue with summary
+gh issue close N --comment "All work complete. [Final summary, commits, follow-up issues]"
+```
+
+**Required in closing comment:**
+- ✅ Status (all phases/tasks complete)
+- 📊 Results/metrics (if applicable)
+- 🔗 Related commits (git SHA or commit message summary)
+- 🎯 Follow-up issues (if work spawned new issues)
+
+**Example closing comment:**
+```markdown
+All phases complete! Closing issue.
+
+**Final Results:**
+- ✅ All 5 phases completed
+- ✅ All success criteria met
+- 📊 4584 → 199 lines (96% reduction)
+
+**Commits:**
+- b4f84ec: Phase 1
+- 3a6ef2e: Phase 2
+- 967db8b: Phase 5
+
+**Follow-up Work:**
+See issues #12, #13, #14
+```
+
+**Common mistakes to avoid:**
+- ❌ Closing issue without updating checkboxes in issue body
+- ❌ Closing without a summary comment
+- ❌ Forgetting to link related commits
+- ❌ Not creating follow-up issues for discovered work
+- ❌ Letting "Closes #N" in commit auto-close without proper documentation
+
 ## Directory Structure
 
 ```
