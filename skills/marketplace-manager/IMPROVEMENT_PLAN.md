@@ -8,6 +8,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.4.0 | 2026-01-22 | Core marketplace operations automation: source path fixes, deprecation, bundling, templates |
 | 1.3.0 | 2026-01-07 | Critical bug fixes: utils.py dependency, schema compliance, metadata.version parsing |
 | 1.1.0 | 2025-12-22 | Added plugin versioning strategies, validation command, pre-commit hook |
 | 1.0.0 | 2025-12-21 | Initial release |
@@ -21,51 +22,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Issue | Priority | Title | Status |
 |-------|----------|-------|--------|
-| [#4](https://github.com/totallyGreg/claude-mp/issues/4) | Critical | Core marketplace operations automation (v1.4.0) | Open |
-| [#5](https://github.com/totallyGreg/claude-mp/issues/5) | High | Deprecate skill-planner skill (v1.5.0) | Blocked by #4 |
-
-#### [#4](https://github.com/totallyGreg/claude-mp/issues/4) Core Marketplace Operations Automation
-**Goal:** Fix critical source path misconfiguration and add marketplace automation tools
-
-**Problem:**
-- All 9 plugins use `"source": "./"` causing users to install entire repository
-- Results in nested skill confusion and bloated installations
-- No automation for deprecation, validation, or bundling operations
-- Code duplication needs template consistency
-
-**Proposed Solution:**
-- Create `scripts/fix_source_paths.py` - Correct source paths in marketplace.json
-- Create `scripts/deprecate_skill.py` - Automated skill deprecation workflow
-- Create `scripts/validate_marketplace.py` - Comprehensive marketplace validation
-- Create `scripts/analyze_bundling.py` - Recommend bundling opportunities
-- Create `scripts/generate_utils_template.py` - Generate consistent utils.py
-- Create `scripts/templates/utils.py.template` - Utils template file
-- Update SKILL.md with "Marketplace Operations" section
-- Fix all 9 plugin source paths
-
-**Files to Create:**
-- `scripts/fix_source_paths.py`
-- `scripts/deprecate_skill.py`
-- `scripts/validate_marketplace.py`
-- `scripts/analyze_bundling.py`
-- `scripts/generate_utils_template.py`
-- `scripts/templates/utils.py.template`
-
-**Files to Modify:**
-- `.claude-plugin/marketplace.json` - Fix source paths
-- `SKILL.md` - Add marketplace operations section
-- `IMPROVEMENT_PLAN.md` - Track completion
-
-**Success Criteria:**
-- ✅ All plugins use correct source paths (self-contained distributions)
-- ✅ Deprecation automation ready for skill-planner removal
-- ✅ Marketplace validation prevents future source path errors
-- ✅ Bundling logic can recommend skill-development-toolkit
-- ✅ Utils template ensures consistency across skills
-
-**Version Bump:** 1.3.0 → 1.4.0 (MINOR - new features)
-
-**Plan:** See docs/plans/2026-01-22-marketplace-manager-evolution.md Phase 1
+| [#5](https://github.com/totallyGreg/claude-mp/issues/5) | High | Deprecate skill-planner skill (v1.5.0) | Ready to start |
 
 #### [#5](https://github.com/totallyGreg/claude-mp/issues/5) Deprecate skill-planner Skill
 **Goal:** Remove obsolete skill-planner skill from marketplace
@@ -288,6 +245,85 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ## ✅ Recent Improvements (Completed)
 > Sorted by: Newest first
+
+### v1.4.0 - Core Marketplace Operations Automation (2026-01-22)
+
+**Major Features:**
+
+1. **Source Path Architecture Fix (Issue [#4](https://github.com/totallyGreg/claude-mp/issues/4))**
+   - Fixed `create_plugin()` in add_to_marketplace.py to automatically use correct source paths
+   - Changed all 9 plugins from incorrect pattern (`source: "./", skills: ["./skills/NAME"]`)
+     to correct pattern (`source: "./skills/NAME", skills: ["./"]`)
+   - Updated validation, sync, and detection scripts to resolve paths relative to source
+   - Eliminates nested skill confusion from full repository installation
+   - New plugins automatically use correct format
+
+2. **Deprecation Automation**
+   - Created `scripts/deprecate_skill.py` (371 lines)
+   - Removes plugin from marketplace.json with confirmation prompts
+   - Scans all SKILL.md files for references to deprecated skill
+   - Reports which skills need manual updates (with line numbers)
+   - Creates optional migration guide in `docs/lessons/`
+   - Generates detailed cleanup checklist
+   - Dry-run mode for safe preview
+   - Tested on skill-planner: found 2 skill references successfully
+
+3. **Bundling Analysis Engine**
+   - Created `scripts/analyze_bundling.py` (484 lines)
+   - Calculates affinity scores (0-100) for all skill pairs
+   - Scoring: same category (+30), cross-references (+40), bidirectional (+20), similar descriptions (+10)
+   - Interactive mode for guided bundle creation
+   - JSON output for programmatic use
+   - Correctly recommends skillsmith + marketplace-manager bundle (80/100 score)
+   - Provides bundle name and description suggestions
+
+4. **Utils Template Generation**
+   - Created `scripts/generate_utils_template.py` (165 lines)
+   - Created `scripts/templates/utils.py.template` (137 lines)
+   - Generates consistent utils.py for new skills
+   - Replaces `{SKILL_NAME}` placeholder
+   - Ensures code duplication consistency while maintaining self-contained plugins
+   - Includes: `find_repo_root()`, `get_repo_root()`, `print_verbose_info()`, `validate_repo_structure()`
+
+5. **Comprehensive Documentation**
+   - Added 162-line "Marketplace Operations" section to SKILL.md
+   - Documents all three automation tools with usage examples
+   - Real command examples and output
+   - Best practices for deprecation, bundling, and template generation
+   - Marketplace-specific context (self-contained plugin rationale)
+
+**Quality Metrics:**
+- Overall quality score: 75/100 (from skillsmith evaluation)
+- Progressive disclosure: 100/100
+- AgentSkills spec compliance: 90/100 (PASS)
+- Total automation code: 1,157 lines
+
+**Files Modified:**
+- `.claude-plugin/marketplace.json` - Fixed source paths for all 9 plugins
+- `scripts/add_to_marketplace.py` - Fixed create_plugin(), validation logic
+- `scripts/sync_marketplace_versions.py` - Source path resolution
+- `scripts/detect_version_changes.py` - Source path resolution
+- `SKILL.md` - Added Marketplace Operations section (162 lines)
+- `IMPROVEMENT_PLAN.md` - Tracked completion
+
+**Files Created:**
+- `scripts/deprecate_skill.py` - Deprecation automation
+- `scripts/analyze_bundling.py` - Bundling recommendations
+- `scripts/generate_utils_template.py` - Utils generation
+- `scripts/templates/utils.py.template` - Utils template
+- `docs/plans/2026-01-22-marketplace-manager-evolution.md` - Phase 1 plan
+- `docs/plans/2026-01-22-ai-risk-mapper-automation-overhaul.md` - ai-risk-mapper plan
+
+**Impact:**
+- ✅ All plugins now install only their individual skill directories
+- ✅ Deprecation workflow ready for skill-planner removal (Phase 2)
+- ✅ Bundling logic recommends skill-development-toolkit
+- ✅ Template generation ensures consistent utility code
+- ✅ Comprehensive documentation for all new operations
+
+**Version Bump:** 1.3.0 → 1.4.0 (MINOR - new features, backward compatible)
+
+**Related Issues:** [#4](https://github.com/totallyGreg/claude-mp/issues/4) (Complete), [#5](https://github.com/totallyGreg/claude-mp/issues/5) (Unblocked)
 
 ### v1.3.0 - Critical Bug Fixes (2026-01-07)
 
