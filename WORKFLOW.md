@@ -74,40 +74,55 @@ The issue checklist is the **source of truth** for work status.
 
 ### 4. Update IMPROVEMENT_PLAN.md (Reflects Issues)
 
-**IMPORTANT**: IMPROVEMENT_PLAN.md is a **simple summary** of GitHub issue state, not detailed planning.
+**IMPORTANT**: IMPROVEMENT_PLAN.md is a **lightweight release notes + metrics tracker**, not detailed planning.
 
-**Format - Simple Table:**
+**Target Size**: 100-300 lines total (bounded and scannable)
+
+**Format - Version History with Metrics:**
 
 ```markdown
-## 🔮 Planned Improvements
+# {Skill Name} - Improvement Plan
 
-| Issue | Priority | Title | Status |
-|-------|----------|-------|--------|
-| #123  | High     | Feature Name | In Progress |
-| #124  | Medium   | Enhancement | Open |
+## Version History
 
-_For details, see linked GitHub issues._
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
+|---------|------|-------|---------|------|------|------|------|---------|
+| 2.0.0 | 2026-01-18 | [#123](link) | TypeScript validation | 67 | 90 | 100 | 100 | 89 |
+| 1.5.0 | 2026-01-10 | [#120](link) | Plugin generation | 72 | 88 | 95 | 100 | 89 |
+| 1.0.0 | 2025-12-01 | - | Initial release | - | - | - | - | - |
 
-## ✅ Completed Improvements
+**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure (0-100 scale)
 
-| Version | Date | Issue | Title | Key Changes |
-|---------|------|-------|-------|-------------|
-| v1.5.0  | 2026-01-18 | #123 | Feature Name | • Improved validation performance<br>• Added caching layer<br>• Reduced memory usage by 30% |
-| v1.4.0  | 2026-01-15 | #120 | Previous Feature | • Implemented new API endpoint<br>• Enhanced error handling<br>• See docs/lessons/api-refactor.md |
+## Active Work
 
-_For implementation details, see closed issues and docs/lessons/._
+- [#125](link): Database optimization (In Progress)
+- [#126](link): UI redesign (Planning)
+
+See GitHub Issues for detailed plans and task checklists.
+
+## Known Issues
+
+- Performance degradation with >10k tasks ([#128](link))
+
+## Archive
+
+For complete development history:
+- Git commit history: `git log --grep="skill-name"`
+- Closed issues: https://github.com/user/repo/issues?q=label:skill:skill-name+is:closed
+- Cross-skill learnings: docs/lessons/
 ```
 
 **Detailed information lives in:**
-- GitHub Issue body and comments (active work)
-- `docs/plans/` (pre-work design)
-- `docs/lessons/` (post-work learnings)
+- GitHub Issue body and comments (active work, source of truth)
+- `docs/plans/` (pre-work design, version controlled in repo)
+- `docs/lessons/` (post-work learnings, cross-skill patterns)
 
 **Example workflow:**
-1. Create issue #123 with tasks
-2. Add row to IMPROVEMENT_PLAN.md Planned table: `| #123 | High | Feature Name | Open |`
-3. Start work: Update status to "In Progress"
-4. Complete work: Move to Completed table with version, date, and key changes
+1. Create issue #123 with detailed tasks
+2. Add to IMPROVEMENT_PLAN.md Active Work section: `- [#123](link): Feature Name (Planning)`
+3. Start work: Update to "In Progress"
+4. Complete work: Add row to Version History table with metrics from `evaluate_skill.py --export-table-row`
+5. Close issue #123 in GitHub
 
 ### 5. Implementation & Release
 
@@ -148,14 +163,32 @@ Closes #123"
 
 ```
 docs/
-  plans/          # Ephemeral planning (pre-work, can be deleted after issue created)
-  lessons/        # Cross-skill learnings (permanent, referenced in IMPROVEMENT_PLAN.md)
+  plans/          # IN-REPO planning (version controlled, cross-machine accessible)
+                  # Can be ephemeral OR permanent depending on value
+                  # CRITICAL: Use docs/plans/, NOT ~/.claude/plans/ (outside repo)
+  lessons/        # Cross-skill learnings (permanent, post-work retrospectives)
 skills/
   skill-name/
-    IMPROVEMENT_PLAN.md  # Simple table format (permanent, travels with skill)
+    IMPROVEMENT_PLAN.md  # Lightweight metrics + release notes (~100-300 lines)
     SKILL.md            # Metadata and version
     references/         # Detailed documentation
 ```
+
+**docs/plans/ Purpose:**
+
+Keep planning documents INSIDE the repository where they are:
+- Tracked in git history
+- Accessible across all machines via git pull/push
+- Referenceable from GitHub Issues
+- Searchable within the repository
+
+**When to use docs/plans/:**
+- Complex architectural planning (multi-file, multi-skill changes)
+- Research documents (comparing approaches, feasibility studies)
+- Workflow consolidations
+- Any planning that benefits from structured markdown
+
+**Simple planning** can go directly in GitHub Issue descriptions.
 
 ## Information Architecture
 
@@ -163,13 +196,17 @@ skills/
 
 | Type | Location | Purpose | Lifespan |
 |------|----------|---------|----------|
-| Active work tracking | GitHub Issues | Source of truth for in-progress work | Until closed |
-| Pre-work planning | docs/plans/ | Design and research before implementation | Ephemeral |
-| Post-work learnings | docs/lessons/ | Retrospectives and patterns | Permanent |
-| Quick overview | IMPROVEMENT_PLAN.md | Simple table of planned/completed work | Permanent |
+| Active work tracking | GitHub Issues | Source of truth for ALL planning & tracking | Until closed |
+| Pre-work planning | docs/plans/ | Design and research (version controlled in repo) | Ephemeral or permanent |
+| Post-work learnings | docs/lessons/ | Cross-skill retrospectives and patterns | Permanent |
+| Release notes + metrics | IMPROVEMENT_PLAN.md | Lightweight version history (~100-300 lines) | Permanent |
 | Detailed docs | skills/*/references/ | Implementation guides and API docs | Permanent |
 
-## Decision Tree
+**Key Principle**: ALL detailed planning happens in GitHub Issues. IMPROVEMENT_PLAN.md just reflects issue state with version history and metrics.
+
+## Decision Trees
+
+### Simple vs Complex Changes
 
 **Choosing the right approach:**
 
@@ -177,15 +214,43 @@ skills/
 Is it a typo or small fix?
 ├─ Yes → Commit directly to main
 └─ No → Is it complex (multi-file, architectural)?
-    ├─ No → Add to IMPROVEMENT_PLAN.md table, create issue, implement
+    ├─ No → Create GitHub issue, add to IMPROVEMENT_PLAN.md Active Work, implement
     └─ Yes → Follow full workflow:
-        1. Document learnings in docs/lessons/ (if post-work)
-        2. Create plan in docs/plans/ (if pre-work research needed)
-        3. Create GitHub issue with task checklist
-        4. Add to IMPROVEMENT_PLAN.md Planned table
-        5. Implement with commits referencing issue
-        6. Release with two-commit pattern
+        1. Create plan in docs/plans/ (if pre-work research needed)
+        2. Create GitHub issue with task checklist (source of truth)
+        3. Add to IMPROVEMENT_PLAN.md Active Work section
+        4. Implement with commits referencing issue
+        5. Release: Add version row to IMPROVEMENT_PLAN.md with metrics
+        6. Optional: Document learnings in docs/lessons/ (if cross-skill pattern)
 ```
+
+### Skill-Specific vs Repo-Level Work
+
+**Use GitHub Issue labels to distinguish scope:**
+
+```
+Is this improvement specific to ONE skill?
+├─ YES → Create GitHub Issue with label "enhancement"
+│        Title format: "skill-name: Feature description"
+│        Example: "omnifocus-manager: Add TypeScript validation"
+│        Update: skills/skill-name/IMPROVEMENT_PLAN.md
+│
+└─ NO → Does it affect multiple skills OR repo structure?
+         ├─ Multiple skills → Consider creating individual issues per skill
+         │                   OR one issue with "enhancement" label
+         │                   Title: "Standardize error handling across skills"
+         │                   Document pattern in docs/lessons/ after completion
+         │
+         └─ Repo infrastructure → Label: "documentation"
+                                  Title: "repo: Update WORKFLOW.md pattern"
+                                  Example: Workflow changes, CI/CD updates
+```
+
+**Key Insight:**
+- ALL improvements use GitHub Issues (source of truth)
+- Title prefix distinguishes scope ("skill-name:" vs "repo:")
+- Labels help filter and search issues
+- Both follow same workflow
 
 ## Examples
 
@@ -194,6 +259,7 @@ Is it a typo or small fix?
 ```bash
 # 1. Create issue
 gh issue create --title "omnifocus-manager: Add task filtering" \
+  --label "enhancement" \
   --body "**Goal**: Filter tasks by project
 
 **Tasks**:
@@ -201,14 +267,18 @@ gh issue create --title "omnifocus-manager: Add task filtering" \
 - [ ] Update documentation
 - [ ] Add tests"
 
-# 2. Add to IMPROVEMENT_PLAN.md Planned table
-# | #125 | Medium | Add task filtering | Open |
+# Returns: Created issue #125
+
+# 2. Add to IMPROVEMENT_PLAN.md Active Work section
+# - [#125](link): Add task filtering (Planning)
 
 # 3. Implement
 git commit -m "feat(omnifocus-manager): Add task filtering (#125)"
 
-# 4. Release
-# Move #125 to Completed table with version v2.1.0
+# 4. Release with metrics
+# Run: uv run skills/skillsmith/scripts/evaluate_skill.py skills/omnifocus-manager --export-table-row --version 2.1.0 --issue 125
+# Copy output to IMPROVEMENT_PLAN.md Version History table
+# Remove from Active Work section
 git commit -m "chore: Release omnifocus-manager v2.1.0
 
 Closes #125"
@@ -217,12 +287,17 @@ Closes #125"
 ### Complex Feature (With Planning Doc)
 
 ```bash
-# 1. Create plan
+# 1. Create plan in docs/plans/ (IN REPO, not ~/.claude/plans/)
 # Create docs/plans/2026-01-20-typescript-validation.md
 # Research and design TypeScript validation system
 
-# 2. Create issue referencing plan
+# 2. Commit plan to repo
+git add docs/plans/2026-01-20-typescript-validation.md
+git commit -m "docs: Add TypeScript validation plan"
+
+# 3. Create issue referencing plan
 gh issue create --title "omnifocus-manager: Add TypeScript validation" \
+  --label "enhancement" \
   --body "**Goal**: Validate plugin code before execution
 
 **Plan**: See docs/plans/2026-01-20-typescript-validation.md
@@ -234,22 +309,26 @@ gh issue create --title "omnifocus-manager: Add TypeScript validation" \
 - [ ] Update documentation
 - [ ] Add tests"
 
-# 3. Add to IMPROVEMENT_PLAN.md Planned table
-# | #126 | High | TypeScript validation | Open |
+# Returns: Created issue #126
 
-# 4. Implement with multiple commits
+# 4. Add to IMPROVEMENT_PLAN.md Active Work section
+# - [#126](link): TypeScript validation (Planning)
+
+# 5. Implement with multiple commits
 git commit -m "feat(omnifocus-manager): Add TS compiler integration (#126)"
 git commit -m "feat(omnifocus-manager): Validate plugins on execution (#126)"
 
-# 5. Release
-# Move #126 to Completed table with v2.2.0 and key changes
+# 6. Release with metrics
+# Run: uv run skills/skillsmith/scripts/evaluate_skill.py skills/omnifocus-manager --export-table-row --version 2.2.0 --issue 126
+# Add row to IMPROVEMENT_PLAN.md Version History table
+# Remove from Active Work section
 git commit -m "chore: Release omnifocus-manager v2.2.0
 
 Closes #126"
 
-# 6. Optional: Create retrospective
-# Create docs/lessons/typescript-validation-learnings.md
-# Document challenges and solutions for future reference
+# 7. Optional: Create retrospective (if pattern applies to multiple skills)
+# Create docs/lessons/typescript-validation-pattern.md
+# Document approach for other skills that might need similar validation
 ```
 
 ## Migration from Old Format
@@ -261,43 +340,64 @@ Closes #126"
 **Goal**: Detailed description...
 **Problem Identified**: Long explanation...
 **Planned Features**:
-- Feature 1 with details
+- Feature 1 with details (500 lines of detailed planning)
 - Feature 2 with details
 ```
 
-**New format** (simple table, details in issue):
+**New format** (lightweight release notes with metrics):
 ```markdown
-| Issue | Priority | Title | Status |
-|-------|----------|-------|--------|
-| #123  | High     | Feature Name | Open |
+## Version History
+
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
+|---------|------|-------|---------|------|------|------|------|---------|
+| 2.0.0 | 2026-01-18 | [#123](link) | Feature Name | 67 | 90 | 100 | 100 | 89 |
+
+## Active Work
+
+- [#124](link): Next feature (Planning)
 ```
 
 **Migration strategy:**
-- Use table format for all new planned/completed improvements
-- Keep historical verbose entries as-is (optional: add "Archive" section)
-- See `docs/lessons/improvement-plan-migration.md` for detailed guide
+1. Extract planned improvements from IMPROVEMENT_PLAN.md
+2. Create GitHub Issues for each active planned improvement (copy details to issue)
+3. Update IMPROVEMENT_PLAN.md to new format:
+   - Version History table for completed work
+   - Active Work section listing open issues
+   - Known Issues section
+   - Archive section pointing to git history
+4. Target size: 100-300 lines total (bounded and scannable)
+5. See issue #6 and docs/plans/2026-01-23-skill-planning-consolidation.md for detailed migration plan
 
 ## Benefits
 
 1. **Single Source of Truth**
-   - GitHub Issues are canonical (not IMPROVEMENT_PLAN.md)
+   - GitHub Issues are canonical for ALL planning (not IMPROVEMENT_PLAN.md)
    - No duplication of planning details
    - Cross-machine accessible and searchable
+   - Native task tracking with checkboxes
 
 2. **Clear Information Architecture**
-   - `docs/lessons/` - Post-work learnings
-   - `docs/plans/` - Pre-work design
-   - GitHub Issues - Active tracking
-   - IMPROVEMENT_PLAN.md - Simple summary
+   - `docs/lessons/` - Cross-skill post-work learnings
+   - `docs/plans/` - Pre-work design (version controlled in repo)
+   - GitHub Issues - Active tracking (source of truth)
+   - IMPROVEMENT_PLAN.md - Lightweight release notes + metrics
 
-3. **Lightweight IMPROVEMENT_PLAN.md**
-   - Scannable table format
+3. **Bounded IMPROVEMENT_PLAN.md Size**
+   - Target: 100-300 lines (vs current 2000+ in some skills)
+   - Scannable version history table with metrics
    - Quick overview of skill evolution
-   - Easy to maintain (just issue references)
-   - Still provides historical record
+   - Easy to maintain (just version rows and active issue links)
+   - Focuses on "what changed" not "why" (that's in the issue)
 
 4. **Better Collaboration**
-   - GitHub Issues work across machines
-   - Native discussion and timeline
-   - Task checkboxes for tracking progress
-   - Email notifications and mentions
+   - GitHub Issues work across machines and operating systems
+   - Native discussion threads and timeline
+   - Task checkboxes for detailed progress tracking
+   - Email notifications, mentions, and labels
+   - Detailed planning preserved in issue comments
+
+5. **Measurable Quality**
+   - Metrics tracked per release (Conciseness, Complexity, Spec Compliance, Progressive Disclosure)
+   - Compare skill efficacy over time
+   - Identify improvement trends
+   - `evaluate_skill.py --export-table-row` eliminates transcription errors
