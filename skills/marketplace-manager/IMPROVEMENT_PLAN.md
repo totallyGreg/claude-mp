@@ -8,6 +8,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.5.0 | 2026-01-23 | Deprecate skill-planner skill: Removed from marketplace, updated workflow documentation |
 | 1.4.0 | 2026-01-22 | Core marketplace operations automation: source path fixes, deprecation, bundling, templates |
 | 1.3.0 | 2026-01-07 | Critical bug fixes: utils.py dependency, schema compliance, metadata.version parsing |
 | 1.1.0 | 2025-12-22 | Added plugin versioning strategies, validation command, pre-commit hook |
@@ -17,52 +18,6 @@ This document tracks improvements, enhancements, and future development plans fo
 > Last Updated: 2026-01-22
 
 **Note:** Planned improvements are tracked by NUMBER, not version. Version numbers are only assigned when releasing.
-
-### Critical Priority (Blocking Issues)
-
-| Issue | Priority | Title | Status |
-|-------|----------|-------|--------|
-| [#5](https://github.com/totallyGreg/claude-mp/issues/5) | High | Deprecate skill-planner skill (v1.5.0) | In Progress |
-
-#### [#5](https://github.com/totallyGreg/claude-mp/issues/5) Deprecate skill-planner Skill (IN PROGRESS)
-**Goal:** Remove obsolete skill-planner skill from marketplace
-
-**Problem:**
-- skill-planner uses git branch workflow (PLAN.md in branches)
-- Conflicts with WORKFLOW.md GitHub Issues pattern (current standard)
-- Competing sources of truth (PLAN.md vs GitHub Issues)
-- skill-planner unused - recent plans use docs/plans/ + GitHub Issues
-
-**Prerequisites:**
-- Issue #4 must be complete (deprecation automation must exist)
-
-**Proposed Solution:**
-- Run deprecation automation to remove from marketplace.json
-- Update skillsmith to remove skill-planner references
-- Create migration guide in docs/lessons/
-- Delete skills/skill-planner/ (git rm, no archive)
-
-**Files to Modify:**
-- `.claude-plugin/marketplace.json` - Remove skill-planner
-- `skills/skillsmith/SKILL.md` - Remove skill-planner references
-- `skills/skillsmith/references/improvement_workflow_guide.md` - Remove delegation logic
-- `skills/marketplace-manager/IMPROVEMENT_PLAN.md` - Track completion
-- `skills/skillsmith/IMPROVEMENT_PLAN.md` - Document removal
-
-**Files to Create:**
-- `docs/lessons/workflow-simplification.md` - Migration guide
-
-**Files to Delete:**
-- `skills/skill-planner/` - Entire directory (git rm)
-
-**Success Criteria:**
-- ✅ skill-planner removed from marketplace
-- ✅ skillsmith no longer references skill-planner
-- ✅ Single source of truth: WORKFLOW.md pattern only
-
-**Version Bump:** 1.4.0 → 1.5.0 (MINOR - marketplace change)
-
-**Plan:** See docs/plans/2026-01-22-marketplace-manager-evolution.md Phase 2
 
 ### Resolved Issues (Kept for Reference)
 
@@ -245,6 +200,42 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ## ✅ Recent Improvements (Completed)
 > Sorted by: Newest first
+
+### v1.5.0 - Deprecate skill-planner Skill (2026-01-23)
+
+**Goal:** Remove obsolete skill-planner skill from marketplace and consolidate to WORKFLOW.md pattern
+
+**Changes:**
+
+1. **Marketplace Cleanup**:
+   - Ran `deprecate_skill.py` automation (created in v1.4.0)
+   - Removed skill-planner from marketplace.json
+   - Skill successfully deprecated using Phase 1 automation
+
+2. **Documentation Updates**:
+   - Updated SKILL.md line 48: Removed skill-planner workflow reference
+   - Updated to: "Complex updates: Skillsmith (WORKFLOW.md pattern) → marketplace-manager → commit"
+
+3. **Migration Guide**:
+   - Created `docs/lessons/workflow-simplification.md`
+   - Comprehensive comparison table (skill-planner vs WORKFLOW.md)
+   - Migration instructions for simple and complex changes
+   - Lessons learned documentation
+
+**Coordination with skillsmith:**
+- skillsmith updated all references to use WORKFLOW.md pattern
+- 6 reference files updated to remove skill-planner delegation
+- Single source of truth: GitHub Issues
+
+**Impact:**
+- ✅ skill-planner removed from marketplace
+- ✅ No more competing planning paradigms
+- ✅ WORKFLOW.md pattern is now the single standard
+- ✅ Migration guide available for users
+
+**Version Bump:** 1.4.0 → 1.5.0 (MINOR - marketplace change)
+
+**Related Issues:** [#5](https://github.com/totallyGreg/claude-mp/issues/5) (Completed), [#4](https://github.com/totallyGreg/claude-mp/issues/4) (Prerequisite)
 
 ### v1.4.0 - Core Marketplace Operations Automation (2026-01-22)
 

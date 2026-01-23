@@ -40,7 +40,7 @@
       "name": "skillsmith",
       "description": "Guide for forging effective Claude skills with marketplace integration",
       "category": "development",
-      "version": "3.2.0",
+      "version": "3.2.1",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
@@ -96,7 +96,7 @@
       "name": "marketplace-manager",
       "description": "Manages Claude Code plugin marketplace operations including version syncing and marketplace.json maintenance",
       "category": "development",
-      "version": "1.4.0",
+      "version": "1.5.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"

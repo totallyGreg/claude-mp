@@ -8,6 +8,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.2.1 | 2026-01-23 | Remove skill-planner references, adopt WORKFLOW.md pattern for complex improvements |
 | 3.2.0 | 2026-01-18 | Added table-based IMPROVEMENT_PLAN.md format and workflow documentation |
 | 1.8.0 | 2025-12-23 | Added AgentSkills specification as core domain knowledge |
 | 1.7.0 | 2025-12-22 | Conciseness optimization - moved research documentation to references/ |
@@ -20,41 +21,6 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ## 🔮 Planned Improvements
 > Last Updated: 2026-01-22
-
-### Critical Priority
-
-| Issue | Priority | Title | Status |
-|-------|----------|-------|--------|
-| [#5](https://github.com/totallyGreg/claude-mp/issues/5) | High | Remove skill-planner references | In Progress |
-
-#### [#5](https://github.com/totallyGreg/claude-mp/issues/5) Remove skill-planner References (IN PROGRESS)
-**Goal:** Update skillsmith to remove all references to deprecated skill-planner
-
-**Background:**
-skill-planner is being deprecated in favor of WORKFLOW.md GitHub Issues pattern. skillsmith currently references skill-planner for complex improvements delegation, but this creates competing sources of truth.
-
-**Prerequisites:**
-- Issue #4 must be complete (marketplace-manager deprecation automation)
-
-**Proposed Changes:**
-- Remove skill-planner references from SKILL.md
-- Update `references/improvement_workflow_guide.md` to remove delegation logic
-- Document WORKFLOW.md as the standard planning pattern
-- Update IMPROVEMENT_PLAN.md to reflect completion
-
-**Files to Modify:**
-- `SKILL.md` - Remove skill-planner references
-- `references/improvement_workflow_guide.md` - Remove delegation section
-- `IMPROVEMENT_PLAN.md` - Track completion
-
-**Success Criteria:**
-- ✅ No references to skill-planner in skillsmith
-- ✅ WORKFLOW.md documented as standard pattern
-- ✅ Improvement routing uses GitHub Issues workflow
-
-**Version Bump:** Current → Next PATCH (documentation update)
-
-**Related Issue:** Part of marketplace-manager issue #5
 
 ### High Priority
 
@@ -282,6 +248,54 @@ During omnifocus-manager consolidation, `package-lock.json` was accidentally com
 
 ## ✅ Recent Improvements (Completed)
 > Sorted by: Newest first
+
+### v3.2.1 - Remove skill-planner References (2026-01-23)
+
+**Goal:** Update skillsmith to remove all references to deprecated skill-planner and adopt WORKFLOW.md pattern
+
+**Changes:**
+
+1. **SKILL.md Updates**:
+   - Line 250: Replaced skill-planner delegation with WORKFLOW.md pattern guidance
+   - Line 268: Removed skill-planner from integration_guide.md description
+   - Now directs users to create GitHub Issues for complex improvements
+
+2. **Reference Files Updated** (6 files):
+   - `references/improvement_workflow_guide.md`: Complete rewrite of complex workflow section
+     - Removed skill-planner delegation logic
+     - Added GitHub Issue creation workflow
+     - Updated examples to use WORKFLOW.md pattern
+   - `references/integration_guide.md`: Updated integration patterns
+     - Removed "Skillsmith → skill-planner" section
+     - Added "WORKFLOW.md Pattern for Complex Improvements" section
+     - Updated complex improvement flow diagram
+   - `references/research_guide.md`: Updated integration section
+     - Changed from skill-planner to WORKFLOW.md pattern
+   - `references/validation_tools_guide.md`: Updated integration examples
+     - Removed skill-planner workflow references
+     - Added GitHub Issues integration
+   - `references/reference_management_guide.md`: Updated workflow reference
+     - Changed from skill-planner to WORKFLOW.md pattern
+
+3. **Workflow Pattern Standardization**:
+   - All references now use consistent WORKFLOW.md pattern:
+     - GitHub Issues as source of truth
+     - IMPROVEMENT_PLAN.md table for tracking
+     - docs/plans/ for ephemeral planning docs
+   - Removed all mentions of git branch-based planning
+   - Updated examples to show GitHub Issue creation
+
+**Impact:**
+- ✅ No references to skill-planner remain in skillsmith
+- ✅ WORKFLOW.md pattern is now the documented standard
+- ✅ Consistent guidance across all reference files
+- ✅ Simpler, more accessible improvement workflow
+
+**Version Bump:** 3.2.0 → 3.2.1 (PATCH - documentation update)
+
+**Related Issues:** [#5](https://github.com/totallyGreg/claude-mp/issues/5) (Completed)
+
+**Coordination:** marketplace-manager v1.5.0 removed skill-planner from marketplace
 
 ### v1.8.0 - AgentSkills Specification Integration (2025-12-23)
 
