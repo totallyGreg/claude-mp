@@ -3,7 +3,7 @@ name: skillsmith
 description: Guide for creating and improving effective skills. This skill should be used when users want to create, update, or improve skills that extend Claude's capabilities with specialized knowledge, workflows, or tool integrations.
 metadata:
   author: J. Greg Williams
-  version: "3.3.0"
+  version: "3.4.0"
 compatibility: Requires python3 and uv for script execution and validation
 license: Complete terms in LICENSE.txt
 ---

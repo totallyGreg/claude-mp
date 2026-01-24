@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 3.4.0 | 2026-01-24 | [#7](https://github.com/totallyGreg/claude-mp/issues/7) | Add --strict validation mode and validation gate workflow | 48 | 90 | 100 | 100 | 85 |
 | 3.3.0 | 2026-01-23 | [#6](https://github.com/totallyGreg/claude-mp/issues/6) | skillsmith v3.3.0 | 55 | 90 | 100 | 100 | 86 |
 | 3.2.1 | 2026-01-23 | [#5](https://github.com/totallyGreg/claude-mp/issues/5) | Remove skill-planner references, adopt WORKFLOW.md pattern | 55 | 90 | 100 | 100 | 86 |
 | 3.2.0 | 2026-01-18 | - | Added table-based IMPROVEMENT_PLAN.md format and workflow documentation | - | - | - | - | - |
@@ -20,9 +21,7 @@
 
 ## Active Work
 
-- [#7](https://github.com/totallyGreg/claude-mp/issues/7): Add --strict validation mode (Planning)
 - [#8](https://github.com/totallyGreg/claude-mp/issues/8): Advanced validation features (Planning)
-- [#9](https://github.com/totallyGreg/claude-mp/issues/9): Complete reference consolidation verification (Planning)
 - [#10](https://github.com/totallyGreg/claude-mp/issues/10): Add interactive mode to skill template (Planning)
 - [#11](https://github.com/totallyGreg/claude-mp/issues/11): Review and triage future enhancement ideas (Planning)
 
