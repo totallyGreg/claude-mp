@@ -260,6 +260,51 @@ Keep planning documents INSIDE the repository where they are:
 
 **Key Principle**: ALL detailed planning happens in GitHub Issues. IMPROVEMENT_PLAN.md just reflects issue state with version history and metrics.
 
+## Validation Gates and Quality Enforcement
+
+Skills use a validation gate system to ensure quality before release:
+
+### Two-Stage Validation
+
+**Stage 1: Standard Validation (during development)**
+- Catch structural errors early
+- Allow warnings to accumulate for batch fixing
+- Enables rapid iteration
+- Command: `uv run scripts/evaluate_skill.py <skill> --quick`
+
+**Stage 2: Strict Validation (before release)**
+- Enforce both errors AND warnings
+- Prevents regressions in quality
+- Blocks completion until all issues resolved
+- Command: `uv run scripts/evaluate_skill.py <skill> --quick --strict`
+
+### Workflow Integration
+
+1. **Development phase**: Use standard validation for quick feedback
+2. **Before release**: Run strict validation to ensure quality
+3. **If issues found in strict mode**:
+   - Either fix them (preferred)
+   - Or explicitly defer with GitHub issue + document in IMPROVEMENT_PLAN.md
+4. **Release**: Only release when strict validation passes (exit code 0)
+
+### Skill Release Checklist
+
+```bash
+# Before releasing skill-name v2.0.0:
+
+# 1. Run strict validation
+uv run scripts/evaluate_skill.py skills/skill-name --quick --strict
+
+# 2. If issues found:
+#    Option A (preferred): Fix them and re-run validation
+#    Option B: Create GitHub issue and document deferral
+
+# 3. Validation passes (exit code 0)
+# 4. Update IMPROVEMENT_PLAN.md with metrics and new version
+# 5. Bump version in SKILL.md metadata.version
+# 6. Create two-commit release (see "Implementing & Release" section)
+```
+
 ## Decision Trees
 
 ### Simple vs Complex Changes
@@ -271,13 +316,17 @@ Is it a typo or small fix?
 ├─ Yes → Commit directly to main
 └─ No → Is it complex (multi-file, architectural)?
     ├─ No → Create GitHub issue, add to IMPROVEMENT_PLAN.md Active Work, implement
+    │       Run: `uv run scripts/evaluate_skill.py <skill> --quick` periodically
+    │       Before release: Run with `--strict` flag
+    │
     └─ Yes → Follow full workflow:
-        1. Create plan in docs/plans/ (if pre-work research needed)
-        2. Create GitHub issue with task checklist (source of truth)
-        3. Add to IMPROVEMENT_PLAN.md Active Work section
-        4. Implement with commits referencing issue
-        5. Release: Add version row to IMPROVEMENT_PLAN.md with metrics
-        6. Optional: Document learnings in docs/lessons/ (if cross-skill pattern)
+            1. Create plan in docs/plans/ (if pre-work research needed)
+            2. Create GitHub issue with task checklist (source of truth)
+            3. Add to IMPROVEMENT_PLAN.md Active Work section
+            4. Implement with commits referencing issue
+            5. Validate with: `uv run scripts/evaluate_skill.py <skill> --quick --strict`
+            6. Release: Add version row to IMPROVEMENT_PLAN.md with metrics
+            7. Optional: Document learnings in docs/lessons/ (if cross-skill pattern)
 ```
 
 ### Skill-Specific vs Repo-Level Work

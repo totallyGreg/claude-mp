@@ -100,6 +100,16 @@ Skills use a three-level loading system to manage context efficiently:
 
 *Unlimited because scripts can be executed without reading into context window.
 
+### Validation as a Core Workflow
+
+Quality validation is embedded throughout the skill creation process:
+
+- **During development**: Quick validation catches structural issues early
+- **Before release**: Strict mode ensures no quality regressions
+- **In CI/CD**: Automated gates prevent bad skills from being published
+
+The validation workflow prevents issues from accumulating and ensures each skill meets AgentSkills specification.
+
 ## Skill Creation Process
 
 To create a skill, follow the "Skill Creation Process" in order, skipping steps only if there is a clear reason why they are not applicable.
@@ -205,7 +215,7 @@ To complete SKILL.md, answer the following questions:
 Once the skill is ready, validate it to ensure it meets all requirements:
 
 ```bash
-python3 scripts/evaluate_skill.py <skill-path>
+uv run scripts/evaluate_skill.py <skill-path> --quick
 ```
 
 The validation evaluates:
@@ -218,6 +228,37 @@ The validation evaluates:
 - AgentSkills specification compliance
 
 If validation fails, the tool will report the errors. Fix any validation errors and run validation again.
+
+#### Validation Gate: Strict vs Standard Mode
+
+Validation provides two enforcement levels:
+
+**Standard Mode (default):**
+- Errors block skill completion (required fixes)
+- Warnings are informational (recommended improvements)
+- Developers can proceed despite warnings
+- Use in: Development iterations
+
+**Strict Mode (--strict flag):**
+- Both errors AND warnings block skill completion
+- Prevents quality regressions before release
+- Designed for: Pre-release quality gates
+- Prevents: Accidentally shipping low-quality documentation
+
+Use strict mode when:
+- Preparing release versions
+- Running in CI/CD validation gates
+- Quality expectations are high
+- Before submission to marketplace
+
+Example:
+```bash
+# Standard validation (warnings are OK)
+uv run scripts/evaluate_skill.py skills/my-skill --quick
+
+# Strict validation (warnings block completion)
+uv run scripts/evaluate_skill.py skills/my-skill --quick --strict
+```
 
 For advanced validation options, see `references/validation_tools_guide.md`.
 
@@ -238,13 +279,17 @@ After testing the skill, users may request improvements. Often this happens righ
 2. Notice struggles or inefficiencies
 3. Identify how SKILL.md or bundled resources should be updated
 4. Make improvements directly for simple changes
-5. Run `evaluate_skill.py` to verify no regressions
-6. Update the `metadata.version` field in YAML frontmatter:
+5. Run quick validation to verify no regressions: `uv run scripts/evaluate_skill.py <skill> --quick`
+6. Before committing:
+   - Run strict validation: `uv run scripts/evaluate_skill.py <skill> --quick --strict`
+   - Fix any issues (errors or warnings in strict mode)
+   - Re-run validation until all issues are resolved
+7. Update the `metadata.version` field in YAML frontmatter:
    - **PATCH** (1.0.0 → 1.0.1): Bug fixes, documentation updates, minor improvements
    - **MINOR** (1.0.0 → 1.1.0): New features, new bundled resources, backward-compatible changes
    - **MAJOR** (1.0.0 → 2.0.0): Breaking changes, major rewrites, changed workflow
-7. Test again and commit changes
-8. Optionally sync to marketplace
+8. Test again and commit changes
+9. Optionally sync to marketplace
 
 **For complex improvements:**
 - Use WORKFLOW.md pattern: Create GitHub Issue → Add to IMPROVEMENT_PLAN.md → Plan in docs/plans/

@@ -40,6 +40,7 @@ Usage:
 
 Options:
     --quick                   Fast validation mode (structure only)
+    --strict                  Strict mode: treat warnings as errors (requires --quick)
     --check-improvement-plan  Validate IMPROVEMENT_PLAN.md (requires --quick)
     --compare <path>          Compare against original skill version
     --validate-functionality  Run functionality validation tests
@@ -1480,7 +1481,36 @@ def evaluate_skill(skill_path, compare_with=None, validate_func=False, store_met
 # Output Formatting
 # ============================================================================
 
-def print_quick_validation_text(validation_result):
+def apply_strict_mode(validation_result, strict_enabled):
+    """
+    Apply strict mode: treat warnings as errors if strict_enabled
+
+    In strict mode:
+    - Warnings are moved to errors
+    - Overall validation result becomes invalid if warnings exist
+    - Used for pre-release quality gates
+    """
+    if not strict_enabled:
+        return validation_result
+
+    # Collect all warnings from different validation stages
+    all_warnings = []
+
+    # PEP 723 warnings
+    if 'pep723' in validation_result and validation_result['pep723'].get('warnings'):
+        all_warnings.extend(validation_result['pep723']['warnings'])
+
+    # Only treat warnings as errors if strict mode is enabled
+    if all_warnings:
+        # Mark result as invalid if warnings exist in strict mode
+        validation_result['strict_mode_warnings'] = all_warnings
+        validation_result['valid'] = False
+        validation_result['structure']['valid'] = False
+
+    return validation_result
+
+
+def print_quick_validation_text(validation_result, strict_mode=False):
     """Print quick validation in human-readable text format"""
     struct = validation_result['structure']
     print(struct['message'])
@@ -1510,9 +1540,26 @@ def print_quick_validation_text(validation_result):
 
         if pep723['warnings']:
             print()
-            print("⚠️  PEP 723 WARNINGS:")
-            for warning in pep723['warnings']:
-                print(warning)
+            if strict_mode:
+                print("❌ STRICT MODE: PEP 723 WARNINGS TREATED AS ERRORS")
+                for warning in pep723['warnings']:
+                    print(f"  ✗ {warning}")
+            else:
+                print("⚠️  PEP 723 WARNINGS:")
+                for warning in pep723['warnings']:
+                    print(warning)
+
+    # Strict mode warnings (converted to errors)
+    if 'strict_mode_warnings' in validation_result and validation_result['strict_mode_warnings']:
+        print()
+        print("❌ STRICT MODE: WARNINGS TREATED AS ERRORS")
+        for warning in validation_result['strict_mode_warnings']:
+            print(f"  ✗ {warning}")
+        sys.exit(1)
+
+    # Exit with appropriate code based on validation results
+    if not validation_result.get('valid', True):
+        sys.exit(1)
 
     sys.exit(0)
 
@@ -1642,6 +1689,7 @@ def main():
 
     skill_path = sys.argv[1]
     quick_mode = False
+    strict_mode = False
     check_improvement_plan = False
     compare_with = None
     validate_func = False
@@ -1658,6 +1706,9 @@ def main():
         arg = sys.argv[i]
         if arg == '--quick':
             quick_mode = True
+            i += 1
+        elif arg == '--strict':
+            strict_mode = True
             i += 1
         elif arg == '--check-improvement-plan':
             check_improvement_plan = True
@@ -1751,6 +1802,10 @@ def main():
         if quick_mode:
             validation_result = quick_validate(skill_path, check_improvement_plan)
 
+            # Apply strict mode if enabled
+            if strict_mode:
+                validation_result = apply_strict_mode(validation_result, strict_mode)
+
             if output_format == 'json':
                 output = json.dumps(validation_result, indent=2)
                 if output_file:
@@ -1761,7 +1816,7 @@ def main():
                     print(output)
                 sys.exit(0 if validation_result['valid'] else 1)
             else:
-                print_quick_validation_text(validation_result)
+                print_quick_validation_text(validation_result, strict_mode)
                 # This function exits with appropriate code
 
         # Comprehensive evaluation mode

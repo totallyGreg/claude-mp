@@ -83,6 +83,57 @@ python3 scripts/evaluate_skill.py <skill-path> \
 python3 scripts/evaluate_skill.py <skill-path> --output results.json
 ```
 
+### Strict Mode (Validation Gate)
+
+Strict mode treats warnings as errors, creating a validation gate for pre-release quality assurance:
+
+```bash
+# Strict quick validation (warnings block completion)
+uv run scripts/evaluate_skill.py <skill-path> --quick --strict
+
+# Strict mode with IMPROVEMENT_PLAN checking
+uv run scripts/evaluate_skill.py <skill-path> --quick --strict --check-improvement-plan
+```
+
+#### When to Use Strict Mode
+
+Use `--strict` flag when:
+- **Pre-release validation** - Before bumping version and releasing
+- **CI/CD gates** - Automated pipelines checking skill quality
+- **Marketplace submission** - Before publishing to marketplace
+- **Team standards** - When project requires high documentation quality
+
+Strict mode is **not** needed for:
+- Development iterations (standard mode is faster)
+- Minor bug fixes (use standard mode if no quality regressions)
+- Quick sanity checks (standard mode is sufficient)
+
+#### Error Deferral Workflow
+
+When strict mode reports issues you want to defer:
+
+1. Acknowledge the issues (don't ignore them)
+2. Create a GitHub issue for the deferred work
+3. Document the deferral in your IMPROVEMENT_PLAN.md
+4. Later: Complete the deferred work in a follow-up phase
+
+Example workflow:
+```bash
+# Strict validation finds issues
+uv run scripts/evaluate_skill.py skills/my-skill --quick --strict
+
+# If issues exist that you want to defer:
+# 1. Create GitHub issue
+gh issue create --title "my-skill: Fix documentation issues"
+# Output: Created issue #456
+
+# 2. Document in IMPROVEMENT_PLAN.md Active Work section:
+# - [#456](link): Fix documentation issues (Planning)
+
+# 3. Later: Complete the deferred work and run strict validation again
+uv run scripts/evaluate_skill.py skills/my-skill --quick --strict
+```
+
 ### When to Use Quick Mode
 
 Quick mode (`--quick`) is optimized for speed and minimal output. Use it for:
@@ -91,6 +142,7 @@ Quick mode (`--quick`) is optimized for speed and minimal output. Use it for:
 - **CI/CD validation gates** - Automated pipeline checks
 - **Quick sanity checks** - During development iterations
 - **IMPROVEMENT_PLAN validation** - Before release (with `--check-improvement-plan`)
+- **Strict validation** - With `--strict` flag for pre-release gates
 - **Structural validation only** - When metrics aren't needed
 
 **Performance:** Quick mode completes in <1 second for most skills.
