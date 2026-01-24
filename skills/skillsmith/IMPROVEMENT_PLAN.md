@@ -29,7 +29,13 @@ See GitHub Issues for detailed plans and task checklists.
 
 ## Known Issues
 
-None currently. Report issues at https://github.com/totallyGreg/claude-mp/issues
+1. ~~**Directory name detection bug in evaluate_skill.py**~~ - **FIXED in Phase 1** - Changed `Path('.').name` to `Path(skill_path).resolve().name` for proper resolution. Verified with absolute, relative, and `.` path formats.
+
+2. **Deep nested reference false positives in validation** - validation logic incorrectly flags documentation examples containing `references/` paths as deep nesting. Issue is in validation rules (Phase 2), not SKILL.md structure (which was flattened in Phase 1).
+
+3. **Low conciseness score (48/100)** - SKILL.md is 309 lines (~4052 tokens), exceeding recommended range. Content should be moved to references/ to improve progressive disclosure and keep SKILL.md lean (target: <250 lines).
+
+Report new issues at https://github.com/totallyGreg/claude-mp/issues
 
 ## Archive
 

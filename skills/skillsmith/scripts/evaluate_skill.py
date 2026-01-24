@@ -874,7 +874,7 @@ def validate_naming_conventions(skill_path, frontmatter_dict):
     warnings = []
 
     name = frontmatter_dict.get('name', '')
-    dir_name = skill_path.name
+    dir_name = Path(skill_path).resolve().name
 
     # Name must be 1-64 characters
     if not name:
