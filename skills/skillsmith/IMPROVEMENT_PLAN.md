@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 3.5.0 | 2026-01-24 | [#8](https://github.com/totallyGreg/claude-mp/issues/8) | Phase 2 validation improvements - deterministic scoring and reference validation | 64 | 90 | 100 | 100 | 89 |
 | 3.4.0 | 2026-01-24 | [#7](https://github.com/totallyGreg/claude-mp/issues/7) | Add --strict validation mode and validation gate workflow | 48 | 90 | 100 | 100 | 85 |
 | 3.3.0 | 2026-01-23 | [#6](https://github.com/totallyGreg/claude-mp/issues/6) | skillsmith v3.3.0 | 55 | 90 | 100 | 100 | 86 |
 | 3.2.1 | 2026-01-23 | [#5](https://github.com/totallyGreg/claude-mp/issues/5) | Remove skill-planner references, adopt WORKFLOW.md pattern | 55 | 90 | 100 | 100 | 86 |
