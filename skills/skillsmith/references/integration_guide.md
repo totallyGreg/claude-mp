@@ -423,6 +423,178 @@ Results returned to Skillsmith:
 
 ---
 
+## Validation Workflow Integration (Phase 4)
+
+The unified validation workflow (`scripts/validate_workflow.py`) provides three validation modes designed for different stages of skill development and release.
+
+### Validation Modes
+
+#### 1. Quick Mode (Development)
+
+**Command:**
+```bash
+uv run scripts/validate_workflow.py <skill-path> --mode quick
+```
+
+**Purpose:** Fast structural validation for development iterations
+
+**Checks:**
+- YAML frontmatter format and required fields
+- Character limits (name ≤64 chars, description ≤1024 chars)
+- Naming conventions (lowercase-with-hyphens)
+- Directory name matching
+- Required metadata fields
+
+**Exit Codes:**
+- 0 = Valid (errors only, no warnings)
+- 1 = Invalid (structural errors found)
+
+**Use when:**
+- During development iterations
+- Before committing changes
+- In pre-commit hooks
+- Quick sanity checks
+
+**Speed:** <1 second
+
+---
+
+#### 2. Full Mode (Comprehensive Evaluation)
+
+**Command:**
+```bash
+uv run scripts/validate_workflow.py <skill-path> --mode full
+```
+
+**Purpose:** Complete evaluation with quality metrics
+
+**Checks:** All quick mode checks plus:
+- Complete metric calculations (Conciseness, Complexity, Progressive Disclosure)
+- Spec compliance scoring
+- Overall quality assessment
+- Detailed analysis reports
+
+**Exit Codes:**
+- 0 = Valid (all checks pass)
+- 1 = Invalid (errors or warnings)
+
+**Use when:**
+- Evaluating skill quality
+- Identifying improvement opportunities
+- Tracking metrics over time
+- Before planning improvements
+
+**Output:** Includes detailed metrics in table format
+
+---
+
+#### 3. Release Mode (Strict Validation)
+
+**Command:**
+```bash
+uv run scripts/validate_workflow.py <skill-path> --mode release
+```
+
+**Purpose:** Pre-release quality gate (strict enforcement)
+
+**Checks:** All quick mode checks plus:
+- Strict enforcement: Both errors AND warnings block release
+- IMPROVEMENT_PLAN.md completeness
+- Reference file validation
+- All metrics must be within acceptable ranges
+
+**Exit Codes:**
+- 0 = Valid (all checks pass, ready for release)
+- 1 = Invalid (errors or warnings found, fix required)
+
+**Use when:**
+- Before version bumps and release
+- CI/CD validation gates
+- Marketplace submission
+- Pre-release quality assurance
+
+**Requirement:** All warnings must be resolved before proceeding
+
+---
+
+### CLI Examples
+
+**Quick validation with text output (default):**
+```bash
+uv run scripts/validate_workflow.py skills/my-skill --mode quick
+```
+
+**Full evaluation with JSON output (programmatic):**
+```bash
+uv run scripts/validate_workflow.py skills/my-skill --mode full --output json
+```
+
+**Strict release validation:**
+```bash
+uv run scripts/validate_workflow.py skills/my-skill --mode release
+```
+
+**Dry-run for CI/CD:**
+```bash
+# Quick check with JSON for parsing
+uv run scripts/validate_workflow.py skills/my-skill --mode quick --output json | jq '.valid'
+```
+
+---
+
+### Integration with Skillsmith Workflow
+
+**During Development:**
+1. Make changes to skill files
+2. Run quick validation: `validate_workflow.py --mode quick`
+3. If fails, fix errors and repeat
+4. Commit when quick validation passes
+
+**Before Improvement Planning:**
+1. Run full evaluation: `validate_workflow.py --mode full`
+2. Review metrics to identify improvement opportunities
+3. Create GitHub Issue if improvements needed
+4. Use metrics as baseline for before/after comparison
+
+**Before Release:**
+1. Run strict validation: `validate_workflow.py --mode release`
+2. Fix all errors and warnings
+3. Re-run strict validation (repeat until clean)
+4. Update IMPROVEMENT_PLAN.md metrics
+5. Bump version in SKILL.md
+6. Call marketplace-manager to sync and commit
+
+---
+
+### Validation Workflow Architecture
+
+```
+User/Developer → validate_workflow.py (Unified Entry Point)
+                        |
+                ┌───────┼───────┐
+                |       |       |
+            quick    full    release
+            (1s)   (2s)     (2s)
+                |       |       |
+            ┌───┴───┐  ┌───┬───┐
+            |       |  |   |   |
+        errors  warnings struc metric  ALL
+          only    optional tures checks
+                         only
+```
+
+---
+
+### Exit Code Conventions
+
+| Mode | Exit 0 (Pass) | Exit 1 (Fail) | Exit 2 (Warnings) |
+|------|---------------|---------------|-------------------|
+| quick | No errors | Errors found | N/A (strict: blocked) |
+| full | No errors | Errors found | Warnings only |
+| release | No errors/warnings | Any errors/warnings | N/A (blocked) |
+
+---
+
 ## Best Practices
 
 ### For Quick Updates
