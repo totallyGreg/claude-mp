@@ -126,6 +126,31 @@ Validation/Enforcement (Level 3)
 
 **Fix:** Moved to `references/python_uv_guide.md`, added one-line pointer
 
+### ✅ Case Study: Skillsmith Content Consolidation (Phase 3)
+
+**Situation:** Skill creation Steps 4-6 had 116 lines of detailed guidance in SKILL.md (editing, validation, iteration)
+
+**Problem:**
+- SKILL.md was 309 lines (exceeds 250 recommended)
+- Detailed guidance bloated the main workflow
+- Conciseness score: 64/100 (needed improvement)
+
+**Solution:**
+1. Created new reference: `references/skill_creation_detailed_guide.md` (220 lines)
+2. Consolidated Steps 4-6 editing, validation, and iteration guidance
+3. Replaced detailed sections with brief summaries + reference pointers
+4. Maintained complete information (nothing lost, just reorganized)
+
+**Results:**
+- **SKILL.md:** 309 → 227 lines (-26%)
+- **Tokens:** 4057 → 3093 (-24%)
+- **Conciseness:** 64 → 81/100 (+26%)
+- **Overall:** 89 → 93/100 (+4.5%)
+- **Progressive Disclosure:** 100/100 (maintained)
+- **Spec Compliance:** 100/100 (maintained)
+
+**Key insight:** Progressive disclosure isn't about losing information—it's about putting it where agents can find it when needed, keeping the core workflow lean and discoverable.
+
 ## Maintenance Principle
 
 **When improving skills:**

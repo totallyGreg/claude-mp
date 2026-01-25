@@ -3,7 +3,7 @@ name: skillsmith
 description: Guide for creating and improving effective skills. This skill should be used when users want to create, update, or improve skills that extend Claude's capabilities with specialized knowledge, workflows, or tool integrations.
 metadata:
   author: J. Greg Williams
-  version: "3.5.0"
+  version: "3.6.0"
 compatibility: Requires python3 and uv for script execution and validation
 license: Complete terms in LICENSE.txt
 ---
@@ -173,121 +173,38 @@ After initialization, customize or remove the generated SKILL.md and example fil
 
 ### Step 4: Edit the Skill
 
-When editing the (newly-generated or existing) skill, remember that the skill is being created for another instance of Claude to use. Focus on including information that would be beneficial and non-obvious to Claude. Consider what procedural knowledge, domain-specific details, or reusable assets would help another Claude instance execute these tasks more effectively.
+Create the skill by editing reusable resources (scripts, references, assets) and updating SKILL.md. Focus on information that would help another Claude instance execute tasks effectively. Use imperative form, keep SKILL.md lean (<500 lines), and follow AgentSkills specification requirements.
 
-#### Start with Reusable Skill Contents
-
-To begin implementation, start with the reusable resources identified above: `scripts/`, `references/`, and `assets/` files. Note that this step may require user input. For example, when implementing a `brand-guidelines` skill, the user may need to provide brand assets or templates to store in `assets/`, or documentation to store in `references/`.
-
-Also, delete any example files and directories not needed for the skill. The initialization script creates example files in `scripts/`, `references/`, and `assets/` to demonstrate structure, but most skills won't need all of them.
-
-#### Update SKILL.md
-
-**Writing Style:** Write the entire skill using **imperative/infinitive form** (verb-first instructions), not second person. Use objective, instructional language (e.g., "To accomplish X, do Y" rather than "You should do X" or "If you need to do X"). This maintains consistency and clarity for AI consumption.
-
-**Progressive Disclosure:** Keep SKILL.md lean (<500 lines). See `references/progressive_disclosure_discipline.md` before adding detailed content.
-
-**Specification Compliance:** Ensure the skill follows AgentSkills specification requirements:
-- Verify frontmatter contains required `name` and `description` fields
-- Confirm `name` follows naming conventions (lowercase, alphanumeric, hyphens only)
-- Keep `description` under 1024 characters with clear triggering keywords
-- Keep SKILL.md body under 500 lines (move detailed content to references/)
-- Use relative paths for all file references
-- Maintain one-level-deep reference chains
-
-See `references/agentskills_specification.md` for complete validation requirements.
-
-To complete SKILL.md, answer the following questions:
-
-1. What is the purpose of the skill, in a few sentences?
-2. When should the skill be used?
-3. In practice, how should Claude use the skill? All reusable skill contents developed above should be referenced so that Claude knows how to use them.
+See `references/skill_creation_detailed_guide.md` for comprehensive editing guidance including writing style, progressive disclosure, and specification compliance.
 
 ### Step 5: Validate the Skill
 
-Once the skill is ready, validate it to ensure it meets all requirements:
+Validate the completed skill to ensure it meets all requirements:
 
 ```bash
 uv run scripts/evaluate_skill.py <skill-path> --quick
 ```
 
-The validation evaluates:
-- YAML frontmatter format and required fields
-- Character limits (name ≤64 chars, description ≤1024 chars)
-- Naming conventions (lowercase-with-hyphens)
-- Line/token budgets (SKILL.md <500 lines recommended)
-- Description completeness and quality
-- File organization and resource references
-- AgentSkills specification compliance
+Use standard mode during development and strict mode before release:
+- **Standard Mode:** Errors block completion, warnings are informational
+- **Strict Mode** (`--strict`): Both errors and warnings block completion
 
-If validation fails, the tool will report the errors. Fix any validation errors and run validation again.
-
-#### Validation Gate: Strict vs Standard Mode
-
-Validation provides two enforcement levels:
-
-**Standard Mode (default):**
-- Errors block skill completion (required fixes)
-- Warnings are informational (recommended improvements)
-- Developers can proceed despite warnings
-- Use in: Development iterations
-
-**Strict Mode (--strict flag):**
-- Both errors AND warnings block skill completion
-- Prevents quality regressions before release
-- Designed for: Pre-release quality gates
-- Prevents: Accidentally shipping low-quality documentation
-
-Use strict mode when:
-- Preparing release versions
-- Running in CI/CD validation gates
-- Quality expectations are high
-- Before submission to marketplace
-
-Example:
-```bash
-# Standard validation (warnings are OK)
-uv run scripts/evaluate_skill.py skills/my-skill --quick
-
-# Strict validation (warnings block completion)
-uv run scripts/evaluate_skill.py skills/my-skill --quick --strict
-```
-
-For advanced validation options, see `references/validation_tools_guide.md`.
-
-**Post-Validation Checklist:**
-
-After validation passes:
-- [ ] Test skill functionality end-to-end
-- [ ] Verify bundled resources work correctly
-- [ ] Update root README.md with skill version and changelog
-- [ ] Optionally invoke marketplace-manager to publish skill
+See `references/skill_creation_detailed_guide.md` for detailed validation gates, enforcement levels, and post-validation checklist.
 
 ### Step 6: Iterate
 
-After testing the skill, users may request improvements. Often this happens right after using the skill, with fresh context of how the skill performed.
-
-**Iteration workflow:**
+After testing, improve the skill based on real-world usage. Follow the iteration workflow:
 1. Use the skill on real tasks
 2. Notice struggles or inefficiencies
-3. Identify how SKILL.md or bundled resources should be updated
-4. Make improvements directly for simple changes
-5. Run quick validation to verify no regressions: `uv run scripts/evaluate_skill.py <skill> --quick`
-6. Before committing:
-   - Run strict validation: `uv run scripts/evaluate_skill.py <skill> --quick --strict`
-   - Fix any issues (errors or warnings in strict mode)
-   - Re-run validation until all issues are resolved
-7. Update the `metadata.version` field in YAML frontmatter:
-   - **PATCH** (1.0.0 → 1.0.1): Bug fixes, documentation updates, minor improvements
-   - **MINOR** (1.0.0 → 1.1.0): New features, new bundled resources, backward-compatible changes
-   - **MAJOR** (1.0.0 → 2.0.0): Breaking changes, major rewrites, changed workflow
-8. Test again and commit changes
-9. Optionally sync to marketplace
+3. Identify improvements to SKILL.md or bundled resources
+4. Run quick validation: `uv run scripts/evaluate_skill.py <skill> --quick`
+5. Run strict validation before committing
+6. Update version in SKILL.md metadata (PATCH/MINOR/MAJOR)
+7. Test and commit
 
-**For complex improvements:**
-- Use WORKFLOW.md pattern: Create GitHub Issue → Add to IMPROVEMENT_PLAN.md → Plan in docs/plans/
-- See `references/improvement_workflow_guide.md` for detailed improvement workflows
-- Research skill opportunities with `scripts/research_skill.py`
+For complex improvements (>50 lines or architectural changes), follow WORKFLOW.md pattern with GitHub Issues.
+
+See `references/skill_creation_detailed_guide.md` for detailed iteration workflow and complexity decision criteria.
 
 ---
 
@@ -296,6 +213,7 @@ After testing the skill, users may request improvements. Often this happens righ
 For detailed guidance on specific topics, see these reference files:
 
 - **`references/agentskills_specification.md`** - Complete AgentSkills specification, validation checklist, naming rules
+- **`references/skill_creation_detailed_guide.md`** - Detailed guidance for Steps 4-6 (editing, validation, iteration)
 - **`references/progressive_disclosure_discipline.md`** - Avoiding documentation bloat and maintaining lean SKILL.md
 - **`references/python_uv_guide.md`** - Python scripts best practices with uv and PEP 723 inline metadata
 - **`references/validation_tools_guide.md`** - Comprehensive documentation for evaluate_skill.py and research_skill.py
@@ -304,6 +222,6 @@ For detailed guidance on specific topics, see these reference files:
 - **`references/improvement_plan_best_practices.md`** - Version history and planning documentation
 - **`references/research_guide.md`** - Research phases, metrics interpretation, evaluation workflows
 - **`references/integration_guide.md`** - Integration patterns with marketplace-manager
-- **`references/FORMS.md`** - Form templates for structured data collection
+- **`references/form_templates.md`** - Form templates for structured data collection
 
 For marketplace distribution, see the **marketplace-manager** skill.
