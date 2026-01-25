@@ -675,32 +675,52 @@ def calculate_basic_metrics(skill_path):
 
 
 def calculate_conciseness_score(basic_metrics):
-    """Calculate conciseness score (0-100)"""
+    """Calculate conciseness score (0-100) with tiered scoring and reference offloading bonus"""
     lines = basic_metrics['skill_md_lines']
     tokens = basic_metrics['skill_md_tokens']
+    has_references = basic_metrics['references_count'] > 0
+    reference_lines = basic_metrics['references_lines']
 
-    # Line score (0-50 points)
-    if lines <= GUIDELINE_RECOMMENDED_LINES:
-        line_score = 50
-    elif lines <= GUIDELINE_MAX_LINES:
-        line_score = 50 - ((lines - GUIDELINE_RECOMMENDED_LINES) / (GUIDELINE_MAX_LINES - GUIDELINE_RECOMMENDED_LINES)) * 25
+    # Line score (0-50 points) - tiered scoring
+    if lines <= 150:
+        line_score = 50  # Excellent: very concise
+    elif lines <= GUIDELINE_RECOMMENDED_LINES:  # 250
+        line_score = 48  # Very good: within recommended
+    elif lines <= 350:
+        line_score = 45  # Good: slightly over recommended
+    elif lines <= GUIDELINE_MAX_LINES:  # 500
+        line_score = 40  # Acceptable: approaching max
+    elif lines <= 750:
+        line_score = 25  # Poor: significantly over max
     else:
-        line_score = max(0, 25 - ((lines - GUIDELINE_MAX_LINES) / 500) * 25)
+        line_score = max(0, 10 - ((lines - 750) / 500) * 10)  # Very poor: way over
 
-    # Token score (0-50 points)
-    if tokens <= GUIDELINE_MAX_TOKENS:
+    # Token score (0-50 points) - stricter token limits
+    token_limit = GUIDELINE_MAX_TOKENS  # 2000
+    if tokens <= 1500:
         token_score = 50
+    elif tokens <= token_limit:
+        token_score = 45
+    elif tokens <= 3000:
+        token_score = 30
     else:
-        token_score = max(0, 50 - ((tokens - GUIDELINE_MAX_TOKENS) / 2000) * 50)
+        token_score = max(0, 30 - ((tokens - 3000) / 2000) * 30)
 
-    total_score = int(line_score + token_score)
+    # Bonus for reference offloading (+5 points if substantial references exist)
+    reference_bonus = 0
+    if has_references and reference_lines > 500:
+        reference_bonus = 5  # Bonus for moving content to references
+
+    total_score = min(100, int(line_score + token_score + reference_bonus))
 
     return {
         'score': total_score,
         'line_score': int(line_score),
         'token_score': int(token_score),
-        'lines_vs_guideline': f"{lines}/{GUIDELINE_MAX_LINES}",
-        'tokens_vs_guideline': f"{tokens}/{GUIDELINE_MAX_TOKENS}"
+        'reference_bonus': reference_bonus,
+        'lines_vs_guideline': f"{lines}/{GUIDELINE_RECOMMENDED_LINES} (recommended)",
+        'tokens_vs_guideline': f"{tokens}/{GUIDELINE_MAX_TOKENS} (max)",
+        'reference_lines': reference_lines
     }
 
 
@@ -918,31 +938,72 @@ def validate_naming_conventions(skill_path, frontmatter_dict):
 
 def validate_file_references(skill_path, body):
     """
-    Validate file references use relative paths and follow best practices
+    Validate file references use relative paths and follow best practices.
+    Checks for:
+    - Absolute paths (should use relative)
+    - Orphaned reference files (exist but not mentioned in SKILL.md)
+    - Missing reference files (mentioned but don't exist)
+    - Improper file naming (should be snake_case.md)
 
     Returns: {
         'valid': bool,
-        'issues': [str]
+        'issues': [str],
+        'warnings': [str],
+        'summary': {
+            'referenced_files': [str],
+            'orphaned_files': [str],
+            'missing_files': [str]
+        }
     }
     """
     issues = []
+    warnings = []
+    referenced_files = []
+    orphaned_files = []
+    missing_files = []
+
+    skill_path = Path(skill_path)
+    refs_dir = skill_path / 'references'
 
     # Check for absolute paths
     if '/Users/' in body or '/home/' in body or 'C:\\' in body:
         issues.append("Found absolute paths in SKILL.md; use relative paths")
 
-    # Check for deeply nested references
-    if 'references/' in body:
-        lines = body.split('\n')
-        for line in lines:
-            if 'references/' in line:
-                # Count directory depth
-                if line.count('/') > 2:  # references/subdir/file = 2 levels
-                    issues.append(f"Deep nested reference found (keep one-level deep): {line.strip()}")
+    # Extract all referenced files from body
+    # Only match actual references (backtick-wrapped), not inline examples
+    import re
+    reference_pattern = r'`references/([a-z0-9_-]+\.md)`'
+    matches = re.findall(reference_pattern, body)
+    referenced_files = list(set(matches))  # Deduplicate
+
+    # Check if referenced files exist
+    for ref_file in referenced_files:
+        ref_path = refs_dir / ref_file
+        if not ref_path.exists():
+            missing_files.append(ref_file)
+            issues.append(f"Referenced file does not exist: `references/{ref_file}`")
+
+    # Find orphaned reference files (exist but not mentioned)
+    if refs_dir.exists():
+        for ref_file in refs_dir.glob('*.md'):
+            filename = ref_file.name
+            if filename not in referenced_files and not filename.startswith('.'):
+                orphaned_files.append(filename)
+                warnings.append(f"Orphaned reference file not mentioned in SKILL.md: `references/{filename}`")
+
+            # Check naming convention (should be snake_case.md)
+            if not re.match(r'^[a-z0-9_-]+\.md$', filename):
+                warnings.append(f"Reference file should use snake_case naming: {filename} → {filename.lower().replace(' ', '_').replace('-', '_')}")
 
     return {
         'valid': len(issues) == 0,
-        'issues': issues
+        'issues': issues,
+        'warnings': warnings,
+        'summary': {
+            'referenced_files': referenced_files,
+            'orphaned_files': orphaned_files,
+            'missing_files': missing_files
+        }
     }
 
 
@@ -970,7 +1031,8 @@ def validate_agentskills_spec(skill_path, frontmatter_dict, basic_metrics, body)
     # File references
     file_refs = validate_file_references(skill_path, body)
     if not file_refs['valid']:
-        all_warnings.extend(file_refs['issues'])
+        all_violations.extend(file_refs['issues'])  # Errors/violations
+    all_warnings.extend(file_refs['warnings'])  # Warnings only
 
     # Progressive disclosure
     lines = basic_metrics['skill_md_lines']

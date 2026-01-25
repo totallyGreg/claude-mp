@@ -537,6 +537,99 @@ python3 scripts/evaluate_skill.py <skill-path> --compare baseline.json
 
 ---
 
+---
+
+## Validation Rules and Metrics (Phase 2 Enhancement)
+
+This section documents the improved validation rules implemented in Phase 2 of Issue #8.
+
+### Directory Name Resolution
+
+**Bug fixed:** Path('.').name returning empty string on current directory
+
+**Solution:** Use `Path(skill_path).resolve().name` to properly resolve all path formats:
+- Absolute paths: `/Users/user/projects/skill-name`
+- Relative paths: `skills/skill-name`
+- Current directory: `.` (now properly resolves to actual directory name)
+
+**Verification:**
+- All three formats resolve to the same directory name
+- No false validation failures from empty directory names
+
+### Reference File Validation
+
+Enhanced validation for reference files with deterministic checks:
+
+**Checks Implemented:**
+
+1. **Missing referenced files** (ERROR)
+   - Referenced files must exist in `references/` directory
+   - Pattern: Backtick-wrapped paths only: `` `references/filename.md` ``
+   - Non-backtick examples are documentation, not requirements
+
+2. **Orphaned reference files** (WARNING)
+   - Files in `references/` directory should be mentioned in SKILL.md
+   - Helps identify obsolete or forgotten documentation
+
+3. **File naming conventions** (WARNING)
+   - Reference files must use snake_case: `lowercase_with_underscores.md`
+   - Prevents issues with case-sensitive file systems
+
+4. **Absolute paths** (ERROR)
+   - No absolute paths allowed (e.g., `/Users/...`, `/home/...`, `C:\...`)
+   - Use relative paths: `references/filename.md`
+
+### Conciseness Scoring (Improved)
+
+**Scoring factors:**
+
+1. **Line-based scoring (0-50 points)** - Tiered approach:
+   - ≤150 lines: 50 points (Excellent)
+   - 150-250 lines: 48 points (Very good - recommended range)
+   - 250-350 lines: 45 points (Good - slightly over)
+   - 350-500 lines: 40 points (Acceptable)
+   - 500-750 lines: 25 points (Poor)
+   - >750 lines: 0-10 points (Very poor - way over)
+
+2. **Token-based scoring (0-50 points)** - Stricter limits:
+   - ≤1500 tokens: 50 points
+   - 1500-2000 tokens: 45 points (max recommended)
+   - 2000-3000 tokens: 30 points
+   - >3000 tokens: 0-30 points (degrades further)
+
+3. **Reference offloading bonus (+5 points)**
+   - Awarded when skill has >500 lines in reference files
+   - Incentivizes progressive disclosure principle
+
+**Combined score:** min(100, line_score + token_score + reference_bonus)
+
+**Determinism:** Same metrics always produce same score (no randomness)
+
+### Metrics Interpretation Guide
+
+| Metric | Good Range | Warning Range | Problem Range |
+|--------|-----------|----------------|---------------|
+| Conciseness | 70+ | 50-70 | <50 |
+| Complexity | 80+ | 60-80 | <60 |
+| Spec Compliance | 100 | 95-99 | <95 |
+| Progressive | 100 | 90-99 | <90 |
+| Overall | 90+ | 80-90 | <80 |
+
+### Test Coverage
+
+Phase 2 includes comprehensive test suite covering:
+- Directory name detection (absolute, relative, `.` paths)
+- Reference validation (missing, orphaned, misspelled files)
+- Conciseness scoring (deterministic tiered scoring)
+- Spec compliance (naming, limits, requirements)
+- Validation determinism (same input = same output)
+
+**Test status:** 12/12 tests passing ✅
+
+**Test file location:** `tests/test_evaluate_skill.py`
+
+---
+
 ## Related References
 
 - `research_guide.md` - Detailed research phase documentation

@@ -73,13 +73,13 @@ Executable code (Python/Bash/etc.) for tasks that require deterministic reliabil
 Documentation and reference material intended to be loaded as needed into context to inform Claude's process and thinking.
 
 - **When to include**: For documentation that Claude should reference while working
-- **Examples**: `references/finance.md` for financial schemas, `references/mnda.md` for company NDA template, `references/policies.md` for company policies, `references/api_docs.md` for API specifications
+- **Examples**: Example reference files might include financial schemas, NDA templates, company policies, API specifications, or database documentation (see `references/` for skillsmith's actual reference files)
 - **Use cases**: Database schemas, API documentation, domain knowledge, company policies, detailed workflow guides
 - **Benefits**: Keeps SKILL.md lean, loaded only when Claude determines it's needed
 - **Best practice**: If files are large (>10k words), include grep search patterns in SKILL.md
 - **Avoid duplication**: Information should live in either SKILL.md or references files, not both. Prefer references files for detailed information unless it's truly core to the skill—this keeps SKILL.md lean while making information discoverable without hogging the context window.
-- **Reference Discovery**: Reference files should be mentioned contextually in SKILL.md where they're relevant (e.g., "See `references/api_docs.md` for API schemas")
-- **Forms and Templates**: Skills that involve structured data collection should include `references/FORMS.md` with form templates
+- **Reference Discovery**: Reference files should be mentioned contextually in SKILL.md where they're relevant (e.g., "See references for API documentation" or "See validation guide for detailed metrics")
+- **Forms and Templates**: Skills that involve structured data collection should include `references/form_templates.md` with form templates
 
 ##### Assets (`assets/`)
 
@@ -140,9 +140,9 @@ To turn concrete examples into an effective skill, analyze each example by:
 
 **Examples:**
 
-- `pdf-editor` skill: A `scripts/rotate_pdf.py` would eliminate re-writing rotation code for every query
-- `frontend-webapp-builder` skill: An `assets/hello-world/` template stores boilerplate HTML/React for "Build me a todo app" type queries
-- `big-query` skill: A `references/schema.md` file documents table schemas instead of re-discovering them each time
+- `pdf-editor` skill: A script to eliminate re-writing rotation code for every query
+- `frontend-webapp-builder` skill: An assets template to store boilerplate HTML/React for "Build me a todo app" type queries
+- `big-query` skill: A reference file documenting schemas and table relationships instead of re-discovering them
 
 (For detailed analysis patterns, see `references/improvement_workflow_guide.md`)
 
