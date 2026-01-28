@@ -9,6 +9,34 @@ compatibility: Requires python3 and uv for script execution
 
 # AI Risk Mapper
 
+## When Invoked
+
+When this skill is triggered by requests like:
+- "Analyze the security risks in [file/directory/system]"
+- "Assess AI security for [target]"
+- "Generate a CoSAI risk assessment"
+
+**Immediately execute the automated workflow:**
+
+```bash
+uv run scripts/orchestrate_risk_assessment.py \
+  --target <user_specified_target> \
+  --output-dir ./risk-assessment-output
+```
+
+The orchestrator automatically:
+1. Fetches/caches CoSAI schemas (or uses offline fallback on network failure)
+2. Analyzes target for applicable risks
+3. Generates comprehensive assessment report
+4. Presents findings to user
+
+**Handling Errors:**
+- Network/SSL failures → Automatic fallback to bundled schemas
+- Analysis failures → Check error output and follow manual workflow below
+- Missing target → Ask user to specify target path or description
+
+---
+
 ## Overview
 
 Conduct comprehensive security risk assessments for AI systems using the CoSAI Risk Map framework. This skill automates the identification of 25+ AI-specific security risks, recommends mitigation controls, and generates compliance-ready reports aligned with industry standards.
@@ -41,9 +69,11 @@ Are you performing a new risk assessment?
     └─ Generating reports from existing analysis? → Go to "Report Generation Only"
 ```
 
-## Complete Risk Assessment Workflow
+## Manual Workflow (For Customization)
 
-Follow this end-to-end workflow for comprehensive AI security risk assessment:
+If you need fine-grained control or the orchestrator fails, follow this step-by-step workflow:
+
+**Note:** The automated orchestrator above handles all these steps automatically for standard assessments.
 
 ### Step 1: Prepare the Environment
 

@@ -8,17 +8,22 @@ CoSAI Schema Fetcher
 Downloads and caches the latest CoSAI Risk Map schemas from the GitHub repository.
 Provides local access to YAML data files and JSON schemas for validation and analysis.
 
+With automatic SSL error handling and fallback to bundled schemas for offline use.
+
 Usage:
-    uv run scripts/fetch_cosai_schemas.py [--force] [--cache-dir PATH]
+    uv run scripts/fetch_cosai_schemas.py [--force] [--cache-dir PATH] [--insecure]
 
 Options:
     --force         Force re-download even if cache exists
     --cache-dir     Custom cache directory (default: ~/.cosai-cache)
+    --insecure      Bypass SSL verification (use only in trusted environments)
 """
 
 import argparse
 import json
 import os
+import shutil
+import ssl
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -49,16 +54,18 @@ SCHEMA_FILES = [
 class CoSAIFetcher:
     """Fetches and caches CoSAI Risk Map schemas"""
 
-    def __init__(self, cache_dir: Optional[Path] = None, force: bool = False):
+    def __init__(self, cache_dir: Optional[Path] = None, force: bool = False, insecure: bool = False):
         """
         Initialize the fetcher.
 
         Args:
             cache_dir: Custom cache directory (default: ~/.cosai-cache)
             force: Force re-download even if cache exists
+            insecure: Bypass SSL verification (use only in trusted environments)
         """
         self.cache_dir = cache_dir or Path.home() / ".cosai-cache"
         self.force = force
+        self.insecure = insecure
         self.yaml_dir = self.cache_dir / "yaml"
         self.schema_dir = self.cache_dir / "schemas"
 
@@ -71,7 +78,7 @@ class CoSAIFetcher:
 
     def download_file(self, url: str, destination: Path) -> bool:
         """
-        Download a file from URL to destination.
+        Download a file from URL to destination with SSL and bundled fallback support.
 
         Args:
             url: Source URL
@@ -88,8 +95,15 @@ class CoSAIFetcher:
 
             # Download with User-Agent header
             req = Request(url, headers={'User-Agent': 'CoSAI-Risk-Mapper/1.0'})
-            with urlopen(req, timeout=30) as response:
-                content = response.read()
+
+            # Create SSL context with optional verification bypass
+            if self.insecure:
+                context = ssl._create_unverified_context()
+                with urlopen(req, timeout=30, context=context) as response:
+                    content = response.read()
+            else:
+                with urlopen(req, timeout=30) as response:
+                    content = response.read()
 
             # Write to destination
             destination.write_bytes(content)
@@ -97,14 +111,45 @@ class CoSAIFetcher:
             return True
 
         except HTTPError as e:
-            print(f"  ✗ {destination.name} - HTTP {e.code}: {e.reason}", file=sys.stderr)
-            return False
+            print(f"  ⚠️  {destination.name} - HTTP {e.code}: {e.reason}", file=sys.stderr)
+            return self._fallback_to_bundled(destination)
         except URLError as e:
-            print(f"  ✗ {destination.name} - Network error: {e.reason}", file=sys.stderr)
-            return False
+            print(f"  ⚠️  {destination.name} - Network error: {e.reason}", file=sys.stderr)
+            return self._fallback_to_bundled(destination)
         except Exception as e:
-            print(f"  ✗ {destination.name} - Error: {e}", file=sys.stderr)
-            return False
+            print(f"  ⚠️  {destination.name} - Error: {e}", file=sys.stderr)
+            return self._fallback_to_bundled(destination)
+
+    def _fallback_to_bundled(self, destination: Path) -> bool:
+        """
+        Fallback to bundled schemas when network fetch fails.
+
+        Args:
+            destination: Target destination path (e.g., ~/.cosai-cache/yaml/risks.yaml)
+
+        Returns:
+            True if bundled file copied successfully, False otherwise
+        """
+        # Extract the relative path from cache_dir
+        # e.g., from ~/.cosai-cache/yaml/risks.yaml -> yaml/risks.yaml
+        try:
+            relative_path = destination.relative_to(self.cache_dir)
+            bundled_file = Path(__file__).parent.parent / "assets" / "cosai-schemas" / relative_path
+        except ValueError:
+            # If destination is not relative to cache_dir, try just the filename
+            bundled_file = Path(__file__).parent.parent / "assets" / "cosai-schemas" / destination.name
+
+        if bundled_file.exists():
+            try:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(bundled_file, destination)
+                print(f"  ✓ {destination.name} (using bundled fallback)")
+                return True
+            except Exception as e:
+                print(f"  ✗ {destination.name} - Fallback failed: {e}", file=sys.stderr)
+                return False
+
+        return False
 
     def fetch_yaml_files(self) -> List[Path]:
         """
@@ -267,10 +312,15 @@ def main():
         type=Path,
         help="Custom cache directory (default: ~/.cosai-cache)"
     )
+    parser.add_argument(
+        "--insecure",
+        action="store_true",
+        help="Bypass SSL verification (use only in trusted environments)"
+    )
 
     args = parser.parse_args()
 
-    fetcher = CoSAIFetcher(cache_dir=args.cache_dir, force=args.force)
+    fetcher = CoSAIFetcher(cache_dir=args.cache_dir, force=args.force, insecure=args.insecure)
     success = fetcher.run()
 
     sys.exit(0 if success else 1)
