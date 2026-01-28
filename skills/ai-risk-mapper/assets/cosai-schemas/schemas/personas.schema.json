@@ -1,0 +1,30 @@
+{
+  "$id": "personas.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CoSAI-RM Persona Schema",
+  "description": "Schema for validating YAML-based persona definition",
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "description": { "$ref": "riskmap.schema.json#/definitions/utils/text" },
+    "personas": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/persona" }
+    }
+  },
+  "required": ["title", "description", "personas"],
+  "definitions": {
+    "persona": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": ["personaModelCreator", "personaModelConsumer"]
+        },
+        "title": { "type": "string" },
+        "description": { "$ref": "riskmap.schema.json#/definitions/utils/text" }
+      },
+      "required": ["id", "title", "description"]
+    }
+  }
+}

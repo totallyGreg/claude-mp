@@ -1,0 +1,685 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+title: Controls
+description:
+  - >
+    The following sections describe controls available to organizations for specific
+    AI risks.
+  - >
+    Each control is mapped onto the corresponding risks it can address, with the exception
+    of Governance and Assurance controls, which apply universally to all risks and
+    every stage of the AI development process.
+categories:
+  - id: controlsData
+    title: Data Controls
+  - id: controlsInfrastructure
+    title: Infrastructure Controls
+  - id: controlsModel
+    title: Model Controls
+  - id: controlsApplication
+    title: Application Controls
+  - id: controlsAssurance
+    title: Assurance Controls
+  - id: controlsGovernance
+    title: Governance Controls
+controls:
+  - id: controlModelPrivacyEnhancingTechnologies
+    title: Privacy Enhancing Technologies for Model Training
+    description:
+      - >
+        Use technologies that minimize, de-identify, or restrict use of PII data in
+        training or evaluating models, including differential privacy, secure aggregation
+        protocols, federated learning, data anonymization, and synthetic data generation.
+    category: controlsData
+    personas:
+      - personaModelCreator
+    components:
+      - componentModelTrainingTuning
+      - componentModelEvaluation
+    risks:
+      - SDD
+      - FLP
+  - id: controlRuntimePrivacyEnhancingTechnologies
+    title: Privacy Enhancing Technologies for Inference
+    description:
+      - >
+        Use technologies that minimize, de-identify, or restrict use of PII data during
+        model deployment and inference, including secure multi-party computation, 
+        homomorphic encryption, inference log de-identification, on-device processing, and 
+        privacy-preserving query mechanisms.
+    category: controlsData
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components:
+      - componentOutputHandling
+      - componentModelServing
+    risks:
+      - SDD
+      - FLP
+  - id: controlTrainingDataManagement
+    title: Training Data Management
+    description:
+      - >
+        Ensure that all data used to train and evaluate models is authorized for the
+        intended purposes.
+    category: controlsData
+    personas:
+      - personaModelCreator
+    components:
+      - componentDataSources
+      - componentTrainingData
+      - componentModelTrainingTuning
+      - componentModelEvaluation
+    risks:
+      - ISD
+      - UTD
+      - EDH
+  - id: controlTrainingDataSanitization
+    title: Training Data Sanitization
+    description:
+      - >
+        Detect and remove or remediate poisoned or sensitive data in training and evaluation.
+    category: controlsData
+    personas:
+      - personaModelCreator
+    components:
+      - componentDataFilteringAndProcessing
+    risks:
+      - DP
+      - UTD
+      - RVP
+    mappings:
+      mitre-atlas:
+        - AML.M0007
+    lifecycleStage:
+      - data-preparation
+      - model-training
+      - evaluation
+    impactType:
+      - integrity
+      - reliability
+      - safety
+      - privacy
+      - fairness
+    actorAccess:
+      - supply-chain
+      - privileged
+  - id: controlUserDataManagement
+    title: User Data Management
+    description:
+      - >
+        Store, process, and use all user data (e.g. prompts and logs) from AI applications
+        in compliance with user consent.
+    category: controlsData
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components:
+      - componentDataStorage
+    risks:
+      - SDD
+      - PCP
+      - EDH-I
+  - id: controlModelAndDataInventoryManagement
+    title: Model and Data Inventory Management
+    description:
+      - >
+        Ensure that all data, code, models, and transformation tools used in AI applications
+        are inventoried and tracked.
+    category: controlsInfrastructure
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components:
+      - componentModelServing
+      - componentModelEvaluation
+      - componentModelTrainingTuning
+      - componentModelStorage
+    risks:
+      - DP
+      - MST
+      - MXF
+  - id: controlModelAndDataAccessControls
+    title: Model and Data Access Controls
+    description:
+      - >
+        Minimize internal access to models, weights, datasets, etc. in storage and
+        in production use.
+    category: controlsInfrastructure
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components:
+      - componentModelServing
+      - componentModelEvaluation
+      - componentModelTrainingTuning
+      - componentModelStorage
+    risks:
+      - DP
+      - MST
+      - MXF
+      - ASSC
+      - ADI
+      - ORH
+      - MLD
+      - PCP
+  - id: controlModelAndDataIntegrityManagement
+    title: Model and Data Integrity Management
+    description:
+      - >
+        Ensure that all data, models, and code used to produce AI models are verifiably
+        integrity-protected during development and deployment.
+      - >
+        Implement repository trust policies, cryptographic signatures, attestation
+        frameworks, and offline verification capabilities to ensure integrity
+        and authenticity of models and artifacts.
+    category: controlsInfrastructure
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components:
+      - componentModelServing
+      - componentModelEvaluation
+      - componentModelTrainingTuning
+      - componentModelStorage
+    risks:
+      - ADI
+      - COV
+      - DP
+      - EBM
+      - FLP
+      - MLD
+      - MST
+      - MXF
+      - ORH
+      - PCP
+      - RVP
+    mappings:
+      mitre-atlas:
+        - AML.M0013
+        - AML.M0014
+      nist-ai-rmf:
+        - MS-2.3
+    lifecycleStage:
+      - data-preparation
+      - model-training
+      - deployment
+      - runtime
+    impactType:
+      - integrity
+      - accountability
+    actorAccess:
+      - supply-chain
+      - privileged
+      - infrastructure-provider
+  - id: controlModelAndDataExecutionIntegrity
+    title: Model and Data Execution Integrity
+    description:
+      - >
+        Ensure that the code and model results from training and development are of known
+        provenance and lineage and not modified from known-good sources in unexpected ways
+        at inference time.
+      - >
+        Examples include ...
+        - validating expected code and model signatures / hashes at inference-time
+        - limit and immutably record all modifications to runtime AI system components via 
+          oversight processes
+        - etc
+    category: controlsInfrastructure
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components:
+      - componentModelServing
+      - componentModelStorage
+      - componentTheModel
+    risks:
+      - ADI
+      - IIC
+      - MDT
+      - MLD
+      - MST
+  - id: controlSecureByDefaultMLTooling
+    title: Secure-by-Default ML Tooling
+    description:
+      - >
+        Use secure-by-default frameworks, libraries, software systems, and hardware
+        components for AI development or deployment to protect confidentiality and
+        integrity of AI assets and outputs.
+    category: controlsInfrastructure
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components:
+      - componentModelServing
+      - componentModelTrainingTuning
+      - componentModelEvaluation
+      - componentModelStorage
+    risks:
+      - DP
+      - MST
+      - MXF
+      - MDT
+      - ASSC
+      - FLP
+      - ADI
+      - ORH
+      - MLD
+    mappings:
+      mitre-atlas:
+        - AML.M0011
+    lifecycleStage:
+      - development
+      - model-training
+      - deployment
+      - runtime
+    impactType:
+      - confidentiality
+      - integrity
+      - availability
+    actorAccess:
+      - supply-chain
+      - infrastructure-provider
+  - id: controlInputValidationAndSanitization
+    title: Input Validation and Sanitization
+    description:
+      - Block or restrict adversarial queries to AI models.
+    category: controlsModel
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components:
+      - componentInputHandling
+      - componentAgentInputHandling
+      - componentOrchestrationInputHandling
+    risks:
+      - PIJ
+      - MLD
+      - PCP
+      - RVP
+    mappings:
+      mitre-atlas:
+        - AML.M0010
+        - AML.M0015
+        - AML.M0020
+        - AML.M0024
+      owasp-top10-llm:
+        - LLM01
+    lifecycleStage:
+      - runtime
+    impactType:
+      - integrity
+      - confidentiality
+      - safety
+    actorAccess:
+      - external
+      - api
+      - user
+  - id: controlOutputValidationAndSanitization
+    title: Output Validation and Sanitization
+    description:
+      - >
+        Block, nullify, or sanitize insecure output from AI models before passing it
+        to applications, extensions or users.
+    category: controlsModel
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components:
+      - componentOutputHandling
+      - componentAgentOutputHandling
+      - componentOrchestrationOutputHandling
+    risks:
+      - PIJ
+      - RA
+      - SDD
+      - ISD
+      - COV
+      - PCP
+      - IMO
+      - RVP
+    mappings:
+      mitre-atlas:
+        - AML.M0020
+        - AML.M0024
+      owasp-top10-llm:
+        - LLM02
+        - LLM05
+    lifecycleStage:
+      - runtime
+    impactType:
+      - confidentiality
+      - integrity
+      - privacy
+      - safety
+    actorAccess:
+      - external
+      - api
+      - user
+      - agent
+  - id: controlAdversarialTrainingAndTesting
+    title: Adversarial Training and Testing
+    description:
+      - >
+        Use techniques to make AI models robust to adversarial inputs (i.e. prompts)
+        in the context of their use in applications.
+    category: controlsModel
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components:
+      - componentTheModel
+    risks:
+      - MEV
+      - PIJ
+      - SDD
+      - ISD
+      - IMO
+    mappings:
+      mitre-atlas:
+        - AML.M0003
+        - AML.M0006
+        - AML.M0008
+    lifecycleStage:
+      - model-training
+      - evaluation
+      - runtime
+    impactType:
+      - integrity
+      - reliability
+      - safety
+    actorAccess:
+      - external
+      - api
+      - user
+  - id: controlApplicationAccessManagement
+    title: Application Access and Resource Management
+    description:
+      - >
+        Ensure comprehensive access governance through:
+      - >
+        Identity and authorization controls that restrict resources to authorized
+        users and endpoints for authorized actions.
+      - >
+        Resource governance controls including usage quotas, rate limiting, cost
+        monitoring, and anomaly detection to prevent resource exhaustion and economic
+        denial of wallet attacks.
+    category: controlsApplication
+    personas:
+      - personaModelConsumer
+    components:
+      - componentApplication
+    risks:
+      - DMS
+      - EDW
+      - MRE
+    mappings:
+      mitre-atlas:
+        - AML.M0019
+      owasp-top10-llm:
+        - LLM10
+    lifecycleStage:
+      - runtime
+    impactType:
+      - availability
+      - confidentiality
+    actorAccess:
+      - external
+      - api
+      - user
+  - id: controlUserTransparencyAndControls
+    title: User Transparency and Controls
+    description:
+      - >
+        Inform users of relevant AI risks with disclosures, and provide transparency
+        and control experiences for use of their data in AI applications.
+    category: controlsApplication
+    personas:
+      - personaModelConsumer
+    components:
+      - componentApplication
+    risks:
+      - SDD
+      - EDH
+      - EDH-I
+  - id: controlAgentPluginUserControl
+    title: Agent User Control
+    description:
+      - >
+        Ensure user approval for any actions performed by agents/plugins that alter user 
+        data or act on the user’s behalf.
+    category: controlsApplication
+    personas:
+      - personaModelConsumer
+    components:
+      - componentReasoningCore
+    risks:
+      - SDD
+      - RA
+  - id: controlAgentPluginPermissions
+    title: Agent Permissions
+    description:
+      - >
+        Use least-privilege principle as the upper bound on agentic system permissions to
+        minimize the number of tools that an agent is permitted to interact with and the
+        actions it is allowed to take. An agentic system's use of privileges should be
+        contextual and dynamic, adapting to the specific user query and trusted contextual
+        information. This design also applies to agents that have access to user
+        information. For example, an agent asked to fill out a form or answer questions
+        should share only contextually appropriate information and can be designed to
+        dynamically minimize exposed data using reference monitors.
+    category: controlsApplication
+    personas:
+      - personaModelConsumer
+    components:
+      - componentReasoningCore
+      - componentTools
+      - componentRAGContent
+      - componentMemory
+    risks:
+      - IIC
+      - SDD
+      - RA
+    mappings:
+      mitre-atlas:
+        - AML.M0028
+      nist-ai-rmf:
+        - MS-2.11
+        - GV-6.2
+      owasp-top10-llm:
+        - LLM06
+    lifecycleStage:
+      - development
+      - runtime
+    impactType:
+      - confidentiality
+      - integrity
+      - safety
+    actorAccess:
+      - agent
+      - user
+  - id: controlRedTeaming
+    title: Red Teaming
+    description:
+      - >
+        Drive security and privacy improvements through self-driven adversarial attacks
+        on AI infrastructure and products
+    category: controlsAssurance
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components: all
+    risks: all
+  - id: controlVulnerabilityManagement
+    title: Vulnerability Management
+    description:
+      - >
+        Proactively and continually test and monitor production infrastructure and
+        products for security and privacy regressions
+    category: controlsAssurance
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components: all
+    risks: all
+  - id: controlThreatDetection
+    title: Threat Detection
+    description:
+      - >
+        Detect and alert on internal or external attacks on AI assets, infrastructure,
+        and products
+    category: controlsAssurance
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components: all
+    risks: all
+  - id: controlIncidentResponseManagement
+    title: Incident Response Management
+    description:
+      - Manage response to AI security and privacy incidents
+    category: controlsAssurance
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components: all
+    risks: all
+  - id: controlUserPoliciesAndEducation
+    title: User Policies and Education
+    description:
+      - >
+        Publish easy to understand AI security and privacy policies and education for
+        users.
+    category: controlsGovernance
+    personas:
+      - personaModelConsumer
+    components: none
+    risks:
+      - SDD
+      - IIC
+  - id: controlInternalPoliciesAndEducation
+    title: Internal Policies and Education
+    description:
+      - >
+        Publish comprehensive AI security and privacy policies and education for your
+        employees.
+    category: controlsGovernance
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components: none
+    risks: all
+  - id: controlProductGovernance
+    title: Product Governance
+    description:
+      - >
+        Validate that all AI models and products meet the established security and privacy
+        requirements.
+    category: controlsGovernance
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components: none
+    risks: all
+  - id: controlRiskGovernance
+    title: Risk Governance
+    description:
+      - >
+        Inventory, measure, and monitor residual risk to AI in your organization.
+    category: controlsGovernance
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components: none
+    risks: all
+  - id: controlAgentObservability
+    title: Agent Observability
+    description:
+      - >
+        Ensure an agent's actions, tool use, and reasoning are transparent and auditable 
+        through logging, allowing for debugging, security oversight, and user insights 
+        into agent activity.
+    category: controlsApplication
+    personas:
+      - personaModelConsumer
+    components:
+      - componentOrchestrationInputHandling
+      - componentOrchestrationOutputHandling
+      - componentAgentInputHandling
+      - componentAgentOutputHandling
+      - componentReasoningCore
+    risks:
+      - SDD
+      - RA
+  - id: controlIsolatedConfidentialComputing
+    title: Isolated and Confidential Computing
+    description:
+      - >
+        Use technologies that minimize the risk of 3rd-party access to critical resources 
+        via hardware isolation invariants and/or physically isolated computing systems.
+      - >
+        Examples include including CPU and TPU-based confidential computing technologies 
+        (TEEs, secure enclaves), system isolation, secure scheduling, and side-channel 
+        monitoring to prevent cross-tenant information leakage.
+    category: controlsInfrastructure
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components:
+      - componentModelServing
+      - componentModelTrainingTuning
+      - componentMemory
+      - componentReasoningCore
+    risks:
+      - ASSC
+      - MST
+      - MXF
+      - MDT
+      - ORH
+  - id: controlRetrievalAndVectorSystemIntegrity
+    title: Retrieval and Vector System Integrity Management
+    description:
+      - >
+        Implement provenance tracking, cryptographic signing, deduplication,
+        embedding anomaly detection, and index integrity checks to protect
+        retrieval systems and vector databases from poisoning attacks.
+    category: controlsData
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components:
+      - componentDataSources
+      - componentDataStorage
+      - componentDataFilteringAndProcessing
+    risks:
+      - RVP
+  - id: controlOrchestratorAndRouteIntegrity
+    title: Orchestrator and Route Integrity
+    description:
+      - >
+        Implement signed route manifests, configuration integrity verification,
+        and response provenance tracking to prevent routing manipulation and
+        ensure request routing to authorized models.
+    category: controlsInfrastructure
+    personas:
+      - personaModelCreator
+      - personaModelConsumer
+    components:
+      - componentModelServing
+      - componentApplication
+    risks:
+      - ORH
+      - MDT

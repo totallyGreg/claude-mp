@@ -1,0 +1,115 @@
+{
+  "$id": "components.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CoSAI-RM Components Schema",
+  "description": "Schema for validating YAML-based components definition",
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "description": { "$ref": "riskmap.schema.json#/definitions/utils/text" },
+    "categories": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/category" }
+    },
+    "subcategory": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/subcategory" }
+    },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/component" }
+    }
+  },
+  "required": ["title", "description", "categories", "components"],
+  "definitions": {
+    "category": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": ["componentsInfrastructure", "componentsModel", "componentsApplication"]
+        },
+        "title": { "type": "string" },
+        "subcategory": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/subcategory" }
+        },
+        "description": { "$ref": "riskmap.schema.json#/definitions/utils/text" }
+      },
+      "required": ["id", "title"]
+    },
+    "subcategory": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": ["componentsModelTraining", "componentsData", "componentsAgent", "componentsOrchestration"]
+        },
+        "title": { "type": "string" },
+        "description": { "$ref": "riskmap.schema.json#/definitions/utils/text" }
+      },
+      "required": ["id", "title"]
+    },
+    "component": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "componentDataSources",
+            "componentDataFilteringAndProcessing",
+            "componentTrainingData",
+            "componentDataStorage",
+            "componentModelFrameworksAndCode",
+            "componentModelEvaluation",
+            "componentModelTrainingTuning",
+            "componentModelStorage",
+            "componentModelServing",
+            "componentTheModel",
+            "componentInputHandling",
+            "componentOutputHandling",
+            "componentApplication",
+            "componentApplicationInputHandling",
+            "componentApplicationOutputHandling",
+            "componentAgentPlugin",
+            "componentReasoningCore",
+            "componentOrchestrationInputHandling",
+            "componentOrchestrationOutputHandling",
+            "componentTools",
+            "componentMemory",
+            "componentRAGContent",
+            "componentAgentUserQuery",
+            "componentAgentSystemInstruction",
+            "componentAgentRendering",
+            "componentAgentInputHandling",
+            "componentAgentOutputHandling"
+          ]
+        },
+        "title": { "type": "string" },
+        "description": { "$ref": "riskmap.schema.json#/definitions/utils/text" },
+        "category": {
+          "$ref": "#/definitions/category/properties/id"
+        },
+        "subcategory": {
+          "$ref": "#/definitions/subcategory/properties/id"
+        },
+        "edges": { "$ref": "#/definitions/edges" }
+      },
+      "required": ["id", "title", "category", "edges"]
+    },
+    "edges": {
+      "type": "object",
+      "properties": {
+        "to": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/component/properties/id" }
+        },
+        "from": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/component/properties/id" }
+        }
+      },
+      "anyOf": [{ "required": ["to"] }, { "required": ["from"] }]
+    }
+  }
+}

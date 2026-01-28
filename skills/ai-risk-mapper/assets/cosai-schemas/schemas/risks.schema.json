@@ -1,0 +1,154 @@
+{
+  "$id": "risks.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CoSAI-RM Risks Schema",
+  "description": "Schema for validating YAML-based risks definition",
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "description": { "$ref": "riskmap.schema.json#/definitions/utils/text" },
+    "risks": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/risk" }
+    }
+  },
+  "required": ["title", "description", "risks"],
+  "definitions": {
+    "risk": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "ASSC",
+            "ADI",
+            "COV",
+            "DMS",
+            "DP",
+            "EBM",
+            "EDH",
+            "EDW",
+            "FLP",
+            "IIC",
+            "IMO",
+            "ISD",
+            "MDT",
+            "MEV",
+            "MLD",
+            "MRE",
+            "MST",
+            "MXF",
+            "ORH",
+            "PCP",
+            "PIJ",
+            "RA",
+            "RVP",
+            "SDD",
+            "UTD",
+            "EDH-I"
+          ]
+        },
+        "title": { "type": "string" },
+        "shortDescription": { "$ref": "riskmap.schema.json#/definitions/utils/text" },
+        "longDescription": { "$ref": "riskmap.schema.json#/definitions/utils/text" },
+        "category": {
+          "type": "string",
+          "enum": [
+            "risksSupplyChainAndDevelopment",
+            "risksDeploymentAndInfrastructure",
+            "risksRuntimeInputSecurity",
+            "risksRuntimeDataSecurity",
+            "risksRuntimeOutputSecurity"
+          ]
+        },
+        "personas": {
+          "type": "array",
+          "items": { "$ref": "personas.schema.json#/definitions/persona/properties/id" }
+        },
+        "tourContent": {
+          "type": "object",
+          "properties": {
+            "introduced": { "$ref": "riskmap.schema.json#/definitions/utils/text" },
+            "exposed": { "$ref": "riskmap.schema.json#/definitions/utils/text" },
+            "mitigated": { "$ref": "riskmap.schema.json#/definitions/utils/text" }
+          }
+        },
+        "controls": {
+          "type": "array",
+          "items": { "$ref": "controls.schema.json#/definitions/control/properties/id" }
+        },
+        "examples": { "$ref": "riskmap.schema.json#/definitions/utils/text" },
+        "relevantQuestions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "mappings": {
+          "type": "object",
+          "description": "Cross-references to external security frameworks. Keys must match valid framework IDs defined in frameworks.schema.json and frameworks.yaml.",
+          "propertyNames": {
+            "$ref": "frameworks.schema.json#/definitions/framework/properties/id"
+          },
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Framework-specific category, technique, or tactic identifier"
+            }
+          },
+          "examples": [
+            {
+              "mitre-atlas": ["ml-model-access", "exfiltration"],
+              "stride": ["information-disclosure"]
+            }
+          ]
+        },
+        "lifecycleStage": {
+          "description": "AI system lifecycle phases where applicable",
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "lifecycle-stage.schema.json#/definitions/lifecycleStage/properties/id"
+              }
+            },
+            {
+              "type": "string",
+              "enum": ["all", "none"]
+            }
+          ]
+        },
+        "impactType": {
+          "description": "Security, privacy, or safety impact categories",
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "impact-type.schema.json#/definitions/impactType/properties/id"
+              }
+            },
+            {
+              "type": "string",
+              "enum": ["all", "none"]
+            }
+          ]
+        },
+        "actorAccess": {
+          "description": "Level of system access required by threat actor",
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "actor-access.schema.json#/definitions/actorAccessLevel/properties/id"
+              }
+            },
+            {
+              "type": "string",
+              "enum": ["all", "none"]
+            }
+          ]
+        }
+      },
+      "required": ["id", "title", "shortDescription", "longDescription", "category", "personas", "controls"]
+    }
+  }
+}

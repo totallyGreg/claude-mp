@@ -1,0 +1,176 @@
+{
+  "$id": "controls.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CoSAI-RM Controls Schema",
+  "description": "Schema for validating YAML-based controls definition",
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "description": { "$ref": "riskmap.schema.json#/definitions/utils/text" },
+    "categories": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/category" }
+    },
+    "controls": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/control" }
+    }
+  },
+  "required": ["title", "description", "categories", "controls"],
+  "definitions": {
+    "category": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "controlsData",
+            "controlsInfrastructure",
+            "controlsModel",
+            "controlsApplication",
+            "controlsAssurance",
+            "controlsGovernance"
+          ]
+        },
+        "title": { "type": "string" }
+      },
+      "required": ["id", "title"]
+    },
+    "control": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "controlAdversarialTrainingAndTesting",
+            "controlAgentPluginPermissions",
+            "controlAgentPluginUserControl",
+            "controlAgentObservability",
+            "controlApplicationAccessManagement",
+            "controlIncidentResponseManagement",
+            "controlInputValidationAndSanitization",
+            "controlInternalPoliciesAndEducation",
+            "controlIsolatedConfidentialComputing",
+            "controlModelAndDataAccessControls",
+            "controlModelAndDataExecutionIntegrity",
+            "controlModelAndDataIntegrityManagement",
+            "controlModelAndDataInventoryManagement",
+            "controlModelPrivacyEnhancingTechnologies",
+            "controlOrchestratorAndRouteIntegrity",
+            "controlOutputValidationAndSanitization",
+            "controlProductGovernance",
+            "controlRedTeaming",
+            "controlRetrievalAndVectorSystemIntegrity",
+            "controlRiskGovernance",
+            "controlRuntimePrivacyEnhancingTechnologies",
+            "controlSecureByDefaultMLTooling",
+            "controlThreatDetection",
+            "controlTrainingDataManagement",
+            "controlTrainingDataSanitization",
+            "controlUserDataManagement",
+            "controlUserPoliciesAndEducation",
+            "controlUserTransparencyAndControls",
+            "controlVulnerabilityManagement"
+          ]
+        },
+        "title": { "type": "string" },
+        "description": { "$ref": "riskmap.schema.json#/definitions/utils/text" },
+        "category": { "$ref": "#/definitions/category/properties/id" },
+        "personas": {
+          "type": "array",
+          "items": { "$ref": "personas.schema.json#/definitions/persona/properties/id" }
+        },
+        "components": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": { "$ref": "components.schema.json#/definitions/component/properties/id" }
+            },
+            {
+              "type": "string",
+              "enum": ["all", "none"]
+            }
+          ]
+        },
+        "risks": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": { "$ref": "risks.schema.json#/definitions/risk/properties/id" }
+            },
+            {
+              "type": "string",
+              "enum": ["all"]
+            }
+          ]
+        },
+        "mappings": {
+          "type": "object",
+          "description": "Cross-references to external security frameworks. Keys must match valid framework IDs defined in frameworks.schema.json and frameworks.yaml.",
+          "propertyNames": {
+            "$ref": "frameworks.schema.json#/definitions/framework/properties/id"
+          },
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Framework-specific category, technique, or tactic identifier"
+            }
+          },
+          "examples": [
+            {
+              "mitre-atlas": ["ml-model-access", "exfiltration"],
+              "stride": ["information-disclosure"]
+            }
+          ]
+        },
+        "lifecycleStage": {
+          "description": "AI system lifecycle phases where applicable",
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "lifecycle-stage.schema.json#/definitions/lifecycleStage/properties/id"
+              }
+            },
+            {
+              "type": "string",
+              "enum": ["all", "none"]
+            }
+          ]
+        },
+        "impactType": {
+          "description": "Security, privacy, or safety impact categories",
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "impact-type.schema.json#/definitions/impactType/properties/id"
+              }
+            },
+            {
+              "type": "string",
+              "enum": ["all", "none"]
+            }
+          ]
+        },
+        "actorAccess": {
+          "description": "Level of system access required by threat actor",
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "actor-access.schema.json#/definitions/actorAccessLevel/properties/id"
+              }
+            },
+            {
+              "type": "string",
+              "enum": ["all", "none"]
+            }
+          ]
+        }
+      },
+      "required": ["title", "description", "category", "personas", "components", "risks"]
+    }
+  }
+}
