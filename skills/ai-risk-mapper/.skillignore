@@ -1,0 +1,46 @@
+# .skillignore - Files and directories to exclude from skill packaging
+
+# Development and planning documents
+IMPROVEMENT_PLAN.md
+
+# Examples and test files
+examples/
+test/
+tests/
+*.test.js
+*.test.py
+*.spec.js
+*.spec.py
+
+# Build artifacts
+dist/
+build/
+*.zip
+
+# Version control
+.git/
+.gitignore
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.py[cod]
+
+# Node modules (if any)
+node_modules/
