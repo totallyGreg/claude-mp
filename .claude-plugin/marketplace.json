@@ -110,7 +110,7 @@
       "name": "ai-risk-mapper",
       "description": "AI security risk assessment using CoSAI Risk Map framework",
       "category": "security",
-      "version": "2.0.0",
+      "version": "3.0.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
