@@ -69,17 +69,14 @@ class RiskAssessmentOrchestrator:
             print("❌ Report generation failed")
             return False
 
-        # Success summary
-        print("\n✅ Assessment Complete!")
-        print(f"   Analysis: {analysis_file}")
-        print(f"   Report:   {report_file}")
+        # Success summary with statistics
+        self._print_summary(analysis_file, report_file)
         return True
 
     def _fetch_schemas(self) -> bool:
         """Fetch CoSAI schemas with error handling"""
         print("\n📥 Step 1: Fetching Schemas...")
         try:
-            # Import the fetcher from the local script
             sys.path.insert(0, str(Path(__file__).parent))
             from fetch_cosai_schemas import CoSAIFetcher
 
@@ -97,25 +94,22 @@ class RiskAssessmentOrchestrator:
             print(f"❌ Bundled schemas not found at: {bundled_dir}")
             return False
 
-        # Copy bundled schemas to cache
         try:
             shutil.copytree(bundled_dir, self.cache_dir, dirs_exist_ok=True)
-            print(f"✓ Bundled schemas ready (offline mode)")
+            print("✓ Bundled schemas ready (offline mode)")
             return True
         except Exception as e:
             print(f"❌ Failed to setup bundled schemas: {e}")
             return False
 
     def _analyze_risks(self) -> Optional[Path]:
-        """Run risk analysis"""
+        """Run risk analysis using core analyzer"""
         try:
             sys.path.insert(0, str(Path(__file__).parent))
-            from analyze_risks import RiskAnalyzer
+            from analyze_risks import TargetAnalyzer
 
-            analyzer = RiskAnalyzer(cache_dir=self.cache_dir)
-
-            if not analyzer.load_schemas():
-                return None
+            # Use TargetAnalyzer which wraps CoreAnalyzer
+            analyzer = TargetAnalyzer(cache_dir=self.cache_dir, offline=False)
 
             # Perform analysis
             risks = analyzer.analyze_target(str(self.target))
@@ -124,15 +118,19 @@ class RiskAssessmentOrchestrator:
             self.output_dir.mkdir(parents=True, exist_ok=True)
             analysis_file = self.output_dir / "risk_analysis.json"
 
-            with open(analysis_file, 'w') as f:
+            with open(analysis_file, "w") as f:
                 json.dump([risk.__dict__ for risk in risks], f, indent=2)
 
             print(f"✓ Identified {len(risks)} applicable risks")
             return analysis_file
 
+        except FileNotFoundError as e:
+            print(f"❌ Schema not found: {e}")
+            return None
         except Exception as e:
             print(f"❌ Analysis error: {e}")
             import traceback
+
             traceback.print_exc()
             return None
 
@@ -150,10 +148,10 @@ class RiskAssessmentOrchestrator:
                 analysis_data,
                 include_controls=True,
                 include_examples=False,
-                executive_summary=True
+                executive_summary=True,
             )
 
-            with open(report_file, 'w') as f:
+            with open(report_file, "w") as f:
                 f.write(report_content)
 
             print(f"✓ Generated report: {report_file.name}")
@@ -162,8 +160,30 @@ class RiskAssessmentOrchestrator:
         except Exception as e:
             print(f"❌ Report generation error: {e}")
             import traceback
+
             traceback.print_exc()
             return None
+
+    def _print_summary(self, analysis_file: Path, report_file: Path) -> None:
+        """Print workflow completion summary with statistics"""
+        print("\n✅ Assessment Complete!")
+        print(f"   Analysis: {analysis_file}")
+        print(f"   Report:   {report_file}")
+
+        # Add statistics from core analyzer
+        try:
+            sys.path.insert(0, str(Path(__file__).parent))
+            from core_analyzer import RiskAnalyzer
+
+            analyzer = RiskAnalyzer(offline=self.offline)
+            stats = analyzer.get_statistics()
+            print("\n📊 CoSAI Framework Statistics:")
+            print(f"   Total Risks:      {stats['total_risks']}")
+            print(f"   Total Controls:   {stats['total_controls']}")
+            print(f"   Total Components: {stats['total_components']}")
+            print(f"   Total Personas:   {stats['total_personas']}")
+        except Exception:
+            pass  # Statistics are informational only
 
 
 def main():
@@ -171,16 +191,25 @@ def main():
         description="Orchestrate complete CoSAI risk assessment workflow"
     )
     parser.add_argument("--target", required=True, help="Target to analyze")
-    parser.add_argument("--output-dir", default="./risk-assessment-output",
-                        help="Output directory for results")
-    parser.add_argument("--offline", action="store_true",
-                        help="Use bundled schemas (offline mode)")
-    parser.add_argument("--skip-schemas", action="store_true",
-                        help="Skip schema fetching (use cached)")
-    parser.add_argument("--persona", default="both",
-                        help="Persona to analyze: ModelCreator, ModelConsumer, or both")
-    parser.add_argument("--format", default="markdown",
-                        help="Report format: markdown, html, json")
+    parser.add_argument(
+        "--output-dir",
+        default="./risk-assessment-output",
+        help="Output directory for results",
+    )
+    parser.add_argument(
+        "--offline", action="store_true", help="Use bundled schemas (offline mode)"
+    )
+    parser.add_argument(
+        "--skip-schemas", action="store_true", help="Skip schema fetching (use cached)"
+    )
+    parser.add_argument(
+        "--persona",
+        default="both",
+        help="Persona to analyze: ModelCreator, ModelConsumer, or both",
+    )
+    parser.add_argument(
+        "--format", default="markdown", help="Report format: markdown, html, json"
+    )
 
     args = parser.parse_args()
 
@@ -194,7 +223,7 @@ def main():
     orchestrator = RiskAssessmentOrchestrator(
         target=target_path,
         output_dir=Path(args.output_dir),
-        offline=args.offline
+        offline=args.offline,
     )
 
     success = orchestrator.run()
