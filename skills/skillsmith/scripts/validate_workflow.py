@@ -5,6 +5,22 @@
 """
 Skillsmith Validation Workflow - Unified entry point for all validation scenarios.
 
+⚠️  DEPRECATED: This script is a thin wrapper around evaluate_skill.py and will be
+removed in a future version. Use evaluate_skill.py directly instead:
+
+    # Instead of: validate_workflow.py <path> --mode quick
+    uv run scripts/evaluate_skill.py <path> --quick
+
+    # Instead of: validate_workflow.py <path> --mode full
+    uv run scripts/evaluate_skill.py <path>
+
+    # Instead of: validate_workflow.py <path> --mode release
+    uv run scripts/evaluate_skill.py <path> --quick --strict
+
+See references/validation_tools_guide.md for complete command reference.
+
+---
+
 Provides three validation modes:
 1. Quick (dev): Fast validation for development iterations
 2. Full (comprehensive): Complete evaluation with metrics

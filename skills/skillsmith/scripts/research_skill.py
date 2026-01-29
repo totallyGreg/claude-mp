@@ -5,6 +5,14 @@
 """
 Deep research analysis for skills
 
+⚠️  EXPERIMENTAL: This script is approximately 40% complete. Phases 1-2 work,
+but phases 3, 4, and 7 are stubs. Phases 5-6 simply call evaluate_skill.py.
+
+For most use cases, use evaluate_skill.py directly for metrics and validation.
+This script may be completed or removed in a future version.
+
+---
+
 Implements 7-phase research workflow to understand skills and identify
 improvement opportunities.
 
@@ -12,22 +20,15 @@ Usage:
     uv run scripts/research_skill.py <skill-path> [--output research.json]
 
 Research Phases:
-    1. Understand Intent - What the skill does, when to use it
-    2. Identify Domain - Classify domain and complexity
-    3. Research Best Practices - Domain-specific patterns from Agent Skills spec
-    4. Find Similar Skills - Learn from examples in repository
-    5. Analyze Implementation - Strengths, weaknesses, opportunities
-    6. Check Spec Compliance - Validate against Agent Skills specification
-    7. Synthesize Findings - Consolidate into actionable recommendations
+    1. Understand Intent - What the skill does, when to use it ✅
+    2. Identify Domain - Classify domain and complexity ✅
+    3. Research Best Practices - Domain-specific patterns ❌ STUB
+    4. Find Similar Skills - Learn from examples ❌ STUB
+    5. Analyze Implementation - Calls evaluate_skill.py ✅
+    6. Check Spec Compliance - From evaluate_skill.py metrics ✅
+    7. Synthesize Findings - Consolidate recommendations ❌ STUB
 
-Week 2 Implementation Status:
-    [x] Phase 1: Understand Intent
-    [x] Phase 2: Identify Domain
-    [ ] Phase 3: Research Best Practices (requires Agent Skills spec access)
-    [ ] Phase 4: Find Similar Skills
-    [ ] Phase 5: Analyze Implementation (requires metrics script)
-    [ ] Phase 6: Check Spec Compliance
-    [ ] Phase 7: Synthesize Findings
+Implementation Status: ~40% complete (Phases 1, 2, 5, 6 functional)
 """
 
 import os

@@ -1,9 +1,9 @@
 ---
 name: skillsmith
-description: Guide for creating and improving effective skills. This skill should be used when users want to create, update, or improve skills that extend Claude's capabilities with specialized knowledge, workflows, or tool integrations.
+description: Guide for creating, evaluating, researching, and improving effective skills. This skill should be used when users want to create, validate, evaluate, research, analyze, or improve skills that extend Claude's capabilities with specialized knowledge, workflows, or tool integrations.
 metadata:
   author: J. Greg Williams
-  version: "3.7.0"
+  version: "3.7.2"
 compatibility: Requires python3 and uv for script execution and validation
 license: Complete terms in LICENSE.txt
 ---
@@ -179,17 +179,25 @@ See `references/skill_creation_detailed_guide.md` for comprehensive editing guid
 
 ### Step 5: Validate the Skill
 
-Validate the completed skill to ensure it meets all requirements:
+Validate the completed skill using `evaluate_skill.py`:
 
 ```bash
+# Quick validation (fast, structure-only) - use during development
 uv run scripts/evaluate_skill.py <skill-path> --quick
+
+# Strict validation (warnings as errors) - use before release
+uv run scripts/evaluate_skill.py <skill-path> --quick --strict
+
+# Full evaluation with metrics - use to assess quality
+uv run scripts/evaluate_skill.py <skill-path>
 ```
 
-Use standard mode during development and strict mode before release:
-- **Standard Mode:** Errors block completion, warnings are informational
-- **Strict Mode** (`--strict`): Both errors and warnings block completion
+**Validation modes:**
+- **Quick** (`--quick`): Fast structural checks (frontmatter, naming, PEP 723)
+- **Strict** (`--strict`): Treat warnings as errors (for pre-release gates)
+- **Comprehensive** (no flags): Full metrics (conciseness, complexity, spec compliance)
 
-See `references/skill_creation_detailed_guide.md` for detailed validation gates, enforcement levels, and post-validation checklist.
+See `references/validation_tools_guide.md` for complete command reference and workflow examples.
 
 ### Step 6: Iterate
 

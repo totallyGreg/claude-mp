@@ -50,10 +50,11 @@ Use this structure for documenting skill research findings:
 **Analyzer:** [name]
 
 **Metrics:**
-- Conciseness: [score/10]
-- Complexity: [score/10]
-- Spec Compliance: [score/10]
-- Overall: [score/10]
+- Conciseness: [score/100]
+- Complexity: [score/100]
+- Spec Compliance: [score/100]
+- Progressive Disclosure: [score/100]
+- Overall: [score/100]
 
 **Strengths:**
 - Strength 1

@@ -6,12 +6,46 @@ This reference provides comprehensive documentation for skillsmith's validation 
 
 ## Overview
 
-Skillsmith provides two primary tools for skill validation and analysis:
+**`evaluate_skill.py` is the primary tool** for all skill validation and evaluation. Other scripts are either deprecated or serve specialized purposes.
 
-1. **evaluate_skill.py** - Unified validation and evaluation tool
-2. **research_skill.py** - Deep multi-phase research analysis
+| Script | Status | Purpose |
+|--------|--------|---------|
+| `evaluate_skill.py` | **PRIMARY** | All validation and evaluation |
+| `init_skill.py` | Active | Create new skills from template |
+| `research_skill.py` | Experimental | Deep research (40% complete) |
+| `validate_workflow.py` | **DEPRECATED** | Use evaluate_skill.py directly |
+| `audit_improvements.py` | **DEPRECATED** | Only works with old format |
+| `update_references.py` | Active | Reference duplicate detection |
 
-These tools help assess skills, verify improvements, and identify enhancement opportunities throughout the skill development lifecycle.
+---
+
+## Command Mapping
+
+Use this table to determine which command to run based on what you want to do:
+
+| You want to... | Command |
+|----------------|---------|
+| Quick structure check | `uv run scripts/evaluate_skill.py <path> --quick` |
+| Full quality metrics | `uv run scripts/evaluate_skill.py <path>` |
+| Pre-release validation | `uv run scripts/evaluate_skill.py <path> --quick --strict` |
+| Validate IMPROVEMENT_PLAN | `uv run scripts/evaluate_skill.py <path> --quick --check-improvement-plan` |
+| Compare skill versions | `uv run scripts/evaluate_skill.py <path> --compare <original>` |
+| Test scripts/references work | `uv run scripts/evaluate_skill.py <path> --validate-functionality` |
+| Get version table row | `uv run scripts/evaluate_skill.py <path> --export-table-row --version X.Y.Z` |
+| Create a new skill | `uv run scripts/init_skill.py <skill-name>` |
+| Find duplicate references | `uv run scripts/update_references.py <path> --detect-duplicates` |
+
+### Natural Language Triggers
+
+These phrases should trigger skillsmith and the appropriate command:
+
+| User Says | Maps To |
+|-----------|---------|
+| "validate a skill" / "check skill structure" | `--quick` |
+| "evaluate a skill" / "get skill metrics" | (no flags - comprehensive) |
+| "strict validation" / "release check" | `--quick --strict` |
+| "research a skill" / "analyze a skill" | `research_skill.py` (experimental) |
+| "create a skill" / "init a skill" | `init_skill.py` |
 
 ---
 

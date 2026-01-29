@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 3.7.2 | 2026-01-29 | - | Phase 1 script consolidation - deprecated validate_workflow.py, audit_improvements.py; updated command mapping docs | 80 | 90 | 100 | 100 | 93 |
 | 3.7.0 | 2026-01-25 | [#8](https://github.com/totallyGreg/claude-mp/issues/8) | Phase 4 command integration - unified validation workflow with three modes (quick/full/release) | 81 | 90 | 100 | 100 | 93 |
 | 3.6.0 | 2026-01-25 | [#8](https://github.com/totallyGreg/claude-mp/issues/8) | Phase 3 content consolidation - reduced SKILL.md and improved progressive disclosure | 81 | 90 | 100 | 100 | 93 |
 | 3.5.0 | 2026-01-24 | [#8](https://github.com/totallyGreg/claude-mp/issues/8) | Phase 2 validation improvements - deterministic scoring and reference validation | 64 | 90 | 100 | 100 | 89 |

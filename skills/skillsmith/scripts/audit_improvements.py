@@ -5,6 +5,17 @@
 """
 Audit IMPROVEMENT_PLAN.md to detect completed work
 
+⚠️  DEPRECATED: This script only works with the OLD IMPROVEMENT_PLAN.md format
+that used "#### N. Title" numbered sections. The new table-based format is now
+validated by evaluate_skill.py:
+
+    uv run scripts/evaluate_skill.py <path> --quick --check-improvement-plan
+
+This script will be removed in a future version. For tracking improvements,
+use GitHub Issues as the source of truth (see WORKFLOW.md).
+
+---
+
 Analyzes a skill's IMPROVEMENT_PLAN.md and detects which planned improvements
 have actually been implemented but not yet marked as complete.
 
