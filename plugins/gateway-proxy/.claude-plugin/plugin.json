@@ -1,0 +1,11 @@
+{
+  "name": "gateway-proxy",
+  "version": "1.0.0",
+  "description": "Expert guidance for kgateway and agentgateway with kubectl commands for AI/LLM routing, MCP server routing, and API gateway patterns",
+  "author": {
+    "name": "J. Greg Williams",
+    "email": "283704+totallyGreg@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "keywords": ["kubernetes", "gateway", "kgateway", "agentgateway", "llm", "mcp"]
+}

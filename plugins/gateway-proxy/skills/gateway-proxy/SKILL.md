@@ -19,6 +19,18 @@ This skill covers kgateway (Kubernetes Gateway API implementation) and agentgate
 - **MCP Servers**: Model Context Protocol endpoints via HTTP/SSE
 - **Unified API Gateway**: Single entry point with path-based routing
 
+## Quick Commands
+
+This plugin includes slash commands for common gateway operations:
+
+| Command | Purpose |
+|---------|---------|
+| `/gw-status` | Show all gateway resources status |
+| `/gw-logs [count\|controller]` | Tail controller logs for debugging |
+| `/gw-debug` | Full diagnostic with events and recommendations |
+| `/gw-backend <provider>` | Generate backend YAML (ollama, openai, anthropic, gemini) |
+| `/gw-route <name>` | Generate HTTPRoute YAML with path rewriting |
+
 ## Architecture
 
 ```

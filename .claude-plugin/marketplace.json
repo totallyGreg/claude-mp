@@ -119,6 +119,20 @@
       "skills": [
         "./"
       ]
+    },
+    {
+      "name": "gateway-proxy",
+      "description": "Expert guidance for kgateway and agentgateway with kubectl commands for AI/LLM routing, MCP server routing, and API gateway patterns",
+      "category": "infrastructure",
+      "version": "1.0.0",
+      "author": {
+        "name": "J. Greg Williams",
+        "email": "283704+totallyGreg@users.noreply.github.com"
+      },
+      "source": "./plugins/gateway-proxy",
+      "skills": [
+        "./skills/gateway-proxy"
+      ]
     }
   ]
 }
