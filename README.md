@@ -79,7 +79,7 @@ Standalone plugins include slash commands for common operations:
 - `/ss-research` - Research skill improvements
 
 ### marketplace-manager Commands
-- `/mp-sync` - Sync versions to marketplace.json
+- `/mp-sync` - Sync versions to marketplace.json and README.md
 - `/mp-validate` - Validate marketplace structure
 - `/mp-add` - Add skill or create plugin
 - `/mp-list` - List marketplace plugins
