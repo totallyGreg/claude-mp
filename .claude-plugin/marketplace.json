@@ -115,9 +115,9 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./skills/ai-risk-mapper",
+      "source": "./plugins/ai-risk-mapper",
       "skills": [
-        "./"
+        "./skills/ai-risk-mapper"
       ]
     },
     {
