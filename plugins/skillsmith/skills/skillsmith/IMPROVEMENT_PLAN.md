@@ -4,7 +4,8 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
-| 3.7.2 | 2026-01-29 | - | Phase 1 script consolidation - deprecated validate_workflow.py, audit_improvements.py; updated command mapping docs | 80 | 90 | 100 | 100 | 93 |
+| 4.0.0 | 2026-02-03 | [#28](https://github.com/totallyGreg/claude-mp/issues/28), [#16](https://github.com/totallyGreg/claude-mp/issues/16) | **BREAKING**: Migrate to standalone plugin structure at plugins/skillsmith; add slash commands (/ss-validate, /ss-evaluate, /ss-init, /ss-research) | 80 | 90 | 100 | 100 | 93 |
+| 3.7.2 | 2026-01-29 | [#24](https://github.com/totallyGreg/claude-mp/issues/24) | Phase 1 script consolidation - deprecated validate_workflow.py, audit_improvements.py; updated command mapping docs | 80 | 90 | 100 | 100 | 93 |
 | 3.7.0 | 2026-01-25 | [#8](https://github.com/totallyGreg/claude-mp/issues/8) | Phase 4 command integration - unified validation workflow with three modes (quick/full/release) | 81 | 90 | 100 | 100 | 93 |
 | 3.6.0 | 2026-01-25 | [#8](https://github.com/totallyGreg/claude-mp/issues/8) | Phase 3 content consolidation - reduced SKILL.md and improved progressive disclosure | 81 | 90 | 100 | 100 | 93 |
 | 3.5.0 | 2026-01-24 | [#8](https://github.com/totallyGreg/claude-mp/issues/8) | Phase 2 validation improvements - deterministic scoring and reference validation | 64 | 90 | 100 | 100 | 89 |
@@ -25,6 +26,7 @@
 
 ## Active Work
 
+- [#24](https://github.com/totallyGreg/claude-mp/issues/24): Complete script consolidation - Phases 2-3 (Planning)
 - [#8](https://github.com/totallyGreg/claude-mp/issues/8): Advanced validation features (Planning)
 - [#10](https://github.com/totallyGreg/claude-mp/issues/10): Add interactive mode to skill template (Planning)
 - [#11](https://github.com/totallyGreg/claude-mp/issues/11): Review and triage future enhancement ideas (Planning)

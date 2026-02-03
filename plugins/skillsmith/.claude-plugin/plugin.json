@@ -1,0 +1,16 @@
+{
+  "name": "skillsmith",
+  "version": "4.0.0",
+  "description": "Guide for creating, evaluating, researching, and improving effective skills. This skill should be used when users want to create, validate, evaluate, research, analyze, or improve skills that extend Claude's capabilities with specialized knowledge, workflows, or tool integrations.",
+  "author": {
+    "name": "J. Greg Williams",
+    "email": "283704+totallyGreg@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "development",
+    "validation",
+    "claude-code"
+  ]
+}

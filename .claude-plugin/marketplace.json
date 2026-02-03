@@ -40,14 +40,14 @@
       "name": "skillsmith",
       "description": "Guide for forging effective Claude skills with marketplace integration",
       "category": "development",
-      "version": "3.7.2",
+      "version": "4.0.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./skills/skillsmith",
+      "source": "./plugins/skillsmith",
       "skills": [
-        "./"
+        "./skills/skillsmith"
       ]
     },
     {
