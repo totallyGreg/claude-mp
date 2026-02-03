@@ -1,95 +1,109 @@
 # Claude Marketplace (claude-mp)
 
-A comprehensive marketplace for Claude Code extensions, providing skills, commands, agents, hooks, and MCP servers to enhance your Claude development experience.
+A comprehensive marketplace for Claude Code extensions, providing plugins with skills, commands, agents, hooks, and MCP servers to enhance your Claude development experience.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installing from the Marketplace
 
 ```bash
-# Install all tools
-claude marketplace add https://github.com/totallyGreg/claude-mp
+# Add the marketplace
+/plugin marketplace add totallyGreg/claude-mp
 
-# Or install individual skills
-claude skill install totally-tools/terminal-guru
-claude skill install totally-tools/helm-chart-developer
-````
+# Install individual plugins
+/plugin install skillsmith@totally-tools
+/plugin install marketplace-manager@totally-tools
+```
 
-### What's Included
+## Available Plugins
 
-This marketplace currently includes:
+### Development (6 plugins)
 
-#### 🛠️ Skills (3)
+| Plugin | Version | Description |
+|--------|---------|-------------|
+| **skillsmith** | 4.0.0 | Create, evaluate, and improve Claude skills with validation tools and slash commands |
+| **marketplace-manager** | 2.0.0 | Manage marketplace operations including version syncing and plugin publishing |
+| **terminal-guru** | 2.0.0 | Terminal diagnostics and configuration expert for Unix systems |
+| **helm-chart-developer** | 1.0.0 | Helm chart development, testing, and security best practices |
+| **swift-dev** | 1.2.0 | Swift/SwiftUI development for iOS/macOS with Objective-C migration |
+| **gateway-proxy** | 1.0.0 | kgateway and agentgateway configuration for AI/LLM and MCP routing |
 
-- **terminal-guru** (v2.0) - Terminal diagnostics, testing, and optimization with isolated environments
-- **helm-chart-developer** - Helm chart development, testing, and security
-- **skillsmith** (v2.0) - Main actor for skill creation, improvement, and management with intelligent routing
+### Productivity (2 plugins)
 
-#### 📦 Coming Soon
+| Plugin | Version | Description |
+|--------|---------|-------------|
+| **omnifocus-manager** | 4.4.0 | Query and manage OmniFocus tasks with automation and workflow optimization |
+| **obsidian-pkm-manager** | 1.0.0 | Manage Obsidian-based Personal Knowledge Management systems |
 
-- **Commands** - Custom slash commands for project workflows
-- **Agents** - Specialized AI agents for autonomous tasks
-- **Hooks** - Event handlers for automation
-- **MCP Servers** - External tool integrations
+### Security (1 plugin)
 
-## 📚 Documentation
+| Plugin | Version | Description |
+|--------|---------|-------------|
+| **ai-risk-mapper** | 3.0.1 | AI security risk assessment using CoSAI Risk Map framework |
 
-### Skills
-
-See [skills/README.md](./skills/README.md) for detailed information about available skills.
-
-### Commands
-
-See [commands/README.md](./commands/README.md) for custom command documentation.
-
-### Agents
-
-See [agents/README.md](./agents/README.md) for agent documentation.
-
-### Hooks
-
-See [hooks/README.md](./hooks/README.md) for hook documentation.
-
-### MCP Servers
-
-See [mcp-servers/README.md](./mcp-servers/README.md) for MCP server documentation.
-
-## 🏗️ Repository Structure
+## Repository Structure
 
 ```
 claude-mp/
-├── skills/              # Agent Skills for extended capabilities
-├── commands/            # Custom slash commands
-├── agents/             # Specialized AI agents
-├── hooks/              # Event handlers
-├── mcp-servers/        # MCP servers for external integrations
-└── .claude-plugin/     # Marketplace configuration
+├── plugins/                 # Standalone plugins with commands
+│   ├── skillsmith/          # Skill creation and validation
+│   ├── marketplace-manager/ # Marketplace operations
+│   └── gateway-proxy/       # Gateway configuration
+├── skills/                  # Legacy skill-only plugins
+│   ├── terminal-guru/
+│   ├── helm-chart-developer/
+│   ├── swift-dev/
+│   ├── obsidian-pkm-manager/
+│   ├── omnifocus-manager/
+│   └── ai-risk-mapper/
+├── commands/                # Shared commands
+├── agents/                  # Specialized AI agents
+├── hooks/                   # Event handlers
+├── mcp-servers/             # MCP server integrations
+└── .claude-plugin/          # Marketplace configuration
 ```
 
-## 🤝 Contributing
+## Standalone Plugins
+
+Standalone plugins include slash commands for common operations:
+
+### skillsmith Commands
+- `/ss-validate` - Quick skill validation
+- `/ss-evaluate` - Full evaluation with metrics
+- `/ss-init` - Initialize new skill from template
+- `/ss-research` - Research skill improvements
+
+### marketplace-manager Commands
+- `/mp-sync` - Sync versions to marketplace.json
+- `/mp-validate` - Validate marketplace structure
+- `/mp-add` - Add skill or create plugin
+- `/mp-list` - List marketplace plugins
+- `/mp-status` - Show version mismatches
+
+### gateway-proxy Commands
+- `/gw-status` - Check gateway status
+- `/gw-logs` - View gateway logs
+- `/gw-debug` - Debug gateway issues
+- `/gw-backend` - Configure backends
+- `/gw-route` - Manage routes
+
+## Contributing
 
 Contributions are welcome! Whether you want to:
 
-- Submit a new skill, command, or agent
+- Submit a new skill or plugin
 - Report bugs or suggest improvements
 - Improve documentation
 
 Please feel free to open an issue or submit a pull request.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- Built for [Claude Code](https://github.com/anthropics/claude-code)
-- Inspired by the Anthropic skills repository
-- Created and maintained by the totally-tools team
-
-## 📧 Contact
+## Contact
 
 - **Author**: J. Greg Williams
-- **Email**: totallyGreg@gmail.com
 - **Repository**: https://github.com/totallyGreg/claude-mp
 
 ---
