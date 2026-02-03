@@ -8,6 +8,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.0.0 | 2026-02-03 | Standalone plugin migration: Moved to plugins/, added commands, improved SKILL.md conciseness |
 | 1.5.0 | 2026-01-23 | Deprecate skill-planner skill: Removed from marketplace, updated workflow documentation |
 | 1.4.0 | 2026-01-22 | Core marketplace operations automation: source path fixes, deprecation, bundling, templates |
 | 1.3.0 | 2026-01-07 | Critical bug fixes: utils.py dependency, schema compliance, metadata.version parsing |

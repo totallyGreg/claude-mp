@@ -2,6 +2,13 @@
 
 Claude's plugin system allows you to extend its functionality with custom commands, agents, skills, and more. This document provides a technical reference for creating and managing plugins.
 
+## Official Documentation
+
+For the latest specifications, consult official Anthropic documentation:
+- **Marketplaces**: https://code.claude.com/docs/en/plugin-marketplaces
+- **Plugins Reference**: https://code.claude.com/docs/en/plugins-reference
+- **Schema**: https://anthropic.com/claude-code/marketplace.schema.json
+
 ## Plugin Components
 
 A plugin can contain one or more of the following components:
@@ -159,3 +166,93 @@ Auto-sync would leave plugin at v1.5.0 = no update signal!
 5. Commit all changes together
 
 **Best Practice:** Use single-component plugins whenever possible. Only use multi-component plugins for tightly coupled components that are always used together.
+
+## Standalone Plugin Architecture
+
+Plugins can be organized as **standalone plugins** in a `plugins/` directory, which provides:
+- Self-contained distribution (plugin.json + commands + skills)
+- Clear separation between plugin-level and skill-level components
+- Auto-discovery of commands and skills
+
+### Standalone Plugin Structure
+
+```
+plugins/my-plugin/
+├── .claude-plugin/
+│   └── plugin.json           # Plugin manifest (required)
+├── commands/                  # Plugin-level commands (auto-discovered)
+│   ├── my-cmd-1.md
+│   └── my-cmd-2.md
+└── skills/                    # Bundled skills
+    └── my-skill/
+        ├── SKILL.md           # Skill definition
+        ├── IMPROVEMENT_PLAN.md
+        ├── scripts/           # Bundled scripts
+        └── references/        # Reference documentation
+```
+
+### Plugin Manifest (plugin.json)
+
+```json
+{
+  "name": "my-plugin",
+  "version": "1.0.0",
+  "description": "Brief description of plugin purpose",
+  "author": {
+    "name": "Your Name",
+    "email": "you@example.com"
+  },
+  "license": "MIT",
+  "keywords": ["keyword1", "keyword2"]
+}
+```
+
+### Commands in Plugins
+
+Commands in the `commands/` directory are auto-discovered. Each command is a markdown file:
+
+```markdown
+Command description and instructions here.
+
+Run the following command:
+
+\`\`\`bash
+your-command-here $ARGUMENTS
+\`\`\`
+
+Explain what to do with the results.
+```
+
+**Naming convention**: Use short prefixes for related commands (e.g., `gw-status`, `gw-logs`, `mp-sync`, `mp-validate`).
+
+### Migration from Legacy Skills
+
+To migrate a skill from `skills/` to `plugins/`:
+
+1. **Create plugin structure**:
+   ```bash
+   mkdir -p plugins/my-skill/.claude-plugin
+   mkdir -p plugins/my-skill/commands
+   mkdir -p plugins/my-skill/skills/my-skill
+   ```
+
+2. **Create plugin.json** from SKILL.md metadata
+
+3. **Move skill files**:
+   ```bash
+   git mv skills/my-skill/* plugins/my-skill/skills/my-skill/
+   ```
+
+4. **Create commands** for common operations
+
+5. **Update marketplace.json**:
+   ```json
+   {
+     "source": "./plugins/my-plugin",
+     "skills": ["./skills/my-skill"]
+   }
+   ```
+
+6. **Update version** to major bump (e.g., 1.5.0 → 2.0.0)
+
+**Example**: See `plugins/gateway-proxy/` for a canonical standalone plugin implementation.

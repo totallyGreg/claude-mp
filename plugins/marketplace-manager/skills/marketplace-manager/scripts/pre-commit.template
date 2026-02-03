@@ -1,18 +1,18 @@
 #!/bin/bash
 #
-# marketplace-manager pre-commit hook v1.3.0
+# marketplace-manager pre-commit hook v2.0.0
 #
 # Pre-commit hook for marketplace-manager
 # Automatically syncs marketplace.json when skill versions change
 #
 # Installation:
-#   bash skills/marketplace-manager/scripts/install_hook.sh
+#   bash plugins/marketplace-manager/skills/marketplace-manager/scripts/install_hook.sh
 #
 # Bypass (if needed):
 #   git commit --no-verify
 #
 
-HOOK_VERSION="1.3.0"
+HOOK_VERSION="2.0.0"
 
 # Colors for output
 RED='\033[0;31m'
@@ -34,14 +34,18 @@ if [ ! -f "$MARKETPLACE_JSON" ]; then
 fi
 
 # Discover script paths dynamically (robust to skill renames)
-# Try specific path first for performance
-if [ -f "$REPO_ROOT/skills/marketplace-manager/scripts/detect_version_changes.py" ]; then
+# Try plugin path first (v2.0.0+), then legacy skills path
+if [ -f "$REPO_ROOT/plugins/marketplace-manager/skills/marketplace-manager/scripts/detect_version_changes.py" ]; then
+    DETECT_SCRIPT="$REPO_ROOT/plugins/marketplace-manager/skills/marketplace-manager/scripts/detect_version_changes.py"
+    SYNC_SCRIPT="$REPO_ROOT/plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py"
+elif [ -f "$REPO_ROOT/skills/marketplace-manager/scripts/detect_version_changes.py" ]; then
+    # Legacy path (pre-v2.0.0)
     DETECT_SCRIPT="$REPO_ROOT/skills/marketplace-manager/scripts/detect_version_changes.py"
     SYNC_SCRIPT="$REPO_ROOT/skills/marketplace-manager/scripts/sync_marketplace_versions.py"
 else
     # Fallback: search for scripts anywhere in repository
-    SYNC_SCRIPT=$(find "$REPO_ROOT/skills" -type f -name "sync_marketplace_versions.py" 2>/dev/null | head -n 1)
-    DETECT_SCRIPT=$(find "$REPO_ROOT/skills" -type f -name "detect_version_changes.py" 2>/dev/null | head -n 1)
+    SYNC_SCRIPT=$(find "$REPO_ROOT/plugins" "$REPO_ROOT/skills" -type f -name "sync_marketplace_versions.py" 2>/dev/null | head -n 1)
+    DETECT_SCRIPT=$(find "$REPO_ROOT/plugins" "$REPO_ROOT/skills" -type f -name "detect_version_changes.py" 2>/dev/null | head -n 1)
 fi
 
 # Validate scripts were found
@@ -57,7 +61,7 @@ if [ -f "$TEMPLATE_PATH" ]; then
     TEMPLATE_VERSION=$(grep -m 1 "^# marketplace-manager pre-commit hook v" "$TEMPLATE_PATH" | sed 's/.*v\([0-9.]*\).*/\1/')
     if [ -n "$TEMPLATE_VERSION" ] && [ "$TEMPLATE_VERSION" != "$HOOK_VERSION" ]; then
         echo -e "${YELLOW}⚠️  Hook version outdated: v$HOOK_VERSION (template: v$TEMPLATE_VERSION)${NC}"
-        echo -e "${YELLOW}   Update with: bash skills/marketplace-manager/scripts/install_hook.sh${NC}"
+        echo -e "${YELLOW}   Update with: bash plugins/marketplace-manager/skills/marketplace-manager/scripts/install_hook.sh${NC}"
     fi
 fi
 
