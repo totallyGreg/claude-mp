@@ -17,29 +17,34 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 
 ## Available Plugins
 
-### Development (6 plugins)
+### Development (5 plugins)
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| **skillsmith** | 4.0.0 | Create, evaluate, and improve Claude skills with validation tools and slash commands |
-| **marketplace-manager** | 2.0.0 | Manage marketplace operations including version syncing and plugin publishing |
+| **helm-chart-developer** | 1.0.0 | Expert guide for Helm chart development, testing, and security |
+| **marketplace-manager** | 2.0.0 | Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance |
+| **skillsmith** | 4.0.0 | Guide for forging effective Claude skills with marketplace integration |
+| **swift-dev** | 1.2.0 | Swift development expert for SwiftUI, iOS/macOS frameworks, Server-side Swift, and Objective-C migration |
 | **terminal-guru** | 2.0.0 | Terminal diagnostics and configuration expert for Unix systems |
-| **helm-chart-developer** | 1.0.0 | Helm chart development, testing, and security best practices |
-| **swift-dev** | 1.2.0 | Swift/SwiftUI development for iOS/macOS with Objective-C migration |
-| **gateway-proxy** | 1.0.0 | kgateway and agentgateway configuration for AI/LLM and MCP routing |
 
 ### Productivity (2 plugins)
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| **omnifocus-manager** | 4.4.0 | Query and manage OmniFocus tasks with automation and workflow optimization |
-| **obsidian-pkm-manager** | 1.0.0 | Manage Obsidian-based Personal Knowledge Management systems |
+| **obsidian-pkm-manager** | 1.0.0 | Expert guidance for managing Obsidian-based Personal Knowledge Management (PKM) systems |
+| **omnifocus-manager** | 4.4.0 | Interface with OmniFocus to surface insights, create reusable automations and perspectives, and suggest workflow optimizations |
 
 ### Security (1 plugin)
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
 | **ai-risk-mapper** | 3.0.1 | AI security risk assessment using CoSAI Risk Map framework |
+
+### Infrastructure (1 plugin)
+
+| Plugin | Version | Description |
+|--------|---------|-------------|
+| **gateway-proxy** | 1.0.0 | Expert guidance for kgateway and agentgateway with kubectl commands for AI/LLM routing, MCP server routing, and API gateway patterns |
 
 ## Repository Structure
 

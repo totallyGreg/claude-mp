@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 
 from utils import get_repo_root, print_verbose_info, validate_repo_structure
+from sync_readme import sync_readme
 
 
 def extract_frontmatter_version(skill_md_path):
@@ -316,6 +317,20 @@ Examples:
     print()
 
     updated_count = sync_versions(marketplace_path, repo_root, dry_run=args.dry_run, mode=args.mode)
+
+    # Sync README.md from marketplace.json
+    readme_path = repo_root / 'README.md'
+    if readme_path.exists():
+        print()  # Blank line before README sync
+        readme_changed = sync_readme(marketplace_path, readme_path, dry_run=args.dry_run)
+        if readme_changed:
+            if args.dry_run:
+                print("   Run without --dry-run to apply README changes")
+        else:
+            print("✓ README.md already up to date")
+    else:
+        if args.verbose:
+            print(f"ℹ️  No README.md found at {readme_path}, skipping README sync")
 
     if args.dry_run and updated_count > 0:
         return 1  # Exit with error in dry-run mode if changes needed
