@@ -87,9 +87,9 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./skills/omnifocus-manager",
+      "source": "./plugins/omnifocus-manager",
       "skills": [
-        "./"
+        "./skills/omnifocus-manager"
       ]
     },
     {

@@ -11,7 +11,7 @@ ObjC.import('Foundation');
 
 // Load urlBuilder library
 const libraryPath = $.NSString.alloc.initWithUTF8String(
-    '/Users/totally/Documents/Projects/claude-mp/skills/omnifocus-manager/libraries/shared/urlBuilder.js'
+    '${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/libraries/shared/urlBuilder.js'
 );
 
 const urlBuilder = eval($.NSString.alloc.initWithContentsOfFileEncodingError(
