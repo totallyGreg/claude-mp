@@ -1,6 +1,6 @@
 {
   "name": "ai-risk-mapper",
-  "version": "3.0.1",
+  "version": "4.0.0",
   "description": "This skill should be used when identifying, analyzing, and mitigating security risks in Artificial Intelligence systems using the CoSAI (Coalition for Secure AI) Risk Map framework. Use when assessing AI system security, conducting risk analysis for LLM applications, ML pipelines, model training/serving infrastructure, or generating compliance reports aligned with MITRE ATLAS, NIST AI RMF, OWASP Top 10 for LLM, and STRIDE frameworks. Supports both automated assessments and interactive exploration with 30+ query methods.",
   "author": {
     "name": "J. Greg Williams",

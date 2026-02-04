@@ -2,7 +2,7 @@
 name: ai-risk-mapper
 description: This skill should be used when identifying, analyzing, and mitigating security risks in Artificial Intelligence systems using the CoSAI (Coalition for Secure AI) Risk Map framework. Use when assessing AI system security, conducting risk analysis for LLM applications, ML pipelines, model training/serving infrastructure, or generating compliance reports aligned with MITRE ATLAS, NIST AI RMF, OWASP Top 10 for LLM, and STRIDE frameworks. Supports both automated assessments and interactive exploration with 30+ query methods.
 metadata:
-  version: "3.0.1"
+  version: "4.0.0"
   author: J. Greg Williams
 compatibility: Requires python3 and uv for script execution
 license: Apache 2.0
@@ -30,18 +30,18 @@ The orchestrator automatically:
 
 ### Interactive Exploration
 
-For ad-hoc queries, threat modeling, or compliance mapping, use these CLI commands:
+For ad-hoc queries, threat modeling, or compliance mapping:
 
-| Command | Purpose | Example |
-|---------|---------|---------|
-| `/risk-search <query>` | Search risks by keyword | `uv run scripts/cli_risk_search.py "injection"` |
-| `/control-search <query>` | Search controls by keyword | `uv run scripts/cli_control_search.py "training"` |
-| `/controls-for-risk <id>` | Get controls for a risk | `uv run scripts/cli_controls_for_risk.py DP` |
-| `/persona-profile <id>` | Get persona risk profile | `uv run scripts/cli_persona_profile.py personaModelCreator` |
-| `/gap-analysis <id>` | Assess control coverage | `uv run scripts/cli_gap_analysis.py DP --implemented controlTrainingDataSanitization` |
-| `/framework-map <id>` | Get framework mappings | `uv run scripts/cli_framework_map.py PIJ --framework mitre-atlas` |
+| Purpose | Script |
+|---------|--------|
+| Search risks by keyword | `uv run scripts/cli_risk_search.py "injection"` |
+| Search controls by keyword | `uv run scripts/cli_control_search.py "training"` |
+| Get controls for a risk | `uv run scripts/cli_controls_for_risk.py DP` |
+| Get persona risk profile | `uv run scripts/cli_persona_profile.py personaModelCreator` |
+| Assess control coverage | `uv run scripts/cli_gap_analysis.py DP --implemented controlTrainingDataSanitization` |
+| Get framework mappings | `uv run scripts/cli_framework_map.py PIJ --framework mitre-atlas` |
 
-All commands support `--offline` flag for bundled schema usage.
+All scripts support `--offline` flag for bundled schema usage.
 
 See `references/exploration_guide.md` for complete API reference, query patterns, and entity IDs.
 
