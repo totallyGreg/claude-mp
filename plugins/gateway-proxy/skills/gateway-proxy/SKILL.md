@@ -2,7 +2,7 @@
 name: gateway-proxy
 description: Expert guidance for configuring kgateway and agentgateway for AI/LLM routing, MCP server routing, and API gateway patterns. Use when setting up gateway proxies for Ollama, OpenAI, Anthropic, Gemini backends, configuring HTTPRoutes, troubleshooting Gateway API issues, or working with OrbStack Kubernetes networking.
 metadata:
-  version: 1.0.0
+  version: 1.1.0
   author: J. Greg Williams
   license: MIT
 ---
