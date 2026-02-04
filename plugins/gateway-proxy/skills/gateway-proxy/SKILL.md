@@ -18,6 +18,7 @@ This skill covers kgateway (Kubernetes Gateway API implementation) and agentgate
 - **LLM Providers**: Ollama (local), OpenAI, Anthropic, Gemini
 - **MCP Servers**: Model Context Protocol endpoints via HTTP/SSE
 - **Unified API Gateway**: Single entry point with path-based routing
+- **External Processing**: Delegate request/response handling to gRPC services for custom mutations and routing
 
 ## Quick Commands
 
@@ -176,6 +177,7 @@ When you need more detail, load these reference files:
 - **`references/resource-patterns.md`**: Complete YAML examples for all resource types
 - **`references/provider-backends.md`**: Provider-specific backend configurations (Ollama, OpenAI, Anthropic, Gemini)
 - **`references/mcp-routing.md`**: MCP server backend and routing patterns
+- **`references/external-processing.md`**: External Processing (ExtProc) for custom request/response mutations and routing
 
 ## Installation Requirements
 
