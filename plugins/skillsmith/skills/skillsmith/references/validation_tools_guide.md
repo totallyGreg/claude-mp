@@ -664,6 +664,145 @@ Phase 2 includes comprehensive test suite covering:
 
 ---
 
+## Official Validation Checklist Mapping (v5.0.0)
+
+This section maps the official plugin-dev validation checklist to skillsmith's automated validation capabilities. Each item is marked with its automation status:
+
+- **[AUTO]** - Fully automated by evaluate_skill.py
+- **[MANUAL]** - Requires human review
+- **[HYBRID]** - Partially automated, may need human verification
+
+### Structure Validation
+
+| Checklist Item | Status | Skillsmith Check |
+|----------------|--------|------------------|
+| SKILL.md file exists | [AUTO] | `--quick` mode |
+| Valid YAML frontmatter | [AUTO] | `--quick` mode |
+| Has `name` field | [AUTO] | `--quick` mode |
+| Has `description` field | [AUTO] | `--quick` mode |
+| Markdown body is present | [AUTO] | `--quick` mode |
+| Referenced files exist | [AUTO] | Full validation mode |
+
+### Naming Conventions
+
+| Checklist Item | Status | Skillsmith Check |
+|----------------|--------|------------------|
+| Name is 1-64 characters | [AUTO] | `--quick` mode |
+| Name is lowercase with hyphens | [AUTO] | `--quick` mode |
+| Name matches directory name | [AUTO] | Full validation mode |
+| Description ≤1024 characters | [AUTO] | Description Quality Score |
+| No angle brackets in description | [AUTO] | `--quick` mode |
+
+### Description Quality (NEW in v5.0.0)
+
+| Checklist Item | Status | Skillsmith Check |
+|----------------|--------|------------------|
+| Uses third-person format | [AUTO] | Description Quality Score (+30 pts) |
+| Includes trigger phrases | [AUTO] | Description Quality Score (+40 pts) |
+| Lists concrete scenarios | [AUTO] | Description Quality Score (+20 pts) |
+| Not vague or generic | [AUTO] | Description Quality Score |
+
+### Content Quality
+
+| Checklist Item | Status | Skillsmith Check |
+|----------------|--------|------------------|
+| Uses imperative/infinitive form | [MANUAL] | Not yet automated |
+| Body is lean (<3k words) | [AUTO] | Conciseness Score |
+| Detailed content in references/ | [HYBRID] | Progressive Disclosure Score |
+| Examples are complete | [MANUAL] | Requires human review |
+| Scripts are executable | [AUTO] | `--validate-functionality` |
+
+### Progressive Disclosure
+
+| Checklist Item | Status | Skillsmith Check |
+|----------------|--------|------------------|
+| Core concepts in SKILL.md | [MANUAL] | Requires human review |
+| Detailed docs in references/ | [HYBRID] | Progressive Disclosure Score |
+| Working code in examples/ | [MANUAL] | Requires human review |
+| Utilities in scripts/ | [AUTO] | Script count metrics |
+| Resources referenced in SKILL.md | [AUTO] | Reference validation |
+
+### Testing
+
+| Checklist Item | Status | Skillsmith Check |
+|----------------|--------|------------------|
+| Skill triggers correctly | [MANUAL] | Requires runtime testing |
+| Content is helpful | [MANUAL] | Requires human review |
+| No duplicate information | [HYBRID] | `update_references.py --detect-duplicates` |
+| References load when needed | [MANUAL] | Requires runtime testing |
+
+---
+
+## Description Quality Score (v5.0.0)
+
+The Description Quality Score evaluates how well a skill's description follows official patterns for triggering and clarity.
+
+### Scoring Breakdown (0-100 points)
+
+| Component | Points | Criteria |
+|-----------|--------|----------|
+| Trigger Phrases | 40 | 3+ quoted action phrases (e.g., "create X", "validate Y") |
+| Third-Person Format | 30 | Uses "This skill should be used when..." pattern |
+| Specificity | 20 | Contains concrete scenarios, not generic terms |
+| Length Compliance | 10 | Under 1024 characters (AgentSkills spec) |
+
+### How to Improve Description Quality
+
+**Add trigger phrases:**
+```yaml
+# Before (score: ~30)
+description: Provides guidance for skill development.
+
+# After (score: 100)
+description: This skill should be used when users ask to "create a skill", "validate a skill for quality", "evaluate skill improvements".
+```
+
+**Use third-person format:**
+```yaml
+# Before
+description: Use when developing skills.
+
+# After
+description: This skill should be used when developing skills.
+```
+
+**Be specific:**
+```yaml
+# Before (generic)
+description: Helps with skills.
+
+# After (specific)
+description: This skill should be used when users ask to "init a new skill", "check skill compliance", or "sync skill to marketplace".
+```
+
+### Viewing Description Quality
+
+```bash
+# Full evaluation shows description quality
+uv run scripts/evaluate_skill.py <skill-path>
+
+# Output includes:
+# Description:     [████████████████████] 100/100
+# Trigger Phrases Found: 9
+#   - "create a skill"
+#   - "validate a skill for quality"
+#   ...
+```
+
+### Integration with Overall Score
+
+Description Quality is weighted at 0.10 (10%) in the overall score calculation:
+
+| Metric | Weight |
+|--------|--------|
+| Conciseness | 0.20 |
+| Complexity | 0.20 |
+| Spec Compliance | 0.30 |
+| Progressive Disclosure | 0.20 |
+| Description Quality | 0.10 |
+
+---
+
 ## Related References
 
 - `research_guide.md` - Detailed research phase documentation

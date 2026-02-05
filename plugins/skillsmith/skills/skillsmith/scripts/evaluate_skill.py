@@ -864,14 +864,130 @@ def calculate_progressive_disclosure_score(basic_metrics):
     }
 
 
-def calculate_overall_score(conciseness, complexity, spec_compliance, progressive):
-    """Calculate weighted overall score"""
-    overall = (
-        conciseness['score'] * 0.25 +
-        complexity['score'] * 0.20 +
-        spec_compliance['score'] * 0.35 +
-        progressive['score'] * 0.20
-    )
+def validate_description_quality(frontmatter_dict):
+    """
+    Calculate description quality score (0-100)
+
+    Scoring:
+    - Trigger phrases present (+40 points): Specific quoted phrases like "create X", "validate Y"
+    - Third-person format (+30 points): Uses "This skill should be used when..."
+    - Specific vs generic (+20 points): Contains specific scenarios, not just vague terms
+    - Under 1024 chars (+10 points): Complies with AgentSkills spec
+
+    Returns: {
+        'score': int,
+        'trigger_phrases_found': [str],
+        'has_third_person': bool,
+        'is_specific': bool,
+        'length_ok': bool,
+        'issues': [str],
+        'suggestions': [str]
+    }
+    """
+    description = frontmatter_dict.get('description', '')
+    score = 0
+    issues = []
+    suggestions = []
+    trigger_phrases_found = []
+
+    # Check for trigger phrases (patterns in quotes)
+    import re
+    quoted_phrases = re.findall(r'"([^"]+)"', description)
+    trigger_patterns = [p for p in quoted_phrases if any(
+        verb in p.lower() for verb in ['create', 'validate', 'evaluate', 'improve',
+                                        'analyze', 'check', 'init', 'add', 'build',
+                                        'configure', 'set up', 'research', 'sync',
+                                        'generate', 'update', 'fix', 'debug']
+    )]
+    trigger_phrases_found = trigger_patterns
+
+    if len(trigger_patterns) >= 3:
+        score += 40
+    elif len(trigger_patterns) >= 1:
+        score += 20
+        suggestions.append(f"Add more trigger phrases (found {len(trigger_patterns)}, recommend 3+)")
+    else:
+        issues.append("No trigger phrases found in description")
+        suggestions.append("Add specific trigger phrases like '\"create a skill\"', '\"validate for quality\"'")
+
+    # Check for third-person format
+    third_person_patterns = [
+        'this skill should be used',
+        'this skill is used',
+        'use this skill when',
+        'should be used when',
+    ]
+    has_third_person = any(pattern in description.lower() for pattern in third_person_patterns)
+    if has_third_person:
+        score += 30
+    else:
+        issues.append("Description not in third-person format")
+        suggestions.append("Start with 'This skill should be used when...'")
+
+    # Check specificity (not just generic terms)
+    generic_terms = ['provides guidance', 'helps with', 'assists with', 'for working with']
+    is_generic = any(term in description.lower() for term in generic_terms) and len(trigger_patterns) == 0
+    is_specific = len(trigger_patterns) > 0 or len(description) > 100
+
+    if is_specific and not is_generic:
+        score += 20
+    elif is_generic:
+        issues.append("Description is too generic")
+        suggestions.append("Be more specific about when to use this skill")
+    else:
+        score += 10  # Partial credit
+
+    # Check length
+    length_ok = len(description) <= 1024
+    if length_ok:
+        score += 10
+    else:
+        issues.append(f"Description exceeds 1024 characters ({len(description)})")
+        suggestions.append("Shorten description to comply with AgentSkills spec")
+
+    return {
+        'score': score,
+        'trigger_phrases_found': trigger_phrases_found,
+        'has_third_person': has_third_person,
+        'is_specific': is_specific,
+        'length_ok': length_ok,
+        'issues': issues,
+        'suggestions': suggestions
+    }
+
+
+def calculate_overall_score(conciseness, complexity, spec_compliance, progressive, description_quality=None):
+    """Calculate weighted overall score
+
+    Weights without description quality:
+    - Conciseness: 0.25
+    - Complexity: 0.20
+    - Spec Compliance: 0.35
+    - Progressive Disclosure: 0.20
+
+    Weights with description quality (v5.0.0+):
+    - Conciseness: 0.20
+    - Complexity: 0.20
+    - Spec Compliance: 0.30
+    - Progressive Disclosure: 0.20
+    - Description Quality: 0.10
+    """
+    if description_quality:
+        overall = (
+            conciseness['score'] * 0.20 +
+            complexity['score'] * 0.20 +
+            spec_compliance['score'] * 0.30 +
+            progressive['score'] * 0.20 +
+            description_quality['score'] * 0.10
+        )
+    else:
+        # Legacy calculation for backward compatibility
+        overall = (
+            conciseness['score'] * 0.25 +
+            complexity['score'] * 0.20 +
+            spec_compliance['score'] * 0.35 +
+            progressive['score'] * 0.20
+        )
 
     return int(overall)
 
@@ -1470,7 +1586,8 @@ def calculate_all_metrics(skill_path):
     complexity = calculate_complexity_score(skill_path, body)
     spec_compliance = calculate_spec_compliance_score(frontmatter_dict, basic)
     progressive = calculate_progressive_disclosure_score(basic)
-    overall = calculate_overall_score(conciseness, complexity, spec_compliance, progressive)
+    description_quality = validate_description_quality(frontmatter_dict)
+    overall = calculate_overall_score(conciseness, complexity, spec_compliance, progressive, description_quality)
 
     return {
         'skill_name': frontmatter_dict.get('name', skill_path.name),
@@ -1479,6 +1596,7 @@ def calculate_all_metrics(skill_path):
         'complexity': complexity,
         'spec_compliance': spec_compliance,
         'progressive_disclosure': progressive,
+        'description_quality': description_quality,
         'overall_score': overall
     }
 
@@ -1656,8 +1774,27 @@ def print_evaluation_text(evaluation):
     print(f"  Complexity:      {format_score_bar(metrics['complexity']['score'])}")
     print(f"  Spec Compliance: {format_score_bar(metrics['spec_compliance']['score'])}")
     print(f"  Progressive:     {format_score_bar(metrics['progressive_disclosure']['score'])}")
+    if 'description_quality' in metrics:
+        print(f"  Description:     {format_score_bar(metrics['description_quality']['score'])}")
     print(f"  Overall:         {format_score_bar(metrics['overall_score'])}")
     print()
+
+    # Description Quality Details
+    if 'description_quality' in metrics:
+        desc_q = metrics['description_quality']
+        if desc_q['trigger_phrases_found']:
+            print(f"Trigger Phrases Found: {len(desc_q['trigger_phrases_found'])}")
+            for phrase in desc_q['trigger_phrases_found'][:5]:  # Show up to 5
+                print(f"  - \"{phrase}\"")
+        if desc_q['issues']:
+            print("\n⚠ Description Issues:")
+            for issue in desc_q['issues']:
+                print(f"  - {issue}")
+        if desc_q['suggestions']:
+            print("\n💡 Suggestions:")
+            for suggestion in desc_q['suggestions']:
+                print(f"  - {suggestion}")
+        print()
 
     # Spec Validation
     spec = evaluation['spec_validation']

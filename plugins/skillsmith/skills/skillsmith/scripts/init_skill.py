@@ -6,11 +6,17 @@
 Skill Initializer - Creates a new skill from template
 
 Usage:
-    uv run scripts/init_skill.py <skill-name> [--path <path>] [--verbose]
+    uv run scripts/init_skill.py <skill-name> [--template TYPE] [--path <path>] [--verbose]
+
+Template Types:
+    minimal   - Simple skill with SKILL.md only (~50-100 lines)
+    standard  - Skill with references and optional scripts (~150-300 lines) [default]
+    complete  - Full skill with all resource types (~250-400 lines)
 
 Examples:
     uv run scripts/init_skill.py my-new-skill
-    uv run scripts/init_skill.py my-api-helper --path /custom/location
+    uv run scripts/init_skill.py my-api-helper --template minimal
+    uv run scripts/init_skill.py complex-tool --template complete --path /custom/location
     uv run scripts/init_skill.py custom-skill --verbose
 """
 
@@ -20,6 +26,114 @@ from datetime import datetime
 from pathlib import Path
 
 from utils import get_repo_root
+
+# Template types
+TEMPLATE_MINIMAL = "minimal"
+TEMPLATE_STANDARD = "standard"
+TEMPLATE_COMPLETE = "complete"
+
+MINIMAL_SKILL_TEMPLATE = """---
+name: {skill_name}
+description: This skill should be used when users ask to "[TODO: trigger phrase 1]", "[TODO: trigger phrase 2]". [TODO: Brief description of what the skill does.]
+metadata:
+  version: "1.0.0"
+---
+
+# {skill_title}
+
+[TODO: 1-2 sentences explaining what this skill enables]
+
+## Usage
+
+[TODO: Explain how to use this skill. Include key commands, patterns, or workflows.]
+
+## Key Concepts
+
+[TODO: List 3-5 core concepts with brief explanations]
+
+---
+
+*This is a minimal skill template. For more complex skills, consider adding references/, scripts/, or assets/ directories.*
+"""
+
+COMPLETE_SKILL_TEMPLATE = """---
+name: {skill_name}
+description: This skill should be used when users ask to "[TODO: trigger phrase 1]", "[TODO: trigger phrase 2]", "[TODO: trigger phrase 3]", or "[TODO: trigger phrase 4]". [TODO: Comprehensive description of skill capabilities.]
+metadata:
+  version: "1.0.0"
+  author: [TODO: Author name]
+compatibility: Requires python3 and uv for script execution
+license: See LICENSE.txt
+---
+
+# {skill_title}
+
+This skill provides [TODO: comprehensive description of what this skill enables].
+
+## About This Skill
+
+### What This Skill Provides
+
+1. [TODO: Primary capability]
+2. [TODO: Secondary capability]
+3. [TODO: Tertiary capability]
+4. [TODO: Additional capability]
+
+### When to Use This Skill
+
+[TODO: Describe specific scenarios when this skill should be triggered]
+
+## Workflow
+
+### Step 1: [TODO: First major step]
+
+[TODO: Description and guidance for step 1]
+
+### Step 2: [TODO: Second major step]
+
+[TODO: Description and guidance for step 2]
+
+### Step 3: [TODO: Third major step]
+
+[TODO: Description and guidance for step 3]
+
+## Common Patterns
+
+### Pattern 1: [TODO: Pattern name]
+
+[TODO: Description of common pattern]
+
+### Pattern 2: [TODO: Pattern name]
+
+[TODO: Description of common pattern]
+
+## Bundled Resources
+
+### scripts/
+
+Executable utilities for this skill:
+- `scripts/main_tool.py` - [TODO: Primary tool description]
+- `scripts/helper.py` - [TODO: Helper utility description]
+
+### references/
+
+Detailed documentation:
+- `references/detailed_guide.md` - Comprehensive guide
+- `references/patterns.md` - Common patterns and examples
+- `references/advanced.md` - Advanced techniques
+
+### assets/
+
+Templates and files used in output:
+- `assets/templates/` - Template files
+
+## Advanced Topics
+
+For detailed guidance, see reference files:
+- **`references/detailed_guide.md`** - Comprehensive implementation details
+- **`references/patterns.md`** - Common patterns and best practices
+- **`references/advanced.md`** - Advanced techniques and edge cases
+"""
 
 SKILL_TEMPLATE = """---
 name: {skill_name}
@@ -265,13 +379,14 @@ def title_case_skill_name(skill_name):
     return " ".join(word.capitalize() for word in skill_name.split("-"))
 
 
-def init_skill(skill_name, skills_dir):
+def init_skill(skill_name, skills_dir, template_type=TEMPLATE_STANDARD):
     """
     Initialize a new skill directory with template SKILL.md.
 
     Args:
         skill_name: Name of the skill
         skills_dir: Path to skills directory where skill will be created
+        template_type: Type of template to use (minimal, standard, complete)
 
     Returns:
         Path to created skill directory, or None if error
@@ -292,11 +407,23 @@ def init_skill(skill_name, skills_dir):
         print(f"❌ Error creating directory: {e}")
         return None
 
-    # Create SKILL.md from template
+    # Select template based on template_type
     skill_title = title_case_skill_name(skill_name)
-    skill_content = SKILL_TEMPLATE.format(
-        skill_name=skill_name, skill_title=skill_title
-    )
+    if template_type == TEMPLATE_MINIMAL:
+        skill_content = MINIMAL_SKILL_TEMPLATE.format(
+            skill_name=skill_name, skill_title=skill_title
+        )
+        print(f"📋 Using minimal template")
+    elif template_type == TEMPLATE_COMPLETE:
+        skill_content = COMPLETE_SKILL_TEMPLATE.format(
+            skill_name=skill_name, skill_title=skill_title
+        )
+        print(f"📋 Using complete template")
+    else:  # TEMPLATE_STANDARD (default)
+        skill_content = SKILL_TEMPLATE.format(
+            skill_name=skill_name, skill_title=skill_title
+        )
+        print(f"📋 Using standard template")
 
     skill_md_path = skill_dir / "SKILL.md"
     try:
@@ -306,67 +433,95 @@ def init_skill(skill_name, skills_dir):
         print(f"❌ Error creating SKILL.md: {e}")
         return None
 
-    # Create IMPROVEMENT_PLAN.md from template
-    today = datetime.now().strftime("%Y-%m-%d")
-    improvement_plan_content = IMPROVEMENT_PLAN_TEMPLATE.format(
-        skill_name=skill_name, skill_title=skill_title, date=today
-    )
+    # Create IMPROVEMENT_PLAN.md from template (skip for minimal)
+    if template_type != TEMPLATE_MINIMAL:
+        today = datetime.now().strftime("%Y-%m-%d")
+        improvement_plan_content = IMPROVEMENT_PLAN_TEMPLATE.format(
+            skill_name=skill_name, skill_title=skill_title, date=today
+        )
 
-    improvement_plan_path = skill_dir / "IMPROVEMENT_PLAN.md"
+        improvement_plan_path = skill_dir / "IMPROVEMENT_PLAN.md"
+        try:
+            improvement_plan_path.write_text(improvement_plan_content)
+            print("✅ Created IMPROVEMENT_PLAN.md")
+        except Exception as e:
+            print(f"❌ Error creating IMPROVEMENT_PLAN.md: {e}")
+            return None
+
+    # Create resource directories based on template type
     try:
-        improvement_plan_path.write_text(improvement_plan_content)
-        print("✅ Created IMPROVEMENT_PLAN.md")
-    except Exception as e:
-        print(f"❌ Error creating IMPROVEMENT_PLAN.md: {e}")
-        return None
+        if template_type == TEMPLATE_MINIMAL:
+            # Minimal: No resource directories
+            pass
 
-    # Create resource directories with example files
-    try:
-        # Create scripts/ directory with example script
-        scripts_dir = skill_dir / "scripts"
-        scripts_dir.mkdir(exist_ok=True)
-        example_script = scripts_dir / "example.py"
-        example_script.write_text(EXAMPLE_SCRIPT.format(skill_name=skill_name))
-        example_script.chmod(0o755)
-        print("✅ Created scripts/example.py")
+        elif template_type == TEMPLATE_STANDARD:
+            # Standard: references/ and optional scripts/
+            references_dir = skill_dir / "references"
+            references_dir.mkdir(exist_ok=True)
+            example_reference = references_dir / "detailed_guide.md"
+            example_reference.write_text(EXAMPLE_REFERENCE.format(skill_title=skill_title))
+            print("✅ Created references/detailed_guide.md")
 
-        # Create references/ directory with example reference doc
-        references_dir = skill_dir / "references"
-        references_dir.mkdir(exist_ok=True)
-        example_reference = references_dir / "api_reference.md"
-        example_reference.write_text(EXAMPLE_REFERENCE.format(skill_title=skill_title))
-        print("✅ Created references/api_reference.md")
+            scripts_dir = skill_dir / "scripts"
+            scripts_dir.mkdir(exist_ok=True)
+            example_script = scripts_dir / "helper.py"
+            example_script.write_text(EXAMPLE_SCRIPT.format(skill_name=skill_name))
+            example_script.chmod(0o755)
+            print("✅ Created scripts/helper.py")
 
-        # Create FORMS.md template
-        forms_file = references_dir / "FORMS.md"
-        forms_file.write_text(FORMS_TEMPLATE)
-        print("✅ Created references/FORMS.md")
+        else:  # TEMPLATE_COMPLETE
+            # Complete: All resource directories
+            # Create scripts/ directory
+            scripts_dir = skill_dir / "scripts"
+            scripts_dir.mkdir(exist_ok=True)
+            main_script = scripts_dir / "main_tool.py"
+            main_script.write_text(EXAMPLE_SCRIPT.format(skill_name=skill_name))
+            main_script.chmod(0o755)
+            print("✅ Created scripts/main_tool.py")
 
-        # Create assets/ directory with example asset placeholder
-        assets_dir = skill_dir / "assets"
-        assets_dir.mkdir(exist_ok=True)
-        example_asset = assets_dir / "example_asset.txt"
-        example_asset.write_text(EXAMPLE_ASSET)
-        print("✅ Created assets/example_asset.txt")
+            helper_script = scripts_dir / "helper.py"
+            helper_script.write_text(EXAMPLE_SCRIPT.format(skill_name=skill_name))
+            helper_script.chmod(0o755)
+            print("✅ Created scripts/helper.py")
+
+            # Create references/ directory with multiple files
+            references_dir = skill_dir / "references"
+            references_dir.mkdir(exist_ok=True)
+
+            for ref_name in ["detailed_guide.md", "patterns.md", "advanced.md"]:
+                ref_file = references_dir / ref_name
+                ref_file.write_text(EXAMPLE_REFERENCE.format(skill_title=skill_title))
+                print(f"✅ Created references/{ref_name}")
+
+            # Create assets/ directory
+            assets_dir = skill_dir / "assets"
+            assets_dir.mkdir(exist_ok=True)
+            templates_dir = assets_dir / "templates"
+            templates_dir.mkdir(exist_ok=True)
+            example_asset = templates_dir / "example_template.txt"
+            example_asset.write_text(EXAMPLE_ASSET)
+            print("✅ Created assets/templates/example_template.txt")
+
     except Exception as e:
         print(f"❌ Error creating resource directories: {e}")
         return None
 
-    # Print next steps
+    # Print next steps based on template type
     print(f"\n✅ Skill '{skill_name}' initialized successfully at {skill_dir}")
     print("\nNext steps:")
     print("1. Edit SKILL.md to complete the TODO items and update the description")
-    print(
-        "2. Customize or delete the example files in scripts/, references/, and assets/"
-    )
-    print("3. Run the validator when ready to check the skill structure")
+    if template_type == TEMPLATE_MINIMAL:
+        print("2. Run the validator when ready: uv run scripts/evaluate_skill.py <path> --quick")
+    else:
+        print("2. Customize or delete the example files in resource directories")
+        print("3. Run the validator when ready: uv run scripts/evaluate_skill.py <path> --quick")
 
     return skill_dir
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Initialize a new skill with the standard structure. Auto-detects repository root.",
+        description="Initialize a new skill with template structure. Auto-detects repository root.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Skill name requirements:
@@ -375,17 +530,23 @@ Skill name requirements:
   - Max 40 characters
   - Must match directory name exactly
 
+Template types:
+  minimal   - Simple skill with SKILL.md only (~50-100 lines)
+  standard  - Skill with references and scripts (~150-300 lines) [default]
+  complete  - Full skill with all resource types (~250-400 lines)
+
 Examples:
   # Auto-detect repo root, create skill in <repo>/skills/<skill-name>
   %(prog)s my-new-skill
 
+  # Create minimal skill (no resource directories)
+  %(prog)s simple-helper --template minimal
+
+  # Create complete skill (all resource directories)
+  %(prog)s complex-tool --template complete
+
   # With explicit repository ROOT path (script appends /skills automatically)
   %(prog)s my-api-helper --path /path/to/repo
-  # Creates: /path/to/repo/skills/my-api-helper
-
-  # WRONG: Don't pass the skills directory - script adds it
-  # %(prog)s my-skill --path /path/to/repo/skills  ❌
-  # Would create: /path/to/repo/skills/skills/my-skill
 
   # With verbose output to see path resolution
   %(prog)s custom-skill --verbose
@@ -393,6 +554,14 @@ Examples:
     )
 
     parser.add_argument("skill_name", help="Name of the skill to create")
+
+    parser.add_argument(
+        "--template",
+        "-t",
+        choices=["minimal", "standard", "complete"],
+        default="standard",
+        help="Template type: minimal, standard (default), or complete",
+    )
 
     parser.add_argument(
         "--path",
@@ -442,13 +611,14 @@ Examples:
         print(f"   Repository root: {repo_root}")
         print(f"   Skills directory: {skills_dir}")
         print(f"   Target skill directory: {skills_dir / args.skill_name}")
+        print(f"   Template type: {args.template}")
         print()
 
     print(f"🚀 Initializing skill: {args.skill_name}")
     print(f"   Location: {skills_dir}")
     print()
 
-    result = init_skill(args.skill_name, skills_dir)
+    result = init_skill(args.skill_name, skills_dir, args.template)
 
     if result:
         sys.exit(0)

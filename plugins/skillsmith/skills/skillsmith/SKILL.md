@@ -1,9 +1,9 @@
 ---
 name: skillsmith
-description: Guide for creating, evaluating, researching, and improving effective skills. This skill should be used when users want to create, validate, evaluate, research, analyze, or improve skills that extend Claude's capabilities with specialized knowledge, workflows, or tool integrations.
+description: This skill should be used when users ask to "create a skill", "validate a skill for quality", "evaluate skill improvements", "research skill opportunities", "analyze skill metrics", "improve skill quality", "init a new skill", "check skill compliance", or "sync skill to marketplace". Provides comprehensive skill development with automated validation, metrics tracking, and improvement workflows.
 metadata:
   author: J. Greg Williams
-  version: "4.0.0"
+  version: "5.0.0"
 compatibility: Requires python3 and uv for script execution and validation
 license: Complete terms in LICENSE.txt
 ---
@@ -216,6 +216,146 @@ See `references/skill_creation_detailed_guide.md` for detailed iteration workflo
 
 ---
 
+## Common Mistakes to Avoid
+
+### Mistake 1: Weak Trigger Description
+
+❌ **Bad:**
+```yaml
+description: Provides guidance for creating skills.
+```
+
+**Why bad:** Vague, no specific trigger phrases, not third-person format
+
+✅ **Good:**
+```yaml
+description: This skill should be used when users ask to "create a skill", "validate a skill for quality", "evaluate skill improvements". Provides comprehensive skill development guidance.
+```
+
+**Why good:** Third-person format, specific trigger phrases, concrete scenarios
+
+### Mistake 2: Bloated SKILL.md
+
+❌ **Bad:** SKILL.md with 800+ lines containing all documentation
+
+**Why bad:** Consumes context window every time skill triggers, detailed content always loaded
+
+✅ **Good:** SKILL.md with 200-400 lines, detailed content in `references/`
+
+**Why good:** Progressive disclosure - core essentials load immediately, details load as needed
+
+### Mistake 3: Second-Person Writing
+
+❌ **Bad:**
+```markdown
+You should start by understanding the skill requirements.
+You need to validate your skill before release.
+```
+
+**Why bad:** Second-person style, not imperative form
+
+✅ **Good:**
+```markdown
+Start by understanding the skill requirements.
+Validate the skill before release.
+```
+
+**Why good:** Imperative form, direct instructions
+
+### Mistake 4: Missing or Orphaned References
+
+❌ **Bad:** Reference files exist in `references/` but aren't mentioned in SKILL.md
+
+**Why bad:** Claude doesn't know the references exist or when to use them
+
+✅ **Good:** Each reference file mentioned contextually where relevant in SKILL.md
+
+**Why good:** Claude knows what references exist and when to load them
+
+---
+
+## Quick Reference: Skill Templates
+
+### Minimal Skill (~50-100 lines)
+
+```
+skill-name/
+├── SKILL.md
+└── (no bundled resources)
+```
+
+**Frontmatter:**
+```yaml
+---
+name: skill-name
+description: This skill should be used when users ask to "do X", "perform Y".
+metadata:
+  version: "1.0.0"
+---
+```
+
+**Use for:** Simple knowledge transfer, single-topic guidance, no complex workflows
+
+### Standard Skill (~150-300 lines)
+
+```
+skill-name/
+├── SKILL.md
+├── references/
+│   ├── detailed_guide.md
+│   └── patterns.md
+└── scripts/
+    └── helper_script.py
+```
+
+**Frontmatter:**
+```yaml
+---
+name: skill-name
+description: This skill should be used when users ask to "create X", "configure Y", "validate Z".
+metadata:
+  version: "1.0.0"
+compatibility: Requires python3 and uv for script execution
+---
+```
+
+**Use for:** Most skills - workflows with 2-3 references and optional scripts
+
+### Complete Skill (~250-400 lines)
+
+```
+skill-name/
+├── SKILL.md
+├── IMPROVEMENT_PLAN.md
+├── references/
+│   ├── specification.md
+│   ├── detailed_guide.md
+│   ├── patterns.md
+│   └── advanced_topics.md
+├── scripts/
+│   ├── main_tool.py
+│   └── helper.py
+└── assets/
+    └── templates/
+```
+
+**Frontmatter:**
+```yaml
+---
+name: skill-name
+description: This skill should be used when users ask to "create X", "validate Y", "improve Z", "analyze A", "export B".
+metadata:
+  version: "1.0.0"
+  author: Author Name
+compatibility: Requires python3 and uv for script execution
+license: See LICENSE.txt
+---
+```
+
+**Use for:** Complex domains with extensive documentation, tooling, and templates
+
+---
+
 ## Advanced Topics
 
 For detailed guidance on specific topics, see these reference files:
@@ -233,3 +373,19 @@ For detailed guidance on specific topics, see these reference files:
 - **`references/form_templates.md`** - Form templates for structured data collection
 
 For marketplace distribution, see the **marketplace-manager** skill.
+
+---
+
+## Learn from Official Examples
+
+Study these skills from the official **plugin-dev** toolkit as examples of best practices:
+
+| Skill | Best Practice Example |
+|-------|----------------------|
+| **hook-development** | Excellent progressive disclosure - lean SKILL.md with 3 reference files, 3 examples, 3 scripts |
+| **agent-development** | Strong trigger phrases, focused content (~1,438 words), complete agent examples |
+| **plugin-settings** | Clear reference organization with real-world implementation examples |
+| **command-development** | Specific trigger phrases demonstrating proper frontmatter patterns |
+| **skill-development** | Comprehensive validation checklist and common mistakes documentation |
+
+These official skills demonstrate the AgentSkills specification patterns that skillsmith automates and extends with metrics tracking.
