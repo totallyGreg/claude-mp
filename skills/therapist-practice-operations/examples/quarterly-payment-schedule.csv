@@ -1,0 +1,6 @@
+Quarter,Period,Due Date,Payment Amount,Method,Confirmation Number,Notes
+Q1,"Jan 1 - Mar 31",2026-04-15,5513,IRS Direct Pay,ABC123456,Estimated payment based on $85000 annual income projection
+Q2,"Apr 1 - May 31",2026-06-15,5513,IRS Direct Pay,ABC123457,Review mid-year if actual income differs significantly
+Q3,"Jun 1 - Aug 31",2026-09-15,5513,Bank ACH,XYZ789012,Quarterly adjustment: increase to $6162 based on Q2 review
+Q4,"Sep 1 - Dec 31",2027-01-15,6162,IRS Direct Pay,DEF345678,Final payment of tax year; verify with CPA after year-end
+Safe Harbor Check,,"2027-04-15","$22051 total","100% of prior year","N/A","Must pay at least 100% of prior year tax by April 15 to avoid penalties"

@@ -1,0 +1,36 @@
+Date,Category,Description,Vendor,Amount,Receipt Stored,Notes
+2026-01-15,Office Supplies,Pens and paper,Staples,$45.67,Yes,Monthly office supply order
+2026-01-15,Professional Liability Insurance,Annual malpractice insurance,HPSO,$1500.00,Yes,Policy covers $1M/$3M coverage
+2026-01-20,Continuing Education,Grief counseling workshop,ICAK,$300.00,Yes,6 CE hours; applies to WA and FL
+2026-02-01,Professional Dues,American Counseling Association membership,ACA,$200.00,Yes,Annual membership
+2026-02-15,Technology & Software,EHR software - monthly subscription,SimplePractice,$100.00,Yes,Recurring monthly
+2026-02-15,Technology & Software,Zoom Pro subscription,Zoom,$149.99,Yes,Annual billing
+2026-03-01,Continuing Education,Trauma-informed care online course,NBCC,$250.00,Yes,8 CE hours; 1.5 hours ethics
+2026-03-15,Office Rent,Office space rent - shared suite,Commercial Landlord,$1500.00,Yes,Dedicated therapy office
+2026-03-20,Business Services,CPA consultation - quarterly planning,CPA Office,$200.00,Yes,Tax planning session
+2026-04-01,Professional Dues,Florida Counseling Association,FCA,$125.00,Yes,State association membership
+2026-04-15,Continuing Education,Diversity and cultural competency training,WACA,$200.00,Yes,4 CE hours; diversity requirement
+2026-05-01,Technology & Software,Cloud storage (Google One Business),Google,$19.99,Yes,Monthly backup and storage
+2026-05-15,Business Services,Accountant bookkeeping service,Bookkeeper,$150.00,Yes,Monthly reconciliation
+2026-05-20,Travel,CE Conference - airfare,Southwest Airlines,$350.00,Yes,Round-trip to Portland for conference
+2026-05-20,Travel,CE Conference - hotel,Hilton Hotel,$200.00,Yes,2 nights during conference
+2026-05-20,Travel,CE Conference registration,APA,$400.00,Yes,3-day conference on trauma
+2026-05-21,Travel,Meals during CE conference,Various Restaurants,$75.00,Yes,Business meals; 50% deductible = $37.50
+2026-06-01,Office Supplies,Filing cabinets and organizers,Office Depot,$200.00,Yes,Office organization
+2026-06-15,Professional Liability Insurance,Quarterly adjustment to insurance,HPSO,$0.00,No,Confirmed current through Dec 2026
+2026-06-20,Continuing Education,Domestic violence intervention training,WACA,$180.00,Yes,3 CE hours; DV requirement
+2026-07-01,Technology & Software,EHR software - monthly subscription,SimplePractice,$100.00,Yes,Recurring monthly
+2026-07-15,Professional Dues,National Board of Certified Counselors,NBCC,$75.00,Yes,Annual certification maintenance
+2026-07-20,Business Services,Legal consultation - contract review,Attorney Office,$350.00,Yes,Client contract and consent form review
+2026-08-01,Office Supplies,Printer ink and office supplies,Staples,$65.00,Yes,Monthly supply order
+2026-08-15,Continuing Education,Online course - clinical assessment,Therapy Institute,$220.00,Yes,4 CE hours; elective
+2026-09-01,Technology & Software,Laptop computer replacement,Best Buy,$1200.00,Yes,Under $2500 safe harbor; fully deductible
+2026-09-15,Technology & Software,External hard drive backup,Best Buy,$85.00,Yes,Data backup and security
+2026-10-01,Office Supplies,Office supplies restock,Staples,$50.00,Yes,Monthly office order
+2026-10-15,Continuing Education,Supervision training workshop,ACA,$280.00,Yes,5 CE hours; elective
+2026-11-01,Professional Dues,State continuing education renewal,WA Board,$225.00,Yes,License renewal fee (partial year)
+2026-11-15,Business Services,CPA year-end planning session,CPA Office,$300.00,Yes,Tax planning for 2027
+2026-12-01,Office Supplies,Year-end office and client supplies,Staples,$120.00,Yes,Tissues; supplies for client use
+2026-12-10,Continuing Education,Diversity awareness online course,NBCC,$150.00,Yes,2 CE hours; elective
+2026-12-15,Technology & Software,EHR software - monthly subscription,SimplePractice,$100.00,Yes,Recurring final month
+TOTALS,,,,$9627.65,,
