@@ -232,7 +232,7 @@ Create a table for states you operate in:
 - **Requirements change:** State boards update requirements regularly. Always verify with the official state board before renewal.
 - **Reciprocity varies:** Some states offer reciprocity for licensed therapists from other states; most do not. Reciprocity still requires verification of credentials, usually without needing to retake exams.
 - **Supervision requirements:** If you plan to supervise other therapists, additional requirements apply (varies by state).
-- **Interstate practice:** Virtual therapy for out-of-state clients may have different licensing requirements; some states restrict telehealth across state lines.
+- **Interstate practice/Telehealth:** Virtual therapy for out-of-state clients has different licensing rules by state. Some states require you to be licensed in the state where the *client* is located; others allow practice in the therapist's licensed state only. Some states restrict telehealth across state lines entirely. **Always verify with both your state board AND the client's state board before offering virtual services to out-of-state clients.** This is a growing area of regulatory complexity.
 
 ---
 

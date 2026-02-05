@@ -1,6 +1,6 @@
 ---
 name: therapist-practice-operations
-description: This skill should be used when the user asks to "help me with taxes", "organize my expenses", "plan estimated tax payments", "renew my license", "what are my compliance deadlines", "set up tax tracking", "compare licensing requirements", or mentions managing sole proprietor business operations, taxes, and licensing for mental health therapists.
+description: This skill should be used when the user asks to "help me with taxes", "organize my expenses", "plan estimated tax payments", "renew my license", "track my continuing education hours", "what are my compliance deadlines", "set up tax tracking", "compare licensing requirements", or mentions managing sole proprietor business operations, taxes, and licensing for mental health therapists.
 version: 0.1.0
 ---
 
@@ -86,6 +86,8 @@ Underestimating can result in penalties; see `references/tax-formulas.md` for sa
 ### Qualified Business Income (QBI) Deduction
 
 Eligible therapists may deduct up to 20% of business income (Section 199A deduction). However, income limitations apply, and therapists are likely in a "specified service trade or business" (SSTB) which has restrictions.
+
+**⚠️ Important:** The QBI deduction is scheduled to expire on December 31, 2025 unless Congress extends it. Verify current tax law status when planning your 2026+ taxes and consult with your CPA about any changes.
 
 **Check eligibility**: See `references/qbi-eligibility.md`
 
