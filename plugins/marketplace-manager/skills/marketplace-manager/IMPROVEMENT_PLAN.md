@@ -35,6 +35,28 @@ This document tracks improvements, enhancements, and future development plans fo
 
 **Note:** For complete "strict" field documentation, consult official docs at https://code.claude.com/docs/en/plugins-reference
 
+### High Priority
+
+#### 13. Clarify Relationship with plugin-dev ([#25](https://github.com/totallyGreg/claude-mp/issues/25))
+**Goal:** Document complementary relationship with official plugin-dev plugin
+
+**Problem:**
+- Users may be confused about overlap between marketplace-manager and plugin-dev
+- No clear guidance on which to use for what purpose
+- Missing reference to plugin-dev for component creation
+
+**Proposed Solution:**
+- Add plugin-dev reference to SKILL.md "See Also" section
+- Clarify scope: marketplace-manager handles distribution, plugin-dev handles creation
+- Document the workflow: `plugin-dev → Build → skillsmith → Improve → marketplace-manager → Publish`
+
+**Files to Modify:**
+- `SKILL.md` (See Also section)
+
+**Success Criteria:**
+- [ ] Add plugin-dev reference to SKILL.md "See Also" section
+- [ ] Clarify scope in skill description or intro paragraph
+
 ### Medium Priority
 
 #### 8. Enhanced Reference Documentation

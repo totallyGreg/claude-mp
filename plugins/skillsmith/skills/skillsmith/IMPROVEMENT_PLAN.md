@@ -26,6 +26,7 @@
 
 ## Active Work
 
+- [#26](https://github.com/totallyGreg/claude-mp/issues/26): Add Claude Code plugin-specific context and testing guidance (Blocked by #25)
 - [#24](https://github.com/totallyGreg/claude-mp/issues/24): Complete script consolidation - Phases 2-3 (Planning)
 - [#8](https://github.com/totallyGreg/claude-mp/issues/8): Advanced validation features (Planning)
 - [#10](https://github.com/totallyGreg/claude-mp/issues/10): Add interactive mode to skill template (Planning)
