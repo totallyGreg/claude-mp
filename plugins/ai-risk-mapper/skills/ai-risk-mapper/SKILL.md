@@ -2,7 +2,7 @@
 name: ai-risk-mapper
 description: This skill should be used when identifying, analyzing, and mitigating security risks in Artificial Intelligence systems using the CoSAI (Coalition for Secure AI) Risk Map framework. Use when assessing AI system security, conducting risk analysis for LLM applications, ML pipelines, model training/serving infrastructure, or generating compliance reports aligned with MITRE ATLAS, NIST AI RMF, OWASP Top 10 for LLM, and STRIDE frameworks. Supports both automated assessments and interactive exploration with 30+ query methods.
 metadata:
-  version: "4.0.0"
+  version: "4.0.1"
   author: J. Greg Williams
 compatibility: Requires python3 and uv for script execution
 license: Apache 2.0
@@ -17,7 +17,7 @@ license: Apache 2.0
 For requests like "Analyze security risks in [target]" or "Generate a CoSAI risk assessment":
 
 ```bash
-uv run scripts/orchestrate_risk_assessment.py \
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/orchestrate_risk_assessment.py \
   --target <user_specified_target> \
   --output-dir ./risk-assessment-output
 ```
@@ -34,12 +34,12 @@ For ad-hoc queries, threat modeling, or compliance mapping:
 
 | Purpose | Script |
 |---------|--------|
-| Search risks by keyword | `uv run scripts/cli_risk_search.py "injection"` |
-| Search controls by keyword | `uv run scripts/cli_control_search.py "training"` |
-| Get controls for a risk | `uv run scripts/cli_controls_for_risk.py DP` |
-| Get persona risk profile | `uv run scripts/cli_persona_profile.py personaModelCreator` |
-| Assess control coverage | `uv run scripts/cli_gap_analysis.py DP --implemented controlTrainingDataSanitization` |
-| Get framework mappings | `uv run scripts/cli_framework_map.py PIJ --framework mitre-atlas` |
+| Search risks by keyword | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_risk_search.py "injection"` |
+| Search controls by keyword | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_control_search.py "training"` |
+| Get controls for a risk | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_controls_for_risk.py DP` |
+| Get persona risk profile | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_persona_profile.py personaModelCreator` |
+| Assess control coverage | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_gap_analysis.py DP --implemented controlTrainingDataSanitization` |
+| Get framework mappings | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_framework_map.py PIJ --framework mitre-atlas` |
 
 All scripts support `--offline` flag for bundled schema usage.
 
@@ -53,7 +53,7 @@ See `references/exploration_guide.md` for complete API reference, query patterns
 
 **Manual offline mode:**
 ```bash
-uv run scripts/orchestrate_risk_assessment.py --target <path> --offline
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/orchestrate_risk_assessment.py --target <path> --offline
 ```
 
 **Missing Target:**
@@ -65,13 +65,13 @@ uv run scripts/orchestrate_risk_assessment.py --target <path> --offline
 ### Step 1: Ensure Schemas Available
 
 ```bash
-uv run scripts/fetch_cosai_schemas.py
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/fetch_cosai_schemas.py
 ```
 
 ### Step 2: Custom Filtered Analysis
 
 ```bash
-uv run scripts/analyze_risks.py \
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/analyze_risks.py \
   --target /path/to/codebase \
   --persona ModelConsumer \
   --lifecycle Application \
@@ -89,7 +89,7 @@ uv run scripts/analyze_risks.py \
 ### Step 3: Generate Custom Reports
 
 ```bash
-uv run scripts/generate_report.py \
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/generate_report.py \
   --analysis analysis.json \
   --output ai_security_assessment.md \
   --format markdown \
@@ -115,7 +115,7 @@ uv run scripts/generate_report.py \
 User: "Analyze security risks in my AI chatbot codebase"
 
 ```bash
-uv run scripts/orchestrate_risk_assessment.py \
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/orchestrate_risk_assessment.py \
   --target ./chatbot-src \
   --output-dir ./risk-output
 ```
@@ -132,7 +132,7 @@ Output:
 User: "What risks apply to prompt injection attacks?"
 
 ```bash
-uv run scripts/cli_risk_search.py "injection" --offline
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_risk_search.py "injection" --offline
 ```
 
 Output shows PIJ, ADI, RVP risks with descriptions, controls, and framework mappings.
@@ -142,7 +142,7 @@ Output shows PIJ, ADI, RVP risks with descriptions, controls, and framework mapp
 User: "What controls am I missing for Data Poisoning risk?"
 
 ```bash
-uv run scripts/cli_gap_analysis.py DP --implemented controlTrainingDataSanitization --offline
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_gap_analysis.py DP --implemented controlTrainingDataSanitization --offline
 ```
 
 Output:
@@ -162,7 +162,7 @@ Missing Controls:
 User: "Map prompt injection to MITRE ATLAS"
 
 ```bash
-uv run scripts/cli_framework_map.py PIJ --framework mitre-atlas --offline
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_framework_map.py PIJ --framework mitre-atlas --offline
 ```
 
 Output:
@@ -174,22 +174,22 @@ MITRE-ATLAS Mappings:
 
 ## Resources
 
-**Automation Scripts:**
-- `scripts/orchestrate_risk_assessment.py` - Workflow orchestrator
-- `scripts/fetch_cosai_schemas.py` - Schema downloader
-- `scripts/analyze_risks.py` - Risk identification engine
-- `scripts/generate_report.py` - Report generator
-- `scripts/core_analyzer.py` - Core query API (30+ methods)
+**Automation Scripts:** (via `${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/`)
+- `orchestrate_risk_assessment.py` - Workflow orchestrator
+- `fetch_cosai_schemas.py` - Schema downloader
+- `analyze_risks.py` - Risk identification engine
+- `generate_report.py` - Report generator
+- `core_analyzer.py` - Core query API (30+ methods)
 
-**Interactive CLI:**
-- `scripts/cli_risk_search.py` - Search risks
-- `scripts/cli_control_search.py` - Search controls
-- `scripts/cli_controls_for_risk.py` - Controls for risk
-- `scripts/cli_persona_profile.py` - Persona profiles
-- `scripts/cli_gap_analysis.py` - Gap analysis
-- `scripts/cli_framework_map.py` - Framework mappings
+**Interactive CLI:** (via `${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/`)
+- `cli_risk_search.py` - Search risks
+- `cli_control_search.py` - Search controls
+- `cli_controls_for_risk.py` - Controls for risk
+- `cli_persona_profile.py` - Persona profiles
+- `cli_gap_analysis.py` - Gap analysis
+- `cli_framework_map.py` - Framework mappings
 
-**Bundled Assets:**
+**Bundled Assets:** (via `${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/`)
 - `assets/cosai-schemas/` - Offline schema cache
 - `assets/report_template.md` - Report template
 

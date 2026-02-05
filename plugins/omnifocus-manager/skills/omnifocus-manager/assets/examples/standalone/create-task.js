@@ -10,7 +10,7 @@
 ObjC.import('Foundation');
 
 // Load libraries
-const librariesPath = '/Users/totally/Documents/Projects/claude-mp/skills/omnifocus-manager/libraries/jxa/';
+const librariesPath = '${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/libraries/jxa/';
 
 function loadLibrary(filename) {
     const path = librariesPath + filename;

@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# marketplace-manager pre-commit hook v2.0.0
+# marketplace-manager pre-commit hook v3.0.0
 #
 # Pre-commit hook for marketplace-manager
-# Automatically syncs marketplace.json when skill versions change
+# Checks staged files for version bumps and syncs marketplace.json
 #
 # Installation:
 #   bash plugins/marketplace-manager/skills/marketplace-manager/scripts/install_hook.sh
@@ -12,7 +12,7 @@
 #   git commit --no-verify
 #
 
-HOOK_VERSION="2.0.0"
+HOOK_VERSION="3.0.0"
 
 # Colors for output
 RED='\033[0;31m'
@@ -65,7 +65,19 @@ if [ -f "$TEMPLATE_PATH" ]; then
     fi
 fi
 
-# Detect version changes
+# Step 1: Check staged files for version bumps
+echo -e "${BLUE}🔍 Checking staged files for version bumps...${NC}"
+if ! python3 "$DETECT_SCRIPT" --check-staged > /dev/null 2>&1; then
+    echo -e "${YELLOW}⚠️  Some staged files may need version bumps${NC}"
+    # Show details
+    python3 "$DETECT_SCRIPT" --check-staged 2>&1 | grep -A 100 "Components missing"
+    echo -e "${YELLOW}   Consider bumping versions before committing.${NC}"
+    echo -e "${YELLOW}   Bypass with: git commit --no-verify${NC}"
+    # Note: This is a warning, not a block - the commit can proceed
+fi
+
+# Step 2: Detect SKILL.md vs marketplace.json mismatches
+echo -e "${BLUE}🔍 Checking marketplace version sync...${NC}"
 if ! python3 "$DETECT_SCRIPT" > /dev/null 2>&1; then
     echo -e "${YELLOW}⚠️  Version mismatches detected${NC}"
 

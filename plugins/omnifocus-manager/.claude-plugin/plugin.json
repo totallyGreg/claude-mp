@@ -1,0 +1,13 @@
+{
+  "name": "omnifocus-manager",
+  "version": "4.4.0",
+  "description": "Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA).",
+  "author": {
+    "name": "J. Greg Williams",
+    "email": "283704+totallyGreg@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "omnifocus-manager"
+  ]
+}

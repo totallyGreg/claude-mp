@@ -87,16 +87,16 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./skills/omnifocus-manager",
+      "source": "./plugins/omnifocus-manager",
       "skills": [
-        "./"
+        "./skills/omnifocus-manager"
       ]
     },
     {
       "name": "marketplace-manager",
       "description": "Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance",
       "category": "development",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
@@ -110,7 +110,7 @@
       "name": "ai-risk-mapper",
       "description": "AI security risk assessment using CoSAI Risk Map framework",
       "category": "security",
-      "version": "4.0.0",
+      "version": "4.0.1",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
@@ -124,7 +124,7 @@
       "name": "gateway-proxy",
       "description": "Expert guidance for kgateway and agentgateway with kubectl commands for AI/LLM routing, MCP server routing, and API gateway patterns",
       "category": "infrastructure",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"

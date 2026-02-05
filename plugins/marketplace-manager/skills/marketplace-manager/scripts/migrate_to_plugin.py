@@ -19,8 +19,314 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 from utils import find_repo_root
+
+
+class PathIssue(NamedTuple):
+    """Represents a path reference issue found during audit."""
+
+    file_path: Path
+    line_number: int
+    line_content: str
+    issue_type: str  # 'hardcoded_absolute' or 'relative_skill_ref'
+    matched_pattern: str
+
+
+# File extensions to scan for path references
+SCANNABLE_EXTENSIONS = {
+    ".md",
+    ".js",
+    ".ts",
+    ".json",
+    ".sh",
+    ".py",
+    ".txt",
+    ".yaml",
+    ".yml",
+}
+
+# Binary/generated directories to skip
+SKIP_DIRS = {"node_modules", ".git", "__pycache__", "dist", "build", ".next"}
+
+
+def get_tracked_top_level_items(repo_root: Path, source_dir: Path) -> list[Path]:
+    """Get top-level items in source_dir that are tracked by git.
+
+    Uses `git ls-files` to respect .gitignore and only return tracked items.
+
+    Args:
+        repo_root: Repository root path
+        source_dir: Directory to list
+
+    Returns:
+        List of Path objects for top-level tracked files/directories
+    """
+    rel_source = source_dir.relative_to(repo_root)
+    cmd = ["git", "ls-files", str(rel_source)]
+    result = subprocess.run(cmd, cwd=repo_root, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        return []
+
+    # Get unique top-level items from tracked files
+    top_level_items: set[Path] = set()
+    for line in result.stdout.strip().split("\n"):
+        if not line:
+            continue
+        file_path = repo_root / line
+        # Get the immediate child of source_dir
+        try:
+            rel_to_source = file_path.relative_to(source_dir)
+            top_item = source_dir / rel_to_source.parts[0]
+            top_level_items.add(top_item)
+        except ValueError:
+            continue
+
+    return sorted(top_level_items)
+
+
+def should_scan_file(file_path: Path) -> bool:
+    """Check if file should be scanned for path references.
+
+    Args:
+        file_path: Path to check
+
+    Returns:
+        True if file should be scanned
+    """
+    # Skip files in excluded directories
+    for part in file_path.parts:
+        if part in SKIP_DIRS:
+            return False
+
+    # Only scan text files with known extensions
+    return file_path.suffix.lower() in SCANNABLE_EXTENSIONS
+
+
+def find_path_issues_in_file(file_path: Path, skill_name: str) -> list[PathIssue]:
+    """Scan a single file for path reference issues.
+
+    Args:
+        file_path: Path to file to scan
+        skill_name: Name of skill being migrated
+
+    Returns:
+        List of PathIssue objects found
+    """
+    issues = []
+
+    try:
+        content = file_path.read_text(encoding="utf-8", errors="ignore")
+    except (OSError, UnicodeDecodeError):
+        return issues
+
+    lines = content.splitlines()
+
+    # Pattern for hardcoded absolute paths containing skill name
+    # Matches: /Users/*/skills/<name>/ or /home/*/skills/<name>/
+    abs_pattern = re.compile(
+        rf"(/(?:Users|home)/[^/]+/[^'\"\s]*skills/{re.escape(skill_name)}[^'\"\s]*)"
+    )
+
+    # Pattern for relative skill references in repo context
+    # Matches: skills/<name>/ or ./skills/<name>/
+    rel_pattern = re.compile(
+        rf"(?:^|['\"\s(])(\./)?skills/{re.escape(skill_name)}(?:/|['\"\s)]|$)"
+    )
+
+    for line_num, line in enumerate(lines, start=1):
+        # Check for hardcoded absolute paths
+        abs_matches = abs_pattern.findall(line)
+        for match in abs_matches:
+            issues.append(
+                PathIssue(
+                    file_path=file_path,
+                    line_number=line_num,
+                    line_content=line.strip()[:100],
+                    issue_type="hardcoded_absolute",
+                    matched_pattern=match,
+                )
+            )
+
+        # Check for relative skill references (only in certain file types)
+        # Skip if this looks like it's within the skill itself (internal refs are ok)
+        if file_path.suffix in {".md", ".json", ".yaml", ".yml"}:
+            if rel_pattern.search(line):
+                # Extract the matched portion
+                match = rel_pattern.search(line)
+                if match:
+                    issues.append(
+                        PathIssue(
+                            file_path=file_path,
+                            line_number=line_num,
+                            line_content=line.strip()[:100],
+                            issue_type="relative_skill_ref",
+                            matched_pattern=f"skills/{skill_name}",
+                        )
+                    )
+
+    return issues
+
+
+def audit_path_references(
+    source_dir: Path, skill_name: str
+) -> dict[str, list[PathIssue]]:
+    """Scan all files in skill directory for path reference issues.
+
+    Args:
+        source_dir: Skill source directory
+        skill_name: Name of skill being migrated
+
+    Returns:
+        Dictionary with 'hardcoded_absolute' and 'relative_skill_ref' lists
+    """
+    results: dict[str, list[PathIssue]] = {
+        "hardcoded_absolute": [],
+        "relative_skill_ref": [],
+    }
+
+    # Walk all files in source directory
+    for file_path in source_dir.rglob("*"):
+        if not file_path.is_file():
+            continue
+        if not should_scan_file(file_path):
+            continue
+
+        issues = find_path_issues_in_file(file_path, skill_name)
+        for issue in issues:
+            results[issue.issue_type].append(issue)
+
+    return results
+
+
+def print_audit_results(
+    audit_results: dict[str, list[PathIssue]],
+    repo_root: Path,
+    verbose: bool = False,
+) -> None:
+    """Print audit results in a readable format.
+
+    Args:
+        audit_results: Results from audit_path_references
+        repo_root: Repository root for relative path display
+        verbose: Show full details
+    """
+    hardcoded = audit_results["hardcoded_absolute"]
+    relative = audit_results["relative_skill_ref"]
+
+    if not hardcoded and not relative:
+        print("  ✅ No path reference issues detected")
+        return
+
+    total_issues = len(hardcoded) + len(relative)
+    print(f"\n  Found {total_issues} path references to update to ${{CLAUDE_PLUGIN_ROOT}}:")
+
+    if hardcoded:
+        print(f"\n  📍 Hardcoded absolute paths ({len(hardcoded)}):")
+        seen_files: set[Path] = set()
+        for issue in hardcoded:
+            rel_path = issue.file_path.relative_to(repo_root)
+            if verbose or issue.file_path not in seen_files:
+                print(f"     • {rel_path}:{issue.line_number}")
+                if verbose:
+                    print(f"       {issue.line_content}")
+                seen_files.add(issue.file_path)
+
+    if relative:
+        print(f"\n  📍 Relative skill references ({len(relative)}):")
+        seen_files = set()
+        for issue in relative:
+            rel_path = issue.file_path.relative_to(repo_root)
+            if verbose or issue.file_path not in seen_files:
+                print(f"     • {rel_path}:{issue.line_number}")
+                if verbose:
+                    print(f"       {issue.line_content}")
+                seen_files.add(issue.file_path)
+
+
+def fix_path_references(
+    source_dir: Path,
+    skill_name: str,
+    dry_run: bool = False,
+    verbose: bool = False,
+) -> list[dict]:
+    """Fix all path references to use ${CLAUDE_PLUGIN_ROOT}.
+
+    Replaces:
+    - Hardcoded absolute paths: /Users/.../skills/<name>/... → ${CLAUDE_PLUGIN_ROOT}/skills/<name>/...
+    - Relative repo paths: skills/<name>/... → ${CLAUDE_PLUGIN_ROOT}/skills/<name>/...
+
+    Args:
+        source_dir: Skill source directory
+        skill_name: Name of skill being migrated
+        dry_run: If True, don't actually modify files
+        verbose: Show detailed output
+
+    Returns:
+        List of fix records with file and replacement details
+    """
+    fixes_applied = []
+
+    # Pattern for hardcoded absolute paths
+    # Matches: /Users/*/...skills/<name>/ or /home/*/...skills/<name>/
+    abs_pattern = re.compile(
+        rf"(/(?:Users|home)/[^'\"\s]*/skills/{re.escape(skill_name)})"
+    )
+
+    # Replacement target using CLAUDE_PLUGIN_ROOT
+    plugin_root_path = f"${{CLAUDE_PLUGIN_ROOT}}/skills/{skill_name}"
+
+    for file_path in source_dir.rglob("*"):
+        if not file_path.is_file():
+            continue
+        if not should_scan_file(file_path):
+            continue
+
+        try:
+            content = file_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+
+        original_content = content
+        replacements = []
+
+        # Fix hardcoded absolute paths
+        abs_matches = abs_pattern.findall(content)
+        if abs_matches:
+            for match in set(abs_matches):
+                content = content.replace(match, plugin_root_path)
+                replacements.append(
+                    {"type": "absolute", "old": match, "new": plugin_root_path}
+                )
+
+        # Fix relative skill references (skills/<name> without leading /)
+        # But avoid matching if already using ${CLAUDE_PLUGIN_ROOT}
+        rel_pattern = f"skills/{skill_name}"
+        if rel_pattern in content and "${CLAUDE_PLUGIN_ROOT}" not in content:
+            # Only replace standalone references, not ones already fixed
+            content = content.replace(rel_pattern, plugin_root_path)
+            replacements.append(
+                {"type": "relative", "old": rel_pattern, "new": plugin_root_path}
+            )
+
+        if content != original_content:
+            if not dry_run:
+                file_path.write_text(content, encoding="utf-8")
+
+            fixes_applied.append(
+                {
+                    "file": file_path,
+                    "replacements": replacements,
+                }
+            )
+
+            if verbose:
+                prefix = "[DRY RUN] " if dry_run else ""
+                print(f"  {prefix}Fixed: {file_path.name} ({len(replacements)} replacements)")
+
+    return fixes_applied
 
 
 def extract_skill_metadata(skill_md_path: Path) -> dict:
@@ -55,10 +361,23 @@ def extract_skill_metadata(skill_md_path: Path) -> dict:
             if name_match:
                 metadata["name"] = name_match.group(1).strip()
 
-            # Extract description
+            # Extract description (handles both single-line and YAML multiline)
             desc_match = re.search(r"^description:\s*(.+)$", frontmatter, re.MULTILINE)
             if desc_match:
-                metadata["description"] = desc_match.group(1).strip()
+                desc_value = desc_match.group(1).strip()
+                # Check for YAML multiline indicators (| or >)
+                if desc_value in ("|", ">", "|+", "|-", ">+", ">-"):
+                    # Extract indented lines following the indicator
+                    multiline_match = re.search(
+                        r"^description:\s*[|>][-+]?\s*\n((?:[ \t]+.+\n?)+)",
+                        frontmatter,
+                        re.MULTILINE,
+                    )
+                    if multiline_match:
+                        # Join lines and normalize whitespace
+                        lines = multiline_match.group(1).strip().split("\n")
+                        desc_value = " ".join(line.strip() for line in lines)
+                metadata["description"] = desc_value
 
             # Extract version (check metadata.version first, then version)
             meta_version_match = re.search(
@@ -131,6 +450,28 @@ def migrate_skill(
             print(f"   {key}: {value}")
         print()
 
+    # Audit path references
+    print("🔍 Auditing path references...")
+    audit_results = audit_path_references(source_dir, skill_name)
+    print_audit_results(audit_results, repo_root, verbose)
+
+    # Fix path references (convert to ${CLAUDE_PLUGIN_ROOT})
+    has_path_issues = (
+        audit_results["hardcoded_absolute"] or audit_results["relative_skill_ref"]
+    )
+    path_fixes: list[dict] = []
+    if has_path_issues:
+        print()
+        print("🔧 Fixing path references to use ${CLAUDE_PLUGIN_ROOT}...")
+        path_fixes = fix_path_references(
+            source_dir, skill_name, dry_run=dry_run, verbose=verbose
+        )
+        if path_fixes:
+            print(f"  ✅ Updated {len(path_fixes)} file(s)")
+        else:
+            print("  ℹ️  No fixes applied (patterns may have been in non-scannable files)")
+    print()
+
     # Define migration plan
     new_dirs = [
         target_dir / ".claude-plugin",
@@ -138,8 +479,8 @@ def migrate_skill(
         target_dir / "skills" / skill_name,
     ]
 
-    # Define files to move
-    source_contents = list(source_dir.iterdir()) if source_dir.exists() else []
+    # Define files to move (only git-tracked items, respects .gitignore)
+    source_contents = get_tracked_top_level_items(repo_root, source_dir)
 
     # Create plugin.json
     plugin_json = {
@@ -177,6 +518,17 @@ def migrate_skill(
         print()
         print("Empty directory to remove:")
         print(f"  📁 {source_dir.relative_to(repo_root)}")
+        print()
+
+        # Dry-run summary
+        if path_fixes:
+            print("Path fixes to apply:")
+            for fix in path_fixes:
+                rel_path = fix["file"].relative_to(repo_root)
+                print(f"  🔧 {rel_path}")
+            print()
+
+        print("Run without --dry-run to execute migration.")
         return True
 
     # Execute migration
@@ -236,16 +588,32 @@ def migrate_skill(
                 json.dump(marketplace, f, indent=2)
                 f.write("\n")
 
+    # Print migration report
     print()
+    print("=" * 60)
     print(f"✅ Migration complete: {skill_name}")
-    print(f"   New location: {target_dir.relative_to(repo_root)}")
+    print("=" * 60)
     print()
-    print("Next steps:")
-    print("  1. Add commands to commands/ directory")
-    print("  2. Update version to major bump (breaking change)")
-    print("  3. Update IMPROVEMENT_PLAN.md")
-    print("  4. Test all scripts still work")
-    print("  5. Commit with: git commit -m 'refactor: Migrate to standalone plugin'")
+    print(f"📁 New location: {target_dir.relative_to(repo_root)}")
+    print()
+
+    # Path fixes summary
+    if path_fixes:
+        print("🔧 Path references updated:")
+        for fix in path_fixes:
+            rel_path = fix["file"].relative_to(repo_root)
+            count = len(fix["replacements"])
+            print(f"   • {rel_path} ({count} replacement(s))")
+        print()
+
+    print("📋 Next steps:")
+    print("  1. Review path changes in updated files")
+    print("  2. Add commands to commands/ directory (optional)")
+    print("  3. Bump version (major version for breaking change)")
+    print("  4. Test scripts still work with new paths")
+    print("  5. Validate with: /skillsmith evaluate")
+    print("  6. Commit with:")
+    print(f"     git commit -m 'feat({skill_name}): Migrate to standalone plugin'")
 
     return True
 

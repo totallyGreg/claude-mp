@@ -5,7 +5,7 @@
 **Option 1: Double-Click**
 ```bash
 # From your terminal
-open skills/omnifocus-manager/assets/AITaskAnalyzer.omnifocusjs
+open ${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/assets/AITaskAnalyzer.omnifocusjs
 ```
 
 **Option 2: Drag & Drop**
