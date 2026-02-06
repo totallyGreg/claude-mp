@@ -22,7 +22,7 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 | Plugin | Version | Description |
 |--------|---------|-------------|
 | **helm-chart-developer** | 1.0.0 | Expert guide for Helm chart development, testing, and security |
-| **marketplace-manager** | 2.0.0 | Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance |
+| **marketplace-manager** | 2.1.0 | Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance |
 | **skillsmith** | 4.0.0 | Guide for forging effective Claude skills with marketplace integration |
 | **swift-dev** | 1.2.0 | Swift development expert for SwiftUI, iOS/macOS frameworks, Server-side Swift, and Objective-C migration |
 | **terminal-guru** | 2.0.0 | Terminal diagnostics and configuration expert for Unix systems |
@@ -44,7 +44,7 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| **gateway-proxy** | 1.0.0 | Expert guidance for kgateway and agentgateway with kubectl commands for AI/LLM routing, MCP server routing, and API gateway patterns |
+| **gateway-proxy** | 1.1.0 | Expert guidance for kgateway and agentgateway with kubectl commands for AI/LLM routing, MCP server routing, and API gateway patterns |
 
 ## Repository Structure
 
