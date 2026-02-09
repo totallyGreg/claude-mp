@@ -11,15 +11,7 @@
 
 ## Active Work
 
-- [#12](https://github.com/totallyGreg/claude-mp/issues/12): Migrate and triage planned improvements (In Progress)
-  - ✅ Zsh function patterns reference created (`references/zsh_function_patterns.md`)
-  - ✅ Zsh completion guide created (`references/zsh_completion_guide.md`)
-  - ✅ Plugin Standard conventions added to `references/zsh_configuration.md`
-  - ✅ SKILL.md updated with function generation trigger phrases
-  - Remaining: Triage zsh testing framework design document
-  - Remaining: Archive design doc to `docs/plans/2025-11-20-zsh-testing-framework.md`
-
-See GitHub Issues for detailed plans and task checklists.
+None currently. See GitHub Issues for planned work.
 
 ## Known Issues
 
