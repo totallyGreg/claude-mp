@@ -4,7 +4,9 @@
       "Skill(skillsmith)",
       "Bash(wc:*)",
       "WebFetch(domain:omni-automation.com)",
-      "Bash(eslint_d:*)"
+      "Bash(eslint_d:*)",
+      "Bash(gh label list:*)",
+      "Bash(tree:*)"
     ]
   }
 }

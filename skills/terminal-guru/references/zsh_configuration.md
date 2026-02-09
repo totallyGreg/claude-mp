@@ -506,6 +506,137 @@ zprof
 - Use autoload instead of sourcing large files
 - Consider compinit -C to skip security check
 
+## Zsh Plugin Standard Conventions
+
+The [Zsh Plugin Standard](https://wiki.zshell.dev/community/zsh_plugin_standard) provides best practices for creating distributable, well-behaved zsh functions and plugins. Following these conventions ensures compatibility with plugin managers and improves code quality.
+
+### Standard $0 Handling
+
+Reliable way to reference a function's own location:
+
+```bash
+0="${ZERO:-${${0:#$ZSH_ARGZERO}:-${(%):-%N}}}"
+0="${${(M)0:#/*}:-$PWD/$0}"
+# Then ${0:h} to get function's directory
+```
+
+This is useful when a function needs to find related files in its own directory.
+
+### Standard Recommended Options
+
+Set at function start for consistent behavior across shells:
+
+```bash
+emulate -L zsh
+setopt extended_glob warn_create_global typeset_silent \
+       no_short_loops rc_quotes no_auto_pushd
+```
+
+**Option explanations:**
+- `emulate -L zsh` - Emulate zsh in local scope (doesn't affect parent shell)
+- `extended_glob` - Enable extended glob patterns (`#`, `~`, etc.)
+- `warn_create_global` - Warn when accidentally creating global variables
+- `typeset_silent` - Suppress output from typeset declarations
+- `no_short_loops` - Disable short loop syntax (for clarity)
+- `rc_quotes` - Enable rc-style quote escaping
+- `no_auto_pushd` - Don't automatically push directories onto stack
+
+### Standard Recommended Variables
+
+Reserve these for standard purposes:
+
+```bash
+local MATCH REPLY; integer MBEGIN MEND
+local -a match mbegin mend reply
+```
+
+These are used by regex operations and the completion system. Declaring them locally prevents conflicts.
+
+### Function Naming Prefixes
+
+Adopt prefixes to clearly signal function purpose and scope:
+
+| Prefix | Purpose | Scope | Example |
+|--------|---------|-------|---------|
+| (none) | Public functions | Public API | `myapp_run`, `myapp_status` |
+| `.` | Private/internal functions | Internal use only | `.myapp_get_config` |
+| `→` | Hook functions | precmd, zle hooks | `→myapp_precmd` |
+| `+` | Output/logging functions | Display/logging | `+myapp_log`, `+myapp_warn` |
+| `/` | Debug functions | Development | `/myapp_debug`, `/myapp_trace` |
+| `@` | API-like functions | Special semantics | `@myapp_run_callback` |
+
+### Parameter Naming Conventions
+
+Follow consistent naming by type for clarity:
+
+| Type | Case | Scope | Example |
+|------|------|-------|---------|
+| Arrays | lowercase | Local/global | `reply`, `match`, `items` |
+| Scalars (global) | UPPERCASE | Global only | `REPLY`, `MATCH`, `CONFIG` |
+| Scalars (local) | lowercase | Local scope | `name`, `count`, `value` |
+| Hashes | Capitalized | Global | `Plugins`, `Config`, `Settings` |
+
+**Example:**
+```bash
+local -a my_items       # Local array: lowercase
+local my_count          # Local scalar: lowercase
+typeset -g MY_CONFIG    # Global scalar: UPPERCASE
+typeset -gA MySettings  # Global hash: Capitalized
+```
+
+### Standard Plugins Hash
+
+For plugin state and metadata:
+
+```bash
+typeset -gA Plugins
+Plugins[MY_PLUGIN_DIR]="${0:h}"
+Plugins[MY_PLUGIN_VERSION]="1.0.0"
+Plugins[MY_PLUGIN_STATE]="initialized"
+```
+
+Use this to track plugin information in a standard location.
+
+### Plugin Directory Structure
+
+Standard layout for distributable plugins:
+
+```
+my-plugin/
+├── my-plugin.plugin.zsh    # Main plugin entry point
+├── functions/              # Autoload functions
+│   ├── my_function         # Public function (no extension)
+│   ├── _my_function        # Completion function
+│   └── .my_helper          # Private helper function
+├── bin/                    # Executables (can be added to PATH)
+│   └── my-script
+└── README.md               # Documentation
+```
+
+**Key points:**
+- Main entry point is `plugin-name.plugin.zsh`
+- Functions go in `functions/` without extensions
+- Completions start with underscore (`_function_name`)
+- Private functions start with dot (`.function_name`)
+
+### Preventing Function Pollution
+
+Clean up temporary functions on exit to avoid polluting the shell:
+
+```bash
+typeset -g prjef
+prjef=( ${(k)functions} )
+trap "unset -f -- \"${(k)functions[@]:|prjef}\" &>/dev/null; unset prjef" EXIT
+trap "unset -f -- \"${(k)functions[@]:|prjef}\" &>/dev/null; unset prjef; return 1" INT
+```
+
+This pattern:
+1. Saves list of existing functions at start
+2. On EXIT: Removes any functions not in original list
+3. On INT (Ctrl+C): Also returns 1 to signal error
+
+---
+
 ## Example: Complete Configuration
 
 ```bash

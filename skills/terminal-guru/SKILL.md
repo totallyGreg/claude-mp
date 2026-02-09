@@ -1,6 +1,6 @@
 ---
 name: terminal-guru
-description: This skill should be used when configuring, diagnosing, fixing, or understanding Unix terminals, including terminfo database issues, shell configuration (especially Zsh autoload functions and fpath), Unicode/UTF-8 character rendering problems, TUI applications, terminal emulator settings, and comprehensive zsh testing with isolated environments for performance optimization and plugin compatibility validation.
+description: This skill should be used when configuring, diagnosing, fixing, or understanding Unix terminals, including terminfo database issues, shell configuration (especially Zsh autoload functions and fpath), Unicode/UTF-8 character rendering problems, TUI applications, terminal emulator settings, **generating zsh functions using established patterns**, and comprehensive zsh testing with isolated environments for performance optimization and plugin compatibility validation.
 metadata:
   version: "2.0.0"
 ---
@@ -17,7 +17,6 @@ Use terminal-guru when users encounter:
 - Terminal display issues (garbled characters, wrong colors, broken box drawing)
 - Shell configuration problems (Zsh autoload functions, fpath management)
 - Unicode/UTF-8 rendering issues (emoji, CJK characters, combining characters)
-- Zsh function creation and installation
 - Terminal capability diagnostics
 - TUI application configuration
 - Locale and encoding problems
@@ -27,6 +26,19 @@ Use terminal-guru when users encounter:
 - **Plugin configuration and compatibility testing**
 - **Safe testing of configuration changes before applying**
 - **Comparing different plugin managers or configurations**
+
+### Zsh Function Generation
+
+Use terminal-guru to **generate, create, or write zsh functions** using established patterns. Examples:
+- "Generate a zsh function that..." - Direct function generation
+- "Create an autoload function with completions" - With completion support
+- "Write a modular zsh function using xargs" - Specific pattern (xargs modularity)
+- "Implement a secure function with keychain integration" - Credential security pattern
+- "Create a subcommand function" - Subcommand dispatcher pattern
+- "Write a zsh function following the Plugin Standard" - Standards compliance
+- "Create a zsh function with async operations" - Advanced patterns
+
+See `references/zsh_function_patterns.md` for comprehensive pattern documentation and `references/zsh_completion_guide.md` for completion implementation patterns.
 
 ## Core Capabilities
 

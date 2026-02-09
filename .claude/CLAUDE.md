@@ -36,3 +36,23 @@ docs/lessons/         →  docs/plans/           →  GitHub Issues      →  IM
 **IMPORTANT**: GitHub Issues are the canonical source of truth for work tracking. IMPROVEMENT_PLAN.md should be a simple table that reflects issue state, not detailed planning.
 
 See WORKFLOW.md for details.
+
+## Tool Preferences for Repository Examination
+
+When exploring the marketplace, repository structure, or migration status:
+
+### Directory & Structure Analysis
+- Start with `tree -L 2 -d` for quick visual overview
+- Use `tree -P "pattern"` to filter by filename pattern
+- Use **Glob tool** for precise file searches by pattern
+
+### Migration & Status Checks
+- **Grep tool** for config analysis (marketplace.json, plugin.json)
+- **Glob** for finding IMPROVEMENT_PLAN.md, plugin manifests, etc.
+- **Explore agent** for understanding complex migration patterns
+
+### Example workflow for marketplace examination
+1. `tree -L 2 -d` → See full structure
+2. Glob `**/.claude-plugin/plugin.json` → Find all migrated plugins
+3. Glob `skills/*/IMPROVEMENT_PLAN.md` → Find remaining skills
+4. Grep for "source" in marketplace.json → Compare declared vs actual locations
