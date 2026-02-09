@@ -2,7 +2,7 @@
 name: terminal-guru
 description: This skill should be used when configuring, diagnosing, fixing, or understanding Unix terminals, including terminfo database issues, shell configuration (especially Zsh autoload functions and fpath), Unicode/UTF-8 character rendering problems, TUI applications, terminal emulator settings, **generating zsh functions using established patterns**, and comprehensive zsh testing with isolated environments for performance optimization and plugin compatibility validation.
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
 # Terminal Guru
