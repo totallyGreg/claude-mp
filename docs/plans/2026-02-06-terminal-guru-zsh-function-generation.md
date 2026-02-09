@@ -10,6 +10,11 @@ Enhance terminal-guru's reference documentation with comprehensive zsh function 
 
 **Approach:** Reference documentation only (no new scripts). Claude will use these patterns when generating functions.
 
+**Related Issue:** [#12 - Migrate and triage planned improvements](https://github.com/totallyGreg/claude-mp/issues/12)
+- Supports Issue #12's goal: reduce SKILL.md complexity (currently 588 lines) by moving detailed patterns to dedicated references
+- Establishes reference documentation strategy enabling terminal-guru to generate functions using established patterns
+- Part of broader effort to maintain SKILL.md as quick reference + pointers to external documentation
+
 ## Research Sources
 
 ### Primary Standards
@@ -20,6 +25,9 @@ Enhance terminal-guru's reference documentation with comprehensive zsh function 
 ### Completion Resources
 - [zsh-completions-howto](https://github.com/zsh-users/zsh-completions/blob/master/zsh-completions-howto.org)
 - [A Guide to Zsh Completion](https://thevaluable.dev/zsh-completion-guide-examples/)
+
+### Async Operations
+- [zsh-async](https://github.com/mafredri/zsh-async) - Asynchronous task execution framework
 
 ### Security Resources
 - [zsh-osx-keychain plugin](https://github.com/onyxraven/zsh-osx-keychain)
@@ -333,14 +341,14 @@ print_help() {
 
 ## Implementation Tasks
 
-| Priority | Task | Description |
-|----------|------|-------------|
-| P1 | Create `references/zsh_function_patterns.md` | Consolidate all patterns above |
-| P1 | Update `references/zsh_configuration.md` | Add Plugin Standard conventions |
-| P2 | Extract `references/zshguide/` | Extract from zshguide_html.tar.gz |
-| P2 | Add `references/zsh_completion_guide.md` | Completion-specific patterns |
-| P3 | Update SKILL.md description | Add trigger phrases for function generation |
-| P3 | Add examples to `examples/` | Sample functions using patterns |
+| Priority | Task | Description | Issue #12 Impact |
+|----------|------|-------------|------------------|
+| P1 | Create `references/zsh_function_patterns.md` | Consolidate all patterns above | Moves content from SKILL.md |
+| P1 | Update `references/zsh_configuration.md` | Add Plugin Standard conventions | Enriches existing reference |
+| P2 | Extract `references/zshguide/` | Extract from zshguide_html.tar.gz | Reduces SKILL.md load |
+| P2 | Add `references/zsh_completion_guide.md` | Completion-specific patterns | Progressive disclosure strategy |
+| P3 | Update SKILL.md description | Add function generation trigger phrases | Clarifies skill capability |
+| P3 | Add examples to `examples/` | Sample functions using patterns | Demonstrates reference usage |
 
 ## File Structure After Implementation
 
@@ -373,6 +381,49 @@ skills/terminal-guru/
 4. **Self-Documentation:** Structured comment standard defined
 5. **Reference Organization:** Logical split between configuration and patterns
 
+## P3: SKILL.md Trigger Phrases
+
+For the SKILL.md description update, use these trigger phrases to clarify when to invoke terminal-guru for function generation:
+
+### Direct Triggers (High Priority)
+- "generate a zsh function"
+- "create an autoload function with completions"
+- "write a zsh function that..."
+- "make a zsh function following best practices"
+
+### Pattern-Based Triggers (Medium Priority)
+- "create a subcommand function" (Pattern 2: Inline Completions)
+- "write a modular zsh function using xargs" (Pattern 1: xargs Modularity)
+- "implement a secure function with keychain integration" (Pattern 3: Credential Security)
+- "create a zsh function with async operations"
+
+### Context Triggers (User Intent)
+- "I need a zsh function that handles secrets/passwords"
+- "create a function with command completions"
+- "write a dispatcher function for multiple subcommands"
+- "implement a function following the Zsh Plugin Standard"
+
+### Proposed SKILL.md Description Enhancement
+
+**Current:** "Zsh function creation and installation"
+
+**Enhanced to:**
+- Zsh autoload function generation with completions
+- Pattern-based function creation (modular dispatch, subcommands, security)
+- Generating functions following Zsh Plugin Standard conventions
+- Implementing secure functions with keychain integration
+- Creating async-capable zsh functions
+
+### Proposed Frontmatter Update
+
+Add to the YAML description to explicitly mention function generation:
+
+```yaml
+description: This skill should be used when configuring, diagnosing, fixing, or understanding Unix terminals, including terminfo database issues, shell configuration (especially Zsh autoload functions and fpath), Unicode/UTF-8 character rendering problems, TUI applications, terminal emulator settings, **generating zsh functions using established patterns**, and comprehensive zsh testing with isolated environments for performance optimization and plugin compatibility validation.
+```
+
+Key additions: "**generating zsh functions using established patterns**"
+
 ## Metrics Impact
 
 | Metric | Current | Target | Rationale |
@@ -386,3 +437,33 @@ skills/terminal-guru/
 ## Version
 
 **Target version:** 2.1.0 (MINOR - new reference documentation)
+
+---
+
+## How This Plan Addresses Issue #12
+
+[#12 - Migrate and triage planned improvements](https://github.com/totallyGreg/claude-mp/issues/12) identified that terminal-guru's IMPROVEMENT_PLAN.md needed triage and that SKILL.md (588 lines) had grown too large. This plan directly addresses those concerns:
+
+### Reducing SKILL.md Complexity
+
+**Current state:** SKILL.md contains detailed pattern documentation inline, contributing to high line count.
+
+**This plan's solution:**
+- Move comprehensive pattern examples → `references/zsh_function_patterns.md` (P1)
+- Move completion details → `references/zsh_completion_guide.md` (P2)
+- Keep SKILL.md focused on "what" and "when to use" with pointers to references
+- Estimated SKILL.md reduction: 50-80 lines through externalization
+
+### Supporting Issue #12's Triaging Strategy
+
+Issue #12 poses three options for planned improvements. This plan implements **Option B (partial) + Option C**:
+- **Option B**: Archive comprehensive designs to docs/plans/ ✓ (this document)
+- **Option C**: Create focused improvements with clear scope ✓ (reference documentation is well-scoped)
+- Avoids **Option A** (large implementation projects) by keeping work to documentation only
+
+### Workflow Integration
+
+This plan follows the Issue #12 recommendation that IMPROVEMENT_PLAN.md be kept minimal (~100-300 lines) with GitHub Issues as source of truth. Upon completion, the updated IMPROVEMENT_PLAN.md will show:
+- New reference files in Version History
+- Link to this planning document in Archive section
+- Metric improvements reflecting SKILL.md reduction
