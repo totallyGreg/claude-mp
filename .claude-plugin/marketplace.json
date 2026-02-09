@@ -10,16 +10,17 @@
   "plugins": [
     {
       "name": "terminal-guru",
-      "description": "Terminal diagnostics and configuration expert for Unix systems",
+      "description": "Terminal diagnostics, configuration, and zsh development expert with triage agent and two focused skills",
       "category": "development",
-      "version": "2.1.0",
+      "version": "3.0.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./skills/terminal-guru",
+      "source": "./plugins/terminal-guru",
       "skills": [
-        "./"
+        "./skills/terminal-emulation",
+        "./skills/zsh-dev"
       ]
     },
     {
