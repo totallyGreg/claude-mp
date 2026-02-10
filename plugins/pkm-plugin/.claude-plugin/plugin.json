@@ -1,0 +1,11 @@
+{
+  "name": "pkm-plugin",
+  "version": "1.0.0",
+  "description": "Personal Knowledge Management expert for Obsidian vaults with autonomous orchestration",
+  "author": {
+    "name": "J. Greg Williams",
+    "email": "283704+totallyGreg@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "keywords": ["obsidian", "pkm", "knowledge-management", "templater", "bases", "vault"]
+}
