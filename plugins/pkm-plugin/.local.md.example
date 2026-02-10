@@ -1,0 +1,6 @@
+<!-- PKM Plugin Configuration -->
+<!-- Copy this file to .local.md and customize for your vault -->
+
+vault_path: /Users/username/Documents/MyVault
+daily_notes_path: Daily Notes
+templates_path: Templates

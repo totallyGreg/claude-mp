@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "pyyaml>=6.0",
+# ]
+# requires-python = ">=3.10"
+# ///
 """
 Obsidian Vault Analyzer
 
@@ -29,6 +35,41 @@ import json
 from pathlib import Path
 from collections import defaultdict
 import argparse
+
+def validate_vault_path(vault_path_str):
+    """Validate vault path for security.
+
+    Prevents directory traversal and access to system directories.
+    Returns resolved Path object if valid, raises ValueError otherwise.
+    """
+    vault_path = Path(vault_path_str).resolve()
+
+    # Must be a directory
+    if not vault_path.is_dir():
+        raise ValueError(f"Not a directory: {vault_path}")
+
+    # Block system directories
+    forbidden_prefixes = ['/etc', '/var', '/usr', '/bin', '/sbin', '/root', '/boot', '/sys', '/proc']
+    vault_str = str(vault_path)
+
+    for forbidden in forbidden_prefixes:
+        if vault_str.startswith(forbidden):
+            raise ValueError(f"Access to system directory denied: {vault_path}")
+
+    # Warn if outside typical user directories
+    home = Path.home()
+    typical_prefixes = [
+        str(home / 'Documents'),
+        str(home / 'Dropbox'),
+        str(home / 'iCloud'),
+        str(home / 'Library/Mobile Documents'),
+    ]
+
+    if not any(vault_str.startswith(prefix) for prefix in typical_prefixes):
+        print(f"⚠️  Warning: Vault path outside typical Obsidian locations", file=sys.stderr)
+        print(f"   Path: {vault_path}", file=sys.stderr)
+
+    return vault_path
 
 class VaultAnalyzer:
     def __init__(self, vault_path):
@@ -299,10 +340,11 @@ def main():
 
     args = parser.parse_args()
 
-    vault_path = args.vault_path
-
-    if not os.path.isdir(vault_path):
-        print(f"Error: '{vault_path}' is not a valid directory")
+    # Validate vault path for security
+    try:
+        vault_path = validate_vault_path(args.vault_path)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     # If no specific checks, run all

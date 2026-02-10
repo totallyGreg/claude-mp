@@ -66,15 +66,29 @@
       ]
     },
     {
-      "name": "obsidian-pkm-manager",
-      "description": "Expert guidance for managing Obsidian-based Personal Knowledge Management (PKM) systems",
+      "name": "pkm-plugin",
+      "description": "Personal Knowledge Management expert for Obsidian vaults with autonomous orchestration",
       "category": "productivity",
       "version": "1.0.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./skills/obsidian-pkm-manager",
+      "source": "./plugins/pkm-plugin",
+      "skills": [
+        "./skills/obsidian-pkm-manager"
+      ]
+    },
+    {
+      "name": "obsidian-pkm-manager",
+      "description": "[DEPRECATED - Use pkm-plugin] Expert guidance for Obsidian PKM - now bundled in pkm-plugin",
+      "category": "productivity",
+      "version": "1.0.0",
+      "author": {
+        "name": "J. Greg Williams",
+        "email": "283704+totallyGreg@users.noreply.github.com"
+      },
+      "source": "./plugins/pkm-plugin/skills/obsidian-pkm-manager",
       "skills": [
         "./"
       ]
