@@ -25,14 +25,14 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 | **marketplace-manager** | 2.1.0 | Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance |
 | **skillsmith** | 5.0.0 | Guide for forging effective Claude skills with marketplace integration |
 | **swift-dev** | 1.2.0 | Swift development expert for SwiftUI, iOS/macOS frameworks, Server-side Swift, and Objective-C migration |
-| **terminal-guru** | 2.1.0 | Terminal diagnostics and configuration expert for Unix systems |
+| **terminal-guru** | 3.0.0 | Terminal diagnostics, configuration, and zsh development expert with triage agent and two focused skills |
 
 ### Productivity (2 plugins)
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| **obsidian-pkm-manager** | 1.0.0 | Expert guidance for managing Obsidian-based Personal Knowledge Management (PKM) systems |
 | **omnifocus-manager** | 4.4.0 | Interface with OmniFocus to surface insights, create reusable automations and perspectives, and suggest workflow optimizations |
+| **pkm-plugin** | 1.1.0 | Personal Knowledge Management expert for Obsidian vaults with dual-skill architecture: vault-architect (create structures) and vault-curator (evolve content) |
 
 ### Security (1 plugin)
 
