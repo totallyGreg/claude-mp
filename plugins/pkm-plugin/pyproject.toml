@@ -1,10 +1,12 @@
 [project]
 name = "pkm-plugin"
-version = "1.0.0"
+version = "1.1.0"
 description = "Personal Knowledge Management expert for Obsidian vaults"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "pyyaml>=6.0",
+    "python-frontmatter>=1.0.0",
+    "python-dateutil>=2.8.2",
 ]
 
 [project.optional-dependencies]

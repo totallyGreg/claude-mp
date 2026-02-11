@@ -1,8 +1,8 @@
 ---
-name: obsidian-pkm-manager
-description: Expert guidance for managing Obsidian-based Personal Knowledge Management (PKM) systems. This skill should be used when organizing, optimizing, or evolving note-taking workflows in Obsidian, including template creation with Templater, relationship management with Bases, vault structure analysis, frontmatter design, and metadata strategies. Particularly useful for creating automatic note organization systems, temporal rollup structures (daily to yearly), and maintaining job-agnostic organizational patterns.
+name: vault-architect
+description: This skill should be used when users ask to "create Obsidian templates", "design Bases queries", "set up vault structure", or "configure Templater workflows". Architects new PKM structures and provides guidance for Templater, Bases, Chronos, and Quickadd patterns. Particularly useful for creating automatic note organization systems, temporal rollup structures (daily to yearly), and maintaining job-agnostic organizational patterns.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   plugin: "pkm-plugin"
   stage: "3"
 ---
@@ -11,7 +11,7 @@ metadata:
 > Please install the plugin for full functionality including agent orchestration.
 > Standalone skill support will be removed in v2.0.0 (3 months).
 
-# Obsidian PKM Manager
+# Vault Architect
 
 ## Overview
 
@@ -157,7 +157,9 @@ Date: <% tp.date.now("YYYY-MM-DD") %>
 ![[Notes.base#Related Files]]
 ```
 
-See `references/templater-patterns.md` for more examples and advanced patterns.
+**References:**
+- `references/templater-api.md` - Complete API reference for all tp.* functions
+- `references/templater-patterns.md` - Common patterns and advanced examples
 
 ### 3. Bases Query Design
 
@@ -172,7 +174,9 @@ Bases is the preferred method for creating dynamic relationships (replacing Data
 
 **Common Bases Patterns:**
 
-See `references/bases-patterns.md` for detailed examples including:
+See references for detailed documentation:
+- `references/bases-query-reference.md` - Complete query syntax, filters, and view types
+- `references/bases-patterns.md` - Common patterns and examples including:
 - Automatic alias aggregation (showing all terms with same abbreviation)
 - Temporal queries (all notes from this week/month)
 - Relationship views (all meetings for a customer)
@@ -400,6 +404,42 @@ When a user wants to improve their vault:
   - `terminology.base`
   - `customer-notes.base`
 - `templater-snippets/` - Reusable Templater code blocks
+
+### 5. Timeline Visualization with Chronos
+
+For visualizing events, meetings, and projects on timelines, use the Chronos Timeline plugin integrated with Bases.
+
+**Key Concepts:**
+- Events require `start` datetime in frontmatter
+- Periods require both `start` and `end` datetimes
+- Use `color` property for visual grouping
+- Use `type` property for categorical grouping
+
+**Bases Integration:**
+```yaml
+views:
+  - name: Project Timeline
+    type: chronos-timeline-view
+    filters:
+      - scope.contains(this.file)
+    order: [file.name, start, end, color, type]
+```
+
+**References:**
+- `references/chronos-syntax.md` - Event types, frontmatter integration, timeline patterns
+
+### 6. Quick Capture with Quickadd
+
+For rapid note creation and capture workflows, use Quickadd integrated with Templater templates.
+
+**Common Patterns:**
+- Quick log to daily note (meeting notes during meetings)
+- Template choice menus (select note type to create)
+- Multi-step macros (create project with related notes)
+- Context-aware captures (link to current note)
+
+**References:**
+- `references/quickadd-patterns.md` - Capture templates, macros, Templater integration
 
 ## Best Practices
 
