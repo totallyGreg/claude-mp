@@ -1,6 +1,6 @@
 {
   "name": "pkm-plugin",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Personal Knowledge Management expert for Obsidian vaults with autonomous orchestration",
   "author": {
     "name": "J. Greg Williams",
