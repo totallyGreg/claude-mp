@@ -62,3 +62,38 @@ When exploring the marketplace, repository structure, or migration status:
 2. Glob `**/.claude-plugin/plugin.json` → Find all migrated plugins
 3. Glob `skills/*/IMPROVEMENT_PLAN.md` → Find remaining skills
 4. Grep for "source" in marketplace.json → Compare declared vs actual locations
+
+## Search Best Practices
+
+When searching this repository, use `rg` (ripgrep) for targeted searches instead of `find -exec` or broad globs.
+
+### File Type Filtering
+- `rg "pattern" --type py` - Search only Python files
+- `rg "pattern" --type js` - Search only JavaScript files
+- `rg "pattern" --type md` - Search only Markdown files
+- `rg "pattern" --type-list` - List all built-in file types
+
+### Glob-Based Filtering
+- `rg "pattern" -g '*.ts' -g '!*.test.ts'` - Include/exclude by glob
+- `rg "pattern" -g 'skills/**/*.md'` - Restrict to skills directory
+- `rg "pattern" -g 'plugins/**/*.py'` - Restrict to plugins directory
+
+### Precision Flags
+- `rg -w "error"` - Whole word matches only
+- `rg -l "pattern"` - File names only (fast)
+- `rg "pattern" --max-depth 2` - Limit directory depth
+- `rg -U "pattern"` - Multiline matching
+- `rg "pattern" --count` - Match counts per file
+
+### Contextual Search
+- `rg "def process" -A 5` - Show 5 lines after match
+- `rg "class Config" -B 2 -A 10` - Show surrounding context
+
+### Combining Searches
+- `rg -l "pattern1" | xargs rg -l "pattern2"` - Files matching both patterns
+- `rg -l "pattern" $(git diff --name-only HEAD~5)` - Search only recently changed files
+
+### Fallback: Silver Searcher (`ag`)
+- `ag "pattern" --python` - File type filter
+- `ag -G '\.tsx$' "pattern"` - Regex-based file filter
+- `ag --depth 3 "pattern"` - Limit directory depth
