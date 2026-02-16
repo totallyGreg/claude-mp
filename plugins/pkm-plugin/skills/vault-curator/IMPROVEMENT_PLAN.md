@@ -1,11 +1,12 @@
 # Vault Curator - Improvement Plan
 
-## Current Version: 1.4.0
+## Current Version: 1.5.0
 
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.5.0 | 2026-02-16 | Visualization workflows: generate_canvas.py (grid layout, 50-node cap, folder clustering, fileClass colors). Skillsmith eval: 85/100 (conciseness 66, complexity 86, spec 90, progressive 100, description 80) |
 | 1.4.0 | 2026-02-16 | Discovery workflows: find_related.py, progressive discovery views, auto-linking suggestions. SKILL.md + pkm-manager agent updated. Skillsmith eval: 87/100 (conciseness 76, complexity 88, spec 90, progressive 100, description 80) |
 | 1.3.0 | 2026-02-16 | Consolidation workflows: find_similar_notes.py, merge_notes.py, redirect_links.py, consolidation-protocol.md reference. Skillsmith eval: 89/100 |
 | 1.2.0 | 2026-02-15 | Scope selection, metadata workflows (suggest_properties.py, detect_schema_drift.py), SKILL.md restructure, pkm-manager agent CLI integration |
@@ -18,7 +19,7 @@
 | [#44](https://github.com/totallyGreg/claude-mp/issues/44) | High | Foundation + Metadata Workflows (Phase 1) | Done |
 | [#45](https://github.com/totallyGreg/claude-mp/issues/45) | High | Consolidation Workflows (Phase 2) | Done |
 | [#46](https://github.com/totallyGreg/claude-mp/issues/46) | Medium | Discovery Workflows (Phase 3) | Done |
-| [#47](https://github.com/totallyGreg/claude-mp/issues/47) | Medium | Visualization Workflows (Phase 4) | Planning |
+| [#47](https://github.com/totallyGreg/claude-mp/issues/47) | Medium | Visualization Workflows (Phase 4) | Done |
 | — | High | Phase 4 Scripts (original): import_calendar_event.py, migrate_meetings_scope.py, match_person_by_email.py, find_orphans.py | Planned |
 | — | Medium | Slash Commands: /extract-meeting, /import-calendar, /migrate-meetings | Planned |
 | — | Medium | Test Suite: pytest tests for Python scripts | Planned |

@@ -5,11 +5,11 @@ description: >
   "detect schema drift", "consolidate notes", "find duplicates", "merge notes", "redirect links",
   "suggest properties", "what metadata am I missing", "find related notes", "show connections",
   "what links to this", "find orphaned notes", "show discovery view", "suggest links",
-  "show knowledge map", or "generate canvas". Curates and evolves existing vault content through
-  pattern detection, migration workflows, metadata intelligence, consolidation, discovery, and
-  programmatic manipulation.
+  "show knowledge map", "generate canvas", "visualize my notes", or "show me a map".
+  Curates and evolves existing vault content through pattern detection, migration workflows,
+  metadata intelligence, consolidation, discovery, visualization, and programmatic manipulation.
 metadata:
-  version: "1.4.0"
+  version: "1.5.0"
   plugin: "pkm-plugin"
   stage: "3"
 compatibility: Requires python3.11+ and uv for script execution. Obsidian CLI 1.12+ for intelligence workflows.
@@ -267,6 +267,34 @@ When asked "suggest links", "what should I link", or "improve connections":
    - "Create a Bases view filtering by `fileClass=Meeting` + `scope=[[Project]]` to see all related meetings"
 5. **Present suggestions** with rationale, apply tag/property changes with confirmation
 
+## Visualization Workflows
+
+### Canvas Map Generation
+
+When asked "show me a map", "generate canvas", "visualize my notes", or "show knowledge map":
+
+1. **Select scope** (required)
+2. **Generate canvas**:
+   ```bash
+   uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/generate_canvas.py \
+     ${VAULT_PATH} --scope "${SCOPE_PATH}" --dry-run
+   ```
+3. **Review dry-run output** — confirm node count, edge count, clustering
+4. **Execute** (remove `--dry-run`) to write `.canvas` file
+
+**Layout:** Grid layout with file nodes for each note. Edges represent wikilinks between notes in scope. Color-coded by `fileClass` (Meeting=orange, Person=cyan, Project=green, Company=purple, MOC=yellow).
+
+**Naming:** `_knowledge-map-YYYY-MM-DD.canvas` in the scoped directory. Leading underscore keeps it sorted above content notes. If a canvas with that name exists, a numeric suffix is appended.
+
+**Limits:**
+- **50-node cap** (default) — keeps canvases readable in Obsidian
+- **Clustering:** When notes exceed the cap, folders with 4+ notes are collapsed into group nodes containing their sub-notes
+- **Zero relationships:** Canvas is still generated (shows notes without edges) with a message suggesting wikilinks
+
+**Options:**
+- `--output <name>` — custom canvas filename
+- `--max-nodes <n>` — adjust the clustering threshold
+
 ## Pattern Detection
 
 ### Find Orphaned Notes
@@ -321,4 +349,4 @@ Run via: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/<script> ${V
 | `find_similar_notes.py` | Detect duplicate/similar notes within scope | Stable |
 | `merge_notes.py` | Merge two notes (frontmatter union + content concat) | Stable |
 | `redirect_links.py` | Vault-wide wikilink replacement after merge | Stable |
-| `generate_canvas.py` | Generate canvas maps | Planned |
+| `generate_canvas.py` | Generate JSON Canvas maps of note relationships | Stable |

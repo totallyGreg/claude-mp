@@ -1,7 +1,7 @@
 ---
 name: pkm-manager
 description: |
-  Use this agent for multi-step Personal Knowledge Management workflows in Obsidian vaults: "analyze vault and suggest improvements", "create a template", "optimize vault organization", "set up temporal rollup system", "extract meeting from log", "migrate vault notes", "detect schema drift", "suggest properties", "what metadata am I missing", "find duplicates", "merge notes", "consolidate notes", "redirect links", "find related notes", "show connections", "what links to this", "show discovery view", "suggest links", "show knowledge map".
+  Use this agent for multi-step Personal Knowledge Management workflows in Obsidian vaults: "analyze vault and suggest improvements", "create a template", "optimize vault organization", "set up temporal rollup system", "extract meeting from log", "migrate vault notes", "detect schema drift", "suggest properties", "what metadata am I missing", "find duplicates", "merge notes", "consolidate notes", "redirect links", "find related notes", "show connections", "what links to this", "show discovery view", "suggest links", "show knowledge map", "generate canvas", "visualize my notes", "show me a map".
 
   <example>
   Context: User wants to improve vault organization
@@ -54,6 +54,15 @@ description: |
   assistant: "I'll use the pkm-manager agent to find related notes by shared tags, properties, and links."
   <commentary>
   Discovery workflow: load target note → scan scope → rank by connection strength → present with explanations → offer to add wikilinks.
+  </commentary>
+  </example>
+
+  <example>
+  Context: User wants a visual overview of their notes
+  user: "Generate a canvas map of my Projects folder"
+  assistant: "I'll use the pkm-manager agent to generate a knowledge map canvas."
+  <commentary>
+  Visualization workflow: scope selection → scan notes and wikilinks → generate canvas → write .canvas file.
   </commentary>
   </example>
 
@@ -111,6 +120,7 @@ Load ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/SKILL.md for:
 - **Metadata workflows** (property suggestions, schema drift detection)
 - **Consolidation workflows** (duplicate detection, merge, link redirect)
 - **Discovery workflows** (related notes, progressive views, auto-linking)
+- **Visualization workflows** (canvas map generation)
 - Pattern detection (orphans, clusters)
 
 Load references from ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/ as needed:
@@ -178,6 +188,13 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 4. Suggest Bases formulas for automatic views
 5. Apply approved changes with confirmation
 
+### Visualization: Canvas Map Generation
+1. Run scope selection
+2. Dry-run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/generate_canvas.py ${VAULT_PATH} --scope "${SCOPE}" --dry-run`
+3. Review node/edge counts with user
+4. Execute (remove --dry-run) to write `.canvas` file
+5. Report canvas path and stats
+
 ### Vault Analysis
 1. Run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/analyze_vault.py ${VAULT_PATH}`
 2. Interpret results using skill knowledge
@@ -229,6 +246,7 @@ ALWAYS ask user confirmation before:
 | `suggest_properties.py` | `<vault-path> <note-path> [--min-confidence <pct>]` |
 | `detect_schema_drift.py` | `<vault-path> --file-class <class> [--scope <path>] [--dry-run]` |
 | `find_related.py` | `<vault-path> <note-path> [--scope <path>] [--top <n>]` |
+| `generate_canvas.py` | `<vault-path> --scope <path> [--output <name>] [--max-nodes <n>] [--dry-run]` |
 | `find_similar_notes.py` | `<vault-path> --scope <path> [--min-similarity <pct>] [--max-groups <n>] [--dry-run]` |
 | `merge_notes.py` | `<vault-path> --source <path> --target <path> [--dry-run]` |
 | `redirect_links.py` | `<vault-path> --old <name> --new <name> [--scope <path>] [--dry-run]` |
