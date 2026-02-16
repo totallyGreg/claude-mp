@@ -1,254 +1,188 @@
 ---
 name: vault-curator
-description: This skill should be used when users ask to "migrate vault notes", "extract meeting from log", "import calendar event", "detect schema drift", "find orphaned notes", or "consolidate Dataview queries". Curates and evolves existing vault content through pattern detection, migration workflows, and programmatic metadata manipulation.
+description: >
+  This skill should be used when users ask to "migrate vault notes", "extract meeting from log",
+  "import calendar event", "detect schema drift", "find orphaned notes", "consolidate notes",
+  "find duplicates", "suggest properties", "what metadata am I missing", "find related notes",
+  "show knowledge map", or "generate canvas". Curates and evolves existing vault content through
+  pattern detection, migration workflows, metadata intelligence, and programmatic manipulation.
 metadata:
-  version: "1.0.0"
+  version: "1.2.0"
   plugin: "pkm-plugin"
   stage: "3"
-compatibility: Requires python3.11+ and uv for script execution
+compatibility: Requires python3.11+ and uv for script execution. Obsidian CLI 1.12+ for intelligence workflows.
 ---
 
 # Vault Curator
 
-## Overview
+## Scope Selection
 
-Provide expert guidance for evolving and improving existing Obsidian vaults. Help users migrate notes, detect patterns, extract meeting information from logs, and maintain vault consistency through programmatic metadata manipulation.
+All intelligence workflows (metadata, consolidation, discovery, visualization) begin with scope selection. Large vaults (7K+ files) require scoped operations.
+
+**Workflow:**
+
+1. **Discover vault structure** using CLI or file tools:
+   ```bash
+   obsidian folders                          # CLI: list all vault folders
+   # OR fallback:
+   tree -L 2 -d ${VAULT_PATH}               # file tools: directory tree
+   ```
+
+2. **Present choices** via AskUserQuestion with top-level directories
+
+3. **User selects scope** (or types a path directly)
+
+4. **Scope all operations** to the selected path for the rest of the session
+
+**Quick path:** If the user mentions a specific topic ("my Docker notes"), use CLI search to find the relevant directory before presenting choices:
+```bash
+obsidian search query="Docker" format=json   # find matching notes/folders
+```
+
+**Edge cases:**
+- **Empty scope** (no markdown files): Inform user, suggest broadening
+- **Whole vault** requested: Warn about file count, require explicit confirmation
+- **Obsidian CLI unavailable**: Fall back to `tree` + Glob/Grep for structure discovery
 
 ## Core Principles
 
-When curating vaults, prioritize these principles:
-
-1. **Evolution Over Revolution** - Migrate gradually. Test patterns on small batches before vault-wide changes.
-
-2. **Validation Before Execution** - Always run dry-run mode first. Show what would change before changing it.
-
-3. **Rollback Readiness** - Document state before migration. Enable reverting if issues arise.
-
-4. **Pattern Recognition** - Identify existing patterns before suggesting changes. Work with user's mental model, not against it.
-
+1. **Evolution Over Revolution** - Migrate gradually. Test on small batches first.
+2. **Validation Before Execution** - Always dry-run first. Show what would change.
+3. **Rollback Readiness** - Git commit before operations. Enable reverting.
+4. **Pattern Recognition** - Discover existing patterns before suggesting changes.
 5. **Incremental Improvement** - Small, testable changes compound better than large restructuring.
 
-## When to Use This Skill
+## Obsidian CLI Integration
 
-Use this skill when users ask for help with:
+The installed obsidian-cli skills provide safe CLI usage patterns. Key commands for curator workflows:
 
-- Extracting meetings from daily note logs or company notes
-- Importing calendar events and matching attendees to Person notes
-- Migrating existing notes to new frontmatter schemas
-- Detecting schema drift (inconsistent metadata patterns)
-- Finding orphaned notes or note clusters
-- Consolidating Dataview queries to Bases views
-- Batch updating frontmatter properties
-- Validating migration completeness
+```bash
+# Properties (metadata workflows)
+obsidian properties path=<path> format=tsv           # list all properties
+obsidian property:read name=<key> path=<path>        # read one property
+obsidian property:set name=<key> value=<val> path=<path>  # set property
 
-## Core Capabilities
+# Search (scoped operations)
+obsidian search query="<text>" path=<folder> format=json matches  # scoped search with context
 
-### 1. Meeting Extraction from Logs
+# Structure (scope selection)
+obsidian folders                                      # list all folders
+obsidian files folder=<path> ext=md                   # list files in folder
+obsidian orphans                                      # files with no incoming links
+obsidian backlinks path=<path> counts                 # incoming links with counts
+
+# Tags
+obsidian tags all counts sort=count                   # vault-wide tags by frequency
+obsidian tag name=<tag>                               # files with specific tag
+```
+
+**Safety:** Always use `silent` flag with `create`. Always use `format=json` for programmatic output. See installed `obsidian-cli` skills for full gotcha list.
+
+**Fallback:** If CLI is unavailable (Obsidian not running), use Grep/Glob/Read for file operations.
+
+## Migration Workflows
+
+### Meeting Extraction from Logs
 
 When asked to extract meeting information from daily notes or inline logs:
 
-**Pattern Recognition:**
-- Identify log entries: `### (log::⏱ 14:30 -0500: Meeting with Customer X)`
-- Detect inline fields: `scope::`, `start::`, `attendees::`
-- Parse headings with dates: `## 2026-02-05`
-
-**Extraction Workflow:**
-
-1. **Parse Selection**
+1. **Parse Selection** using script:
    ```bash
    uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/extract_section_to_meeting.py \
-     ${VAULT_PATH} \
-     "${CURRENT_NOTE}" \
-     "${SELECTED_TEXT}"
+     ${VAULT_PATH} "${CURRENT_NOTE}" "${SELECTED_TEXT}"
    ```
-
-2. **Infer Metadata**
-   - Extract time from log syntax
-   - Infer company from current note's folder path
-   - Parse inline fields for scope/attendees
-   - Detect topic from heading or log text
-
-3. **Prompt for Missing Data**
-   - Meeting title (if not in heading)
-   - Scope entities (if not in inline fields)
-   - Attendees (if not specified)
-   - Meeting type (customer-meeting, internal, 1-on-1, etc.)
-
-4. **Create Meeting Note**
-   - Use meeting template with pre-filled metadata
-   - Place in appropriate folder (from company context)
-   - Replace original selection with wikilink
+2. **Infer Metadata** - time from log syntax, company from folder path, attendees from inline fields
+3. **Prompt for Missing Data** - title, scope, attendees, meeting type
+4. **Create Meeting Note** using template, replace selection with wikilink
 
 **See:** `references/migration-strategies.md` for extraction patterns
 
-### 2. Calendar Import and Person Matching
+### Calendar Import and Person Matching
 
-When asked to import calendar events:
-
-**Import Workflow:**
-
-1. **Parse Calendar Data**
-   - Extract title, datetime, location
-   - Parse attendee list (name + email)
-   - Identify event type
-
-2. **Match Attendees to Person Notes**
-   ```bash
-   uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/match_person_by_email.py \
-     ${VAULT_PATH} \
-     "email@example.com"
-   ```
-
-   Returns Person note path or null if not found.
-
-3. **Infer Company from Attendees**
-   - If all attendees from same company → auto-select folder
-   - If multiple companies → prompt user for primary
-   - Auto-populate scope with all detected companies
-
-4. **Handle Unknown Attendees**
-   - Option A: Create minimal Person note (name + email only)
-   - Option B: Skip and log for manual creation
-   - Option C: Prompt for Person template completion
-   - **Default:** Option A (create minimal, enhance later)
-
-5. **Create Meeting Note**
-   - Pre-fill all available metadata
-   - Prompt only for missing critical fields
-   - Link to all Person notes in attendees array
+Import calendar events → match attendees to Person notes → infer company → create meeting note.
 
 **See:** `references/migration-strategies.md` for calendar import patterns
 
-### 3. Vault Migration Patterns
+### Vault Migration Patterns
 
-When asked to migrate existing notes to new schemas:
+Migrate existing notes to new schemas:
 
-**Migration Principles:**
+1. **Dry-Run First** - Show planned changes, get approval
+2. **Batch Validation** - Test on 5-10 notes, verify Bases queries work
+3. **Rollback Strategy** - Git commit before migration, reverse script available
 
-1. **Dry-Run First**
-   - Show what would change
-   - Get user approval before modification
-   - Log all planned changes
+Common migrations: add scope to meetings, consolidate Dataview to Bases.
 
-2. **Batch Validation**
-   - Test on 5-10 notes first
-   - Verify frontmatter format correct
-   - Check Bases queries work with new schema
-   - Expand to full vault only after validation
+**See:** `references/migration-strategies.md` for comprehensive patterns
 
-3. **Rollback Strategy**
-   - Document original state
-   - Create git commit before migration
-   - Provide reverse migration script if needed
+## Metadata Workflows
 
-**Common Migrations:**
+### Property Suggestions
 
-**Add scope to existing meetings:**
+When asked "what properties should this note have?" or "suggest metadata":
+
+1. **Select scope** (or use current note's folder/fileClass)
+2. **Analyze peer notes** - scan notes with same fileClass or in same folder
+3. **Identify gaps** - find common properties the target note is missing
+4. **Present suggestions** with rationale ("87% of Meeting notes have 'scope'")
+5. **Apply with confirmation** - user approves per property
+
 ```bash
-uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/migrate_meetings_scope.py \
-  ${VAULT_PATH} \
-  --dry-run
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/suggest_properties.py \
+  ${VAULT_PATH} "${NOTE_PATH}"
 ```
 
-Infers scope from:
-- Folder path (Company/Meetings/ → add Company to scope)
-- Existing frontmatter (customer: → add to scope)
-- File name patterns (mentions of company/project names)
+Returns JSON with suggestions and confidence scores.
 
-**Consolidate Dataview to Bases:**
-- Identify Dataview callouts: `grep -r "dataviewjs" ${VAULT_PATH}`
-- Group by functionality
-- Create equivalent Bases views
-- Replace occurrences incrementally
-- Test each replacement
+### Schema Drift Detection
 
-**See:** `references/migration-strategies.md` for comprehensive migration patterns
+When asked to "detect schema drift" or "find inconsistent metadata":
 
-### 4. Pattern Detection
+1. **Select scope** and target fileClass (e.g., Meeting, Person, Project)
+2. **Scan all notes** of that fileClass within scope
+3. **Report inconsistencies**:
+   - Missing required properties
+   - Inconsistent property types (string vs array)
+   - Naming convention mismatches (camelCase vs kebab-case)
+4. **Suggest standardization** with specific fixes
 
-When asked to analyze vault for patterns or inconsistencies:
-
-**Find Orphaned Notes:**
 ```bash
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/detect_schema_drift.py \
+  ${VAULT_PATH} --file-class Meeting --scope "${SCOPE_PATH}"
+```
+
+### Property Bulk Updates
+
+When asked to batch update frontmatter:
+
+1. **Collect target notes** within scope
+2. **Validate changes on sample** (5-10 notes)
+3. **Apply with progress tracking** and error logging
+4. **Git commit before and after**
+
+**Safety:** Always validate vault path. Preserve YAML formatting. Handle missing properties gracefully.
+
+## Pattern Detection
+
+### Find Orphaned Notes
+
+```bash
+obsidian orphans                    # CLI: files with no incoming links
+# OR fallback:
 uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/find_orphans.py ${VAULT_PATH}
 ```
 
-Returns notes with:
-- No inlinks (nothing links to them)
-- No outlinks (they link to nothing)
-- No frontmatter relationships
+### Detect Note Clusters
 
-**Detect Schema Drift:**
-```bash
-uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/detect_schema_drift.py \
-  ${VAULT_PATH} \
-  --file-class Meeting
-```
-
-Reports:
-- Missing required properties across fileClass
-- Inconsistent property types (string vs array)
-- Different naming conventions (camelCase vs kebab-case)
-- Recommendations for standardization
-
-**Find Note Clusters:**
 ```bash
 uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/find_note_clusters.py ${VAULT_PATH}
 ```
 
-Uses link analysis to identify:
-- Groups of highly interconnected notes (potential project clusters)
-- Notes that should be linked but aren't
-- Opportunities for consolidation
-
-**See:** `references/pattern-detection.md` (placeholder - to be created)
-
-### 5. Programmatic Metadata Manipulation
-
-When asked to bulk update frontmatter:
-
-**Key Patterns:**
-
-1. **Read Frontmatter**
-   ```python
-   import frontmatter
-   with open(note_path) as f:
-       post = frontmatter.load(f)
-       title = post['title']
-       tags = post.get('tags', [])
-   ```
-
-2. **Modify Properties**
-   ```python
-   post['newProperty'] = "value"
-   post['tags'].append("new-tag")
-   ```
-
-3. **Write Back**
-   ```python
-   with open(note_path, 'w') as f:
-       f.write(frontmatter.dumps(post))
-   ```
-
-4. **Batch Processing**
-   - Collect all target notes
-   - Validate changes on sample
-   - Apply to full set with progress tracking
-   - Log all modifications
-
-**Safety Checks:**
-
-- Always validate vault path (no system directories)
-- Check file exists before modifying
-- Preserve frontmatter YAML formatting
-- Handle missing properties gracefully
-- Log errors without stopping batch
-
-**See:** scripts for reference implementations
+Uses link analysis to identify groups of highly interconnected notes.
 
 ## Python Script Patterns
 
-All scripts follow PEP 723 inline metadata pattern:
+All scripts follow PEP 723 inline metadata:
 
 ```python
 # /// script
@@ -256,193 +190,28 @@ All scripts follow PEP 723 inline metadata pattern:
 # dependencies = [
 #   "pyyaml>=6.0",
 #   "python-frontmatter>=1.0.0",
-#   "python-dateutil>=2.8.2",
 # ]
 # ///
-
-"""
-Script description and usage.
-
-Usage:
-    uv run script_name.py <vault-path> <args>
-
-Returns:
-    JSON output for consumption by commands/agent
-"""
-
-import sys
-import json
-from pathlib import Path
-
-def validate_vault_path(vault_path_str: str) -> Path:
-    """Validate vault path for security."""
-    vault_path = Path(vault_path_str).resolve()
-    forbidden = ['/etc', '/var', '/usr', '/bin', '/sbin', '/root']
-    if any(str(vault_path).startswith(p) for p in forbidden):
-        raise ValueError(f"Access denied: {vault_path}")
-    return vault_path
-
-def main():
-    if len(sys.argv) < 2:
-        print(json.dumps({"error": "Usage: script.py <vault-path>"}))
-        sys.exit(1)
-
-    vault_path = validate_vault_path(sys.argv[1])
-
-    # Script logic here
-
-    result = {"status": "success", "data": {}}
-    print(json.dumps(result))
-
-if __name__ == "__main__":
-    main()
 ```
 
-**Key Requirements:**
+**Requirements:**
+1. **PEP 723 Header** - inline dependencies for `uv run`
+2. **Path Validation** - security check (no system directories)
+3. **JSON Output** - structured output to stdout
+4. **Error Handling** - graceful failures with error JSON
+5. **`--dry-run` flag** - for destructive operations
 
-1. **PEP 723 Header** - Inline dependencies for uv
-2. **Path Validation** - Security check for vault path
-3. **JSON Output** - Structured output for parsing
-4. **Error Handling** - Graceful failures with error JSON
-5. **Type Hints** - Clear function signatures
+Run via: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/<script> ${VAULT_PATH}`
 
-## Best Practices
+## Available Scripts
 
-### Migration Best Practices
-
-1. **Test Small First**
-   - Migrate 5-10 notes as proof of concept
-   - Verify Bases queries work with new schema
-   - Get user feedback before expanding
-
-2. **Version Control**
-   - Create git commit before migration
-   - Tag with migration name
-   - Document rollback procedure
-
-3. **Progress Tracking**
-   - Show progress for long migrations (>100 notes)
-   - Log all changes to file
-   - Report summary at completion
-
-4. **Validation**
-   - Run schema validation after migration
-   - Check Bases views render correctly
-   - Verify no broken links introduced
-
-### Script Development Best Practices
-
-1. **Security**
-   - Always validate vault path
-   - Never execute arbitrary code
-   - Handle file permissions gracefully
-
-2. **Robustness**
-   - Handle missing frontmatter
-   - Preserve file formatting
-   - Continue on errors (don't stop batch)
-
-3. **Observability**
-   - Log to stderr, output to stdout
-   - Include --verbose flag for debugging
-   - Return structured JSON
-
-4. **Testing**
-   - Test with edge cases (missing properties, malformed YAML)
-   - Verify on different file classes
-   - Check unicode handling
-
-## Common Anti-Patterns to Avoid
-
-1. **Migrating Everything at Once** - Always start small, validate, then expand.
-
-2. **Ignoring Existing Patterns** - Work with user's conventions, don't impose new structure.
-
-3. **No Rollback Plan** - Every migration should be reversible.
-
-4. **Silent Failures** - Always log errors and continue processing batch.
-
-5. **Hardcoded Assumptions** - Make scripts configurable for different vault structures.
-
-6. **Destroying Data** - Preserve original files during migration (copy-modify-replace pattern).
-
-## Examples
-
-### Example 1: Extract meeting from daily note log
-
-**User request:** "Extract this log entry to a meeting note"
-
-**Selected text:**
-```markdown
-### (log::⏱ 14:30 -0500: Customer sync with Acme)
-
-Discussed Q1 roadmap and feature priorities.
-
-scope:: [[Acme Corp]]
-attendees:: [[Alice]], [[Bob]]
-```
-
-**Workflow:**
-1. Parse selection for metadata
-2. Detected: time (14:30), company (Acme), attendees, scope
-3. Infer folder from current note path (`Work/Palo Alto Networks/Daily Notes/`)
-4. Prompt for meeting type → user selects "customer-meeting"
-5. Create `2026-02-10 Customer sync with Acme.md` in `Work/Palo Alto Networks/Meetings/`
-6. Replace selection with: `Meeting: [[2026-02-10 Customer sync with Acme]]`
-
-### Example 2: Migrate meetings to add scope
-
-**User request:** "Add scope field to all my meeting notes"
-
-**Workflow:**
-1. Run analysis:
-   ```bash
-   grep -r "fileClass: Meeting" vault/ | wc -l
-   # Found 234 meetings
-   ```
-
-2. Run dry-run migration:
-   ```bash
-   uv run scripts/migrate_meetings_scope.py vault/ --dry-run
-   ```
-   Shows: Would update 234 files, adding scope inferred from folder path
-
-3. Test on 5 meetings:
-   ```bash
-   uv run scripts/migrate_meetings_scope.py vault/ --limit 5
-   ```
-   Verify Bases queries work with new scope
-
-4. User approves → run full migration:
-   ```bash
-   uv run scripts/migrate_meetings_scope.py vault/
-   ```
-
-5. Validation:
-   - Check all meetings have scope
-   - Verify Bases "Related Meetings" view works
-   - Create git commit
-
-### Example 3: Find orphaned notes for cleanup
-
-**User request:** "Find notes I'm not using anymore"
-
-**Workflow:**
-1. Run orphan detection:
-   ```bash
-   uv run scripts/find_orphans.py vault/
-   ```
-
-2. Results show 23 orphans in categories:
-   - 12 old meeting notes (pre-2024)
-   - 7 scratch notes with no content
-   - 4 project notes for completed projects
-
-3. Recommendations:
-   - Archive old meetings to `Archive/` folder
-   - Delete scratch notes (or move to `Inbox/` for review)
-   - Mark completed projects with `status: archived`
-
----
-
-When working with users, always run dry-runs and show what would change before making bulk modifications. Every vault has unique patterns - discover them before imposing structure.
+| Script | Purpose | Status |
+|--------|---------|--------|
+| `extract_section_to_meeting.py` | Extract meeting from daily note log | Stable |
+| `suggest_properties.py` | Suggest missing properties for a note | Stable |
+| `detect_schema_drift.py` | Find metadata inconsistencies across fileClass | Stable |
+| `find_orphans.py` | Find notes with no links | Planned |
+| `find_note_clusters.py` | Identify interconnected note groups | Planned |
+| `merge_notes.py` | Merge duplicate notes | Planned |
+| `redirect_links.py` | Vault-wide wikilink replacement | Planned |
+| `generate_canvas.py` | Generate canvas maps | Planned |
