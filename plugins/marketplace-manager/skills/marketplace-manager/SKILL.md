@@ -2,7 +2,7 @@
 name: marketplace-manager
 description: This skill should be used when managing Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance. Supports programmatic invocation by other skills for automated version management. Use when adding skills to marketplace, updating skill versions, syncing marketplace.json, or managing plugin distributions.
 metadata:
-  version: "2.1.0"
+  version: "2.2.0"
   author: J. Greg Williams
   license: MIT
 compatibility: Requires git repository with .claude-plugin/marketplace.json

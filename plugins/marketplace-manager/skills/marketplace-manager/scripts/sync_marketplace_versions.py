@@ -24,6 +24,25 @@ from utils import get_repo_root, print_verbose_info, validate_repo_structure
 from sync_readme import sync_readme
 
 
+def _parse_semver(version_str):
+    """Parse a semver string into a comparable tuple.
+
+    Handles versions like "1.2.3", "1.2", and "1".
+    Non-numeric parts are treated as 0.
+    """
+    parts = version_str.split('.')
+    result = []
+    for part in parts[:3]:
+        try:
+            result.append(int(part))
+        except ValueError:
+            result.append(0)
+    # Pad to 3 elements
+    while len(result) < 3:
+        result.append(0)
+    return tuple(result)
+
+
 def extract_frontmatter_version(skill_md_path):
     """Extract version from SKILL.md YAML frontmatter.
 
@@ -157,23 +176,36 @@ def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
 
             if skill_versions:
                 current_plugin_version = plugin.get('version', '1.0.0')
-                # Warn if any skill version changed
-                for skill_path, version in skill_versions:
-                    if version != current_plugin_version:
+                highest_version = max(
+                    (v for _, v in skill_versions),
+                    key=_parse_semver,
+                )
+
+                if highest_version != current_plugin_version:
+                    if mode == 'manual':
+                        print(f"⚠️  Multi-skill plugin '{plugin_name}' version mismatch detected")
+                        print(f"   Plugin version: {current_plugin_version}")
+                        for skill_path, version in skill_versions:
+                            print(f"   Skill {skill_path}: {version}")
+                        print(f"   → Manual plugin version update recommended")
                         warnings.append({
                             'plugin': plugin_name,
-                            'skill': skill_path,
-                            'skill_version': version,
+                            'skill': '(multi-skill)',
+                            'skill_version': highest_version,
                             'plugin_version': current_plugin_version
                         })
-                if not any(v == current_plugin_version for _, v in skill_versions):
-                    print(f"⚠️  Multi-skill plugin '{plugin_name}' version mismatch detected")
-                    print(f"   Plugin version: {current_plugin_version}")
-                    for skill_path, version in skill_versions:
-                        print(f"   Skill {skill_path}: {version}")
-                    print(f"   → Manual plugin version update recommended")
+                    else:
+                        # Auto mode: update to highest skill version
+                        print(f"🔄 Updating multi-skill plugin '{plugin_name}':")
+                        print(f"   {current_plugin_version} → {highest_version}")
+                        for skill_path, version in skill_versions:
+                            print(f"   Skill {skill_path}: {version}")
+
+                        if not dry_run:
+                            plugin['version'] = highest_version
+                        updated_count += 1
                 else:
-                    print(f"✓ Plugin '{plugin_name}' version matches at least one skill")
+                    print(f"✓ Plugin '{plugin_name}' already at version {highest_version}")
             continue
 
         # Single-skill plugin handling (skills = ["./"])

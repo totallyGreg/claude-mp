@@ -35,6 +35,12 @@ docs/lessons/         →  docs/plans/           →  GitHub Issues      →  IM
 
 **IMPORTANT**: GitHub Issues are the canonical source of truth for work tracking. IMPROVEMENT_PLAN.md should be a simple table that reflects issue state, not detailed planning.
 
+**IMPORTANT**: When modifying any skill (SKILL.md, scripts, references), run skillsmith evaluation before committing:
+```bash
+uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py <skill-path>
+```
+Record the eval score in the skill's IMPROVEMENT_PLAN.md version history entry.
+
 See WORKFLOW.md for details.
 
 ## Tool Preferences for Repository Examination

@@ -310,7 +310,7 @@ uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marke
 /mp-status        # check for mismatches
 ```
 
-**Multi-skill plugins:** The sync script checks if *any* skill version matches the plugin version. For multi-skill plugins (e.g., pkm-plugin with vault-architect + vault-curator), manually set the plugin version to the highest skill version or use `--mode=manual`.
+**Multi-skill plugins:** The sync script auto-updates multi-skill plugins to the highest skill version. For example, if pkm-plugin has vault-architect at 1.1.0 and vault-curator at 1.4.0, the plugin version is set to 1.4.0. Use `--mode=manual` to warn without auto-updating.
 
 **Automation:** Install the pre-commit hook to auto-sync on every commit:
 ```bash

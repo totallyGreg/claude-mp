@@ -32,7 +32,7 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 | Plugin | Version | Description |
 |--------|---------|-------------|
 | **omnifocus-manager** | 4.4.0 | Interface with OmniFocus to surface insights, create reusable automations and perspectives, and suggest workflow optimizations |
-| **pkm-plugin** | 1.1.0 | Personal Knowledge Management expert for Obsidian vaults with dual-skill architecture: vault-architect (create structures) and vault-curator (evolve content) |
+| **pkm-plugin** | 1.4.0 | Personal Knowledge Management expert for Obsidian vaults with dual-skill architecture: vault-architect (create structures) and vault-curator (evolve content) |
 
 ### Security (1 plugin)
 
