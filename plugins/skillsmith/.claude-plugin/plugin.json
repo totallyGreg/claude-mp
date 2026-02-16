@@ -1,6 +1,6 @@
 {
   "name": "skillsmith",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "Guide for creating, evaluating, researching, and improving effective skills. This skill should be used when users want to create, validate, evaluate, research, analyze, or improve skills that extend Claude's capabilities with specialized knowledge, workflows, or tool integrations.",
   "author": {
     "name": "J. Greg Williams",
