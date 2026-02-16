@@ -2,12 +2,13 @@
 name: vault-curator
 description: >
   This skill should be used when users ask to "migrate vault notes", "extract meeting from log",
-  "import calendar event", "detect schema drift", "find orphaned notes", "consolidate notes",
-  "find duplicates", "suggest properties", "what metadata am I missing", "find related notes",
+  "detect schema drift", "consolidate notes", "find duplicates", "merge notes", "redirect links",
+  "suggest properties", "what metadata am I missing", "find related notes", "find orphaned notes",
   "show knowledge map", or "generate canvas". Curates and evolves existing vault content through
-  pattern detection, migration workflows, metadata intelligence, and programmatic manipulation.
+  pattern detection, migration workflows, metadata intelligence, consolidation, and programmatic
+  manipulation.
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
   plugin: "pkm-plugin"
   stage: "3"
 compatibility: Requires python3.11+ and uv for script execution. Obsidian CLI 1.12+ for intelligence workflows.
@@ -162,6 +163,52 @@ When asked to batch update frontmatter:
 
 **Safety:** Always validate vault path. Preserve YAML formatting. Handle missing properties gracefully.
 
+## Consolidation Workflows
+
+Consolidation detects duplicates, merges notes, and redirects links. All operations require user confirmation and git checkpoint before execution.
+
+**See:** `references/consolidation-protocol.md` for full merge semantics, conflict resolution, and rollback procedures.
+
+### Find Similar Notes
+
+Detect duplicates within a scope using tiered detection:
+
+1. **Select scope** (required)
+2. **Run detection**:
+   ```bash
+   uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/find_similar_notes.py \
+     ${VAULT_PATH} --scope "${SCOPE_PATH}"
+   ```
+3. **Present groups** — Tier 1 (identical titles) first, then Tier 2 (similar titles, matching tags)
+4. **Per-group decision**: merge / create MOC / mark aliases / skip
+
+### Merge Notes
+
+Merge source note into target (surviving) note:
+
+1. **Git checkpoint** before merge
+2. **Dry-run first**:
+   ```bash
+   uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/merge_notes.py \
+     ${VAULT_PATH} --source "${SOURCE}" --target "${TARGET}" --dry-run
+   ```
+3. **Review** frontmatter changes (added, conflicts, merged lists) and content append
+4. **Resolve conflicts** — present each to user for decision
+5. **Execute merge** (remove `--dry-run`)
+
+### Redirect Links
+
+After merge, redirect all vault-wide references from deleted note to surviving note:
+
+1. **Dry-run first**:
+   ```bash
+   uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/redirect_links.py \
+     ${VAULT_PATH} --old "${OLD_NAME}" --new "${NEW_NAME}" --dry-run
+   ```
+2. **Review** affected files and replacement counts
+3. **Execute redirect** (remove `--dry-run`)
+4. **Delete source note** only after redirect is confirmed
+
 ## Pattern Detection
 
 ### Find Orphaned Notes
@@ -212,6 +259,7 @@ Run via: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/<script> ${V
 | `detect_schema_drift.py` | Find metadata inconsistencies across fileClass | Stable |
 | `find_orphans.py` | Find notes with no links | Planned |
 | `find_note_clusters.py` | Identify interconnected note groups | Planned |
-| `merge_notes.py` | Merge duplicate notes | Planned |
-| `redirect_links.py` | Vault-wide wikilink replacement | Planned |
+| `find_similar_notes.py` | Detect duplicate/similar notes within scope | Stable |
+| `merge_notes.py` | Merge two notes (frontmatter union + content concat) | Stable |
+| `redirect_links.py` | Vault-wide wikilink replacement after merge | Stable |
 | `generate_canvas.py` | Generate canvas maps | Planned |
