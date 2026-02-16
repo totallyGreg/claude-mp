@@ -3,12 +3,13 @@ name: vault-curator
 description: >
   This skill should be used when users ask to "migrate vault notes", "extract meeting from log",
   "detect schema drift", "consolidate notes", "find duplicates", "merge notes", "redirect links",
-  "suggest properties", "what metadata am I missing", "find related notes", "find orphaned notes",
+  "suggest properties", "what metadata am I missing", "find related notes", "show connections",
+  "what links to this", "find orphaned notes", "show discovery view", "suggest links",
   "show knowledge map", or "generate canvas". Curates and evolves existing vault content through
-  pattern detection, migration workflows, metadata intelligence, consolidation, and programmatic
-  manipulation.
+  pattern detection, migration workflows, metadata intelligence, consolidation, discovery, and
+  programmatic manipulation.
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
   plugin: "pkm-plugin"
   stage: "3"
 compatibility: Requires python3.11+ and uv for script execution. Obsidian CLI 1.12+ for intelligence workflows.
@@ -209,6 +210,63 @@ After merge, redirect all vault-wide references from deleted note to surviving n
 3. **Execute redirect** (remove `--dry-run`)
 4. **Delete source note** only after redirect is confirmed
 
+## Discovery Workflows
+
+Discovery workflows surface connections, suggest links, and generate views that help users navigate large vaults.
+
+### Related Note Finding
+
+When asked "find related notes", "show connections", or "what links to this":
+
+1. **Select scope** (or use current note's folder)
+2. **Run discovery**:
+   ```bash
+   uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/find_related.py \
+     ${VAULT_PATH} "${NOTE_PATH}" --scope "${SCOPE_PATH}" --top 10
+   ```
+3. **Present results** with explanations of why each note is related:
+   - Shared properties (fileClass, scope, project) — strongest signal
+   - Shared wikilink targets — indicates topical overlap
+   - Shared tags — broad topical connection
+   - Folder proximity — structural relationship
+4. **Offer to add wikilinks** to connect related notes (with user confirmation)
+
+### Progressive Discovery Views
+
+When asked "show discovery view" or "organize notes by depth":
+
+1. **Select scope** (required)
+2. **Determine hierarchy** from note metadata:
+   - **Entry points**: Notes with `noteType: MOC` or `fileClass: MOC` (Maps of Content, overviews)
+   - **Detailed notes**: Notes with specific `fileClass` values (Meeting, Project, Person, etc.)
+   - **Raw captures**: Notes without `fileClass`/`noteType`, or with `fileClass: Capture`/`Log`
+3. **Generate `.base` file** using obsidian-bases skill knowledge:
+   ```json
+   {
+     "name": "Discovery View - [Scope]",
+     "filters": [{"property": "file.folder", "op": "starts-with", "value": "[scope]"}],
+     "groups": [{"property": "noteType", "direction": "asc"}],
+     "columns": ["file", "noteType", "fileClass", "tags", "file.ctime"]
+   }
+   ```
+4. **Save `.base` file** in the scoped directory (e.g., `_discovery-view.base`)
+5. **Document the hierarchy model**: explain what each tier means for the user's vault
+
+### Auto-Linking Suggestions
+
+When asked "suggest links", "what should I link", or "improve connections":
+
+1. **Select scope** (or use current note's folder/fileClass)
+2. **Analyze metadata patterns** across scoped notes:
+   - Find notes with similar tags but no wikilinks between them
+   - Identify notes that share `scope` or `project` properties but aren't linked
+   - Detect notes frequently co-referenced (both linked from the same third note)
+3. **Suggest tag additions** based on peer analysis:
+   - "Notes in this folder commonly use tags X, Y — consider adding to these notes"
+4. **Suggest Bases formulas** for automatic views:
+   - "Create a Bases view filtering by `fileClass=Meeting` + `scope=[[Project]]` to see all related meetings"
+5. **Present suggestions** with rationale, apply tag/property changes with confirmation
+
 ## Pattern Detection
 
 ### Find Orphaned Notes
@@ -257,6 +315,7 @@ Run via: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/<script> ${V
 | `extract_section_to_meeting.py` | Extract meeting from daily note log | Stable |
 | `suggest_properties.py` | Suggest missing properties for a note | Stable |
 | `detect_schema_drift.py` | Find metadata inconsistencies across fileClass | Stable |
+| `find_related.py` | Find notes related by tags, properties, links, proximity | Stable |
 | `find_orphans.py` | Find notes with no links | Planned |
 | `find_note_clusters.py` | Identify interconnected note groups | Planned |
 | `find_similar_notes.py` | Detect duplicate/similar notes within scope | Stable |
