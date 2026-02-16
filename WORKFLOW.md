@@ -145,10 +145,14 @@ git commit -m "feat(skill-name): Final changes (#123)"
 - Update IMPROVEMENT_PLAN.md table (move #123 from Planned → Completed)
 - Add version, date, and key changes to Completed table
 - Bump version in SKILL.md
+- Sync marketplace: run `/mp-sync` or `uv run .../sync_marketplace_versions.py`
 - Close GitHub issue with commit message
 
 ```bash
-git add skills/skill-name/IMPROVEMENT_PLAN.md skills/skill-name/SKILL.md
+# Sync marketplace before committing release
+uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py
+
+git add skills/skill-name/IMPROVEMENT_PLAN.md skills/skill-name/SKILL.md .claude-plugin/marketplace.json
 git commit -m "chore: Release skill-name v1.5.0
 
 Closes #123"
@@ -287,12 +291,38 @@ Skills use a validation gate system to ensure quality before release:
    - Or explicitly defer with GitHub issue + document in IMPROVEMENT_PLAN.md
 4. **Release**: Only release when strict validation passes (exit code 0)
 
+### Marketplace Sync
+
+After any skill version bump, marketplace.json must be updated to reflect the new version. Stale marketplace versions mean users installing the plugin get outdated metadata.
+
+**During development (before PR):**
+```bash
+# Check for version drift
+uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py --dry-run
+
+# Apply sync (include marketplace.json in PR)
+uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py
+```
+
+**Or use the slash command:**
+```bash
+/mp-sync          # sync versions
+/mp-status        # check for mismatches
+```
+
+**Multi-skill plugins:** The sync script checks if *any* skill version matches the plugin version. For multi-skill plugins (e.g., pkm-plugin with vault-architect + vault-curator), manually set the plugin version to the highest skill version or use `--mode=manual`.
+
+**Automation:** Install the pre-commit hook to auto-sync on every commit:
+```bash
+bash plugins/marketplace-manager/skills/marketplace-manager/scripts/install_hook.sh
+```
+
 ### Skill Release Checklist
 
 ```bash
 # Before releasing skill-name v2.0.0:
 
-# 1. Run strict validation
+# 1. Run strict validation (skillsmith)
 uv run scripts/evaluate_skill.py skills/skill-name --quick --strict
 
 # 2. If issues found:
@@ -302,7 +332,10 @@ uv run scripts/evaluate_skill.py skills/skill-name --quick --strict
 # 3. Validation passes (exit code 0)
 # 4. Update IMPROVEMENT_PLAN.md with metrics and new version
 # 5. Bump version in SKILL.md metadata.version
-# 6. Create two-commit release (see "Implementing & Release" section)
+# 6. Sync marketplace versions
+uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py
+# 7. Include marketplace.json in release commit
+# 8. Create two-commit release (see "Implementing & Release" section)
 ```
 
 ## Decision Trees
@@ -325,8 +358,9 @@ Is it a typo or small fix?
             3. Add to IMPROVEMENT_PLAN.md Active Work section
             4. Implement with commits referencing issue
             5. Validate with: `uv run scripts/evaluate_skill.py <skill> --quick --strict`
-            6. Release: Add version row to IMPROVEMENT_PLAN.md with metrics
-            7. Optional: Document learnings in docs/lessons/ (if cross-skill pattern)
+            6. Sync marketplace: `uv run .../sync_marketplace_versions.py`
+            7. Release: Add version row to IMPROVEMENT_PLAN.md with metrics
+            8. Optional: Document learnings in docs/lessons/ (if cross-skill pattern)
 ```
 
 ### Skill-Specific vs Repo-Level Work
