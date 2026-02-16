@@ -12,6 +12,13 @@ license: Complete terms in LICENSE.txt
 
 This skill provides guidance for forging effective skills.
 
+## When NOT to Use Skillsmith
+
+- **Adding commands to existing plugins** → Use `plugin-dev:command-development`
+- **Plugin structure/manifest changes** → Use `plugin-dev:plugin-structure`
+- **Creating hooks or agents** → Use `plugin-dev:hook-development` or `plugin-dev:agent-development`
+- **Wrapping existing scripts as commands** → Commands are thin wrappers, not skills
+
 ## About Skills
 
 Skills are modular, self-contained packages that extend Claude's capabilities by providing
