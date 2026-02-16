@@ -1,7 +1,7 @@
 ---
 name: pkm-manager
 description: |
-  Use this agent for multi-step Personal Knowledge Management workflows in Obsidian vaults: "analyze vault and suggest improvements", "create a template", "optimize vault organization", "set up temporal rollup system", "extract meeting from log", "migrate vault notes", "detect schema drift", "suggest properties", "what metadata am I missing", "find duplicates", "merge notes", "consolidate notes", "redirect links", "find related notes", "show knowledge map".
+  Use this agent for multi-step Personal Knowledge Management workflows in Obsidian vaults: "analyze vault and suggest improvements", "create a template", "optimize vault organization", "set up temporal rollup system", "extract meeting from log", "migrate vault notes", "detect schema drift", "suggest properties", "what metadata am I missing", "find duplicates", "merge notes", "consolidate notes", "redirect links", "find related notes", "show connections", "what links to this", "show discovery view", "suggest links", "show knowledge map".
 
   <example>
   Context: User wants to improve vault organization
@@ -45,6 +45,15 @@ description: |
   assistant: "I'll use the pkm-manager agent to scan for similar notes and guide consolidation."
   <commentary>
   Consolidation workflow: scope selection → duplicate detection → per-group decision → merge → redirect links.
+  </commentary>
+  </example>
+
+  <example>
+  Context: User wants to discover related notes
+  user: "Find notes related to my Kubernetes project note"
+  assistant: "I'll use the pkm-manager agent to find related notes by shared tags, properties, and links."
+  <commentary>
+  Discovery workflow: load target note → scan scope → rank by connection strength → present with explanations → offer to add wikilinks.
   </commentary>
   </example>
 
@@ -101,6 +110,7 @@ Load ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/SKILL.md for:
 - Vault migration workflows
 - **Metadata workflows** (property suggestions, schema drift detection)
 - **Consolidation workflows** (duplicate detection, merge, link redirect)
+- **Discovery workflows** (related notes, progressive views, auto-linking)
 - Pattern detection (orphans, clusters)
 
 Load references from ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/ as needed:
@@ -148,6 +158,25 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 6. Run link redirect: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/redirect_links.py ${VAULT_PATH} --old "${OLD_NAME}" --new "${NEW_NAME}" --dry-run`
 7. Show affected files, get confirmation, execute redirect
 8. Delete source note after confirmed redirect
+
+### Discovery: Find Related Notes
+1. Run scope selection (or use the target note's folder)
+2. Run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/find_related.py ${VAULT_PATH} "${NOTE_PATH}" --scope "${SCOPE}" --top 10`
+3. Present top results with explanations of connection strength
+4. Offer to add wikilinks between related notes (with confirmation)
+
+### Discovery: Progressive Discovery View
+1. Run scope selection
+2. Analyze `noteType`/`fileClass` distribution within scope
+3. Generate `.base` file with hierarchy: Entry points → Detailed notes → Raw captures
+4. Save as `_discovery-view.base` in scoped directory
+
+### Discovery: Auto-Linking Suggestions
+1. Run scope selection
+2. Analyze metadata patterns (shared tags without links, shared scope/project)
+3. Suggest tag additions based on peer analysis
+4. Suggest Bases formulas for automatic views
+5. Apply approved changes with confirmation
 
 ### Vault Analysis
 1. Run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/analyze_vault.py ${VAULT_PATH}`
@@ -199,6 +228,7 @@ ALWAYS ask user confirmation before:
 | `extract_section_to_meeting.py` | `<vault-path> <note-path> <selection>` |
 | `suggest_properties.py` | `<vault-path> <note-path> [--min-confidence <pct>]` |
 | `detect_schema_drift.py` | `<vault-path> --file-class <class> [--scope <path>] [--dry-run]` |
+| `find_related.py` | `<vault-path> <note-path> [--scope <path>] [--top <n>]` |
 | `find_similar_notes.py` | `<vault-path> --scope <path> [--min-similarity <pct>] [--max-groups <n>] [--dry-run]` |
 | `merge_notes.py` | `<vault-path> --source <path> --target <path> [--dry-run]` |
 | `redirect_links.py` | `<vault-path> --old <name> --new <name> [--scope <path>] [--dry-run]` |
