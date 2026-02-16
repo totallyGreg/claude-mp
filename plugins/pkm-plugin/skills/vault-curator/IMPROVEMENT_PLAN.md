@@ -1,11 +1,12 @@
 # Vault Curator - Improvement Plan
 
-## Current Version: 1.2.0
+## Current Version: 1.3.0
 
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.3.0 | 2026-02-16 | Consolidation workflows: find_similar_notes.py, merge_notes.py, redirect_links.py, consolidation-protocol.md reference. Skillsmith eval: 89/100 |
 | 1.2.0 | 2026-02-15 | Scope selection, metadata workflows (suggest_properties.py, detect_schema_drift.py), SKILL.md restructure, pkm-manager agent CLI integration |
 | 1.0.0 | 2026-02-10 | Initial release with meeting extraction, migration patterns, and pattern detection workflows |
 
@@ -14,7 +15,7 @@
 | Issue | Priority | Title | Status |
 |-------|----------|-------|--------|
 | [#44](https://github.com/totallyGreg/claude-mp/issues/44) | High | Foundation + Metadata Workflows (Phase 1) | Done |
-| [#45](https://github.com/totallyGreg/claude-mp/issues/45) | High | Consolidation Workflows (Phase 2) | Planning |
+| [#45](https://github.com/totallyGreg/claude-mp/issues/45) | High | Consolidation Workflows (Phase 2) | Done |
 | [#46](https://github.com/totallyGreg/claude-mp/issues/46) | Medium | Discovery Workflows (Phase 3) | Planning |
 | [#47](https://github.com/totallyGreg/claude-mp/issues/47) | Medium | Visualization Workflows (Phase 4) | Planning |
 | — | High | Phase 4 Scripts (original): import_calendar_event.py, migrate_meetings_scope.py, match_person_by_email.py, find_orphans.py | Planned |
