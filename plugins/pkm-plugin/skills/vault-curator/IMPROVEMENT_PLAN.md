@@ -6,7 +6,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.4.0 | 2026-02-16 | Discovery workflows: find_related.py, progressive discovery views, auto-linking suggestions. SKILL.md + pkm-manager agent updated |
+| 1.4.0 | 2026-02-16 | Discovery workflows: find_related.py, progressive discovery views, auto-linking suggestions. SKILL.md + pkm-manager agent updated. Skillsmith eval: 87/100 (conciseness 76, complexity 88, spec 90, progressive 100, description 80) |
 | 1.3.0 | 2026-02-16 | Consolidation workflows: find_similar_notes.py, merge_notes.py, redirect_links.py, consolidation-protocol.md reference. Skillsmith eval: 89/100 |
 | 1.2.0 | 2026-02-15 | Scope selection, metadata workflows (suggest_properties.py, detect_schema_drift.py), SKILL.md restructure, pkm-manager agent CLI integration |
 | 1.0.0 | 2026-02-10 | Initial release with meeting extraction, migration patterns, and pattern detection workflows |

@@ -69,7 +69,7 @@
       "name": "pkm-plugin",
       "description": "Personal Knowledge Management expert for Obsidian vaults with dual-skill architecture: vault-architect (create structures) and vault-curator (evolve content)",
       "category": "productivity",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
