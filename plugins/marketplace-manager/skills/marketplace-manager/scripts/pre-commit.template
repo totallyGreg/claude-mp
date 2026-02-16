@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# marketplace-manager pre-commit hook v3.0.0
+# marketplace-manager pre-commit hook v4.0.0
 #
 # Pre-commit hook for marketplace-manager
-# Checks staged files for version bumps and syncs marketplace.json
+# Checks staged files for version bumps and syncs marketplace.json + README.md
 #
 # Installation:
 #   bash plugins/marketplace-manager/skills/marketplace-manager/scripts/install_hook.sh
@@ -12,7 +12,7 @@
 #   git commit --no-verify
 #
 
-HOOK_VERSION="3.0.0"
+HOOK_VERSION="4.0.0"
 
 # Colors for output
 RED='\033[0;31m'
@@ -84,8 +84,12 @@ if ! python3 "$DETECT_SCRIPT" > /dev/null 2>&1; then
     # Run sync in auto mode
     echo -e "${BLUE}🔄 Auto-syncing marketplace.json...${NC}"
     if python3 "$SYNC_SCRIPT" --mode=auto 2>&1 | grep -q "Updated"; then
-        # Changes were made, add marketplace.json to staging
+        # Changes were made, add marketplace.json and README.md to staging
         git add "$MARKETPLACE_JSON"
+        README_PATH="$REPO_ROOT/README.md"
+        if [ -f "$README_PATH" ] && ! git diff --quiet "$README_PATH" 2>/dev/null; then
+            git add "$README_PATH"
+        fi
         echo -e "${GREEN}✅ marketplace.json updated and staged${NC}"
     else
         echo -e "${RED}❌ Failed to sync marketplace.json${NC}"

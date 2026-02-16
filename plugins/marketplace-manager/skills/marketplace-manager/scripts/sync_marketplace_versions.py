@@ -3,13 +3,13 @@
 # dependencies = []
 # ///
 """
-Sync skill versions from SKILL.md files to marketplace.json.
+Sync plugin versions to marketplace.json.
 
-This script:
-- Scans all skills referenced in marketplace.json
-- Reads version from each SKILL.md frontmatter
-- Updates the corresponding plugin version in marketplace.json
-- Reports any changes made
+Version source per plugin type:
+- Plugins with .claude-plugin/plugin.json: read version from plugin.json
+- Single-skill plugins (skills: ["./"]): read version from SKILL.md frontmatter
+
+After syncing marketplace.json, also syncs README.md plugin tables.
 
 Run this before committing changes to ensure marketplace versions stay in sync.
 """
@@ -22,25 +22,6 @@ from pathlib import Path
 
 from utils import get_repo_root, print_verbose_info, validate_repo_structure
 from sync_readme import sync_readme
-
-
-def _parse_semver(version_str):
-    """Parse a semver string into a comparable tuple.
-
-    Handles versions like "1.2.3", "1.2", and "1".
-    Non-numeric parts are treated as 0.
-    """
-    parts = version_str.split('.')
-    result = []
-    for part in parts[:3]:
-        try:
-            result.append(int(part))
-        except ValueError:
-            result.append(0)
-    # Pad to 3 elements
-    while len(result) < 3:
-        result.append(0)
-    return tuple(result)
 
 
 def extract_frontmatter_version(skill_md_path):
@@ -101,6 +82,79 @@ def extract_frontmatter_version(skill_md_path):
         return None, None
 
 
+def read_plugin_json_version(plugin_json_path):
+    """Read version from a plugin's .claude-plugin/plugin.json.
+
+    Args:
+        plugin_json_path: Path to plugin.json file
+
+    Returns:
+        Version string or None
+    """
+    try:
+        with open(plugin_json_path, 'r') as f:
+            data = json.load(f)
+        return data.get('version')
+    except Exception as e:
+        print(f"⚠️  Warning: Could not read {plugin_json_path}: {e}")
+        return None
+
+
+def get_plugin_version(source_dir, skills):
+    """Determine version source and read version for a plugin.
+
+    Version source logic:
+    - If source_dir/.claude-plugin/plugin.json exists → read from plugin.json
+    - If skills: ["./"] (single-skill IS the plugin) → read from SKILL.md
+    - Otherwise → None (no version source found)
+
+    Args:
+        source_dir: Resolved path to plugin source directory
+        skills: List of skill paths from marketplace.json
+
+    Returns:
+        Tuple of (version, source_label, is_deprecated)
+    """
+    plugin_json = source_dir / '.claude-plugin' / 'plugin.json'
+
+    if plugin_json.exists():
+        version = read_plugin_json_version(plugin_json)
+        if version:
+            return version, 'plugin.json', False
+
+    # Single-skill with skills: ["./"] — SKILL.md is the version source
+    if len(skills) == 1 and skills[0] == './':
+        skill_md = source_dir / 'SKILL.md'
+        if skill_md.exists():
+            version, is_deprecated = extract_frontmatter_version(skill_md)
+            if version:
+                return version, 'SKILL.md', is_deprecated
+
+    return None, None, None
+
+
+def get_skill_versions(source_dir, skills):
+    """Get individual skill versions for informational reporting.
+
+    Args:
+        source_dir: Resolved path to plugin source directory
+        skills: List of skill paths from marketplace.json
+
+    Returns:
+        List of (skill_path, version) tuples
+    """
+    versions = []
+    for skill_path in skills:
+        skill_path_clean = skill_path.lstrip('./')
+        skill_dir = source_dir / skill_path_clean if skill_path_clean else source_dir
+        skill_md = skill_dir / 'SKILL.md'
+        if skill_md.exists():
+            version, _ = extract_frontmatter_version(skill_md)
+            if version:
+                versions.append((skill_path_clean or './', version))
+    return versions
+
+
 def load_marketplace(marketplace_path):
     """Load marketplace.json file."""
     try:
@@ -122,16 +176,20 @@ def save_marketplace(marketplace_path, marketplace_data):
 
 
 def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
-    """Sync versions from SKILL.md files to marketplace.json.
+    """Sync versions from version sources to marketplace.json.
+
+    Version source per plugin type:
+    - plugin.json (if exists) for plugins with .claude-plugin/plugin.json
+    - SKILL.md for single-skill plugins with skills: ["./"]
 
     Args:
         marketplace_path: Path to marketplace.json
         repo_root: Repository root directory
         dry_run: If True, don't save changes
-        mode: Versioning mode - 'auto' (auto-update single-skill plugins) or 'manual' (warn only)
+        mode: 'auto' (auto-update) or 'manual' (warn only)
 
     Returns:
-        Number of plugins updated
+        Number of plugins updated, or -1 if warnings exist
     """
     marketplace_data = load_marketplace(marketplace_path)
     if not marketplace_data:
@@ -158,100 +216,50 @@ def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
         source_path_clean = source.lstrip('./')
         source_dir = repo_root / source_path_clean if source_path_clean else repo_root
 
-        # Check if multi-skill plugin (skills array has multiple entries, not all "./")
-        is_multi_skill = len(skills) > 1 or (len(skills) == 1 and skills[0] != './')
+        # Get plugin version from the appropriate source
+        source_version, source_label, is_deprecated = get_plugin_version(source_dir, skills)
 
-        # For plugins with multiple skills, check all skill versions
-        if is_multi_skill:
-            skill_versions = []
-            for skill_path in skills:
-                skill_path_clean = skill_path.lstrip('./')
-                # Resolve skill path relative to source
-                skill_dir = source_dir / skill_path_clean if skill_path_clean else source_dir
-                skill_md = skill_dir / 'SKILL.md'
-                if skill_md.exists():
-                    version, _ = extract_frontmatter_version(skill_md)
-                    if version:
-                        skill_versions.append((skill_path_clean or source, version))
-
-            if skill_versions:
-                current_plugin_version = plugin.get('version', '1.0.0')
-                highest_version = max(
-                    (v for _, v in skill_versions),
-                    key=_parse_semver,
-                )
-
-                if highest_version != current_plugin_version:
-                    if mode == 'manual':
-                        print(f"⚠️  Multi-skill plugin '{plugin_name}' version mismatch detected")
-                        print(f"   Plugin version: {current_plugin_version}")
-                        for skill_path, version in skill_versions:
-                            print(f"   Skill {skill_path}: {version}")
-                        print(f"   → Manual plugin version update recommended")
-                        warnings.append({
-                            'plugin': plugin_name,
-                            'skill': '(multi-skill)',
-                            'skill_version': highest_version,
-                            'plugin_version': current_plugin_version
-                        })
-                    else:
-                        # Auto mode: update to highest skill version
-                        print(f"🔄 Updating multi-skill plugin '{plugin_name}':")
-                        print(f"   {current_plugin_version} → {highest_version}")
-                        for skill_path, version in skill_versions:
-                            print(f"   Skill {skill_path}: {version}")
-
-                        if not dry_run:
-                            plugin['version'] = highest_version
-                        updated_count += 1
-                else:
-                    print(f"✓ Plugin '{plugin_name}' already at version {highest_version}")
-            continue
-
-        # Single-skill plugin handling (skills = ["./"])
-        # SKILL.md is in the source directory
-        skill_md = source_dir / 'SKILL.md'
-
-        if not skill_md.exists():
-            print(f"⚠️  SKILL.md not found for plugin '{plugin_name}': {skill_md}")
-            continue
-
-        skill_version, is_deprecated = extract_frontmatter_version(skill_md)
-
-        if not skill_version:
-            print(f"ℹ️  No version found in {source}/SKILL.md, skipping plugin '{plugin_name}'")
+        if not source_version:
+            print(f"⚠️  No version source found for plugin '{plugin_name}' at {source}")
             continue
 
         if is_deprecated:
-            print(f"⚠️  Plugin '{plugin_name}' skill uses deprecated 'version' field")
-            print(f"   Please use 'metadata.version' instead in {source}/SKILL.md")
+            print(f"⚠️  Plugin '{plugin_name}' uses deprecated 'version' field in SKILL.md")
+            print(f"   Please use 'metadata.version' instead")
 
-        current_plugin_version = plugin.get('version', '1.0.0')
+        current_marketplace_version = plugin.get('version', '1.0.0')
 
-        if skill_version != current_plugin_version:
+        # Report individual skill versions for multi-skill plugins
+        has_multiple_skills = len(skills) > 1
+        skill_versions = get_skill_versions(source_dir, skills) if has_multiple_skills else []
+
+        if source_version != current_marketplace_version:
             if mode == 'manual':
-                # Manual mode: warn only, don't update
                 print(f"⚠️  Version mismatch for plugin '{plugin_name}':")
-                print(f"   Plugin version: {current_plugin_version}")
-                print(f"   Skill version:  {skill_version} (from {source}/SKILL.md)")
-                print(f"   → Please update plugin version manually in marketplace.json")
+                print(f"   Marketplace version: {current_marketplace_version}")
+                print(f"   {source_label} version: {source_version}")
+                if has_multiple_skills:
+                    for sp, sv in skill_versions:
+                        print(f"   Skill {sp}: {sv}")
                 warnings.append({
                     'plugin': plugin_name,
-                    'skill': source,
-                    'skill_version': skill_version,
-                    'plugin_version': current_plugin_version
+                    'source': source_label,
+                    'source_version': source_version,
+                    'marketplace_version': current_marketplace_version,
                 })
             else:
-                # Auto mode: update single-skill plugins
                 print(f"🔄 Updating plugin '{plugin_name}':")
-                print(f"   {current_plugin_version} → {skill_version}")
-                print(f"   (from {source}/SKILL.md)")
+                print(f"   {current_marketplace_version} → {source_version}")
+                print(f"   (from {source_label})")
+                if has_multiple_skills:
+                    for sp, sv in skill_versions:
+                        print(f"   Skill {sp}: {sv}")
 
                 if not dry_run:
-                    plugin['version'] = skill_version
+                    plugin['version'] = source_version
                 updated_count += 1
         else:
-            print(f"✓ Plugin '{plugin_name}' already at version {skill_version}")
+            print(f"✓ Plugin '{plugin_name}' already at version {source_version}")
 
     # Save changes if any updates were made
     if updated_count > 0:
@@ -262,28 +270,29 @@ def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
             print(f"\n✅ Updated {updated_count} plugin(s)")
     elif warnings:
         print(f"\n⚠️  {len(warnings)} version mismatch(es) detected")
-        print("   Run with --mode=auto to update single-skill plugins automatically")
-        print("   or update plugin versions manually in marketplace.json")
+        print("   Run with --mode=auto to update automatically")
+        print("   or update versions manually")
     else:
         print("\n✓ All plugin versions are up to date")
 
-    return updated_count if not warnings else -1  # Return -1 if warnings exist
+    return updated_count if not warnings else -1
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Sync skill versions from SKILL.md to marketplace.json',
+        description='Sync plugin versions to marketplace.json',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+Version source per plugin type:
+  - Plugins with .claude-plugin/plugin.json: version from plugin.json
+  - Single-skill plugins (skills: ["./"]): version from SKILL.md
+
 Examples:
-  # Auto-sync single-skill plugin versions (default)
+  # Auto-sync plugin versions (default)
   %(prog)s
 
   # Manual mode: warn about mismatches, don't auto-update
   %(prog)s --mode=manual
-
-  # Sync versions in specific repository
-  %(prog)s --path /path/to/repo
 
   # Preview changes without saving
   %(prog)s --dry-run
@@ -315,7 +324,7 @@ Examples:
         '--mode',
         choices=['auto', 'manual'],
         default='auto',
-        help='Versioning mode: auto (auto-update single-skill plugins) or manual (warn only, no auto-updates)'
+        help='Versioning mode: auto (auto-update) or manual (warn only)'
     )
 
     args = parser.parse_args()
@@ -345,7 +354,7 @@ Examples:
     if args.mode == 'manual':
         print(f"🔧 Mode: Manual (warn only, no auto-updates)")
     else:
-        print(f"🔧 Mode: Auto (auto-update single-skill plugins)")
+        print(f"🔧 Mode: Auto (auto-update plugin versions)")
     print()
 
     updated_count = sync_versions(marketplace_path, repo_root, dry_run=args.dry_run, mode=args.mode)
