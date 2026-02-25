@@ -28,6 +28,7 @@
 
 ## Active Work
 
+- [#55](https://github.com/totallyGreg/claude-mp/issues/55): Support remote URLs in evaluate_skill.py (In Progress)
 - [#37](https://github.com/totallyGreg/claude-mp/issues/37): Add --explain mode to evaluate_skill.py (Planned)
 - [#24](https://github.com/totallyGreg/claude-mp/issues/24): Complete script consolidation - Phases 2-3 (Planned)
 
