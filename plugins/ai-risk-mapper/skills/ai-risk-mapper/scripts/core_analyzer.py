@@ -94,6 +94,7 @@ class Persona:
     description: str
     responsibilities: List[str]
     mappings: Dict[str, List[str]]
+    deprecated: bool = False
     identification_questions: Optional[List[str]] = None
 
 
@@ -183,8 +184,8 @@ class RiskAnalyzer:
                 controls=risk_data.get("controls", []),
                 examples=self._flatten_text_list(risk_data.get("examples", [])),
                 mappings=risk_data.get("mappings", {}),
-                lifecycle_stages=risk_data.get("lifecycleStages", []),
-                impact_types=risk_data.get("impactTypes", []),
+                lifecycle_stages=risk_data.get("lifecycleStage", []),
+                impact_types=risk_data.get("impactType", []),
             )
             self.risks[risk.id] = risk
         logger.debug("Loaded %d risks", len(self.risks))
@@ -275,6 +276,7 @@ class RiskAnalyzer:
                 description=self._flatten_text(persona_data.get("description", [])),
                 responsibilities=persona_data.get("responsibilities", []),
                 mappings=persona_data.get("mappings", {}),
+                deprecated=persona_data.get("deprecated", False),
                 identification_questions=persona_data.get("identificationQuestions"),
             )
             self.personas[persona.id] = persona

@@ -9,44 +9,52 @@ This guide covers interactive exploration of the CoSAI Risk Map framework using 
 **Risks (26 total):**
 | ID | Title | Category |
 |----|-------|----------|
-| DP | Data Poisoning | Supply Chain & Development |
-| PIJ | Prompt Injection | Application Security |
-| MEV | Model Evasion | Model Security |
-| MXF | Model Exfiltration | Model Security |
-| SDD | Sensitive Data Disclosure | Data Security |
-| APD | Adversarial Perturbation Detection | Model Security |
-| BDR | Backdoor | Supply Chain & Development |
-| DAT | Data Theft | Data Security |
-| DEN | Denial of Service | Infrastructure |
-| EMO | Excessive Model Output | Application Security |
-| FDL | Federated Learning Attacks | Model Security |
-| INA | Inference Attacks | Privacy |
-| MAL | Malicious Code Injection | Supply Chain & Development |
-| MDG | Model Degradation | Model Security |
-| MEX | Model Extraction | Model Security |
-| MIM | Model Inversion | Privacy |
-| MIS | Misinformation | Application Security |
-| MPO | Model Poisoning | Model Security |
-| MRB | Model Robustness | Model Security |
-| MTR | Membership Inference | Privacy |
-| OVR | Overreliance | Application Security |
-| REP | Reproducibility | Assurance |
-| SPL | Supply Chain Compromise | Supply Chain & Development |
-| TRJ | Trojan/Backdoor | Model Security |
-| UNF | Unfairness/Bias | Assurance |
-| UNS | Unsafe Content Generation | Application Security |
+| `DP` | Data Poisoning | Supply Chain & Development |
+| `UTD` | Unauthorized Training Data | Supply Chain & Development |
+| `MST` | Model Source Tampering | Supply Chain & Development |
+| `EDH` | Excessive Data Handling | Supply Chain & Development |
+| `EDH-I` | Excessive Data Handling During Inference | Runtime Data Security |
+| `MXF` | Model Exfiltration | Model Security |
+| `MDT` | Model Deployment Tampering | Model Security |
+| `DMS` | Denial of ML Service | Infrastructure |
+| `MRE` | Model Reverse Engineering | Model Security |
+| `IIC` | Insecure Integrated Component | Application Security |
+| `PIJ` | Prompt Injection | Application Security |
+| `MEV` | Model Evasion | Model Security |
+| `SDD` | Sensitive Data Disclosure | Data Security |
+| `ISD` | Inferred Sensitive Data | Privacy |
+| `IMO` | Insecure Model Output | Application Security |
+| `RA` | Rogue Actions | Application Security |
+| `ASSC` | Accelerator and System Side-channels | Deployment & Infrastructure |
+| `EDW` | Economic Denial of Wallet | Infrastructure |
+| `FLP` | Federated/Distributed Training Privacy | Privacy |
+| `ADI` | Adapter/PEFT Injection | Supply Chain & Development |
+| `ORH` | Orchestrator/Route Hijack | Application Security |
+| `EBM` | Evaluation/Benchmark Manipulation | Assurance |
+| `COV` | Covert Channels in Model Outputs | Data Security |
+| `MLD` | Malicious Loader/Deserialization | Supply Chain & Development |
+| `PCP` | Prompt/Response Cache Poisoning | Application Security |
+| `RVP` | Retrieval/Vector Store Poisoning | Application Security |
 
-**Personas (2):**
-| ID | Title |
-|----|-------|
-| personaModelCreator | Model Creator - Organizations that train/tune models |
-| personaModelConsumer | Model Consumer - Organizations that use models in applications |
+**Personas (10: 8 active + 2 deprecated):**
+| ID | Title | Status |
+|----|-------|--------|
+| `personaModelProvider` | Model Provider | Active |
+| `personaDataProvider` | Data Provider | Active |
+| `personaPlatformProvider` | AI Platform Provider | Active |
+| `personaModelServing` | AI Model Serving | Active |
+| `personaAgenticProvider` | Agentic Platform and Framework Providers | Active |
+| `personaApplicationDeveloper` | Application Developer | Active |
+| `personaGovernance` | AI System Governance | Active |
+| `personaEndUser` | AI System Users | Active |
+| `personaModelCreator` | Model Creator (Legacy) | Deprecated |
+| `personaModelConsumer` | Model Consumer (Legacy) | Deprecated |
 
 **Framework Mappings:**
 - `mitre-atlas` - MITRE ATLAS attack framework
 - `nist-ai-rmf` - NIST AI Risk Management Framework
 - `stride` - STRIDE threat modeling
-- `owasp-llm` - OWASP Top 10 for LLM Applications
+- `owasp-top10-llm` - OWASP Top 10 for LLM Applications
 - `iso-22989` - ISO/IEC 22989 AI concepts and terminology
 
 ## Slash Commands
@@ -65,11 +73,11 @@ Found 2 matching risks:
 
 [DP] Data Poisoning
   Category: risksSupplyChainAndDevelopment
-  Personas: personaModelCreator
+  Personas: personaModelProvider, personaDataProvider
   Description: Altering data sources used to train the model...
 
-[MPO] Model Poisoning
-  Category: risksModelSecurity
+[RVP] Retrieval/Vector Store Poisoning
+  Category: risksApplicationSecurity
   ...
 ```
 
@@ -88,11 +96,11 @@ uv run scripts/cli_control_search.py "training"
 
 **Output:**
 ```
-Found 4 matching controls:
+Found 3 matching controls:
 
 [controlTrainingDataSanitization] Training Data Sanitization
   Category: controlsData
-  Risks mitigated: DP, MPO, BDR
+  Risks mitigated: DP, UTD, ADI
   ...
 ```
 
@@ -131,25 +139,23 @@ Risk: [DP] Data Poisoning
 Get complete risk profile for a persona.
 
 ```bash
-uv run scripts/cli_persona_profile.py personaModelCreator
+uv run scripts/cli_persona_profile.py personaModelProvider
 ```
 
 **Output:**
 ```
-Persona: Model Creator
-Description: Organizations that train or tune foundation models...
+Persona: Model Provider
+Description: Organizations that train and serve AI models...
 
 Responsibilities:
-  - Model training and tuning
-  - Training data management
-  - Model security
+  - Model architecture design and training
+  - Model evaluation and validation
+  - Model documentation and cards
 
 Relevant Risks: 18
-  Supply Chain & Development: DP, BDR, MAL, SPL
-  Model Security: MEV, MXF, APD, FDL, MDG, MEX, MPO, MRB, TRJ
-  Data Security: DAT
-  Privacy: INA, MIM, MTR
-  Assurance: REP
+  Supply Chain & Development: DP, UTD, MST, EDH, ADI, MLD
+  Model Security: MXF, MDT, MRE, MEV
+  ...
 
 Relevant Controls: 24
   ...
@@ -214,7 +220,7 @@ All Framework Mappings:
   mitre-atlas: AML.T0051, AML.T0054
   nist-ai-rmf: GOVERN-1.1, MAP-1.5
   stride: Tampering, Information Disclosure
-  owasp-llm: LLM01 - Prompt Injection
+  owasp-top10-llm: LLM01 - Prompt Injection
 ```
 
 **Use cases:**
@@ -232,7 +238,7 @@ from core_analyzer import RiskAnalyzer
 analyzer = RiskAnalyzer(offline=True)
 
 # 1. Identify risks for your persona
-risks = analyzer.get_risks_by_persona("personaModelConsumer")
+risks = analyzer.get_risks_by_persona("personaApplicationDeveloper")
 
 # 2. Filter by lifecycle stage
 app_risks = analyzer.get_risks_by_lifecycle_stage("Application")
@@ -248,13 +254,13 @@ for risk in app_risks:
 ```python
 # 1. Define implemented controls
 implemented = [
-    "controlInputValidation",
-    "controlOutputFiltering",
-    "controlRateLimiting"
+    "controlInputValidationAndSanitization",
+    "controlOutputValidationAndSanitization",
+    "controlApplicationAccessManagement"
 ]
 
 # 2. Assess each relevant risk
-for risk in analyzer.get_risks_by_persona("personaModelConsumer"):
+for risk in analyzer.get_risks_by_persona("personaApplicationDeveloper"):
     gap = analyzer.assess_risk_gap(risk.id, implemented)
     print(f"{risk.id}: {gap['coverage_percentage']}% coverage")
 ```
@@ -264,7 +270,7 @@ for risk in analyzer.get_risks_by_persona("personaModelConsumer"):
 ```python
 # Map all risks to OWASP LLM Top 10
 for risk in analyzer.get_all_risks():
-    owasp = analyzer.get_framework_mappings(risk.id, "owasp-llm")
+    owasp = analyzer.get_framework_mappings(risk.id, "owasp-top10-llm")
     if owasp:
         print(f"{risk.id}: {', '.join(owasp)}")
 ```
@@ -282,7 +288,7 @@ for risk in risks:
 ## Best Practices
 
 ### 1. Start with Persona Scoping
-Always start by identifying your persona (Model Creator or Model Consumer) to focus on relevant risks and controls.
+Identify your persona first to focus on relevant risks and controls. With 8 active personas, you can get more targeted results than the legacy 2-persona model.
 
 ### 2. Use Layered Filtering
 Combine multiple filters for targeted analysis:
@@ -293,7 +299,7 @@ Combine multiple filters for targeted analysis:
 ### 3. Document Gap Analysis Results
 Export gap analysis results for tracking:
 ```bash
-uv run scripts/cli_gap_analysis.py PIJ --implemented ... --output json > gaps.json
+uv run scripts/cli_gap_analysis.py PIJ --implemented controlInputValidationAndSanitization
 ```
 
 ### 4. Cross-Reference Frameworks
@@ -301,6 +307,7 @@ Use framework mappings to correlate with existing security programs:
 - MITRE ATLAS for threat intelligence
 - NIST AI RMF for governance
 - OWASP LLM for application security
+- ISO 22989 for persona alignment
 
 ### 5. Iterate on Control Coverage
 Re-run gap analysis as controls are implemented to track progress toward target coverage.

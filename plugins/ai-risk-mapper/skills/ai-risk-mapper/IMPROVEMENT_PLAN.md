@@ -16,7 +16,8 @@
 
 ## Active Work
 
-- [#4](https://github.com/totallyGreg/claude-mp/issues/4): Semantic risk detection enhancement (pending)
+- [#22](https://github.com/totallyGreg/claude-mp/issues/22): Semantic risk detection enhancement (pending)
+- [#56](https://github.com/totallyGreg/claude-mp/issues/56): Refresh CoSAI upstream data (in progress)
 
 See GitHub Issues for detailed plans, task checklists, and discussion.
 

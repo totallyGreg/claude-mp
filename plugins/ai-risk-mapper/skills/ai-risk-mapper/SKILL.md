@@ -73,14 +73,14 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/fetch_cosai_schemas.p
 ```bash
 uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/analyze_risks.py \
   --target /path/to/codebase \
-  --persona ModelConsumer \
+  --persona ApplicationDeveloper \
   --lifecycle Application \
   --severity-filter Critical \
   --output json > analysis.json
 ```
 
 **Filter options:**
-- `--persona ModelCreator|ModelConsumer`
+- `--persona ModelProvider|DataProvider|PlatformProvider|ModelServing|AgenticProvider|ApplicationDeveloper|Governance|EndUser`
 - `--lifecycle Data|Infrastructure|Model|Application`
 - `--severity-filter Critical|High|Medium|Low`
 - `--output text|json|yaml`

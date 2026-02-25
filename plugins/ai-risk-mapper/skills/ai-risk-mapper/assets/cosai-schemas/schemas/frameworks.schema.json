@@ -1,0 +1,80 @@
+{
+  "$id": "frameworks.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Frameworks Schema",
+  "description": "Schema for external security framework definitions",
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "description": { "$ref": "riskmap.schema.json#/definitions/utils/text" },
+    "frameworks": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/framework" }
+    }
+  },
+  "required": ["title", "description", "frameworks"],
+  "definitions": {
+    "framework": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique framework identifier used in mapping references",
+          "enum": ["mitre-atlas", "nist-ai-rmf", "stride", "owasp-top10-llm", "iso-22989"]
+        },
+        "name": {
+          "type": "string",
+          "description": "Short name of the framework"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full official name of the framework"
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief description of the framework"
+        },
+        "baseUri": {
+          "type": "string",
+          "format": "uri",
+          "description": "Base URI for framework documentation"
+        },
+        "version": {
+          "type": ["string", "null"],
+          "description": "Framework version. Supports multiple versioning schemes: semantic versioning (e.g., '5.0.1'), year-based (e.g., '2025'), or null for unversioned frameworks"
+        },
+        "lastUpdated": {
+          "description": "Date framework was last updated (YYYY-MM-DD format)",
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "techniqueUriPattern": {
+          "type": "string",
+          "description": "URI pattern for individual techniques (use {id} as placeholder)"
+        },
+        "documentUri": {
+          "type": "string",
+          "format": "uri",
+          "description": "Direct URI to framework document or specification"
+        },
+        "applicableTo": {
+          "type": "array",
+          "description": "Entity types that can map to this framework",
+          "items": {
+            "type": "string",
+            "enum": ["controls", "risks", "components", "personas"]
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["id", "name", "fullName", "description", "baseUri", "applicableTo"]
+    }
+  }
+}

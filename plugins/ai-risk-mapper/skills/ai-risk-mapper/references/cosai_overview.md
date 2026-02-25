@@ -60,9 +60,17 @@ Security measures addressing identified risks across six categories:
 - Assurance Controls
 - Governance Controls
 
-### Personas (2 defined)
-- **Model Creator**: Organizations that train and tune foundation models or customize models for domain-specific tasks
-- **Model Consumer**: Organizations that build AI applications using models without creating/tuning models themselves
+### Personas (10 defined, 8 active + 2 deprecated)
+- **Model Provider**: Organizations that train and serve AI models (ISO 22989: AI Producer)
+- **Data Provider**: Organizations supplying training/evaluation data (ISO 22989: AI Partner)
+- **AI Platform Provider**: Infrastructure and platform providers (ISO 22989: AI Partner)
+- **AI Model Serving**: Organizations managing model serving API endpoints
+- **Agentic Platform and Framework Providers**: Agentic platform and framework security
+- **Application Developer**: Organizations building AI-powered applications
+- **AI System Governance**: Security control objectives, compliance enforcement
+- **AI System Users**: End users of AI systems
+- ~~Model Creator~~: _(deprecated)_ Legacy persona, use Model Provider
+- ~~Model Consumer~~: _(deprecated)_ Legacy persona, use Application Developer
 
 ## File Formats
 

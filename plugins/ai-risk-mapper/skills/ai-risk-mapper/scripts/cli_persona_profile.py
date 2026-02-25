@@ -9,8 +9,8 @@ Usage:
     uv run scripts/cli_persona_profile.py <persona-id> [--offline]
 
 Examples:
-    uv run scripts/cli_persona_profile.py personaModelCreator
-    uv run scripts/cli_persona_profile.py personaModelConsumer --offline
+    uv run scripts/cli_persona_profile.py personaModelProvider
+    uv run scripts/cli_persona_profile.py personaApplicationDeveloper --offline
 """
 
 import argparse
