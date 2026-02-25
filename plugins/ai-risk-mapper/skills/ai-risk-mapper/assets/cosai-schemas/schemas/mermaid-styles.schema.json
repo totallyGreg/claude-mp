@@ -1,0 +1,599 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "file://risk-map/schemas/mermaid-styles.schema.json",
+  "title": "Mermaid Styles Configuration Schema",
+  "description": "Schema for validating YAML-based Mermaid graph styling configuration used by ComponentGraph, ControlGraph, and RiskGraph classes",
+  "type": "object",
+  "required": ["version", "foundation", "sharedElements", "graphTypes"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the configuration format (e.g., '1.0.0')"
+    },
+    "foundation": {
+      "type": "object",
+      "description": "Base design tokens used throughout all configurations",
+      "required": ["colors", "strokeWidths", "strokePatterns"],
+      "additionalProperties": false,
+      "properties": {
+        "colors": {
+          "type": "object",
+          "description": "Color palette with semantic names and hex values",
+          "required": ["primary", "success", "accent", "warning", "error", "neutral", "lightGray", "darkGray"],
+          "additionalProperties": false,
+          "properties": {
+            "primary": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Primary action color (Google Blue)"
+            },
+            "success": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Success state color (Google Green)"
+            },
+            "accent": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Accent color (Purple)"
+            },
+            "warning": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Warning color (Orange)"
+            },
+            "error": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Error color (Pink)"
+            },
+            "neutral": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Neutral color for borders (Dark Gray)"
+            },
+            "lightGray": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Light gray for backgrounds"
+            },
+            "darkGray": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Dark gray for borders"
+            }
+          }
+        },
+        "strokeWidths": {
+          "type": "object",
+          "description": "Standardized stroke width values",
+          "required": ["thin", "medium", "thick"],
+          "additionalProperties": false,
+          "properties": {
+            "thin": {
+              "type": "string",
+              "pattern": "^\\d+px$",
+              "description": "Thin stroke width for subgroups"
+            },
+            "medium": {
+              "type": "string",
+              "pattern": "^\\d+px$",
+              "description": "Medium stroke width for standard elements"
+            },
+            "thick": {
+              "type": "string",
+              "pattern": "^\\d+px$",
+              "description": "Thick stroke width for emphasis"
+            }
+          }
+        },
+        "strokePatterns": {
+          "type": "object",
+          "description": "SVG dash array patterns for different line styles",
+          "required": ["solid", "dashed", "dotted", "longDash", "longDashSpaced"],
+          "additionalProperties": false,
+          "properties": {
+            "solid": {
+              "type": "string",
+              "enum": [""],
+              "description": "Solid line (no dash pattern)"
+            },
+            "dashed": {
+              "type": "string",
+              "pattern": "^\\d+\\s+\\d+$",
+              "description": "Standard dashed pattern"
+            },
+            "dotted": {
+              "type": "string",
+              "pattern": "^\\d+\\s+\\d+$",
+              "description": "Dotted pattern for special edges"
+            },
+            "longDash": {
+              "type": "string",
+              "pattern": "^\\d+\\s+\\d+$",
+              "description": "Long dash pattern"
+            },
+            "longDashSpaced": {
+              "type": "string",
+              "pattern": "^\\d+\\s+\\d+$",
+              "description": "Long dash with spacing"
+            }
+          }
+        }
+      }
+    },
+    "sharedElements": {
+      "type": "object",
+      "description": "Elements shared across multiple graph types",
+      "required": ["cssClasses", "componentCategories"],
+      "additionalProperties": false,
+      "properties": {
+        "cssClasses": {
+          "type": "object",
+          "description": "CSS class definitions for Mermaid graphs",
+          "required": ["hidden", "allControl"],
+          "additionalProperties": false,
+          "properties": {
+            "hidden": {
+              "type": "string",
+              "description": "CSS for hidden utility nodes"
+            },
+            "allControl": {
+              "type": "string",
+              "description": "CSS for controls that apply to all components"
+            }
+          }
+        },
+        "componentCategories": {
+          "type": "object",
+          "description": "Styling for component categories shared between graph types",
+          "required": ["componentsInfrastructure", "componentsApplication", "componentsModel"],
+          "additionalProperties": false,
+          "properties": {
+            "componentsInfrastructure": {
+              "$ref": "#/definitions/componentCategory"
+            },
+            "componentsData": {
+              "$ref": "#/definitions/componentCategory"
+            },
+            "componentsApplication": {
+              "$ref": "#/definitions/componentCategory"
+            },
+            "componentsModel": {
+              "$ref": "#/definitions/componentCategory"
+            }
+          }
+        }
+      }
+    },
+    "graphTypes": {
+      "type": "object",
+      "description": "Graph-type-specific configurations",
+      "required": ["component", "control", "risk"],
+      "additionalProperties": false,
+      "properties": {
+        "component": {
+          "$ref": "#/definitions/componentGraphType"
+        },
+        "control": {
+          "$ref": "#/definitions/controlGraphType"
+        },
+        "risk": {
+          "$ref": "#/definitions/riskGraphType"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "componentCategory": {
+      "type": "object",
+      "description": "Styling configuration for a component category",
+      "required": ["fill", "stroke", "strokeWidth"],
+      "additionalProperties": false,
+      "properties": {
+        "fill": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Background fill color"
+        },
+        "stroke": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Border stroke color"
+        },
+        "strokeWidth": {
+          "type": "string",
+          "pattern": "^\\d+px$",
+          "description": "Border stroke width"
+        },
+        "subgroupFill": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Fill color for subgroups within this category"
+        }
+      }
+    },
+    "componentsContainer": {
+      "type": "object",
+      "description": "Styling for the main components container",
+      "required": ["fill", "stroke", "strokeWidth", "strokeDasharray"],
+      "additionalProperties": false,
+      "properties": {
+        "fill": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "stroke": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "strokeWidth": {
+          "type": "string",
+          "pattern": "^\\d+px$"
+        },
+        "strokeDasharray": {
+          "type": "string",
+          "pattern": "^\\d+\\s+\\d+$"
+        },
+        "subgroupFill": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Fill color for subgroups within this category"
+        }
+      }
+    },
+    "controlsContainer": {
+      "type": "object",
+      "description": "Styling configuration for a component category",
+      "required": ["fill", "stroke", "strokeWidth"],
+      "additionalProperties": false,
+      "properties": {
+        "fill": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Background fill color"
+        },
+        "stroke": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Border stroke color"
+        },
+        "strokeWidth": {
+          "type": "string",
+          "pattern": "^\\d+px$",
+          "description": "Border stroke width"
+        },
+        "strokeDasharray": {
+          "type": "string",
+          "pattern": "^\\d+\\s+\\d+$"
+        },
+        "subgroupFill": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Fill color for subgroups within this category"
+        }
+      }
+    },
+    "risksContainer": {
+      "type": "object",
+      "description": "Styling configuration for a component category",
+      "required": ["fill", "stroke", "strokeWidth"],
+      "additionalProperties": false,
+      "properties": {
+        "fill": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Background fill color"
+        },
+        "stroke": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Border stroke color"
+        },
+        "strokeWidth": {
+          "type": "string",
+          "pattern": "^\\d+px$",
+          "description": "Border stroke width"
+        },
+        "strokeDasharray": {
+          "type": "string",
+          "pattern": "^\\d+\\s+\\d+$"
+        },
+        "subgroupFill": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Fill color for subgroups within this category"
+        }
+      }
+    },
+    "componentGraphType": {
+      "type": "object",
+      "description": "Configuration for ComponentGraph",
+      "required": ["direction", "flowchartConfig", "specialStyling"],
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": ["TD", "TB", "BT", "LR", "RL"],
+          "description": "Mermaid graph direction"
+        },
+        "metadata": {
+          "$ref": "#/definitions/metadata"
+        },
+        "flowchartConfig": {
+          "$ref": "#/definitions/flowchartConfig"
+        },
+        "specialStyling": {
+          "type": "object",
+          "description": "Component graph specific styling (currently empty)",
+          "additionalProperties": false
+        }
+      }
+    },
+    "controlGraphType": {
+      "type": "object",
+      "description": "Configuration for ControlGraph with specialized styling",
+      "required": ["direction", "flowchartConfig", "specialStyling"],
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": ["TD", "TB", "BT", "LR", "RL"],
+          "description": "Mermaid graph direction"
+        },
+        "metadata": {
+          "$ref": "#/definitions/metadata"
+        },
+        "flowchartConfig": {
+          "$ref": "#/definitions/flowchartConfig"
+        },
+        "specialStyling": {
+          "type": "object",
+          "required": ["componentsContainer", "controlsContainer", "edgeStyles"],
+          "additionalProperties": false,
+          "properties": {
+            "componentsContainer": {
+              "$ref": "#/definitions/componentsContainer"
+            },
+            "controlsContainer": {
+              "$ref": "#/definitions/controlsContainer"
+            },
+            "edgeStyles": {
+              "type": "object",
+              "description": "Edge styling configuration for different relationship types",
+              "required": ["allControlEdges", "subgraphEdges", "multiEdgeStyles"],
+              "additionalProperties": false,
+              "properties": {
+                "allControlEdges": {
+                  "$ref": "#/definitions/edgeStyleWithDash"
+                },
+                "subgraphEdges": {
+                  "$ref": "#/definitions/edgeStyle"
+                },
+                "multiEdgeStyles": {
+                  "type": "array",
+                  "description": "Array of 4 edge styles for multi-edge controls cycling",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "$ref": "#/definitions/edgeStyleOptionalDash"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "riskGraphType": {
+      "type": "object",
+      "description": "Configuration for RiskGraph with risk-specific styling",
+      "required": ["direction", "flowchartConfig", "specialStyling"],
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": ["TD", "TB", "BT", "LR", "RL"],
+          "description": "Mermaid graph direction"
+        },
+        "metadata": {
+          "$ref": "#/definitions/metadata"
+        },
+        "flowchartConfig": {
+          "$ref": "#/definitions/flowchartConfig"
+        },
+        "specialStyling": {
+          "type": "object",
+          "required": ["riskCategories", "componentsContainer", "controlsContainer", "risksContainer", "edgeStyles"],
+          "additionalProperties": false,
+          "properties": {
+            "riskCategories": {
+              "type": "object",
+              "description": "Styling configuration for risk categories",
+              "required": ["risks"],
+              "additionalProperties": false,
+              "properties": {
+                "risks": {
+                  "$ref": "#/definitions/componentCategory"
+                }
+              }
+            },
+            "componentsContainer": {
+              "$ref": "#/definitions/componentsContainer"
+            },
+            "controlsContainer": {
+              "$ref": "#/definitions/controlsContainer"
+            },
+            "risksContainer": {
+              "$ref": "#/definitions/controlsContainer"
+            },
+            "edgeStyles": {
+              "type": "object",
+              "description": "Edge styling configuration for risk and control relationship types",
+              "required": ["riskControlEdges", "allControlEdges", "subgraphEdges", "multiEdgeStyles"],
+              "additionalProperties": false,
+              "properties": {
+                "riskControlEdges": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/definitions/edgeStyleWithDash"
+                    },
+                    {
+                      "type": "array",
+                      "description": "Array of 4 edge styles for risk-control edges cycling",
+                      "minItems": 4,
+                      "maxItems": 4,
+                      "items": {
+                        "$ref": "#/definitions/edgeStyleWithDash"
+                      }
+                    }
+                  ]
+                },
+                "allControlEdges": {
+                  "$ref": "#/definitions/edgeStyleWithDash"
+                },
+                "subgraphEdges": {
+                  "$ref": "#/definitions/edgeStyle"
+                },
+                "multiEdgeStyles": {
+                  "type": "array",
+                  "description": "Array of 4 edge styles for multi-edge controls cycling",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "$ref": "#/definitions/edgeStyleOptionalDash"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "flowchartConfig": {
+      "type": "object",
+      "description": "Mermaid flowchart configuration parameters",
+      "required": ["padding", "wrappingWidth"],
+      "additionalProperties": false,
+      "properties": {
+        "nodeSpacing": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "description": "Space between nodes in pixels"
+        },
+        "rankSpacing": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "description": "Space between ranks/levels in pixels"
+        },
+        "padding": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50,
+          "description": "Internal node padding in pixels"
+        },
+        "wrappingWidth": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 1000,
+          "description": "Text wrapping width in pixels"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Configuration for Graph Frontmatter Block",
+      "required": ["layout", "mergeEdges", "nodePlacementStrategy"],
+      "additionalProperties": false,
+      "properties": {
+        "layout": {
+          "type": "string",
+          "enum": ["elk", "default"],
+          "description": "selected layout engine"
+        },
+        "mergeEdges": {
+          "type": "boolean",
+          "description": "ELK directive for edge merging"
+        },
+        "nodePlacementStrategy": {
+          "type": "string",
+          "enum": ["NETWORK_SIMPLEX", "LINEAR_SEGEMENTS", "SIMPLE", "BRANDES_KOEPF"],
+          "description": "ELK algorithm"
+        },
+        "look": {
+          "type": "string",
+          "enum": ["handdrawn", "classic"],
+          "description": "Node drawing style Layout Engine"
+        }
+      }
+    },
+    "edgeStyle": {
+      "type": "object",
+      "description": "Basic edge styling without dash array",
+      "required": ["stroke", "strokeWidth"],
+      "additionalProperties": false,
+      "properties": {
+        "stroke": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Edge color"
+        },
+        "strokeWidth": {
+          "type": "string",
+          "pattern": "^\\d+px$",
+          "description": "Edge thickness"
+        }
+      }
+    },
+    "edgeStyleWithDash": {
+      "type": "object",
+      "description": "Edge styling with required dash array",
+      "required": ["stroke", "strokeWidth", "strokeDasharray"],
+      "additionalProperties": false,
+      "properties": {
+        "stroke": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Edge color"
+        },
+        "strokeWidth": {
+          "type": "string",
+          "pattern": "^\\d+px$",
+          "description": "Edge thickness"
+        },
+        "strokeDasharray": {
+          "type": "string",
+          "pattern": "^\\d+\\s+\\d+$",
+          "description": "SVG dash array pattern"
+        }
+      }
+    },
+    "edgeStyleOptionalDash": {
+      "type": "object",
+      "description": "Edge styling with optional dash array",
+      "required": ["stroke", "strokeWidth"],
+      "additionalProperties": false,
+      "properties": {
+        "stroke": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Edge color"
+        },
+        "strokeWidth": {
+          "type": "string",
+          "pattern": "^\\d+px$",
+          "description": "Edge thickness"
+        },
+        "strokeDasharray": {
+          "type": "string",
+          "pattern": "^\\d+\\s+\\d+$",
+          "description": "Optional SVG dash array pattern"
+        }
+      }
+    }
+  }
+}

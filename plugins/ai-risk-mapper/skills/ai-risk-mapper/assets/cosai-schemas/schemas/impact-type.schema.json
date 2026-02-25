@@ -1,0 +1,53 @@
+{
+  "$id": "impact-type.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Impact Type Schema",
+  "description": "Schema for security, privacy, and safety impact type definitions",
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "description": { "$ref": "riskmap.schema.json#/definitions/utils/text" },
+    "impactTypes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/impactType" }
+    }
+  },
+  "required": ["title", "description", "impactTypes"],
+  "definitions": {
+    "impactType": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique impact type identifier",
+          "enum": [
+            "confidentiality",
+            "integrity",
+            "availability",
+            "privacy",
+            "safety",
+            "compliance",
+            "fairness",
+            "accountability",
+            "reliability",
+            "transparency"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "description": "Display name for the impact type"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the impact type"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["traditional-security", "ai-specific"],
+          "description": "Whether this is a traditional security concern or AI-specific"
+        }
+      },
+      "required": ["id", "title", "description"]
+    }
+  }
+}

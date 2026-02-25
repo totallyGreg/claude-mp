@@ -37,14 +37,20 @@ COSAI_REPO = "https://raw.githubusercontent.com/cosai-oasis/secure-ai-tooling/ma
 YAML_FILES = [
     "components.yaml",
     "controls.yaml",
+    "frameworks.yaml",
     "personas.yaml",
     "risks.yaml",
     "self-assessment.yaml",
 ]
 
 SCHEMA_FILES = [
+    "actor-access.schema.json",
     "components.schema.json",
     "controls.schema.json",
+    "frameworks.schema.json",
+    "impact-type.schema.json",
+    "lifecycle-stage.schema.json",
+    "mermaid-styles.schema.json",
     "personas.schema.json",
     "risks.schema.json",
     "self-assessment.schema.json",

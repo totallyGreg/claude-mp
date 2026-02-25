@@ -114,15 +114,27 @@ The `edges` object requires at least one of:
 
 ### Structure
 
-Defines two personas with:
+Defines personas with:
 - `id` (string): Unique identifier
 - `title` (string): Persona name
 - `description` (text): Role and responsibilities
+- `responsibilities` (array): Specific responsibilities for this persona
+- `mappings` (object): ISO 22989 and other framework mappings
+- `identificationQuestions` (array): Questions to identify this persona
+- `deprecated` (boolean): Whether this persona is deprecated
 
-### Defined Personas
+### Defined Personas (10: 8 active + 2 deprecated)
 
-1. **Model Creator**: Organizations that train/tune foundation models or customize for domain-specific tasks
-2. **Model Consumer**: Organizations that build AI applications using models without creating/tuning them
+1. **Model Provider** (`personaModelProvider`): Model training and serving
+2. **Data Provider** (`personaDataProvider`): Data quality and provenance
+3. **AI Platform Provider** (`personaPlatformProvider`): Infrastructure and APIs
+4. **AI Model Serving** (`personaModelServing`): Model serving endpoints
+5. **Agentic Platform Providers** (`personaAgenticProvider`): Agentic frameworks
+6. **Application Developer** (`personaApplicationDeveloper`): AI-powered apps
+7. **AI System Governance** (`personaGovernance`): Compliance and controls
+8. **AI System Users** (`personaEndUser`): End users
+9. ~~Model Creator~~ (`personaModelCreator`): _deprecated_
+10. ~~Model Consumer~~ (`personaModelConsumer`): _deprecated_
 
 ## Validation Rules
 

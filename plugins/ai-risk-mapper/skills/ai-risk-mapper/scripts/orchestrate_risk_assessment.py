@@ -13,7 +13,7 @@ Usage (invoked by Claude when ai-risk-mapper skill triggers):
 
 Options:
     --target PATH           Target to analyze (file, directory, or description)
-    --persona PERSONA       ModelCreator or ModelConsumer (default: both)
+    --persona PERSONA       Persona to analyze (e.g., ModelProvider, ApplicationDeveloper, or all)
     --output-dir PATH       Output directory (default: ./risk-assessment-output)
     --skip-schemas          Skip schema fetching (use cached)
     --offline               Offline mode with bundled schemas
@@ -204,8 +204,8 @@ def main():
     )
     parser.add_argument(
         "--persona",
-        default="both",
-        help="Persona to analyze: ModelCreator, ModelConsumer, or both",
+        default="all",
+        help="Persona to analyze (e.g., ModelProvider, ApplicationDeveloper, or all)",
     )
     parser.add_argument(
         "--format", default="markdown", help="Report format: markdown, html, json"

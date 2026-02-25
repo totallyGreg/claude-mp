@@ -1,8 +1,8 @@
 ---
 name: ai-risk-mapper
-description: This skill should be used when identifying, analyzing, and mitigating security risks in Artificial Intelligence systems using the CoSAI (Coalition for Secure AI) Risk Map framework. Use when assessing AI system security, conducting risk analysis for LLM applications, ML pipelines, model training/serving infrastructure, or generating compliance reports aligned with MITRE ATLAS, NIST AI RMF, OWASP Top 10 for LLM, and STRIDE frameworks. Supports both automated assessments and interactive exploration with 30+ query methods.
+description: This skill should be used when identifying, analyzing, and mitigating security risks in Artificial Intelligence systems using the CoSAI (Coalition for Secure AI) Risk Map framework. Use when users ask to "assess AI security risks", "analyze AI system threats", "map risks to controls", "run a risk assessment", "check compliance with MITRE ATLAS", "generate a CoSAI report", or "profile persona risks". Supports LLM applications, ML pipelines, model training/serving infrastructure, and compliance reporting aligned with MITRE ATLAS, NIST AI RMF, OWASP Top 10 for LLM, STRIDE, and ISO 22989 frameworks.
 metadata:
-  version: "4.0.1"
+  version: "5.0.0"
   author: J. Greg Williams
 compatibility: Requires python3 and uv for script execution
 license: Apache 2.0
@@ -73,14 +73,14 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/fetch_cosai_schemas.p
 ```bash
 uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/analyze_risks.py \
   --target /path/to/codebase \
-  --persona ModelConsumer \
+  --persona ApplicationDeveloper \
   --lifecycle Application \
   --severity-filter Critical \
   --output json > analysis.json
 ```
 
 **Filter options:**
-- `--persona ModelCreator|ModelConsumer`
+- `--persona ModelProvider|DataProvider|PlatformProvider|ModelServing|AgenticProvider|ApplicationDeveloper|Governance|EndUser`
 - `--lifecycle Data|Infrastructure|Model|Application`
 - `--severity-filter Critical|High|Medium|Low`
 - `--output text|json|yaml`

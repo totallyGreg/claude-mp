@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 5.0.0 | 2026-02-25 | [#56](https://github.com/totallyGreg/claude-mp/issues/56) | Refresh CoSAI upstream data: 8-persona model (ISO 22989), fix lifecycle/impact parsing bugs, add frameworks.yaml, rewrite exploration guide and personas guide | 98 | 88 | 100 | 100 | 93 |
 | 4.0.1 | 2026-02-04 | - | Fix: use absolute paths with ${CLAUDE_PLUGIN_ROOT} in SKILL.md | 98 | 88 | 100 | 100 | 97 |
 | 4.0.0 | 2026-02-04 | [#31](https://github.com/totallyGreg/claude-mp/issues/31) | Migrate to standalone plugin structure, add 6 slash commands | 100 | 88 | 100 | 100 | 97 |
 | 3.0.1 | 2026-01-29 | - | Fix: rename FORMS.md→forms.md, add .skillignore | 98 | 88 | 100 | 100 | 97 |
@@ -16,7 +17,8 @@
 
 ## Active Work
 
-- [#4](https://github.com/totallyGreg/claude-mp/issues/4): Semantic risk detection enhancement (pending)
+- [#22](https://github.com/totallyGreg/claude-mp/issues/22): Semantic risk detection enhancement (pending)
+- [#56](https://github.com/totallyGreg/claude-mp/issues/56): Refresh CoSAI upstream data (done)
 
 See GitHub Issues for detailed plans, task checklists, and discussion.
 

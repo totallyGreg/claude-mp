@@ -256,7 +256,12 @@ def main():
     )
     parser.add_argument(
         "--persona",
-        choices=["ModelCreator", "ModelConsumer"],
+        choices=[
+            "ModelProvider", "DataProvider", "PlatformProvider",
+            "ModelServing", "AgenticProvider", "ApplicationDeveloper",
+            "Governance", "EndUser",
+            "ModelCreator", "ModelConsumer",  # deprecated
+        ],
         help="Filter by persona",
     )
     parser.add_argument(
