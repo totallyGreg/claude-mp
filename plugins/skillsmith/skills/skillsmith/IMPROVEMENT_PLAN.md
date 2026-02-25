@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 5.2.0 | 2026-02-24 | [#55](https://github.com/totallyGreg/claude-mp/issues/55) | Support remote GitLab/GitHub URLs in evaluate_skill.py | 55 | 77 | 100 | 100 | 86 |
 | 5.1.0 | 2026-02-16 | [#32](https://github.com/totallyGreg/claude-mp/issues/32) | Add "When NOT to use" redirect section to prevent misrouting to skillsmith when plugin-dev skills are needed | 55 | 77 | 100 | 100 | 86 |
 | 5.0.0 | 2026-02-05 | [#33](https://github.com/totallyGreg/claude-mp/issues/33) | Align with official plugin-dev patterns: add Description Quality Score, trigger phrase validation, Common Mistakes section, Quick Reference templates, cross-references to official examples, template selection in init_skill.py | 56 | 77 | 100 | 100 | 86 |
 | 4.0.0 | 2026-02-03 | [#28](https://github.com/totallyGreg/claude-mp/issues/28), [#16](https://github.com/totallyGreg/claude-mp/issues/16) | **BREAKING**: Migrate to standalone plugin structure at plugins/skillsmith; add slash commands (/ss-validate, /ss-evaluate, /ss-init, /ss-research) | 80 | 90 | 100 | 100 | 93 |
@@ -28,7 +29,6 @@
 
 ## Active Work
 
-- [#55](https://github.com/totallyGreg/claude-mp/issues/55): Support remote URLs in evaluate_skill.py (In Progress)
 - [#37](https://github.com/totallyGreg/claude-mp/issues/37): Add --explain mode to evaluate_skill.py (Planned)
 - [#24](https://github.com/totallyGreg/claude-mp/issues/24): Complete script consolidation - Phases 2-3 (Planned)
 
