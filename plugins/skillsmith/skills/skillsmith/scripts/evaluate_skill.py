@@ -52,15 +52,19 @@ Options:
     --output <file>          Save results to file
 """
 
+import atexit
 import os
+import shutil
 import sys
 import json
 import re
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
+from urllib.parse import urlparse
 
 # Previously imported from quick_validate.py (now deleted - functionality integrated below)
 # from quick_validate import validate_skill
@@ -1877,6 +1881,103 @@ def print_evaluation_text(evaluation):
 
 
 # ============================================================================
+# Remote URL Resolution
+# ============================================================================
+
+def resolve_remote_skill(url):
+    """
+    Resolve a remote GitLab/GitHub URL to a local path by cloning the repo.
+
+    Supports URLs like:
+      - https://code.pan.run/user/repo/-/tree/branch/skills/skill-name?ref_type=heads
+      - https://github.com/user/repo/tree/branch/skills/skill-name
+
+    Returns: Path to the local skill directory
+    Raises: SystemExit on failure
+    """
+    parsed = urlparse(url)
+    hostname = parsed.hostname
+    path_parts = parsed.path.strip('/').split('/')
+
+    # Determine clone tool and parse URL structure
+    if hostname and 'github.com' in hostname:
+        clone_cmd = 'gh'
+        # github.com/user/repo/tree/branch/path/to/skill
+        if len(path_parts) < 4 or path_parts[2] != 'tree':
+            print(f"❌ Error: Cannot parse GitHub URL: {url}", file=sys.stderr)
+            print("  Expected format: https://github.com/user/repo/tree/branch/path/to/skill", file=sys.stderr)
+            sys.exit(1)
+        repo_slug = f"{path_parts[0]}/{path_parts[1]}"
+        branch = path_parts[3]
+        skill_subpath = '/'.join(path_parts[4:])
+    elif hostname and hostname.endswith(('.pan.run',)):
+        clone_cmd = 'glab'
+        # code.pan.run/user/repo/-/tree/branch/path/to/skill
+        if len(path_parts) < 5 or path_parts[2] != '-' or path_parts[3] != 'tree':
+            print(f"❌ Error: Cannot parse GitLab URL: {url}", file=sys.stderr)
+            print("  Expected format: https://code.pan.run/user/repo/-/tree/branch/path/to/skill", file=sys.stderr)
+            sys.exit(1)
+        repo_slug = f"{path_parts[0]}/{path_parts[1]}"
+        branch = path_parts[4]
+        skill_subpath = '/'.join(path_parts[5:])
+    else:
+        print(f"❌ Error: Unsupported remote host: {hostname}", file=sys.stderr)
+        print("  Supported: github.com, *.pan.run (GitLab)", file=sys.stderr)
+        sys.exit(1)
+
+    # Strip query params from skill subpath (e.g., ?ref_type=heads)
+    if '?' in skill_subpath:
+        skill_subpath = skill_subpath.split('?')[0]
+
+    # Create temp directory and register cleanup
+    tmp_dir = tempfile.mkdtemp(prefix='skill-eval-')
+    atexit.register(shutil.rmtree, tmp_dir, ignore_errors=True)
+
+    clone_target = os.path.join(tmp_dir, 'repo')
+
+    # Clone with sparse checkout for efficiency
+    if clone_cmd == 'gh':
+        cmd = ['gh', 'repo', 'clone', repo_slug, clone_target, '--', '--depth', '1', '--branch', branch, '--sparse']
+    else:
+        cmd = ['glab', 'repo', 'clone', repo_slug, clone_target, '--', '--depth', '1', '--branch', branch, '--sparse']
+
+    print(f"Cloning {repo_slug} (branch: {branch})...", file=sys.stderr)
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"❌ Error: Clone failed: {result.stderr.strip()}", file=sys.stderr)
+        sys.exit(1)
+
+    # Set sparse checkout to only the skill subdirectory
+    if skill_subpath:
+        sparse_result = subprocess.run(
+            ['git', 'sparse-checkout', 'set', skill_subpath],
+            cwd=clone_target, capture_output=True, text=True
+        )
+        if sparse_result.returncode != 0:
+            print(f"❌ Error: Sparse checkout failed: {sparse_result.stderr.strip()}", file=sys.stderr)
+            sys.exit(1)
+
+    local_skill_path = os.path.join(clone_target, skill_subpath) if skill_subpath else clone_target
+
+    if not os.path.isdir(local_skill_path):
+        print(f"❌ Error: Skill directory not found after clone: {local_skill_path}", file=sys.stderr)
+        sys.exit(1)
+
+    skill_md = os.path.join(local_skill_path, 'SKILL.md')
+    if not os.path.isfile(skill_md):
+        print(f"❌ Error: No SKILL.md found at {local_skill_path}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Resolved remote skill to: {local_skill_path}", file=sys.stderr)
+    return local_skill_path
+
+
+def is_remote_url(path):
+    """Check if the given path is a remote URL."""
+    return path.startswith(('https://', 'http://'))
+
+
+# ============================================================================
 # CLI
 # ============================================================================
 
@@ -1887,6 +1988,10 @@ def main():
         sys.exit(0 if '--help' in sys.argv or '-h' in sys.argv else 1)
 
     skill_path = sys.argv[1]
+
+    # Resolve remote URLs to local paths
+    if is_remote_url(skill_path):
+        skill_path = resolve_remote_skill(skill_path)
     quick_mode = False
     strict_mode = False
     check_improvement_plan = False
