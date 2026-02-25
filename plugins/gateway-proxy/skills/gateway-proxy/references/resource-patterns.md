@@ -2,6 +2,27 @@
 
 Complete YAML examples for all agentgateway resource types.
 
+## Backend CRD Systems
+
+Two separate backend systems exist — using the wrong one causes routes that don't resolve.
+
+| CRD | API Group | Gateway Class | Purpose |
+|-----|-----------|--------------|---------|
+| `AgentgatewayBackend` | `agentgateway.dev/v1alpha1` | `agentgateway` | AI/MCP backends with native protocol translation |
+| `Backend` | `gateway.kgateway.dev/v1alpha1` | `kgateway` | Generic backends (AWS Lambda, Static, DFP) with aiExtension sidecar |
+
+**Rule**: Match CRD type to your Gateway's `gatewayClassName`.
+- `gatewayClassName: agentgateway` → use `AgentgatewayBackend`
+- `gatewayClassName: kgateway` → use `Backend`
+
+**Common mistake**: Some older docs and helper scripts use the `Backend` CRD pattern. If your gateway uses `agentgateway` class, `Backend` resources will create resources that routes can't find.
+
+To check which CRD system your gateway uses:
+
+```bash
+kubectl get gateway -n kgateway-system -o jsonpath='{.items[*].spec.gatewayClassName}'
+```
+
 ## AgentgatewayParameters
 
 Configures the agentgateway proxy deployment:
