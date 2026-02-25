@@ -44,7 +44,7 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| **gateway-proxy** | 1.1.0 | Expert guidance for kgateway and agentgateway with kubectl commands for AI/LLM routing, MCP server routing, and API gateway patterns |
+| **gateway-proxy** | 2.0.0 | Expert guidance for kgateway and agentgateway with kubectl commands for AI/LLM routing, MCP server routing, and API gateway patterns |
 
 ## Repository Structure
 

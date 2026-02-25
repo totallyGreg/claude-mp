@@ -1,8 +1,8 @@
 ---
 name: gateway-proxy
-description: Expert guidance for configuring kgateway and agentgateway for AI/LLM routing, MCP server routing, and API gateway patterns. Use when setting up gateway proxies for Ollama, OpenAI, Anthropic, Gemini backends, configuring HTTPRoutes, troubleshooting Gateway API issues, or working with OrbStack Kubernetes networking.
+description: This skill should be used when configuring kgateway and agentgateway for AI/LLM routing, MCP server routing, and API gateway patterns. Use when the user asks to "set up a gateway backend", "add an LLM provider", "configure HTTPRoutes", "check gateway versions", "upgrade agentgateway", "troubleshoot gateway routing", "add Vertex AI backend", "configure MCP routing", or "evaluate gateway config". Supports Ollama, OpenAI, Anthropic, Gemini, Vertex AI, Azure OpenAI, and Bedrock backends on Kubernetes with OrbStack or cloud deployments.
 metadata:
-  version: 1.1.0
+  version: 2.0.0
   author: J. Greg Williams
   license: MIT
 ---
@@ -15,22 +15,27 @@ Expert guidance for configuring Kubernetes Gateway API with agentgateway for AI 
 
 This skill covers kgateway (Kubernetes Gateway API implementation) and agentgateway (AI-specific extension) for routing to:
 
-- **LLM Providers**: Ollama (local), OpenAI, Anthropic, Gemini
+- **LLM Providers**: Ollama (local), OpenAI, Anthropic, Gemini, Vertex AI (GCP), Azure OpenAI, AWS Bedrock
 - **MCP Servers**: Model Context Protocol endpoints via HTTP/SSE
 - **Unified API Gateway**: Single entry point with path-based routing
 - **External Processing**: Delegate request/response handling to gRPC services for custom mutations and routing
 
 ## Quick Commands
 
-This plugin includes slash commands for common gateway operations:
+This plugin includes slash commands and an agent for gateway operations:
 
 | Command | Purpose |
 |---------|---------|
 | `/gw-status` | Show all gateway resources status |
 | `/gw-logs [count\|controller]` | Tail controller logs for debugging |
 | `/gw-debug` | Full diagnostic with events and recommendations |
-| `/gw-backend <provider>` | Generate backend YAML (ollama, openai, anthropic, gemini) |
+| `/gw-backend <provider>` | Generate backend YAML (ollama, openai, anthropic, gemini, vertexai, azureopenai, bedrock) |
 | `/gw-route <name>` | Generate HTTPRoute YAML with path rewriting |
+| `/gw-versions` | Compare installed vs latest helm chart versions |
+| `/gw-upgrade [component]` | Guide helm chart upgrades with pre/post validation |
+| `/gw-eval` | Evaluate current config against best practices |
+
+The **gateway-manager agent** handles multi-step workflows: "add an Anthropic backend", "set up Vertex AI routing", "upgrade my gateway", "why isn't my route working".
 
 ## Architecture
 
@@ -91,15 +96,15 @@ spec:
 
 ### Cloud Provider Backend (with Secret)
 
+Create the secret first (preferred — avoids keys in output):
+```bash
+kubectl create secret generic openai-api-key \
+  --from-literal=api-key="${OPENAI_API_KEY}" \
+  -n kgateway-system --dry-run=client -o yaml | kubectl apply -f -
+```
+
+Then create the backend:
 ```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: openai-api-key
-  namespace: kgateway-system
-stringData:
-  api-key: "${OPENAI_API_KEY}"
----
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayBackend
 metadata:
@@ -145,6 +150,16 @@ spec:
       kind: AgentgatewayBackend
 ```
 
+## Version Awareness
+
+The agent and `/gw-versions` command check for updates live:
+- Fetches latest releases from `kgateway-dev/kgateway` and `agentgateway/agentgateway`
+- Compares against installed helm chart versions
+- Warns about docs-vs-reality drift (features documented on `main` may not exist in released versions)
+- Always inspect installed CRD to verify field availability
+
+**Note**: kgateway and agentgateway are diverging into separate projects starting with v2.3.0. See `references/helm-lifecycle.md` for details.
+
 ## Troubleshooting Quick Reference
 
 | Error | Cause | Solution |
@@ -173,14 +188,16 @@ kubectl get agentgatewaypolicy -n kgateway-system
 
 When you need more detail, load these reference files:
 
-- **`references/lessons-learned.md`**: Critical gotchas, naming conflicts, OrbStack networking
-- **`references/resource-patterns.md`**: Complete YAML examples for all resource types
-- **`references/provider-backends.md`**: Provider-specific backend configurations (Ollama, OpenAI, Anthropic, Gemini)
+- **`references/lessons-learned.md`**: Critical gotchas, naming conflicts, OrbStack networking, local vs cloud deployment patterns
+- **`references/resource-patterns.md`**: Complete YAML examples, CRD disambiguation (AgentgatewayBackend vs Backend)
+- **`references/provider-backends.md`**: All 7 provider configurations (Ollama, OpenAI, Anthropic, Gemini, Vertex AI, Azure OpenAI, Bedrock), token lifecycle, secret management
 - **`references/mcp-routing.md`**: MCP server backend and routing patterns
 - **`references/external-processing.md`**: External Processing (ExtProc) for custom request/response mutations and routing
+- **`references/helm-lifecycle.md`**: Installation, upgrade, rollback, version checking, v2.3.0 migration notes
 
 ## Installation Requirements
 
 - **kgateway v2.2.x+** required for agentgateway support
 - Separate registries: `cr.kgateway.dev` (kgateway) and `cr.agentgateway.dev` (agentgateway)
 - Enable agentgateway in kgateway: `--set controller.enableAgentgateway=true`
+- See `references/helm-lifecycle.md` for complete installation sequence

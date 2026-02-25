@@ -202,6 +202,32 @@ No `kubectl port-forward` needed for basic access.
 | `processing failed: failed to parse request: EOF` | GET request to LLM endpoint | LLM backends expect POST with JSON body |
 | `model 'X' not found` | Wrong model in backend config | Update AgentgatewayBackend with correct model |
 
+## Local vs Cloud Deployment
+
+Auth strategies and networking differ between local development and cloud deployments:
+
+| Concern | Local (OrbStack) | Cloud (GKE/EKS/AKS) |
+|---------|-------------------|---------------------|
+| Host access | `host.internal` (resolves to `0.250.250.254`) | Service DNS or external endpoints |
+| GCP auth | Mounted ADC file + CronJob token refresh | Workload Identity (automatic) |
+| AWS auth | Mounted credentials file or env vars | IAM Roles for Service Accounts (IRSA) |
+| Azure auth | API key in Secret | Managed Identity or API key |
+| Egress | Direct outbound HTTPS | May need VPC/firewall rules for `*.googleapis.com`, `*.openai.azure.com` |
+| Metadata server | Not available (`169.254.169.254`) | Available for cloud-native auth |
+| TLS | Optional (HTTP on port 8080) | Recommended (terminate at gateway or ingress) |
+| Authentication | Optional for local dev | Required — unauthenticated gateways expose API credits |
+
+## v2.3.0 Migration Notes
+
+Starting with kgateway v2.3.0:
+- agentgateway installs to **`agentgateway-system`** namespace (not `kgateway-system`)
+- `enableAgentgateway` flag removed from kgateway helm chart
+- agentgateway control plane migrates to `agentgateway/agentgateway` repo
+- kgateway focuses on Envoy-based Gateway API only
+- agentgateway is now a **Linux Foundation** project (kgateway is CNCF sandbox)
+
+See `references/helm-lifecycle.md` for detailed migration steps.
+
 ## Best Practices
 
 1. **Always use different names** for Gateway resources and controller deployments
@@ -211,3 +237,5 @@ No `kubectl port-forward` needed for basic access.
 5. **Check model availability** on the backend before configuring
 6. **Use URL rewriting** with `ReplacePrefixMatch` for clean API paths
 7. **Target HTTPRoute or Gateway** for traffic policies, not backends
+8. **Use `kubectl create secret`** instead of YAML `stringData` for API keys
+9. **Scope RBAC** for token refresh CronJobs to specific `resourceNames`
