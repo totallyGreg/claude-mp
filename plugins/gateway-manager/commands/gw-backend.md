@@ -137,4 +137,4 @@ Include comments explaining:
 - Common model options for the selected provider
 - How to test the backend after creation
 
-Reference the gateway-proxy skill's `references/provider-backends.md` for detailed patterns including token lifecycle, RBAC, and environment-specific auth.
+Reference the agentgateway skill's `references/provider-backends.md` for detailed patterns including token lifecycle, RBAC, and environment-specific auth.

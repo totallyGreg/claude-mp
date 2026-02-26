@@ -42,7 +42,7 @@ kubectl get pods -n kgateway-system -l 'app.kubernetes.io/name in (kgateway,agen
 kubectl get secret vertexai-bearer-token -n kgateway-system -o jsonpath='{.metadata.annotations.last-refreshed}' 2>/dev/null
 ```
 
-Reference the gateway-proxy skill for best practices.
+Reference the agentgateway skill for backend best practices and the kgateway skill for routing best practices.
 
 ## Evaluation Report
 

@@ -123,17 +123,18 @@
       ]
     },
     {
-      "name": "gateway-proxy",
-      "description": "Expert guidance for kgateway and agentgateway with kubectl commands for AI/LLM routing, MCP server routing, and API gateway patterns",
+      "name": "gateway-manager",
+      "description": "Multi-skill plugin for Kubernetes Gateway API (kgateway) and AI/LLM routing (agentgateway) — provider backends, MCP server routing, external processing, version lifecycle management, and traffic policies",
       "category": "infrastructure",
-      "version": "2.0.0",
+      "version": "3.0.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./plugins/gateway-proxy",
+      "source": "./plugins/gateway-manager",
       "skills": [
-        "./skills/gateway-proxy"
+        "./skills/kgateway",
+        "./skills/agentgateway"
       ]
     }
   ]

@@ -44,7 +44,7 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| **gateway-proxy** | 2.0.0 | Expert guidance for kgateway and agentgateway with kubectl commands for AI/LLM routing, MCP server routing, and API gateway patterns |
+| **gateway-manager** | 3.0.0 | Multi-skill plugin for Kubernetes Gateway API (kgateway) and AI/LLM routing (agentgateway) — provider backends, MCP server routing, external processing, version lifecycle management, and traffic policies |
 
 ## Repository Structure
 
@@ -53,7 +53,7 @@ claude-mp/
 ├── plugins/                 # Standalone plugins with commands
 │   ├── skillsmith/          # Skill creation and validation
 │   ├── marketplace-manager/ # Marketplace operations
-│   └── gateway-proxy/       # Gateway configuration
+│   └── gateway-manager/      # Gateway configuration (kgateway + agentgateway)
 ├── skills/                  # Legacy skill-only plugins
 │   ├── terminal-guru/
 │   ├── helm-chart-developer/
@@ -85,7 +85,7 @@ Standalone plugins include slash commands for common operations:
 - `/mp-list` - List marketplace plugins
 - `/mp-status` - Show version mismatches
 
-### gateway-proxy Commands
+### gateway-manager Commands
 - `/gw-status` - Check gateway status
 - `/gw-logs` - View gateway logs
 - `/gw-debug` - Debug gateway issues

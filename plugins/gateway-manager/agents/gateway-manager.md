@@ -88,18 +88,48 @@ Use this context to inform all subsequent responses. If kubectl is not configure
 
 ## Domain Knowledge
 
-Load references based on the current workflow:
+This plugin has two skills — load based on the user's request context:
 
-**Always load first:**
-- `${CLAUDE_PLUGIN_ROOT}/skills/gateway-proxy/SKILL.md`
+### Skill Routing
 
-**Load per workflow:**
-- Configuration: `${CLAUDE_PLUGIN_ROOT}/skills/gateway-proxy/references/provider-backends.md`
-- Configuration: `${CLAUDE_PLUGIN_ROOT}/skills/gateway-proxy/references/resource-patterns.md`
-- Upgrade: `${CLAUDE_PLUGIN_ROOT}/skills/gateway-proxy/references/helm-lifecycle.md`
-- Diagnosis: `${CLAUDE_PLUGIN_ROOT}/skills/gateway-proxy/references/lessons-learned.md`
-- MCP topics: `${CLAUDE_PLUGIN_ROOT}/skills/gateway-proxy/references/mcp-routing.md`
-- ExtProc topics: `${CLAUDE_PLUGIN_ROOT}/skills/gateway-proxy/references/external-processing.md`
+**Load kgateway skill for:**
+- Gateway API resources (Gateway, HTTPRoute, GatewayClass)
+- Route creation, attachment, path rewriting
+- kgateway Helm chart lifecycle
+- Backend CRD (`gateway.kgateway.dev/v1alpha1`)
+
+**Load agentgateway skill for:**
+- LLM provider backends (Ollama, OpenAI, Anthropic, Gemini, Vertex AI, Azure OpenAI, Bedrock)
+- MCP server routing
+- External Processing (ExtProc)
+- AgentgatewayBackend, AgentgatewayPolicy, AgentgatewayParameters
+- agentgateway Helm chart lifecycle
+
+**Load both skills for:**
+- Full gateway setup ("set up an AI gateway")
+- Cross-component diagnostics ("/gw-debug", "/gw-status")
+- Version checking ("/gw-versions")
+- Upgrade workflows ("/gw-upgrade")
+- Evaluation ("/gw-eval")
+
+### Reference Loading
+
+**kgateway skill references:**
+- `${CLAUDE_PLUGIN_ROOT}/skills/kgateway/SKILL.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/kgateway/references/gateway-api-patterns.md` — Gateway, HTTPRoute, GatewayClass
+- `${CLAUDE_PLUGIN_ROOT}/skills/kgateway/references/helm-lifecycle.md` — kgateway install/upgrade
+- `${CLAUDE_PLUGIN_ROOT}/skills/kgateway/references/lessons-learned.md` — naming conflicts, OrbStack
+
+**agentgateway skill references:**
+- `${CLAUDE_PLUGIN_ROOT}/skills/agentgateway/SKILL.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/agentgateway/references/provider-backends.md` — all 7 providers
+- `${CLAUDE_PLUGIN_ROOT}/skills/agentgateway/references/resource-patterns.md` — CRD YAML patterns
+- `${CLAUDE_PLUGIN_ROOT}/skills/agentgateway/references/helm-lifecycle.md` — agentgateway install/upgrade
+- `${CLAUDE_PLUGIN_ROOT}/skills/agentgateway/references/lessons-learned.md` — API gotchas, auth
+- `${CLAUDE_PLUGIN_ROOT}/skills/agentgateway/references/mcp-routing.md` — MCP server patterns
+- `${CLAUDE_PLUGIN_ROOT}/skills/agentgateway/references/external-processing.md` — ExtProc patterns
+
+**Load per workflow — not all at startup.**
 
 ## Capabilities
 

@@ -255,4 +255,4 @@ To migrate a skill from `skills/` to `plugins/`:
 
 6. **Update version** to major bump (e.g., 1.5.0 → 2.0.0)
 
-**Example**: See `plugins/gateway-proxy/` for a canonical standalone plugin implementation.
+**Example**: See `plugins/gateway-manager/` for a canonical standalone plugin implementation.

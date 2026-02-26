@@ -3,7 +3,7 @@ $ARGUMENTS
 
 If no arguments, check all components. If a component name is given (kgateway, agentgateway), upgrade only that.
 
-Reference the gateway-proxy skill's `references/helm-lifecycle.md` for upgrade patterns and safety rules.
+Reference the kgateway skill's `references/helm-lifecycle.md` and the agentgateway skill's `references/helm-lifecycle.md` for upgrade patterns and safety rules.
 
 ## Pre-upgrade Checks
 

@@ -1,0 +1,11 @@
+{
+  "name": "gateway-manager",
+  "version": "3.0.0",
+  "description": "Multi-skill plugin for Kubernetes Gateway API (kgateway) and AI/LLM routing (agentgateway) — provider backends, MCP server routing, external processing, version lifecycle management, and traffic policies",
+  "author": {
+    "name": "J. Greg Williams",
+    "email": "283704+totallyGreg@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "keywords": ["kubernetes", "gateway", "kgateway", "agentgateway", "llm", "mcp", "agent", "helm", "vertex-ai", "lifecycle"]
+}

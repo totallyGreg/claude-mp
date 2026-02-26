@@ -1,20 +1,18 @@
-# Gateway Proxy - Improvement Plan
+# agentgateway - Improvement Plan
 
 ## Version History
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
-| 2.0.0 | 2026-02-25 | [#58](https://github.com/totallyGreg/claude-mp/issues/58) | Add gateway-manager agent, lifecycle commands, cloud providers | 98 | 88 | 80 | 100 | 91 |
-| 1.1.0 | 2026-02-03 | - | Plugin migration, external-processing reference | 100 | 90 | 80 | 100 | 91 |
-| 1.0.0 | 2026-02-02 | - | Initial release | 100 | 90 | 80 | 100 | 91 |
+| 1.0.0 | 2026-02-25 | [#61](https://github.com/totallyGreg/claude-mp/issues/61) | Split from gateway-proxy v2.0.0; agentgateway-focused skill | 98 | 88 | 80 | 100 | 91 |
 
 **Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure (0-100 scale)
 
+**Predecessor**: `gateway-proxy` skill v2.0.0 (see git history: `git log --grep="gateway-proxy"`)
+
 ## Active Work
 
-- [#58](https://github.com/totallyGreg/claude-mp/issues/58): Add gateway-manager agent, lifecycle commands, cloud provider support (v2.0.0) (In Progress)
-
-See GitHub Issues for detailed plans and task checklists.
+- [#61](https://github.com/totallyGreg/claude-mp/issues/61): Rename gateway-proxy to gateway-manager and split skills (In Progress)
 
 ## Known Issues
 
@@ -23,8 +21,9 @@ See GitHub Issues for detailed plans and task checklists.
 ## Archive
 
 For complete development history:
-- Git commit history: `git log --grep="gateway-proxy"`
-- Closed issues: https://github.com/totallyGreg/claude-mp/issues?q=label:plugin:gateway-proxy+is:closed
+- Predecessor skill: `gateway-proxy` v1.0.0–v2.0.0
+- Git commit history: `git log --grep="gateway"`
+- Closed issues: https://github.com/totallyGreg/claude-mp/issues?q=label:plugin:gateway-manager+is:closed
 - Cross-skill learnings: docs/lessons/
 
 ---

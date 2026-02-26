@@ -52,4 +52,4 @@ curl -X POST http://<gateway-ip>/<name>/v1/chat/completions \
   -d '{"model": "<model>", "messages": [{"role": "user", "content": "Hello"}]}'
 ```
 
-Reference the gateway-proxy skill for detailed patterns.
+Reference the kgateway skill's `references/gateway-api-patterns.md` for detailed routing patterns.

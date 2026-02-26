@@ -527,7 +527,7 @@ or agent-creator to add agents
 ✅ **skillsmith** - Skill creation and quality framework
 ✅ **marketplace-manager** - Distribution and versioning
 ✅ **ai-risk-mapper** - Security analysis
-✅ **gateway-proxy** - Infrastructure routing
+✅ **gateway-manager** - Infrastructure routing (kgateway + agentgateway)
 
 All are **Stage 2 plugins**: Skills + Commands
 

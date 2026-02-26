@@ -298,7 +298,7 @@ What do you need to automate?
 │  • skillsmith (v4.0.0)          - Skill quality framework   │
 │  • marketplace-manager (v2.0.0) - Distribution framework    │
 │  • ai-risk-mapper (v4.0.0)      - Security risk analysis    │
-│  • gateway-proxy (v1.0.0)       - Infrastructure routing    │
+│  • gateway-manager (v3.0.0)     - Infrastructure routing    │
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -316,7 +316,7 @@ What do you need to automate?
 │  • skillsmith/skill/            - 11 reference files        │
 │  • marketplace-manager/skill/   - 4 reference files         │
 │  • ai-risk-mapper/skill/        - Risk assessment data      │
-│  • gateway-proxy/skill/         - Configuration guides      │
+│  • gateway-manager/skills/      - kgateway + agentgateway guides      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -460,7 +460,7 @@ Your plugin ecosystem has a **clean, intentional architecture** with clear separ
 - **skillsmith**: Makes skills excellent (quality, improvement, learning)
 - **marketplace-manager**: Makes skills findable and installable (distribution, versioning)
 - **ai-risk-mapper**: Assesses security risks in AI systems
-- **gateway-proxy**: Configures infrastructure for API gateways
+- **gateway-manager**: Configures infrastructure for API gateways (kgateway + agentgateway)
 
 The integration between skillsmith and marketplace-manager is **complementary, not overlapping**. They should remain separate, but their integration can be strengthened with better orchestration (proposed `/ss-publish` command or bridge agent).
 

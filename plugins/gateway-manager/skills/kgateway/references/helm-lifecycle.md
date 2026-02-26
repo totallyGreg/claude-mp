@@ -1,13 +1,12 @@
-# Helm Lifecycle Management
+# kgateway Helm Lifecycle
 
-Upgrade, rollback, and version management patterns for kgateway and agentgateway helm charts.
+Installation, upgrade, rollback, and version management for the kgateway Helm chart.
 
-## GitHub Repositories
+## GitHub Repository
 
 | Project | Repo | Releases | Registry |
 |---------|------|----------|----------|
 | kgateway (K8s control plane) | `kgateway-dev/kgateway` | `gh api repos/kgateway-dev/kgateway/releases` | `cr.kgateway.dev/kgateway-dev/charts` |
-| agentgateway (AI data plane) | `agentgateway/agentgateway` | `gh api repos/agentgateway/agentgateway/releases` | `cr.agentgateway.dev/charts` |
 | Gateway API CRDs | `kubernetes-sigs/gateway-api` | `gh api repos/kubernetes-sigs/gateway-api/releases` | GitHub releases (kubectl apply) |
 
 **Note**: Starting v2.3.0, the agentgateway control plane migrates from the kgateway repo to `agentgateway/agentgateway`. The v2.2.x releases ship both from `kgateway-dev/kgateway`.
@@ -15,14 +14,11 @@ Upgrade, rollback, and version management patterns for kgateway and agentgateway
 ## Version Checking
 
 ```bash
-# Installed versions
-helm list -n kgateway-system -o json | jq '.[] | {name: .name, version: .app_version, chart: .chart}'
+# Installed kgateway version
+helm list -n kgateway-system -o json | jq '.[] | select(.name == "kgateway") | {name: .name, version: .app_version, chart: .chart}'
 
 # Latest kgateway release
 gh api repos/kgateway-dev/kgateway/releases/latest --jq '.tag_name'
-
-# Latest agentgateway release
-gh api repos/agentgateway/agentgateway/releases/latest --jq '.tag_name'
 
 # Gateway API CRD version
 kubectl get crd gateways.gateway.networking.k8s.io \
@@ -48,15 +44,9 @@ helm upgrade -i kgateway-crds oci://cr.kgateway.dev/kgateway-dev/charts/kgateway
 helm upgrade -i kgateway oci://cr.kgateway.dev/kgateway-dev/charts/kgateway \
   --version v2.2.1 --namespace kgateway-system \
   --set controller.enableAgentgateway=true
-
-# 4. agentgateway CRDs
-helm upgrade -i agentgateway-crds oci://cr.agentgateway.dev/charts/agentgateway-crds \
-  --version v2.2.1 --namespace kgateway-system
-
-# 5. agentgateway controller
-helm upgrade -i agentgateway oci://cr.agentgateway.dev/charts/agentgateway \
-  --version v2.2.1 --namespace kgateway-system
 ```
+
+**Note**: After installing kgateway, continue with agentgateway installation (see agentgateway skill's `references/helm-lifecycle.md`).
 
 ## Upgrade Procedure
 
@@ -67,14 +57,12 @@ VERSION="v2.2.1"  # Target version
 
 # 1. Record current state for rollback
 helm history kgateway -n kgateway-system
-helm history agentgateway -n kgateway-system
 
 # 2. Backup current values
 helm get values kgateway -n kgateway-system -o yaml > /tmp/kgateway-values-backup.yaml
-helm get values agentgateway -n kgateway-system -o yaml > /tmp/agentgateway-values-backup.yaml
 
 # 3. Backup current resources
-kubectl get agentgatewaybackend,httproute,agentgatewaypolicy -n kgateway-system -o yaml > /tmp/gateway-resources-backup.yaml
+kubectl get gateway,httproute -n kgateway-system -o yaml > /tmp/gateway-resources-backup.yaml
 
 # 4. Check for breaking changes in release notes
 gh api repos/kgateway-dev/kgateway/releases/latest --jq '.body' | head -50
@@ -85,8 +73,6 @@ helm diff upgrade kgateway oci://cr.kgateway.dev/kgateway-dev/charts/kgateway \
 ```
 
 ### Upgrade Execution
-
-Upgrade in order: CRDs first, then controllers. Use safety flags.
 
 ```bash
 VERSION="v2.2.1"
@@ -103,15 +89,6 @@ helm upgrade kgateway oci://cr.kgateway.dev/kgateway-dev/charts/kgateway \
   --version $VERSION --namespace kgateway-system \
   --set controller.enableAgentgateway=true \
   --atomic --timeout 10m --wait --cleanup-on-fail
-
-# 4. agentgateway CRDs
-helm upgrade agentgateway-crds oci://cr.agentgateway.dev/charts/agentgateway-crds \
-  --version $VERSION --namespace kgateway-system --atomic --timeout 5m --wait
-
-# 5. agentgateway controller
-helm upgrade agentgateway oci://cr.agentgateway.dev/charts/agentgateway \
-  --version $VERSION --namespace kgateway-system \
-  --atomic --timeout 10m --wait --cleanup-on-fail
 ```
 
 **Safety flags explained**:
@@ -123,24 +100,17 @@ helm upgrade agentgateway oci://cr.agentgateway.dev/charts/agentgateway \
 ### Post-Upgrade Validation
 
 ```bash
-# 1. Verify all resources are healthy
-kubectl get gateway,agentgatewaybackend,httproute,agentgatewaypolicy -n kgateway-system
+# 1. Check controller pods
+kubectl get pods -n kgateway-system -l app.kubernetes.io/name=kgateway
 
-# 2. Check controller pods
-kubectl get pods -n kgateway-system -l 'app.kubernetes.io/name in (kgateway,agentgateway)'
-
-# 3. Verify rollout completed
+# 2. Verify rollout completed
 kubectl rollout status deployment/kgateway -n kgateway-system --timeout=120s
-kubectl rollout status deployment/ai-gateway -n kgateway-system --timeout=120s
 
-# 4. Check logs for errors
+# 3. Check logs for errors
 kubectl -n kgateway-system logs -l app.kubernetes.io/name=kgateway --tail=20
-kubectl -n kgateway-system logs -l app.kubernetes.io/name=agentgateway --tail=20
 
-# 5. Verify routing works
-gateway_address=$(kubectl get svc -n kgateway-system ai-gateway \
-  -o jsonpath="{.status.loadBalancer.ingress[0]['hostname','ip']}")
-curl -s "http://${gateway_address}:8080/ollama/v1/models" | head -5
+# 4. Verify gateway resources
+kubectl get gateway,httproute -n kgateway-system
 ```
 
 ## Rollback Procedure
@@ -150,14 +120,12 @@ curl -s "http://${gateway_address}:8080/ollama/v1/models" | head -5
 
 # Tier 2: Manual rollback to previous revision
 helm rollback kgateway 0 -n kgateway-system --wait
-helm rollback agentgateway 0 -n kgateway-system --wait
 
 # Tier 3: Rollback to specific revision
 helm history kgateway -n kgateway-system  # Find target revision
 helm rollback kgateway <REVISION> -n kgateway-system --wait
 
 # CRD rollback (manual — Helm does not rollback CRDs)
-# Re-apply CRDs from the previous version
 helm upgrade kgateway-crds oci://cr.kgateway.dev/kgateway-dev/charts/kgateway-crds \
   --version <OLD_VERSION> --namespace kgateway-system
 ```
@@ -172,13 +140,9 @@ helm upgrade kgateway-crds oci://cr.kgateway.dev/kgateway-dev/charts/kgateway-cr
 Features documented on the `main` branch may not exist in released versions. Always inspect the installed CRD to verify field availability:
 
 ```bash
-# Check what fields are available in the installed AgentgatewayBackend CRD
-kubectl get crd agentgatewaybackends.agentgateway.dev -o json | \
-  jq '.spec.versions[0].schema.openAPIV3Schema.properties.spec'
-
-# Check available auth fields
-kubectl get crd agentgatewaybackends.agentgateway.dev -o json | \
-  jq '.spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.policies.properties.auth'
+# Check what fields are available in the installed CRD
+kubectl get crd backends.gateway.kgateway.dev -o json | \
+  jq '.spec.versions[0].schema.openAPIV3Schema.properties.spec' 2>/dev/null
 ```
 
 ## v2.3.0 Migration Notes
@@ -188,12 +152,6 @@ Starting with v2.3.0:
 - agentgateway installs to **`agentgateway-system`** namespace (not `kgateway-system`)
 - agentgateway control plane moves to `agentgateway/agentgateway` repo
 - kgateway focuses on Envoy-based Gateway API only
-
-```bash
-# v2.3.0+ installation uses separate namespaces
-helm install agentgateway-crds ... --namespace agentgateway-system --create-namespace
-helm install agentgateway ... --namespace agentgateway-system
-```
 
 ## Upgrade Safety Rules
 

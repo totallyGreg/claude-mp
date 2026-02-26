@@ -41,4 +41,4 @@ gh api repos/kgateway-dev/kgateway/releases/latest --jq '.body' | head -30
 
 Suggest running `/gw-upgrade` if updates are available.
 
-Reference the gateway-proxy skill's `references/helm-lifecycle.md` for version checking patterns.
+Reference the kgateway skill's `references/helm-lifecycle.md` and the agentgateway skill's `references/helm-lifecycle.md` for version checking patterns.
