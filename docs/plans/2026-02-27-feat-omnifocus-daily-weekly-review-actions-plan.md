@@ -286,6 +286,9 @@ session.respondWithSchema(
 ```
 
 **Schema format — OmniFocus custom format, NOT JSON Schema:**
+
+> **Gotcha (confirmed in production):** Every `anyOf` node requires its own `name` property. Omitting it throws `"Invalid schema specification: anyOf requires a name property"`. Also: never declare `let`/`const` at bundle scope (outside IIFE) — all action files share the same JS scope and re-declarations throw `"Can't create duplicate variable"`.
+
 ```javascript
 // CORRECT
 const schema = LanguageModel.Schema.fromJSON({
