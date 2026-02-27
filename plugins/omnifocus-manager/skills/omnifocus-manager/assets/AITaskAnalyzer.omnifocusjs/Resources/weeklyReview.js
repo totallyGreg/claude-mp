@@ -18,10 +18,11 @@
  * - Apple Intelligence enabled
  */
 
-// Module-level concurrency guard — prevents double-invocation during FM calls
-let _reviewInProgress = false;
-
 (() => {
+    // Concurrency guard — scoped to IIFE closure so it persists across perform() calls
+    // without polluting the shared OmniFocus plugin scope
+    let _reviewInProgress = false;
+
     const GTD_COACH = "You are a GTD productivity coach. Be concise and direct. Use specific GTD vocabulary. Focus on actionable recommendations.";
 
     /**
