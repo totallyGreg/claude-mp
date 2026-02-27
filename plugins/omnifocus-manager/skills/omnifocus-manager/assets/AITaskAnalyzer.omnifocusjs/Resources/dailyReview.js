@@ -101,6 +101,7 @@ Using GTD principles, provide:
                     {
                         name: "systemHealth",
                         schema: {
+                            name: "health-enum",
                             anyOf: [
                                 {constant: "in-control"},
                                 {constant: "manageable"},

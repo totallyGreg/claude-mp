@@ -159,7 +159,7 @@ let _reviewInProgress = false;
                                         name: "suggestion",
                                         properties: [
                                             {name: "project"},
-                                            {name: "action", schema: {anyOf: [{constant: "add-next-action"}, {constant: "put-on-hold"}, {constant: "drop"}]}},
+                                            {name: "action", schema: {name: "stall-action-enum", anyOf: [{constant: "add-next-action"}, {constant: "put-on-hold"}, {constant: "drop"}]}},
                                             {name: "nextAction", isOptional: true}
                                         ]
                                     },
@@ -221,7 +221,7 @@ let _reviewInProgress = false;
                                         name: "decision",
                                         properties: [
                                             {name: "project"},
-                                            {name: "recommendation", schema: {anyOf: [{constant: "activate"}, {constant: "keep-on-hold"}, {constant: "archive"}]}}
+                                            {name: "recommendation", schema: {name: "someday-decision-enum", anyOf: [{constant: "activate"}, {constant: "keep-on-hold"}, {constant: "archive"}]}}
                                         ]
                                     },
                                     maximumElements: 5
