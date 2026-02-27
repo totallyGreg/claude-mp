@@ -106,5 +106,32 @@
 		};
 	};
 
+	lib.getCompletedThisWeek = function() {
+		const today = new Date();
+		today.setHours(23, 59, 59, 999);
+		const weekAgo = new Date();
+		weekAgo.setDate(weekAgo.getDate() - 7);
+		weekAgo.setHours(0, 0, 0, 0);
+
+		return flattenedTasks.filter(task => {
+			if (!task.completed) return false;
+			const d = task.completionDate;
+			return d && d >= weekAgo && d <= today;
+		}).slice(0, 100).map(lib.normalizeCompletedTask.bind(lib));
+	};
+
+	lib.getOnHoldProjects = function() {
+		const cutoff = new Date();
+		cutoff.setDate(cutoff.getDate() - 90);
+
+		return flattenedProjects.filter(p => {
+			return p.status === Project.Status.OnHold &&
+			       (!p.modified || p.modified < cutoff);
+		}).slice(0, 100).map(p => ({
+			name: p.name,
+			lastModified: p.modified
+		}));
+	};
+
 	return lib;
 })();
