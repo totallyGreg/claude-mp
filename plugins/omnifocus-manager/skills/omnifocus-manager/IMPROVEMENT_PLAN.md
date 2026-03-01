@@ -28,18 +28,12 @@
 
 ## Active Work
 
-- [#63](https://github.com/totallyGreg/claude-mp/issues/63): Two-track vision — 4-pillar skill capabilities + OmniFocus plugin packaging (Planning)
-  - Pillar 1: Query — JXA/Omni Automation live database inspection
+- [#63](https://github.com/totallyGreg/claude-mp/issues/63): Two-track vision — remaining acceptance criteria
+  - ~~Pillar 3: GTD Coaching~~ — Done (v5.0.0, gtd-coach skill)
+  - ~~Agent routing~~ — Done (v5.0.0, omnifocus-agent)
+  - ~~Pillar 4: Plugins with UI + FM~~ — Done (#62, AITaskAnalyzer v3.4.0)
+  - Pillar 1: Query — dedicated testing of JXA query capability
   - Pillar 2: Perspectives — programmatic perspective creation from plain English
-  - Pillar 3: GTD Coaching — project naming, next-action clarity, system health
-  - Pillar 4: Plugins with UI + FM — packaging workflows as standalone plugins
-  - Agent routing layer to dispatch user intent to the correct pillar
-
-- [#62](https://github.com/totallyGreg/claude-mp/issues/62): Add dailyReview and weeklyReview actions to AITaskAnalyzer (Planning)
-  - Add `dailyReview` action: completed today + GTD-specific FM coaching
-  - Add `weeklyReview` action: 6-step guided GTD flow with FM at each step
-  - Extend `taskMetrics.js`: `getCompletedThisWeek()`, `getStalledProjects()`, `getOnHoldProjects()`
-  - Bump AITaskAnalyzer plugin to v3.4.0 (first Pillar 4 deliverable of #63)
 
 See GitHub Issues for detailed plans and task checklists.
 
