@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 5.3.0 | 2026-03-01 | #68 | Add project-info, project-update, batch-update commands; create --parent-id | 62 | 67 | 90 | 100 | 82 |
 | 5.2.0 | 2026-03-01 | - | Unify manage_omnifocus.js with JXA library; delete omnifocus.js + query_omnifocus.py | 68 | 71 | 90 | 100 | 84 |
 | 5.1.0 | 2026-02-28 | #63 | Add gtd-queries.js (8 GTD diagnostic actions) + 7 new taskQuery project functions | 68 | 71 | 90 | 100 | 84 |
 | 5.0.0 | 2026-02-28 | #63 | Split GTD coaching into gtd-coach skill, four-pillar architecture, omnifocus-agent | 73 | 76 | 90 | 100 | 82 |
@@ -30,6 +31,7 @@
 
 ## Active Work
 
+- [#68](https://github.com/totallyGreg/claude-mp/issues/68): Project inspection & mutation CLI commands (v5.3.0)
 - [#63](https://github.com/totallyGreg/claude-mp/issues/63): Two-track vision — 1 acceptance criterion remaining
   - ~~Pillar 3: GTD Coaching~~ — Done (v5.0.0, PR #65, gtd-coach skill)
   - ~~Agent routing~~ — Done (v5.0.0, PR #65, omnifocus-agent)

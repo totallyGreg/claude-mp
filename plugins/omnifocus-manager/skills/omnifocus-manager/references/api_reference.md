@@ -134,6 +134,10 @@ if (tag) task.addTag(tag);
 | `task` | Task | `project.task` | Root task of project |
 | `flattenedTasks` | TaskArray | `project.flattenedTasks` | All tasks in project |
 | `parentFolder` | Folder\|null | `project.parentFolder` | Containing folder |
+| `sequential` | Boolean | `project.sequential` | True if tasks run sequentially |
+| `reviewInterval` | DateComponents | `project.reviewInterval` | Review interval (steps + unit) |
+| `estimatedMinutes` | Number\|null | `project.estimatedMinutes` | Time estimate |
+| `repetitionRule` | Task.RepetitionRule\|null | `project.repetitionRule` | Repeat rule (may be null) |
 
 #### Methods
 | Method | Returns | Example | Description |
@@ -141,6 +145,39 @@ if (tag) task.addTag(tag);
 | `markComplete()` | Project | `project.markComplete()` | Mark complete |
 | `markIncomplete()` | Project | `project.markIncomplete()` | Mark incomplete |
 | `addTag(tag)` | void | `project.addTag(tag)` | Add tag |
+
+#### Project-Level API Patterns (JXA)
+
+**Review Interval (read/write):**
+```javascript
+// JXA: Read review interval — returns plain object with properties
+var ri = project.reviewInterval();  // { steps, unit, fixed }
+var steps = ri.steps;  // e.g. 1
+var unit = ri.unit;    // e.g. "week"
+
+// JXA: Write review interval — must assign whole object (property mutation doesn't persist)
+project.reviewInterval = { steps: 1, unit: "month" };
+```
+
+**Repeat Rule (read-only):**
+```javascript
+// JXA: Read repeat rule — returns plain object (always null-check!)
+var rule = project.repetitionRule();
+if (rule) {
+    var recurrence = rule.recurrence;              // e.g. "FREQ=DAILY"
+    var method = rule.repetitionMethod;            // e.g. "fixed"
+    var schedule = rule.repetitionSchedule;        // schedule type
+    var catchUp = rule.catchUpAutomatically;       // boolean
+}
+```
+
+**Sequential/Parallel:**
+```javascript
+// JXA: Read/write sequential flag
+var isSeq = project.sequential();  // boolean
+project.sequential = true;   // set to sequential
+project.sequential = false;  // set to parallel
+```
 
 #### Common Patterns
 ```javascript

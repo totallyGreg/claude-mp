@@ -5,7 +5,7 @@ description: |
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 metadata:
-  version: 5.2.0
+  version: 5.3.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -173,6 +173,25 @@ open "omnifocus:///add?name=Task&autosave=true"
 # Detailed creation (Mac only)
 osascript -l JavaScript scripts/manage_omnifocus.js create \
   --name "Task" --project "Work" --due "2025-12-31"
+
+# Add subtask to existing project or task by ID
+osascript -l JavaScript scripts/manage_omnifocus.js create \
+  --parent-id lz6kHB1apf5 --name "Subtask" --estimate 10m --tags Routine
+```
+
+**Project inspection & mutation:**
+```bash
+# Get project details (subtasks, repeat rule, review interval)
+osascript -l JavaScript scripts/manage_omnifocus.js project-info --name "Weekly Review"
+osascript -l JavaScript scripts/manage_omnifocus.js project-info --id lz6kHB1apf5
+
+# Update project properties
+osascript -l JavaScript scripts/manage_omnifocus.js project-update --id lz6kHB1apf5 --review-interval 1month
+osascript -l JavaScript scripts/manage_omnifocus.js project-update --id lz6kHB1apf5 --sequential
+osascript -l JavaScript scripts/manage_omnifocus.js project-update --id lz6kHB1apf5 --note-remove-line "- Issue Status"
+
+# Batch update (clear defer/due dates across multiple tasks)
+osascript -l JavaScript scripts/manage_omnifocus.js batch-update --ids id1,id2,id3 --defer clear --due clear
 ```
 
 See `references/jxa_guide.md` for complete JXA reference.
@@ -328,6 +347,21 @@ osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7
 osascript -l JavaScript scripts/gtd-queries.js --action system-health
 ```
 
+### "Show me a project's details / subtasks"
+```bash
+osascript -l JavaScript scripts/manage_omnifocus.js project-info --name "Project Name"
+```
+
+### "Change project review interval / ordering"
+```bash
+osascript -l JavaScript scripts/manage_omnifocus.js project-update --id <id> --review-interval 2weeks
+```
+
+### "Clear dates on multiple tasks at once"
+```bash
+osascript -l JavaScript scripts/manage_omnifocus.js batch-update --ids id1,id2,id3 --defer clear
+```
+
 ### "Which projects are stalled?" / "No next actions?"
 ```bash
 osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects
@@ -370,9 +404,10 @@ See `references/troubleshooting.md` for complete troubleshooting guide.
 
 ## Version Information
 
-**Current version:** 5.2.0
+**Current version:** 5.3.0
 
 **Recent changes:**
+- v5.3.0: Add project-info, project-update, batch-update commands; create --parent-id (#68)
 - v5.2.0: Unify manage_omnifocus.js with JXA library; delete omnifocus.js; single source of truth
 - v5.1.0: Add gtd-queries.js with 8 GTD diagnostic actions; 7 new taskQuery project-level functions
 - v5.0.0: Split GTD coaching into gtd-coach skill, four-pillar architecture (#63)
