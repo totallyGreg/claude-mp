@@ -58,7 +58,7 @@
 
             try {
                 // Step 1: Query tasks based on filter
-                const tasks = this.queryTasks(config.query || {
+                const tasks = this.queryTasks(config.query || {});
 
                 // Step 2: Detect patterns using rule-based library
                 // NOTE: When Foundation Models API available, replace with:
@@ -68,7 +68,8 @@
 
                 const insightResult = insights.generateInsights({
                     patterns: config.patterns
-                
+                });
+
 
                 // Step 3: Format analysis results
                 const analysis = {
@@ -132,7 +133,7 @@
 
             try {
                 // Step 1: Query tasks
-                const tasks = this.queryTasks(config.query || {
+                const tasks = this.queryTasks(config.query || {});
 
                 // Step 2: Transform if requested
                 const transformed = this.transformTasks(tasks, config.transform || "detailed");
@@ -150,14 +151,14 @@
                     exportSuccess = exporter.toClipboard(transformed, {
                         format: format,
                         title: exportConfig.title
-                    
+                    });
                     exportedTo = "clipboard";
                 } else if (destination === "file") {
                     exportSuccess = await exporter.toFile(transformed, {
                         format: format,
                         filename: exportConfig.filename,
                         title: exportConfig.title
-                    
+                    });
                     exportedTo = exportConfig.filename || "file";
                 }
 
@@ -219,7 +220,7 @@
                 const dryRun = config.dryRun !== false; // Default to true for safety
 
                 // Step 1: Select tasks
-                const tasks = this.queryTasks(config.selector || {
+                const tasks = this.queryTasks(config.selector || {});
 
                 // Step 2: Apply updates
                 const changes = [];
@@ -234,7 +235,7 @@
                             errors.push({
                                 task: taskData.name,
                                 error: "Task not found"
-                            
+                            });
                             return;
                         }
 
@@ -268,9 +269,9 @@
                         errors.push({
                             task: taskData.name,
                             error: error.message
-                        
+                        });
                     }
-                
+                });
 
                 return {
                     success: true,
@@ -402,7 +403,7 @@
                 // Run detection
                 const result = insights.generateInsights({
                     patterns: libraryPatterns
-                
+                });
 
                 return {
                     success: true,
@@ -522,24 +523,24 @@
                     priority: "high",
                     action: insight.recommendation,
                     reason: insight.title
-                
-            
+                });
+            });
 
             insightResult.categorized.health.forEach(insight => {
                 recommendations.push({
                     priority: "medium",
                     action: insight.recommendation,
                     reason: insight.title
-                
-            
+                });
+            });
 
             insightResult.categorized.opportunities.forEach(insight => {
                 recommendations.push({
                     priority: "low",
                     action: insight.recommendation,
                     reason: insight.title
-                
-            
+                });
+            });
 
             return recommendations;
         };
@@ -556,7 +557,7 @@
                 actions.push({
                     action: `Reschedule or complete ${taskGroups.overdue.length} overdue tasks`,
                     tasks: taskGroups.overdue.slice(0, 5).map(t => t.name)
-                
+                });
             }
 
             // Period-specific actions
@@ -564,25 +565,25 @@
                 actions.push({
                     action: "Process inbox to zero",
                     reason: "Daily GTD practice"
-                
+                });
             } else if (period === "weekly") {
                 actions.push({
                     action: "Review all projects for stalled items",
                     reason: "Weekly review best practice"
-                
+                });
                 actions.push({
                     action: "Clear completed tasks",
                     reason: "Maintain clean workspace"
-                
+                });
             } else if (period === "monthly") {
                 actions.push({
                     action: "Archive or delete inactive projects",
                     reason: "Monthly maintenance"
-                
+                });
                 actions.push({
                     action: "Review someday/maybe list",
                     reason: "Monthly GTD review"
-                
+                });
             }
 
             return actions;
@@ -606,7 +607,7 @@
 
             if (!tag) {
                 const app = Application('OmniFocus');
-                tag = app.Tag({ name: tagName 
+                tag = app.Tag({ name: tagName });
                 doc.tags.push(tag);
             }
 
