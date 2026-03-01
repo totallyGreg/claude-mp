@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
 """
+DEPRECATED: Use gtd-queries.js (JXA) instead.
+This Python script is archived. All capabilities are replaced by TypeScript/JXA scripts
+which are consistent with OmniFocus's JavaScript-native automation stack.
+Migration:
+  --tasks      → manage_omnifocus.js list --filter active|completed
+  --projects   → gtd-queries.js stalled-projects / someday-maybe
+  --due-soon   → manage_omnifocus.js due-soon --days N
+  --flagged    → manage_omnifocus.js flagged
+  --today      → manage_omnifocus.js today
+
 OmniFocus Database Query Tool
 
 Queries the OmniFocus SQLite database to retrieve tasks, projects, folders, and tags.
