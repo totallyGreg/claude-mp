@@ -35,7 +35,9 @@
                 const key = arg.substring(2);
 
                 // Boolean flags
-                if (key === 'flagged' || key === 'completed' || key === 'help') {
+                if (key === 'flagged' || key === 'completed' || key === 'help' ||
+                    key === 'sequential' || key === 'parallel' ||
+                    key === 'create-project' || key === 'create-tags') {
                     args[key] = true;
                 } else {
                     // Value arguments

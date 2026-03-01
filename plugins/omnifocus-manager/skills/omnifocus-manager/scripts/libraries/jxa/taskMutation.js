@@ -369,5 +369,109 @@
         };
     };
 
+    /**
+     * Find a project by name or ID
+     * @param {Document} doc - OmniFocus document
+     * @param {string} nameOrId - Project name or ID
+     * @returns {Project|Object} Project object, or object with error/multiple info
+     */
+    taskMutation.findProject = function(doc, nameOrId) {
+        // Try to find by ID first
+        var allProjects = doc.flattenedProjects();
+        for (var i = 0; i < allProjects.length; i++) {
+            if (allProjects[i].id() === nameOrId) {
+                return allProjects[i];
+            }
+        }
+
+        // Find by name
+        var matches = doc.flattenedProjects.whose({ name: nameOrId });
+        if (matches.length === 0) {
+            return { error: 'not_found', message: 'Project not found: ' + nameOrId };
+        }
+        if (matches.length > 1) {
+            return {
+                error: 'multiple',
+                message: 'Multiple projects found with name: ' + nameOrId + '. Use ID instead.',
+                projects: matches.map(function(p) { return { id: p.id(), name: p.name() }; })
+            };
+        }
+        return matches[0];
+    };
+
+    /**
+     * Set review interval on a project
+     * @param {Project} project - OmniFocus project object
+     * @param {string} intervalStr - Interval string: <N>(day|week|month|year)[s]
+     * @throws {Error} If format is invalid
+     */
+    taskMutation.setReviewInterval = function(project, intervalStr) {
+        var match = intervalStr.match(/^(\d+)(day|week|month|year)s?$/i);
+        if (!match) {
+            throw new Error('Invalid review interval format: ' + intervalStr +
+                '. Use <N>(day|week|month|year)[s], e.g. 1month, 2weeks, 7days');
+        }
+
+        var steps = parseInt(match[1]);
+        var unit = match[2].toLowerCase();
+
+        var ri = project.reviewInterval();
+        ri.steps = steps;
+        ri.unit = unit;
+    };
+
+    /**
+     * Remove the first line matching text from an entity's note
+     * @param {Task|Project} entity - OmniFocus entity with a note property
+     * @param {string} text - Text to match (trimmed, case-sensitive)
+     */
+    taskMutation.removeNoteLineMatching = function(entity, text) {
+        var note = entity.note();
+        if (!note) return; // null note is a silent no-op
+
+        var lines = note.split('\n');
+        var trimmedText = text.trim();
+        var foundIndex = -1;
+
+        for (var i = 0; i < lines.length; i++) {
+            if (lines[i].trim() === trimmedText) {
+                foundIndex = i;
+                break;
+            }
+        }
+
+        if (foundIndex === -1) return; // no match is a silent no-op
+
+        lines.splice(foundIndex, 1);
+        entity.note = lines.join('\n');
+    };
+
+    /**
+     * Find a parent entity (project or task) by ID
+     * Searches both flattenedProjects and flattenedTasks for globally unique IDs
+     * @param {Document} doc - OmniFocus document
+     * @param {string} parentId - Parent ID
+     * @returns {Project|Task|Object} Parent entity or error object
+     */
+    taskMutation.findParent = function(doc, parentId) {
+        // Search projects first
+        var projects = doc.flattenedProjects();
+        for (var i = 0; i < projects.length; i++) {
+            if (projects[i].id() === parentId) {
+                return projects[i];
+            }
+        }
+
+        // Search tasks
+        try {
+            var task = doc.flattenedTasks.byId(parentId);
+            if (task) return task;
+        } catch (e) {
+            // not found
+        }
+
+        return { error: 'not_found', message: 'Parent not found: ' + parentId };
+    };
+
     return taskMutation;
 })();

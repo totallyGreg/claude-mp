@@ -97,6 +97,12 @@ function run(argv) {
                 return getFlagged(app, args);
             case 'search':
                 return searchTasks(app, args);
+            case 'project-info':
+                return getProjectInfo(app, args);
+            case 'project-update':
+                return projectUpdate(app, args);
+            case 'batch-update':
+                return batchUpdate(app, args);
             case 'help':
                 return printHelp();
             default:
@@ -124,6 +130,14 @@ function createTask(app, args) {
         throw new Error('Task name is required (use --name)');
     }
 
+    // Mutual exclusion: --parent-id and --project
+    if (args['parent-id'] && args.project) {
+        return JSON.stringify({
+            success: false,
+            error: '--parent-id and --project are mutually exclusive'
+        });
+    }
+
     // Parse due date
     let dueDate = null;
     if (args.due) {
@@ -134,6 +148,16 @@ function createTask(app, args) {
     let deferDate = null;
     if (args.defer) {
         deferDate = dateUtils.parseDate(args.defer);
+    }
+
+    // Find parent by ID (project or task)
+    let parent = null;
+    if (args['parent-id']) {
+        const parentResult = taskMutation.findParent(doc, args['parent-id']);
+        if (parentResult.error) {
+            throw new Error(parentResult.message);
+        }
+        parent = parentResult;
     }
 
     // Find or create project
@@ -181,7 +205,10 @@ function createTask(app, args) {
 
     // Create the task
     let task;
-    if (project) {
+    if (parent) {
+        task = app.Task(taskProps);
+        parent.tasks.push(task);
+    } else if (project) {
         task = app.Task(taskProps);
         project.tasks.push(task);
     } else {
@@ -208,13 +235,14 @@ function createTask(app, args) {
         }
     }
 
+    var container = parent ? parent.name() : (project ? project.name() : 'Inbox');
     return JSON.stringify({
         success: true,
         message: `Created task: ${args.name}`,
         task: {
             id: task.id(),
             name: task.name(),
-            project: project ? project.name() : 'Inbox',
+            parent: container,
             dueDate: task.dueDate() ? task.dueDate().toISOString() : null,
             flagged: task.flagged()
         }
@@ -474,6 +502,134 @@ function searchTasks(app, args) {
 }
 
 /**
+ * Get project information
+ */
+function getProjectInfo(app, args) {
+    if (!args.name && !args.id) {
+        return JSON.stringify({ success: false, error: '--name or --id is required' });
+    }
+    const doc = app.defaultDocument;
+    const identifier = args.id || args.name;
+    const info = taskQuery.getProjectInfo(doc, identifier);
+
+    if (!info) {
+        return JSON.stringify({ success: false, error: 'Project not found: ' + identifier });
+    }
+    if (info.multiple) {
+        return JSON.stringify({ success: false, error: 'Multiple projects found', projects: info.projects });
+    }
+    return JSON.stringify({ success: true, project: info });
+}
+
+/**
+ * Update a project
+ */
+function projectUpdate(app, args) {
+    if (!args.id) {
+        return JSON.stringify({ success: false, error: '--id is required for project-update' });
+    }
+
+    const doc = app.defaultDocument;
+    const project = taskMutation.findProject(doc, args.id);
+
+    if (project.error) {
+        return JSON.stringify({ success: false, error: project.message });
+    }
+
+    // Check for mutual exclusion
+    if (args.sequential && args.parallel) {
+        return JSON.stringify({ success: false, error: '--sequential and --parallel are mutually exclusive' });
+    }
+
+    // Check that at least one mutation flag is provided
+    var hasMutation = args['review-interval'] || args['note-remove-line'] ||
+                      args.sequential || args.parallel;
+    if (!hasMutation) {
+        return JSON.stringify({ success: false, error: 'No mutation flags provided. Use --review-interval, --note-remove-line, --sequential, or --parallel' });
+    }
+
+    // Apply mutations
+    if (args['review-interval']) {
+        taskMutation.setReviewInterval(project, args['review-interval']);
+    }
+
+    if (args['note-remove-line']) {
+        taskMutation.removeNoteLineMatching(project, args['note-remove-line']);
+    }
+
+    if (args.sequential) {
+        project.sequential = true;
+    }
+
+    if (args.parallel) {
+        project.sequential = false;
+    }
+
+    return JSON.stringify({
+        success: true,
+        message: 'Updated project: ' + project.name(),
+        project: { id: project.id(), name: project.name() }
+    });
+}
+
+/**
+ * Batch update multiple tasks
+ */
+function batchUpdate(app, args) {
+    if (!args.ids) {
+        return JSON.stringify({ success: false, error: '--ids is required (comma-separated task IDs)' });
+    }
+
+    // Check that at least one mutation flag is provided
+    if (args.due === undefined && args.defer === undefined) {
+        return JSON.stringify({ success: false, error: 'No mutation flags provided. Use --due and/or --defer' });
+    }
+
+    const doc = app.defaultDocument;
+    const ids = args.ids.split(',').map(function(id) { return id.trim(); });
+    var updated = [];
+    var skipped = [];
+
+    for (var i = 0; i < ids.length; i++) {
+        var taskId = ids[i];
+        try {
+            var task = doc.flattenedTasks.byId(taskId);
+            if (!task) {
+                skipped.push({ id: taskId, reason: 'not found' });
+                continue;
+            }
+
+            if (args.due !== undefined) {
+                if (args.due === 'clear') {
+                    task.dueDate = null;
+                } else {
+                    task.dueDate = dateUtils.parseDate(args.due);
+                }
+            }
+
+            if (args.defer !== undefined) {
+                if (args.defer === 'clear') {
+                    task.deferDate = null;
+                } else {
+                    task.deferDate = dateUtils.parseDate(args.defer);
+                }
+            }
+
+            updated.push({ id: taskId, name: task.name() });
+        } catch (e) {
+            skipped.push({ id: taskId, reason: e.toString() });
+        }
+    }
+
+    return JSON.stringify({
+        success: true,
+        message: 'Updated ' + updated.length + ' tasks (' + skipped.length + ' skipped)',
+        updated: updated,
+        skipped: skipped
+    });
+}
+
+/**
  * Print help information
  */
 function printHelp() {
@@ -485,11 +641,16 @@ Usage:
 
 Actions:
     Task Management:
-      create     Create a new task
-      update     Update an existing task
-      complete   Mark a task as complete
-      delete     Delete a task
-      info       Get task information
+      create         Create a new task
+      update         Update an existing task
+      complete       Mark a task as complete
+      delete         Delete a task
+      info           Get task information
+      batch-update   Batch update multiple tasks by ID
+
+    Project Management:
+      project-info   Get project details (subtasks, repeat rule, review interval)
+      project-update Update project properties
 
     Query Tasks:
       list       List tasks with optional filters
@@ -515,11 +676,27 @@ Common Options:
 Create-specific Options:
     --create-project       Create project if it doesn't exist
     --create-tags          Create tags if they don't exist
+    --parent-id <id>       Add task as subtask of project or task (mutually exclusive with --project)
 
 Update-specific Options:
     --new-name <name>      New task name
     --due clear            Clear due date
     --defer clear          Clear defer date
+
+Project-info Options:
+    --name <name>          Project name
+    --id <id>              Project ID
+
+Project-update Options (--id required):
+    --review-interval <N><unit>  Set review interval (e.g., 1month, 2weeks, 7days)
+    --note-remove-line <text>    Remove first matching line from project note
+    --sequential                 Set project to sequential ordering
+    --parallel                   Set project to parallel ordering
+
+Batch-update Options:
+    --ids <id1,id2,...>    Comma-separated task IDs
+    --due <date|clear>     Set or clear due date
+    --defer <date|clear>   Set or clear defer date
 
 Examples:
     # Create a simple task

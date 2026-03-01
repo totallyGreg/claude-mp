@@ -466,5 +466,101 @@
         return result;
     };
 
+    /**
+     * Get project information by name or ID
+     * @param {Document} doc - OmniFocus document
+     * @param {string} nameOrId - Project name or ID
+     * @returns {Object|null} Project information or null if not found
+     */
+    taskQuery.getProjectInfo = function(doc, nameOrId) {
+        var project = null;
+
+        // Try to find by ID first (iterate flattenedProjects, compare id())
+        var allProjects = doc.flattenedProjects();
+        for (var i = 0; i < allProjects.length; i++) {
+            if (allProjects[i].id() === nameOrId) {
+                project = allProjects[i];
+                break;
+            }
+        }
+
+        // If not found by ID, try by name
+        if (!project) {
+            var matches = doc.flattenedProjects.whose({ name: nameOrId });
+            if (matches.length === 0) {
+                return null;
+            }
+            if (matches.length > 1) {
+                return {
+                    multiple: true,
+                    projects: matches.map(function(p) {
+                        return { id: p.id(), name: p.name() };
+                    })
+                };
+            }
+            project = matches[0];
+        }
+
+        // Build repeat rule info
+        var repeatRule = null;
+        try {
+            var rule = project.repetitionRule();
+            if (rule) {
+                repeatRule = {
+                    ruleString: rule.ruleString(),
+                    scheduleType: rule.scheduleType ? rule.scheduleType() : null,
+                    catchUpAutomatically: rule.catchUpAutomatically ? rule.catchUpAutomatically() : null,
+                    anchorDateKey: rule.anchorDateKey ? rule.anchorDateKey() : null
+                };
+            }
+        } catch (e) {
+            // repetitionRule not available or null
+        }
+
+        // Build review interval info
+        var reviewInterval = null;
+        try {
+            var ri = project.reviewInterval();
+            if (ri) {
+                reviewInterval = {
+                    steps: ri.steps(),
+                    unit: ri.unit()
+                };
+            }
+        } catch (e) {
+            // reviewInterval not available
+        }
+
+        // Get subtasks using formatTaskInfo
+        var subtasks = [];
+        try {
+            var tasks = project.tasks();
+            for (var j = 0; j < tasks.length; j++) {
+                subtasks.push(this.formatTaskInfo(tasks[j]));
+            }
+        } catch (e) {
+            // tasks not available
+        }
+
+        var status = project.status() ? project.status().toString() : null;
+        var tags = [];
+        try { tags = project.tags().map(function(t) { return t.name(); }); } catch (e) {}
+
+        return {
+            id: project.id(),
+            name: project.name(),
+            note: project.note(),
+            status: status,
+            sequential: project.sequential(),
+            deferDate: project.deferDate() ? project.deferDate().toISOString() : null,
+            dueDate: project.dueDate() ? project.dueDate().toISOString() : null,
+            estimatedMinutes: project.estimatedMinutes(),
+            tags: tags,
+            repeatRule: repeatRule,
+            reviewInterval: reviewInterval,
+            subtasks: subtasks
+        };
+    };
+
     return taskQuery;
 })();
