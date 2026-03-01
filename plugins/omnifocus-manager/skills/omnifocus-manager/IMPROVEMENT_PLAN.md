@@ -31,7 +31,7 @@
 
 ## Active Work
 
-- [#68](https://github.com/totallyGreg/claude-mp/issues/68): Project inspection & mutation CLI commands (v5.3.0)
+- ~~[#68](https://github.com/totallyGreg/claude-mp/issues/68): Project inspection & mutation CLI commands~~ — Done (v5.3.0, PR #69)
 - [#63](https://github.com/totallyGreg/claude-mp/issues/63): Two-track vision — 1 acceptance criterion remaining
   - ~~Pillar 3: GTD Coaching~~ — Done (v5.0.0, PR #65, gtd-coach skill)
   - ~~Agent routing~~ — Done (v5.0.0, PR #65, omnifocus-agent)
