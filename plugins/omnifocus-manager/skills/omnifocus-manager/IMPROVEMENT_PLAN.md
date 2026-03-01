@@ -29,12 +29,12 @@
 
 ## Active Work
 
-- [#63](https://github.com/totallyGreg/claude-mp/issues/63): Two-track vision — remaining acceptance criteria
-  - ~~Pillar 3: GTD Coaching~~ — Done (v5.0.0, gtd-coach skill)
-  - ~~Agent routing~~ — Done (v5.0.0, omnifocus-agent)
-  - ~~Pillar 4: Plugins with UI + FM~~ — Done (#62, AITaskAnalyzer v3.4.0)
-  - ~~Pillar 1: Query~~ — Done (v5.1.0, gtd-queries.js with 8 diagnostic actions + completionDate fix)
-  - Pillar 2: Perspectives — programmatic perspective creation from plain English
+- [#63](https://github.com/totallyGreg/claude-mp/issues/63): Two-track vision — 1 acceptance criterion remaining
+  - ~~Pillar 3: GTD Coaching~~ — Done (v5.0.0, PR #65, gtd-coach skill)
+  - ~~Agent routing~~ — Done (v5.0.0, PR #65, omnifocus-agent)
+  - ~~Pillar 4: Plugins with UI + FM~~ — Done (v4.5.0, #62, AITaskAnalyzer v3.4.0)
+  - ~~Pillar 1: Query~~ — Done (v5.1.0, PR #66, gtd-queries.js + taskQuery project functions)
+  - **Pillar 2: Perspectives** — programmatic perspective creation from plain English (next)
 
 See GitHub Issues for detailed plans and task checklists.
 
