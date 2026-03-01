@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 4.5.0 | 2026-02-27 | #62 | AITaskAnalyzer v3.4.0: dailyReview + weeklyReview actions | 80 | 78 | 90 | 100 | 84 |
 | 4.4.0 | 2026-01-18 | - | Deterministic plugin generation workflow, Agent Skill compliance | 76 | 78 | 90 | 100 | 86 |
 | 4.1.0 | 2026-01-11 | - | OmniFocus 4 tree API support, bundle generation fixes | - | - | - | - | - |
 | 4.0.0 | 2026-01-02 | - | TypeScript-based plugin generation with LSP validation | - | - | - | - | - |
@@ -26,11 +27,18 @@
 
 ## Active Work
 
-- [#13](https://github.com/totallyGreg/claude-mp/issues/13): Migrate and triage planned improvements (Planning)
-  - **8 planned improvements** need triage (High: Recurring Tasks; Medium: Bulk Ops, Templates, Reports; Low: Calendar Sync, NL Dates, Visualization, Schema Docs)
-  - Determine which items are still priorities
-  - Create focused issues for confirmed work
-  - Current quality: 86/100 overall (well-balanced skill)
+- [#63](https://github.com/totallyGreg/claude-mp/issues/63): Two-track vision — 4-pillar skill capabilities + OmniFocus plugin packaging (Planning)
+  - Pillar 1: Query — JXA/Omni Automation live database inspection
+  - Pillar 2: Perspectives — programmatic perspective creation from plain English
+  - Pillar 3: GTD Coaching — project naming, next-action clarity, system health
+  - Pillar 4: Plugins with UI + FM — packaging workflows as standalone plugins
+  - Agent routing layer to dispatch user intent to the correct pillar
+
+- [#62](https://github.com/totallyGreg/claude-mp/issues/62): Add dailyReview and weeklyReview actions to AITaskAnalyzer (Planning)
+  - Add `dailyReview` action: completed today + GTD-specific FM coaching
+  - Add `weeklyReview` action: 6-step guided GTD flow with FM at each step
+  - Extend `taskMetrics.js`: `getCompletedThisWeek()`, `getStalledProjects()`, `getOnHoldProjects()`
+  - Bump AITaskAnalyzer plugin to v3.4.0 (first Pillar 4 deliverable of #63)
 
 See GitHub Issues for detailed plans and task checklists.
 

@@ -7,7 +7,7 @@ description: |
 
   This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
 metadata:
-  version: 4.4.0
+  version: 4.5.0
   author: totally-tools
   license: MIT
 compatibility:
