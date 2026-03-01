@@ -5,9 +5,9 @@ description: |
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries (taskMetrics, exportUtils, patterns) 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) CUSTOMIZE action files 6) VALIDATE via `bash scripts/validate-plugin.sh` 7) TEST in OmniFocus. TypeScript validation catches API errors. Manual creation creates broken plugins.
 
-  This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, GTD workflows, or asks to create, update, search, or analyze their task data.
+  This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, or asks to create, update, search, or analyze their task data. For pure GTD methodology coaching, use the gtd-coach skill instead.
 metadata:
-  version: 4.5.0
+  version: 5.0.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -113,6 +113,33 @@ This skill provides **execution-first architecture** for OmniFocus automation:
 
 ---
 
+## Four-Pillar Architecture
+
+This skill covers three of four pillars. GTD coaching lives in a separate skill.
+
+| Pillar | Capability | Owner |
+|--------|-----------|-------|
+| **1. Query** | JXA/Omni Automation live database queries | omnifocus-manager |
+| **2. Perspectives** | Programmatic perspective creation | omnifocus-manager |
+| **3. GTD Coaching** | Pure methodology coaching | **gtd-coach** skill |
+| **4. Plugins + FM** | Plugin generation, Apple Intelligence | omnifocus-manager |
+
+### GTD-to-OmniFocus Quick Mapping
+
+| GTD Concept | OmniFocus Implementation |
+|-------------|--------------------------|
+| Inbox | Inbox |
+| Projects | Projects |
+| Next Actions | Available tasks |
+| Contexts | Tags |
+| Waiting For | `@waiting` tag |
+| Someday/Maybe | On Hold status |
+| Weekly Review | Review perspective |
+
+For detailed mapping and automation commands, see `references/gtd_guide.md`.
+
+---
+
 ## Quick Decision Tree
 
 **What do you want to do?**
@@ -160,12 +187,11 @@ See `references/jxa_guide.md` for complete reference.
 **URL Scheme (cross-platform):** Perfect for embedding in notes.
 See `references/omnifocus_url_scheme.md` for reference.
 
-### 4. Understand OmniFocus and GTD
+### 4. Understand GTD Methodology
 
-See `references/gtd_guide.md` for complete GTD methodology including:
-- GTD principles and implementation
-- OmniFocus perspectives
-- Common pitfalls
+For **pure GTD coaching** (principles, next action clarity, weekly review process, horizons of focus), use the **gtd-coach** skill.
+
+For **GTD-to-OmniFocus mapping** (how GTD concepts map to OmniFocus features, automation commands), see `references/gtd_guide.md`.
 
 ### 5. Analyze Tasks for Insights
 
@@ -235,7 +261,7 @@ See `references/omnifocus_url_scheme.md` for URL scheme.
 - **[API Reference](references/api_reference.md)** - Complete API with quick lookup tables
 - **[Omni Automation Guide](references/omni_automation_guide.md)** - Plugin development
 - **[JXA Guide](references/jxa_guide.md)** - Command-line automation
-- **[GTD Guide](references/gtd_guide.md)** - GTD methodology
+- **[GTD Guide](references/gtd_guide.md)** - GTD-to-OmniFocus mapping (see gtd-coach for methodology)
 
 ### Validation & Best Practices
 - **[Code Generation Validation](references/code_generation_validation.md)** - Validation rules + TypeScript strategy
@@ -312,11 +338,12 @@ See `references/troubleshooting.md` for complete troubleshooting guide.
 
 ## Version Information
 
-**Current version:** 4.4.0
+**Current version:** 5.0.0
 
 **Recent changes:**
-- v4.3.0: TypeScript validation in validate-plugin.sh, System Discovery feature (AITaskAnalyzer v3.3.2)
-- v4.2.0: Consolidated references, integrated TypeScript validation strategy
+- v5.0.0: Split GTD coaching into gtd-coach skill, four-pillar architecture (#63)
+- v4.5.0: AITaskAnalyzer v3.4.0: dailyReview + weeklyReview actions (#62)
+- v4.4.0: Deterministic plugin generation workflow, Agent Skill compliance
 - v4.1.0: OmniFocus 4 tree API support, treeBuilder library
 - v4.0.0: TypeScript-based plugin generation with LSP validation
 
