@@ -46,12 +46,32 @@
 ObjC.import('stdlib');
 ObjC.import('Foundation');
 
+/**
+ * Load a JXA library by path relative to the skill root (current working directory).
+ * Run from the skills/omnifocus-manager/ root so paths resolve correctly.
+ * Libraries use IIFE pattern and return their namespace object via eval().
+ */
+function loadLibrary(relativePath) {
+    const cwd = $.NSFileManager.defaultManager.currentDirectoryPath.js;
+    const libPath = cwd + '/' + relativePath;
+    const content = $.NSString.alloc.initWithContentsOfFileEncodingError(
+        libPath, $.NSUTF8StringEncoding, null
+    );
+    if (!content) throw new Error('Cannot load library: ' + libPath);
+    return eval(content.js);
+}
+
+const taskQuery    = loadLibrary('scripts/libraries/jxa/taskQuery.js');
+const taskMutation = loadLibrary('scripts/libraries/jxa/taskMutation.js');
+const argParser    = loadLibrary('scripts/libraries/jxa/argParser.js');
+const dateUtils    = loadLibrary('scripts/libraries/jxa/dateUtils.js');
+
 function run(argv) {
     const app = Application('OmniFocus');
     app.includeStandardAdditions = true;
 
     try {
-        const args = parseArgs(argv);
+        const args = argParser.parseArgs(argv);
         const action = args.action;
 
         switch (action) {
@@ -93,35 +113,6 @@ function run(argv) {
     }
 }
 
-/**
- * Parse command line arguments
- */
-function parseArgs(argv) {
-    const args = {
-        action: argv[0] || 'help'
-    };
-
-    for (let i = 1; i < argv.length; i++) {
-        const arg = argv[i];
-
-        if (arg.startsWith('--')) {
-            const key = arg.substring(2);
-
-            // Boolean flags
-            if (key === 'flagged' || key === 'completed' || key === 'help') {
-                args[key] = true;
-            } else {
-                // Value arguments
-                i++;
-                if (i < argv.length) {
-                    args[key] = argv[i];
-                }
-            }
-        }
-    }
-
-    return args;
-}
 
 /**
  * Create a new task
@@ -136,13 +127,13 @@ function createTask(app, args) {
     // Parse due date
     let dueDate = null;
     if (args.due) {
-        dueDate = parseDate(args.due);
+        dueDate = dateUtils.parseDate(args.due);
     }
 
     // Parse defer date
     let deferDate = null;
     if (args.defer) {
-        deferDate = parseDate(args.defer);
+        deferDate = dateUtils.parseDate(args.defer);
     }
 
     // Find or create project
@@ -182,7 +173,7 @@ function createTask(app, args) {
     }
 
     if (args.estimate) {
-        const minutes = parseEstimate(args.estimate);
+        const minutes = dateUtils.parseEstimate(args.estimate);
         if (minutes > 0) {
             taskProps.estimatedMinutes = minutes;
         }
@@ -268,7 +259,7 @@ function updateTask(app, args) {
         if (args.due === 'clear') {
             task.dueDate = null;
         } else {
-            task.dueDate = parseDate(args.due);
+            task.dueDate = dateUtils.parseDate(args.due);
         }
     }
 
@@ -276,7 +267,7 @@ function updateTask(app, args) {
         if (args.defer === 'clear') {
             task.deferDate = null;
         } else {
-            task.deferDate = parseDate(args.defer);
+            task.deferDate = dateUtils.parseDate(args.defer);
         }
     }
 
@@ -285,7 +276,7 @@ function updateTask(app, args) {
     }
 
     if (args.estimate !== undefined) {
-        const minutes = parseEstimate(args.estimate);
+        const minutes = dateUtils.parseEstimate(args.estimate);
         task.estimatedMinutes = minutes;
     }
 
@@ -407,58 +398,19 @@ function deleteTask(app, args) {
  * Get task information
  */
 function getTaskInfo(app, args) {
-    const doc = app.defaultDocument;
-
     if (!args.name && !args.id) {
         throw new Error('Task name or ID is required (use --name or --id)');
     }
-
-    // Find the task
-    let task;
-    if (args.id) {
-        task = doc.flattenedTasks.byId(args.id);
-    } else {
-        const tasks = doc.flattenedTasks.whose({ name: args.name });
-        if (tasks.length === 0) {
-            throw new Error(`Task not found: ${args.name}`);
-        }
-        if (tasks.length > 1) {
-            const taskList = tasks.map(t => ({
-                id: t.id(),
-                name: t.name(),
-                project: t.containingProject() ? t.containingProject().name() : 'Inbox'
-            }));
-            return JSON.stringify({
-                success: false,
-                error: 'Multiple tasks found',
-                tasks: taskList
-            });
-        }
-        task = tasks[0];
+    const doc = app.defaultDocument;
+    const identifier = args.id || args.name;
+    const info = taskQuery.getTaskInfo(doc, identifier);
+    if (!info) {
+        return JSON.stringify({ success: false, error: `Task not found: ${identifier}` });
     }
-
-    // Get task information
-    const project = task.containingProject();
-    const tags = task.tags().map(t => t.name());
-
-    const info = {
-        id: task.id(),
-        name: task.name(),
-        note: task.note(),
-        completed: task.completed(),
-        flagged: task.flagged(),
-        dueDate: task.dueDate() ? task.dueDate().toISOString() : null,
-        deferDate: task.deferDate() ? task.deferDate().toISOString() : null,
-        completionDate: task.completionDate() ? task.completionDate().toISOString() : null,
-        estimatedMinutes: task.estimatedMinutes(),
-        project: project ? project.name() : 'Inbox',
-        tags: tags
-    };
-
-    return JSON.stringify({
-        success: true,
-        task: info
-    });
+    if (info.multiple) {
+        return JSON.stringify({ success: false, error: 'Multiple tasks found', tasks: info.tasks });
+    }
+    return JSON.stringify({ success: true, task: info });
 }
 
 /**
@@ -466,66 +418,17 @@ function getTaskInfo(app, args) {
  */
 function listTasks(app, args) {
     const doc = app.defaultDocument;
-    const tasks = doc.flattenedTasks();
-
-    let filteredTasks = [];
-    const filter = args.filter || 'active';
-
-    tasks.forEach(task => {
-        if (filter === 'all') {
-            filteredTasks.push(task);
-        } else if (filter === 'active' && !task.completed() && !task.dropped()) {
-            filteredTasks.push(task);
-        } else if (filter === 'completed' && task.completed()) {
-            filteredTasks.push(task);
-        } else if (filter === 'dropped' && task.dropped()) {
-            filteredTasks.push(task);
-        }
-    });
-
-    const taskList = filteredTasks.map(task => formatTaskInfo(task));
-
-    return JSON.stringify({
-        success: true,
-        count: taskList.length,
-        tasks: taskList
-    });
+    const tasks = taskQuery.listTasks(doc, { filter: args.filter || 'active' });
+    return JSON.stringify({ success: true, count: tasks.length, tasks });
 }
 
 /**
  * Get tasks due or deferred to today
  */
-function getTodayTasks(app, args) {
+function getTodayTasks(app) {
     const doc = app.defaultDocument;
-    const tasks = doc.flattenedTasks();
-
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-
-    const todayTasks = [];
-
-    tasks.forEach(task => {
-        if (task.completed() || task.dropped()) return;
-
-        const dueDate = task.dueDate();
-        const deferDate = task.deferDate();
-
-        const isDueToday = dueDate && dueDate >= todayStart && dueDate < todayEnd;
-        const isDeferredToday = deferDate && deferDate >= todayStart && deferDate < todayEnd;
-
-        if (isDueToday || isDeferredToday) {
-            todayTasks.push(task);
-        }
-    });
-
-    const taskList = todayTasks.map(task => formatTaskInfo(task));
-
-    return JSON.stringify({
-        success: true,
-        count: taskList.length,
-        tasks: taskList
-    });
+    const tasks = taskQuery.getTodayTasks(doc);
+    return JSON.stringify({ success: true, count: tasks.length, tasks });
 }
 
 /**
@@ -533,177 +436,41 @@ function getTodayTasks(app, args) {
  */
 function getDueSoon(app, args) {
     const doc = app.defaultDocument;
-    const tasks = doc.flattenedTasks();
     const days = args.days ? parseInt(args.days) : 7;
-
-    const now = new Date();
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + days);
-
-    const dueSoonTasks = [];
-
-    tasks.forEach(task => {
-        if (task.completed() || task.dropped()) return;
-
-        const dueDate = task.dueDate();
-        if (dueDate && dueDate >= now && dueDate <= futureDate) {
-            dueSoonTasks.push(task);
-        }
-    });
-
-    const taskList = dueSoonTasks.map(task => formatTaskInfo(task));
-
-    return JSON.stringify({
-        success: true,
-        count: taskList.length,
-        days: days,
-        tasks: taskList
-    });
+    const tasks = taskQuery.getDueSoon(doc, days);
+    return JSON.stringify({ success: true, count: tasks.length, days, tasks });
 }
 
+/**
+ * Get tasks past their due date
+ */
 function getOverdue(app) {
     const doc = app.defaultDocument;
-    const tasks = doc.flattenedTasks();
     const now = new Date();
-    const overdueTasks = [];
-
-    tasks.forEach(task => {
-        if (task.completed() || task.dropped()) return;
-        const dueDate = task.dueDate();
-        if (dueDate && dueDate < now) {
-            overdueTasks.push(task);
-        }
+    const tasks = taskQuery.getOverdueTasks(doc).map(task => {
+        const daysOverdue = Math.floor((now - new Date(task.dueDate)) / (1000 * 60 * 60 * 24));
+        return Object.assign({}, task, { daysOverdue });
     });
-
-    const taskList = overdueTasks.map(task => {
-        const info = formatTaskInfo(task);
-        const daysOverdue = Math.floor((now - new Date(info.dueDate)) / (1000 * 60 * 60 * 24));
-        return { ...info, daysOverdue };
-    });
-
-    return JSON.stringify({
-        success: true,
-        count: taskList.length,
-        tasks: taskList
-    });
+    return JSON.stringify({ success: true, count: tasks.length, tasks });
 }
 
 /**
  * Get all flagged tasks
  */
-function getFlagged(app, args) {
+function getFlagged(app) {
     const doc = app.defaultDocument;
-    const tasks = doc.flattenedTasks();
-
-    const flaggedTasks = [];
-
-    tasks.forEach(task => {
-        if (task.completed() || task.dropped()) return;
-
-        if (task.flagged()) {
-            flaggedTasks.push(task);
-        }
-    });
-
-    const taskList = flaggedTasks.map(task => formatTaskInfo(task));
-
-    return JSON.stringify({
-        success: true,
-        count: taskList.length,
-        tasks: taskList
-    });
+    const tasks = taskQuery.getFlagged(doc);
+    return JSON.stringify({ success: true, count: tasks.length, tasks });
 }
 
 /**
  * Search for tasks by name or note
  */
 function searchTasks(app, args) {
+    if (!args.query) throw new Error('Search query is required (use --query)');
     const doc = app.defaultDocument;
-    const tasks = doc.flattenedTasks();
-
-    if (!args.query) {
-        throw new Error('Search query is required (use --query)');
-    }
-
-    const searchTerm = args.query.toLowerCase();
-    const matchingTasks = [];
-
-    tasks.forEach(task => {
-        if (task.completed()) return;
-
-        const name = task.name() ? task.name().toLowerCase() : '';
-        const note = task.note() ? task.note().toLowerCase() : '';
-
-        if (name.includes(searchTerm) || note.includes(searchTerm)) {
-            matchingTasks.push(task);
-        }
-    });
-
-    const taskList = matchingTasks.map(task => formatTaskInfo(task));
-
-    return JSON.stringify({
-        success: true,
-        count: taskList.length,
-        query: args.query,
-        tasks: taskList
-    });
-}
-
-/**
- * Format task information for output
- */
-function formatTaskInfo(task) {
-    const project = task.containingProject();
-    const tags = task.tags().map(t => t.name());
-
-    return {
-        id: task.id(),
-        name: task.name(),
-        note: task.note(),
-        completed: task.completed(),
-        flagged: task.flagged(),
-        dueDate: task.dueDate() ? task.dueDate().toISOString() : null,
-        deferDate: task.deferDate() ? task.deferDate().toISOString() : null,
-        completionDate: task.completionDate() ? task.completionDate().toISOString() : null,
-        estimatedMinutes: task.estimatedMinutes(),
-        project: project ? project.name() : 'Inbox',
-        tags: tags
-    };
-}
-
-/**
- * Parse date string to Date object
- */
-function parseDate(dateStr) {
-    // Try parsing ISO date: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS
-    const date = new Date(dateStr);
-
-    if (isNaN(date.getTime())) {
-        throw new Error(`Invalid date format: ${dateStr}. Use ISO 8601 format (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)`);
-    }
-
-    return date;
-}
-
-/**
- * Parse time estimate string to minutes
- */
-function parseEstimate(estimateStr) {
-    // Format: 30m, 2h, 1h30m
-    const hoursMatch = estimateStr.match(/(\d+)h/);
-    const minutesMatch = estimateStr.match(/(\d+)m/);
-
-    let totalMinutes = 0;
-
-    if (hoursMatch) {
-        totalMinutes += parseInt(hoursMatch[1]) * 60;
-    }
-
-    if (minutesMatch) {
-        totalMinutes += parseInt(minutesMatch[1]);
-    }
-
-    return totalMinutes;
+    const tasks = taskQuery.searchTasks(doc, args.query);
+    return JSON.stringify({ success: true, count: tasks.length, query: args.query, tasks });
 }
 
 /**
