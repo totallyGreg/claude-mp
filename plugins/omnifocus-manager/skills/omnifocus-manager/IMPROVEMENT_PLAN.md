@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 5.2.0 | 2026-03-01 | - | Unify manage_omnifocus.js with JXA library; delete omnifocus.js + query_omnifocus.py | 68 | 71 | 90 | 100 | 84 |
 | 5.1.0 | 2026-02-28 | #63 | Add gtd-queries.js (8 GTD diagnostic actions) + 7 new taskQuery project functions | 68 | 71 | 90 | 100 | 84 |
 | 5.0.0 | 2026-02-28 | #63 | Split GTD coaching into gtd-coach skill, four-pillar architecture, omnifocus-agent | 73 | 76 | 90 | 100 | 82 |
 | 4.5.0 | 2026-02-27 | #62 | AITaskAnalyzer v3.4.0: dailyReview + weeklyReview actions | 80 | 78 | 90 | 100 | 84 |

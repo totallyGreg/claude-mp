@@ -5,7 +5,7 @@ description: |
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 metadata:
-  version: 5.1.0
+  version: 5.2.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -370,9 +370,10 @@ See `references/troubleshooting.md` for complete troubleshooting guide.
 
 ## Version Information
 
-**Current version:** 5.1.0
+**Current version:** 5.2.0
 
 **Recent changes:**
+- v5.2.0: Unify manage_omnifocus.js with JXA library; delete omnifocus.js; single source of truth
 - v5.1.0: Add gtd-queries.js with 8 GTD diagnostic actions; 7 new taskQuery project-level functions
 - v5.0.0: Split GTD coaching into gtd-coach skill, four-pillar architecture (#63)
 - v4.5.0: AITaskAnalyzer v3.4.0: dailyReview + weeklyReview actions (#62)
