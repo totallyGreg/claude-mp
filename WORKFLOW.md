@@ -323,24 +323,43 @@ bash plugins/marketplace-manager/skills/marketplace-manager/scripts/install_hook
 
 ### Skill Release Checklist
 
-```bash
-# Before releasing skill-name v2.0.0:
+Run these steps before the release commit for any skill modification:
 
-# 1. Run strict validation (skillsmith)
-uv run scripts/evaluate_skill.py skills/skill-name --quick --strict
+```bash
+# 1. Run strict validation (skillsmith) — required by CLAUDE.md before every commit
+uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py \
+  plugins/<plugin-name>/skills/<skill-name> --quick --strict
 
 # 2. If issues found:
 #    Option A (preferred): Fix them and re-run validation
 #    Option B: Create GitHub issue and document deferral
 
-# 3. Validation passes (exit code 0)
-# 4. Update IMPROVEMENT_PLAN.md with metrics and new version
-# 5. Bump version in SKILL.md metadata.version
-# 6. Sync marketplace versions
+# 3. Full evaluation for metrics (used in IMPROVEMENT_PLAN.md row)
+uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py \
+  plugins/<plugin-name>/skills/<skill-name> --export-table-row
+
+# 4. Update IMPROVEMENT_PLAN.md — add version row with metrics from step 3
+# 5. Bump version in SKILL.md metadata.version (PATCH/MINOR/MAJOR)
+# 6. If plugin has plugin.json — bump version there too to match
+# 7. Sync marketplace versions
 uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py
-# 7. Include marketplace.json in release commit
-# 8. Create two-commit release (see "Implementing & Release" section)
+# 8. Include marketplace.json in release commit
+# 9. Create two-commit release (see "Implementation & Release" section)
 ```
+
+### Plugin Component Checklist (agents, hooks, commands)
+
+When modifying plugin components beyond SKILL.md and scripts, consult the relevant plugin-dev skill before committing:
+
+| Component modified | Consult before committing |
+|---|---|
+| `agents/*.md` | `plugin-dev:agent-development` — verify description, examples, tools, routing |
+| `commands/*.md` | `plugin-dev:command-development` — verify frontmatter, args, file references |
+| `hooks/*.md` | `plugin-dev:hook-development` — verify event, trigger, safety patterns |
+| Any of the above | `plugin-dev:plugin-validator` — validate full plugin structure |
+| SKILL.md after changes | `plugin-dev:skill-reviewer` — check quality and trigger effectiveness |
+
+These skills catch structural issues (broken routing, missing frontmatter, bad examples) that skillsmith's `evaluate_skill.py` does not cover.
 
 ## Decision Trees
 
@@ -419,7 +438,7 @@ gh issue create --title "omnifocus-manager: Add task filtering" \
 git commit -m "feat(omnifocus-manager): Add task filtering (#125)"
 
 # 4. Release with metrics
-# Run: uv run skills/skillsmith/scripts/evaluate_skill.py skills/omnifocus-manager --export-table-row --version 2.1.0 --issue 125
+# Run: uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager --export-table-row
 # Copy output to IMPROVEMENT_PLAN.md Version History table
 # Remove from Active Work section
 git commit -m "chore: Release omnifocus-manager v2.1.0
@@ -462,7 +481,7 @@ git commit -m "feat(omnifocus-manager): Add TS compiler integration (#126)"
 git commit -m "feat(omnifocus-manager): Validate plugins on execution (#126)"
 
 # 6. Release with metrics
-# Run: uv run skills/skillsmith/scripts/evaluate_skill.py skills/omnifocus-manager --export-table-row --version 2.2.0 --issue 126
+# Run: uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager --export-table-row
 # Add row to IMPROVEMENT_PLAN.md Version History table
 # Remove from Active Work section
 git commit -m "chore: Release omnifocus-manager v2.2.0
