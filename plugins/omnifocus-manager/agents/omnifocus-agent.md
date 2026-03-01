@@ -89,27 +89,38 @@ Load: `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/SKILL.md`
 - **Pillar 4 — Plugins + FM:** Plugin generation, Apple Intelligence integration
 
 **Scripts:** `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/`
+- `manage_omnifocus.js` — task CRUD: create, complete, flag, due-soon, overdue, today, flagged
+- `gtd-queries.js` — GTD diagnostics: inbox-count, stalled-projects, waiting-for, someday-maybe, recently-completed, neglected-projects, folder-structure, system-health
 
 ## Intent Classification
 
 Classify each user request and route accordingly:
 
-| User Intent Pattern | Route To | Rationale |
+| User Intent Pattern | Route To | Script |
 |---|---|---|
-| "What makes a good next action?" | gtd-coach | Pure methodology |
-| "Explain the weekly review process" | gtd-coach | Pure methodology |
-| "What are horizons of focus?" | gtd-coach | Pure methodology |
-| "How should I organize my projects?" | gtd-coach | Methodology guidance |
-| "Show overdue tasks" | omnifocus-manager | Query (Pillar 1) |
-| "What's due this week?" | omnifocus-manager | Query (Pillar 1) |
-| "Create a task" | omnifocus-manager | Execution (Pillar 1) |
-| "Search for tasks tagged @work" | omnifocus-manager | Query (Pillar 1) |
+| "What makes a good next action?" | gtd-coach | — (methodology) |
+| "Explain the weekly review process" | gtd-coach | — (methodology) |
+| "What are horizons of focus?" | gtd-coach | — (methodology) |
+| "How should I organize my projects?" | gtd-coach | — (methodology) |
+| "Show overdue tasks" | omnifocus-manager | `manage_omnifocus.js overdue` |
+| "What's due this week?" | omnifocus-manager | `manage_omnifocus.js due-soon --days 7` |
+| "Show flagged tasks" | omnifocus-manager | `manage_omnifocus.js flagged` |
+| "Create a task" | omnifocus-manager | `manage_omnifocus.js create` |
+| "Search for tasks tagged @work" | omnifocus-manager | `manage_omnifocus.js search` |
+| "How many items in my inbox?" | omnifocus-manager | `gtd-queries.js --action inbox-count` |
+| "Which projects are stalled?" | omnifocus-manager | `gtd-queries.js --action stalled-projects` |
+| "What's in my Waiting For?" | omnifocus-manager | `gtd-queries.js --action waiting-for` |
+| "Show my someday/maybe list" | omnifocus-manager | `gtd-queries.js --action someday-maybe` |
+| "What did I complete recently?" | omnifocus-manager | `gtd-queries.js --action recently-completed` |
+| "Any neglected projects?" | omnifocus-manager | `gtd-queries.js --action neglected-projects` |
+| "How's my GTD system?" | omnifocus-manager | `gtd-queries.js --action system-health` |
+| "Show my folder structure" | omnifocus-manager | `gtd-queries.js --action folder-structure` |
 | "Create a perspective for stalled projects" | omnifocus-manager | Perspectives (Pillar 2) |
 | "Build a plugin to summarize work" | omnifocus-manager | Plugin generation (Pillar 4) |
 | "Analyze my tasks with AI" | omnifocus-manager | Foundation Models (Pillar 4) |
 | "My inbox has 47 items, help" | Both | gtd-coach for process, omnifocus-manager for queries |
 | "Help me do my weekly review" | Both | gtd-coach walks checklist, omnifocus-manager runs queries |
-| "Are my projects healthy?" | Both | gtd-coach for principles, omnifocus-manager for data |
+| "Are my projects healthy?" | Both | gtd-coach for principles, `gtd-queries.js --action system-health` for data |
 | "Improve my next action names" | Both | gtd-coach for clarity rules, omnifocus-manager to update |
 
 ## Routing Logic
@@ -133,12 +144,14 @@ For requests requiring both skills:
 
 ```
 1. [gtd-coach] Explain weekly review steps
-2. [omnifocus-manager] Run: osascript -l JavaScript scripts/manage_omnifocus.js list  → show inbox items
+2. [omnifocus-manager] osascript -l JavaScript scripts/gtd-queries.js --action inbox-count   → inbox size
 3. [gtd-coach] Guide inbox processing decisions
-4. [omnifocus-manager] Run: osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7  → show upcoming
+4. [omnifocus-manager] osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7  → upcoming tasks
 5. [gtd-coach] Guide project review
-6. [omnifocus-manager] Query stalled projects
-7. [gtd-coach] Prompt creative brainstorming
+6. [omnifocus-manager] osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects → stalled projects
+7. [omnifocus-manager] osascript -l JavaScript scripts/gtd-queries.js --action waiting-for     → aging waiting items
+8. [omnifocus-manager] osascript -l JavaScript scripts/gtd-queries.js --action system-health   → overall GTD health
+9. [gtd-coach] Prompt creative brainstorming based on health data
 ```
 
 **Example: Inbox Processing Flow**

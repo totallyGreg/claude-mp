@@ -16,6 +16,7 @@
  *     list       List tasks with optional filters
  *     today      Show tasks due or deferred to today
  *     due-soon   Show tasks due within N days
+ *     overdue    Show tasks past their due date
  *     flagged    Show all flagged tasks
  *     search     Search for tasks by name or note
  *
@@ -70,6 +71,8 @@ function run(argv) {
                 return getTodayTasks(app, args);
             case 'due-soon':
                 return getDueSoon(app, args);
+            case 'overdue':
+                return getOverdue(app, args);
             case 'flagged':
                 return getFlagged(app, args);
             case 'search':
@@ -558,6 +561,33 @@ function getDueSoon(app, args) {
     });
 }
 
+function getOverdue(app) {
+    const doc = app.defaultDocument;
+    const tasks = doc.flattenedTasks();
+    const now = new Date();
+    const overdueTasks = [];
+
+    tasks.forEach(task => {
+        if (task.completed() || task.dropped()) return;
+        const dueDate = task.dueDate();
+        if (dueDate && dueDate < now) {
+            overdueTasks.push(task);
+        }
+    });
+
+    const taskList = overdueTasks.map(task => {
+        const info = formatTaskInfo(task);
+        const daysOverdue = Math.floor((now - new Date(info.dueDate)) / (1000 * 60 * 60 * 24));
+        return { ...info, daysOverdue };
+    });
+
+    return JSON.stringify({
+        success: true,
+        count: taskList.length,
+        tasks: taskList
+    });
+}
+
 /**
  * Get all flagged tasks
  */
@@ -634,6 +664,7 @@ function formatTaskInfo(task) {
         flagged: task.flagged(),
         dueDate: task.dueDate() ? task.dueDate().toISOString() : null,
         deferDate: task.deferDate() ? task.deferDate().toISOString() : null,
+        completionDate: task.completionDate() ? task.completionDate().toISOString() : null,
         estimatedMinutes: task.estimatedMinutes(),
         project: project ? project.name() : 'Inbox',
         tags: tags

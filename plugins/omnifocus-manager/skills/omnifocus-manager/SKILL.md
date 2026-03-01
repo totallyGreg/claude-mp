@@ -1,13 +1,11 @@
 ---
 name: omnifocus-manager
 description: |
-  Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA).
+  This skill should be used when working with OmniFocus data, running GTD diagnostics, or generating OmniFocus plugins. Triggers when user asks "show tasks", "overdue items", "check inbox", "stalled projects", "waiting for list", "someday maybe", "GTD health check", "create a plugin", or "analyze OmniFocus". For pure GTD methodology coaching, use the gtd-coach skill instead.
 
-  WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries (taskMetrics, exportUtils, patterns) 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) CUSTOMIZE action files 6) VALIDATE via `bash scripts/validate-plugin.sh` 7) TEST in OmniFocus. TypeScript validation catches API errors. Manual creation creates broken plugins.
-
-  This skill should be used when working with OmniFocus data, creating or modifying tasks, analyzing task lists, searching for tasks, or automating OmniFocus workflows. Triggers when user mentions OmniFocus, tasks, projects, or asks to create, update, search, or analyze their task data. For pure GTD methodology coaching, use the gtd-coach skill instead.
+  WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 metadata:
-  version: 5.0.0
+  version: 5.1.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -146,10 +144,24 @@ For detailed mapping and automation commands, see `references/gtd_guide.md`.
 
 ### 1. Execute OmniFocus Operations
 
-**Query tasks (read data):**
+**GTD diagnostic queries (system health):**
+```bash
+osascript -l JavaScript scripts/gtd-queries.js --action inbox-count
+osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects
+osascript -l JavaScript scripts/gtd-queries.js --action waiting-for
+osascript -l JavaScript scripts/gtd-queries.js --action someday-maybe
+osascript -l JavaScript scripts/gtd-queries.js --action neglected-projects --threshold 30
+osascript -l JavaScript scripts/gtd-queries.js --action recently-completed --days 7
+osascript -l JavaScript scripts/gtd-queries.js --action folder-structure
+osascript -l JavaScript scripts/gtd-queries.js --action system-health
+```
+
+**Task queries (today/upcoming/flagged):**
 ```bash
 osascript -l JavaScript scripts/manage_omnifocus.js today
 osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7
+osascript -l JavaScript scripts/manage_omnifocus.js overdue
+osascript -l JavaScript scripts/manage_omnifocus.js flagged
 osascript -l JavaScript scripts/manage_omnifocus.js search --query "meeting"
 ```
 
@@ -311,6 +323,26 @@ open "omnifocus:///add?name=Task&autosave=true"
 osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7
 ```
 
+### "How's my GTD system?" / "Are my projects healthy?"
+```bash
+osascript -l JavaScript scripts/gtd-queries.js --action system-health
+```
+
+### "Which projects are stalled?" / "No next actions?"
+```bash
+osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects
+```
+
+### "What's in my Waiting For?" / "Aging waiting items?"
+```bash
+osascript -l JavaScript scripts/gtd-queries.js --action waiting-for
+```
+
+### "Show my someday/maybe list"
+```bash
+osascript -l JavaScript scripts/gtd-queries.js --action someday-maybe
+```
+
 ### "Analyze my tasks for patterns"
 Install `assets/AITaskAnalyzer.omnifocusjs` (OmniFocus 4.8+)
 
@@ -338,9 +370,10 @@ See `references/troubleshooting.md` for complete troubleshooting guide.
 
 ## Version Information
 
-**Current version:** 5.0.0
+**Current version:** 5.1.0
 
 **Recent changes:**
+- v5.1.0: Add gtd-queries.js with 8 GTD diagnostic actions; 7 new taskQuery project-level functions
 - v5.0.0: Split GTD coaching into gtd-coach skill, four-pillar architecture (#63)
 - v4.5.0: AITaskAnalyzer v3.4.0: dailyReview + weeklyReview actions (#62)
 - v4.4.0: Deterministic plugin generation workflow, Agent Skill compliance

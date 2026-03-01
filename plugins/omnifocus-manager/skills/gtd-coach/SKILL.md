@@ -1,18 +1,9 @@
 ---
 name: gtd-coach
 description: |
-  Pure Getting Things Done (GTD) methodology coaching — tool-agnostic productivity guidance.
-
-  This skill should be used when users ask about GTD principles, what makes a good next action,
-  project vs action distinctions, how to do a weekly review, capture-clarify-organize workflows,
-  horizons of focus, or general productivity methodology. Triggers on "GTD principles",
-  "what makes a good next action", "project vs action", "how to do weekly review",
-  "capture clarify organize", "horizons of focus", "mind like water", "open loops",
-  "someday maybe", "GTD coaching", "productivity methodology".
-
-  For OmniFocus-specific automation (queries, plugins, scripts), use the omnifocus-manager skill instead.
+  This skill should be used when users need GTD methodology coaching on productivity, workflow, or task management systems. Triggers when user asks "create a next action", "check my GTD system", "analyze my projects", "improve my workflow", "weekly review", "inbox zero", "someday maybe", or "GTD coaching". For OmniFocus-specific automation, use the omnifocus-manager skill instead.
 metadata:
-  version: 1.0.0
+  version: 1.1.0
   author: totally-tools
   license: MIT
 ---
@@ -185,6 +176,22 @@ A healthy GTD system shows these signs:
 - Overdue tasks accumulating
 - No regular review cadence
 - Vague task names throughout
+
+### Data-Grounded Coaching
+
+When using OmniFocus, ground coaching in actual data rather than assumptions. Use `gtd-queries.js` for deterministic answers at each coaching step:
+
+| Coaching Question | Command |
+|---|---|
+| "How many items in your inbox?" | `osascript -l JavaScript scripts/gtd-queries.js --action inbox-count` |
+| "Which projects are stalled?" | `osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects` |
+| "What's aging in Waiting For?" | `osascript -l JavaScript scripts/gtd-queries.js --action waiting-for` |
+| "Any someday/maybe to review?" | `osascript -l JavaScript scripts/gtd-queries.js --action someday-maybe` |
+| "Which projects are neglected?" | `osascript -l JavaScript scripts/gtd-queries.js --action neglected-projects` |
+| "What did you accomplish?" | `osascript -l JavaScript scripts/gtd-queries.js --action recently-completed` |
+| "Overall system health?" | `osascript -l JavaScript scripts/gtd-queries.js --action system-health` |
+
+Run commands from `plugins/omnifocus-manager/skills/omnifocus-manager/` directory. Use the returned data to make coaching specific and actionable rather than generic.
 
 ---
 

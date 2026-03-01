@@ -1,0 +1,303 @@
+#!/usr/bin/osascript -l JavaScript
+/**
+ * GTD Diagnostic Queries for OmniFocus
+ *
+ * Provides data-grounded answers to common GTD coaching questions.
+ * Designed for use by gtd-coach skill and omnifocus-agent during guided reviews.
+ *
+ * Usage:
+ *     osascript -l JavaScript scripts/gtd-queries.js --action <action> [options]
+ *
+ * Actions:
+ *     inbox-count          Count of unprocessed inbox items
+ *     stalled-projects     Active projects with no available next actions
+ *     waiting-for          Tasks tagged 'Waiting' sorted by age
+ *     someday-maybe        On-hold projects (Someday/Maybe list)
+ *     overdue              Tasks past their due date with days overdue
+ *     recently-completed   Tasks completed in the last N days
+ *     neglected-projects   Active projects not modified in N days
+ *     folder-structure     Folder/project hierarchy with task counts
+ *     system-health        Aggregated GTD system health summary
+ *
+ * Options:
+ *     --days <N>           Days for recently-completed lookback (default: 7)
+ *     --threshold <N>      Days without modification for neglected-projects (default: 30)
+ *     --tag <pattern>      Tag name pattern for waiting-for (default: 'waiting')
+ *
+ * Examples:
+ *     osascript -l JavaScript scripts/gtd-queries.js --action inbox-count
+ *     osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects
+ *     osascript -l JavaScript scripts/gtd-queries.js --action waiting-for --tag "waiting"
+ *     osascript -l JavaScript scripts/gtd-queries.js --action recently-completed --days 14
+ *     osascript -l JavaScript scripts/gtd-queries.js --action neglected-projects --threshold 30
+ *     osascript -l JavaScript scripts/gtd-queries.js --action system-health
+ *
+ * @version 1.0.0
+ */
+
+ObjC.import('stdlib');
+ObjC.import('Foundation');
+
+// ============================================================================
+// Library Loading
+// ============================================================================
+
+/**
+ * Load a JXA library relative to the current working directory.
+ * Run commands from the skills/omnifocus-manager/ root so paths resolve correctly.
+ */
+function loadLibrary(relativePath) {
+    const cwd = $.NSFileManager.defaultManager.currentDirectoryPath.js;
+    const libPath = cwd + '/' + relativePath;
+    const content = $.NSString.alloc.initWithContentsOfFileEncodingError(
+        libPath,
+        $.NSUTF8StringEncoding,
+        null
+    );
+
+    if (!content) {
+        throw new Error('Cannot load library: ' + libPath);
+    }
+
+    return eval(content.js);
+}
+
+// ============================================================================
+// Argument Parsing
+// ============================================================================
+
+function parseArgs(argv) {
+    const args = { action: 'help' };
+
+    for (let i = 0; i < argv.length; i++) {
+        const arg = argv[i];
+        if (arg === '--action' && i + 1 < argv.length) {
+            args.action = argv[++i];
+        } else if (arg === '--days' && i + 1 < argv.length) {
+            args.days = parseInt(argv[++i]) || 7;
+        } else if (arg === '--threshold' && i + 1 < argv.length) {
+            args.threshold = parseInt(argv[++i]) || 30;
+        } else if (arg === '--tag' && i + 1 < argv.length) {
+            args.tag = argv[++i];
+        }
+    }
+
+    return args;
+}
+
+// ============================================================================
+// Main Entry Point
+// ============================================================================
+
+function run(argv) {
+    try {
+        const taskQuery = loadLibrary('scripts/libraries/jxa/taskQuery.js');
+        const app = Application('OmniFocus');
+        const doc = app.defaultDocument;
+        const args = parseArgs(argv);
+
+        let result;
+        switch (args.action) {
+            case 'inbox-count':
+                result = getInboxCount(doc, taskQuery);
+                break;
+            case 'stalled-projects':
+                result = getStalledProjects(doc, taskQuery);
+                break;
+            case 'waiting-for':
+                result = getWaitingFor(doc, taskQuery, args.tag);
+                break;
+            case 'someday-maybe':
+                result = getSomedayMaybe(doc, taskQuery);
+                break;
+            case 'overdue':
+                result = getOverdueTasks(doc, taskQuery);
+                break;
+            case 'recently-completed':
+                result = getRecentlyCompleted(doc, taskQuery, args.days);
+                break;
+            case 'neglected-projects':
+                result = getNeglectedProjects(doc, taskQuery, args.threshold);
+                break;
+            case 'folder-structure':
+                result = getFolderStructure(doc, taskQuery);
+                break;
+            case 'system-health':
+                result = getSystemHealth(doc, taskQuery);
+                break;
+            case 'help':
+                result = getHelp();
+                break;
+            default:
+                result = { success: false, error: 'Unknown action: ' + args.action + '. Use --action help for usage.' };
+        }
+
+        return JSON.stringify(result, null, 2);
+    } catch (e) {
+        return JSON.stringify({ success: false, error: e.toString() });
+    }
+}
+
+// ============================================================================
+// Actions
+// ============================================================================
+
+function getInboxCount(doc, taskQuery) {
+    const items = taskQuery.getInboxTasks(doc);
+    return {
+        success: true,
+        action: 'inbox-count',
+        count: items.length,
+        items: items
+    };
+}
+
+function getStalledProjects(doc, taskQuery) {
+    const projects = taskQuery.getStalledProjects(doc);
+    return {
+        success: true,
+        action: 'stalled-projects',
+        count: projects.length,
+        projects: projects
+    };
+}
+
+function getWaitingFor(doc, taskQuery, tagPattern) {
+    const tasks = taskQuery.getWaitingForTasks(doc, tagPattern);
+    const agingCount = tasks.filter(function(t) { return t.ageDays !== null && t.ageDays > 30; }).length;
+    return {
+        success: true,
+        action: 'waiting-for',
+        count: tasks.length,
+        agingCount: agingCount,
+        tasks: tasks
+    };
+}
+
+function getSomedayMaybe(doc, taskQuery) {
+    const projects = taskQuery.getSomedayMaybeProjects(doc);
+    return {
+        success: true,
+        action: 'someday-maybe',
+        count: projects.length,
+        projects: projects
+    };
+}
+
+function getOverdueTasks(doc, taskQuery) {
+    const tasks = taskQuery.getOverdueTasks(doc);
+    const now = new Date();
+    const tasksWithAge = tasks.map(function(t) {
+        const daysOverdue = t.dueDate
+            ? Math.floor((now - new Date(t.dueDate)) / (1000 * 60 * 60 * 24))
+            : null;
+        return Object.assign({}, t, { daysOverdue: daysOverdue });
+    });
+    return {
+        success: true,
+        action: 'overdue',
+        count: tasksWithAge.length,
+        tasks: tasksWithAge
+    };
+}
+
+function getRecentlyCompleted(doc, taskQuery, days) {
+    const tasks = taskQuery.getRecentlyCompleted(doc, days);
+    return {
+        success: true,
+        action: 'recently-completed',
+        days: days || 7,
+        count: tasks.length,
+        tasks: tasks
+    };
+}
+
+function getNeglectedProjects(doc, taskQuery, threshold) {
+    const projects = taskQuery.getNeglectedProjects(doc, threshold);
+    return {
+        success: true,
+        action: 'neglected-projects',
+        thresholdDays: threshold || 30,
+        count: projects.length,
+        projects: projects
+    };
+}
+
+function getFolderStructure(doc, taskQuery) {
+    const folders = taskQuery.getFolderHierarchy(doc);
+    const totalProjects = folders.reduce(function(sum, f) { return sum + f.projectCount; }, 0);
+    const activeProjects = folders.reduce(function(sum, f) { return sum + f.activeProjectCount; }, 0);
+    return {
+        success: true,
+        action: 'folder-structure',
+        folderCount: folders.length,
+        totalProjects: totalProjects,
+        activeProjects: activeProjects,
+        folders: folders
+    };
+}
+
+function getSystemHealth(doc, taskQuery) {
+    const inbox = taskQuery.getInboxTasks(doc);
+    const stalled = taskQuery.getStalledProjects(doc);
+    const waiting = taskQuery.getWaitingForTasks(doc);
+    const overdue = taskQuery.getOverdueTasks(doc);
+    const neglected = taskQuery.getNeglectedProjects(doc);
+    const agingWaiting = waiting.filter(function(t) { return t.ageDays !== null && t.ageDays > 30; });
+
+    // Score: start at 10, deduct for each issue category
+    let score = 10;
+    if (inbox.length > 20) score -= 2;
+    else if (inbox.length > 10) score -= 1;
+    if (stalled.length > 5) score -= 2;
+    else if (stalled.length > 0) score -= 1;
+    if (agingWaiting.length > 0) score -= 1;
+    if (overdue.length > 10) score -= 2;
+    else if (overdue.length > 0) score -= 1;
+    if (neglected.length > 5) score -= 1;
+    score = Math.max(0, score);
+
+    return {
+        success: true,
+        action: 'system-health',
+        healthScore: score,
+        summary: {
+            inboxCount: inbox.length,
+            stalledProjects: stalled.length,
+            overdueCount: overdue.length,
+            agingWaitingCount: agingWaiting.length,
+            neglectedProjects: neglected.length
+        },
+        alerts: buildAlerts(inbox.length, stalled.length, overdue.length, agingWaiting.length, neglected.length)
+    };
+}
+
+function buildAlerts(inboxCount, stalledCount, overdueCount, agingWaitingCount, neglectedCount) {
+    const alerts = [];
+    if (inboxCount > 20) alerts.push({ severity: 'HIGH', message: inboxCount + ' items need processing in inbox' });
+    else if (inboxCount > 10) alerts.push({ severity: 'MEDIUM', message: inboxCount + ' items in inbox' });
+    if (stalledCount > 0) alerts.push({ severity: 'HIGH', message: stalledCount + ' active projects have no next actions' });
+    if (overdueCount > 10) alerts.push({ severity: 'HIGH', message: overdueCount + ' tasks are overdue' });
+    else if (overdueCount > 0) alerts.push({ severity: 'MEDIUM', message: overdueCount + ' tasks are overdue' });
+    if (agingWaitingCount > 0) alerts.push({ severity: 'MEDIUM', message: agingWaitingCount + ' waiting-for items older than 30 days' });
+    if (neglectedCount > 0) alerts.push({ severity: 'LOW', message: neglectedCount + ' active projects not touched in 30+ days' });
+    return alerts;
+}
+
+function getHelp() {
+    return {
+        success: true,
+        usage: 'osascript -l JavaScript scripts/gtd-queries.js --action <action> [options]',
+        actions: {
+            'inbox-count': 'Count of unprocessed inbox items',
+            'stalled-projects': 'Active projects with no available next actions',
+            'waiting-for': 'Tasks tagged Waiting sorted by age (--tag <pattern>)',
+            'someday-maybe': 'On-hold projects (Someday/Maybe list)',
+            'overdue': 'Tasks past their due date with days overdue',
+            'recently-completed': 'Tasks completed in last N days (--days <N>, default: 7)',
+            'neglected-projects': 'Active projects not modified in N days (--threshold <N>, default: 30)',
+            'folder-structure': 'Folder/project hierarchy with task counts',
+            'system-health': 'Aggregated GTD system health score and alerts'
+        }
+    };
+}

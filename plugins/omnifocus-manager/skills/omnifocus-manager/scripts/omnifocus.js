@@ -1,6 +1,9 @@
 #!/usr/bin/osascript -l JavaScript
 
 /**
+ * @deprecated Use manage_omnifocus.js instead — it is the canonical JXA CLI.
+ * This file is archived; manage_omnifocus.js covers all these capabilities.
+ *
  * OmniFocus CLI Tool with JSON I/O
  *
  * Modern command-line interface for OmniFocus automation using modular libraries.
