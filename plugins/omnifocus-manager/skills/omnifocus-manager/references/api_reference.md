@@ -150,24 +150,24 @@ if (tag) task.addTag(tag);
 
 **Review Interval (read/write):**
 ```javascript
-// JXA: Read review interval
-var ri = project.reviewInterval();  // { steps(), unit() }
-var steps = ri.steps();  // e.g. 3
-var unit = ri.unit();    // e.g. "months"
+// JXA: Read review interval — returns plain object with properties
+var ri = project.reviewInterval();  // { steps, unit, fixed }
+var steps = ri.steps;  // e.g. 1
+var unit = ri.unit;    // e.g. "week"
 
-// JXA: Write review interval
-var ri = project.reviewInterval();
-ri.steps = 1;
-ri.unit = "month";
+// JXA: Write review interval — must assign whole object (property mutation doesn't persist)
+project.reviewInterval = { steps: 1, unit: "month" };
 ```
 
 **Repeat Rule (read-only):**
 ```javascript
-// JXA: Read repeat rule (always null-check!)
+// JXA: Read repeat rule — returns plain object (always null-check!)
 var rule = project.repetitionRule();
 if (rule) {
-    var ruleString = rule.ruleString();    // e.g. "FREQ=WEEKLY;INTERVAL=1"
-    var schedType = rule.scheduleType();   // "fixed" | "due" | "completion"
+    var recurrence = rule.recurrence;              // e.g. "FREQ=DAILY"
+    var method = rule.repetitionMethod;            // e.g. "fixed"
+    var schedule = rule.repetitionSchedule;        // schedule type
+    var catchUp = rule.catchUpAutomatically;       // boolean
 }
 ```
 

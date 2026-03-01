@@ -154,7 +154,7 @@ function createTask(app, args) {
     let parent = null;
     if (args['parent-id']) {
         const parentResult = taskMutation.findParent(doc, args['parent-id']);
-        if (parentResult.error) {
+        if (typeof parentResult.error === 'string') {
             throw new Error(parentResult.message);
         }
         parent = parentResult;
@@ -532,7 +532,7 @@ function projectUpdate(app, args) {
     const doc = app.defaultDocument;
     const project = taskMutation.findProject(doc, args.id);
 
-    if (project.error) {
+    if (typeof project.error === 'string') {
         return JSON.stringify({ success: false, error: project.message });
     }
 

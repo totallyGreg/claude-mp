@@ -206,7 +206,7 @@
         // Find the task
         const taskResult = this.findTask(doc, taskIdentifier);
 
-        if (taskResult.error) {
+        if (typeof taskResult.error === 'string') {
             throw new Error(taskResult.message);
         }
 
@@ -294,7 +294,7 @@
         // Find the task
         const taskResult = this.findTask(doc, taskIdentifier);
 
-        if (taskResult.error) {
+        if (typeof taskResult.error === 'string') {
             throw new Error(taskResult.message);
         }
 
@@ -322,7 +322,7 @@
         // Find the task
         const taskResult = this.findTask(doc, taskIdentifier);
 
-        if (taskResult.error) {
+        if (typeof taskResult.error === 'string') {
             throw new Error(taskResult.message);
         }
 
@@ -350,7 +350,7 @@
         // Find the task
         const taskResult = this.findTask(doc, taskIdentifier);
 
-        if (taskResult.error) {
+        if (typeof taskResult.error === 'string') {
             throw new Error(taskResult.message);
         }
 
@@ -415,9 +415,9 @@
         var steps = parseInt(match[1]);
         var unit = match[2].toLowerCase();
 
-        var ri = project.reviewInterval();
-        ri.steps = steps;
-        ri.unit = unit;
+        // JXA: must assign the whole object — property mutation on the
+        // returned plain object does not persist back to OmniFocus
+        project.reviewInterval = { steps: steps, unit: unit };
     };
 
     /**

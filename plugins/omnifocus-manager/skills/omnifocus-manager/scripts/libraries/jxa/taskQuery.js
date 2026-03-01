@@ -502,15 +502,16 @@
         }
 
         // Build repeat rule info
+        // repetitionRule() returns a plain object with properties (not methods)
         var repeatRule = null;
         try {
             var rule = project.repetitionRule();
             if (rule) {
                 repeatRule = {
-                    ruleString: rule.ruleString(),
-                    scheduleType: rule.scheduleType ? rule.scheduleType() : null,
-                    catchUpAutomatically: rule.catchUpAutomatically ? rule.catchUpAutomatically() : null,
-                    anchorDateKey: rule.anchorDateKey ? rule.anchorDateKey() : null
+                    recurrence: rule.recurrence || null,
+                    repetitionMethod: rule.repetitionMethod || null,
+                    repetitionSchedule: rule.repetitionSchedule || null,
+                    catchUpAutomatically: rule.catchUpAutomatically || null
                 };
             }
         } catch (e) {
@@ -518,13 +519,14 @@
         }
 
         // Build review interval info
+        // reviewInterval() returns a plain object with properties (not methods)
         var reviewInterval = null;
         try {
             var ri = project.reviewInterval();
             if (ri) {
                 reviewInterval = {
-                    steps: ri.steps(),
-                    unit: ri.unit()
+                    steps: ri.steps,
+                    unit: ri.unit
                 };
             }
         } catch (e) {
