@@ -1,5 +1,7 @@
 # OmniFocus Insight Patterns
 
+> **GTD Methodology:** For pure GTD principles, coaching, and system health concepts, see the **gtd-coach** skill. This reference focuses on OmniFocus-specific pattern detection and automation.
+
 This reference documents common patterns to detect in OmniFocus data and what they reveal about task management health.
 
 ## Pattern Categories
