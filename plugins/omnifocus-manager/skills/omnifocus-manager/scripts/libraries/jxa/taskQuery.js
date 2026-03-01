@@ -261,5 +261,210 @@
         return matchingTasks.map(task => this.formatTaskInfo(task));
     };
 
+    /**
+     * Get inbox tasks (unprocessed capture items)
+     * @param {Document} doc - OmniFocus document
+     * @returns {Array<Object>} Array of inbox task objects
+     */
+    taskQuery.getInboxTasks = function(doc) {
+        const tasks = doc.inboxTasks();
+        return tasks
+            .filter(t => !t.completed())
+            .map(task => this.formatTaskInfo(task));
+    };
+
+    /**
+     * Get active projects with no available next actions (stalled)
+     * @param {Document} doc - OmniFocus document
+     * @param {number} limit - Max results (default: 50)
+     * @returns {Array<Object>} Array of stalled project objects
+     */
+    taskQuery.getStalledProjects = function(doc, limit) {
+        const cap = limit || 50;
+        const projects = doc.flattenedProjects();
+        const stalled = [];
+
+        projects.forEach(project => {
+            const status = project.status() ? project.status().toString() : '';
+            if (!status.includes('active')) return;
+
+            const allTasks = project.tasks();
+            if (allTasks.length === 0) return; // skip empty projects
+
+            if (project.numberOfAvailableTasks() === 0) {
+                stalled.push({
+                    id: project.id(),
+                    name: project.name(),
+                    status: status,
+                    totalTasks: allTasks.length,
+                    availableTasks: 0,
+                    modifiedDate: project.modificationDate() ? project.modificationDate().toISOString() : null
+                });
+            }
+        });
+
+        return stalled.slice(0, cap);
+    };
+
+    /**
+     * Get tasks tagged with a waiting-for tag, sorted by age (oldest first)
+     * @param {Document} doc - OmniFocus document
+     * @param {string} tagPattern - Tag name pattern to match (default: 'waiting')
+     * @returns {Array<Object>} Array of waiting tasks with ageDays field
+     */
+    taskQuery.getWaitingForTasks = function(doc, tagPattern) {
+        const pattern = (tagPattern || 'waiting').toLowerCase();
+        const tasks = doc.flattenedTasks();
+        const now = new Date();
+        const waitingTasks = [];
+
+        tasks.forEach(task => {
+            if (task.completed() || task.dropped()) return;
+            const hasWaitingTag = task.tags().some(tag => tag.name().toLowerCase().includes(pattern));
+            if (hasWaitingTag) {
+                const info = this.formatTaskInfo(task);
+                const creationDate = task.creationDate();
+                const ageDays = creationDate
+                    ? Math.floor((now - creationDate) / (1000 * 60 * 60 * 24))
+                    : null;
+                waitingTasks.push(Object.assign({}, info, { ageDays: ageDays }));
+            }
+        });
+
+        return waitingTasks.sort(function(a, b) { return (b.ageDays || 0) - (a.ageDays || 0); });
+    };
+
+    /**
+     * Get on-hold projects (Someday/Maybe candidates)
+     * @param {Document} doc - OmniFocus document
+     * @returns {Array<Object>} Array of on-hold project objects
+     */
+    taskQuery.getSomedayMaybeProjects = function(doc) {
+        const projects = doc.flattenedProjects();
+        const result = [];
+
+        projects.forEach(project => {
+            const status = project.status() ? project.status().toString() : '';
+            if (!status.includes('on hold')) return;
+
+            result.push({
+                id: project.id(),
+                name: project.name(),
+                status: status,
+                note: project.note() || null,
+                modifiedDate: project.modificationDate() ? project.modificationDate().toISOString() : null,
+                taskCount: project.tasks().length
+            });
+        });
+
+        return result;
+    };
+
+    /**
+     * Get recently completed tasks
+     * @param {Document} doc - OmniFocus document
+     * @param {number} days - How far back to look (default: 7)
+     * @param {number} limit - Max results (default: 100)
+     * @returns {Array<Object>} Array of completed task objects, newest first
+     */
+    taskQuery.getRecentlyCompleted = function(doc, days, limit) {
+        const lookback = days || 7;
+        const cap = limit || 100;
+        const tasks = doc.flattenedTasks();
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - lookback);
+        const completed = [];
+
+        tasks.forEach(task => {
+            if (!task.completed()) return;
+            const completionDate = task.completionDate();
+            if (completionDate && completionDate >= cutoffDate) {
+                completed.push(task);
+            }
+        });
+
+        completed.sort(function(a, b) {
+            const dateA = a.completionDate() ? a.completionDate().getTime() : 0;
+            const dateB = b.completionDate() ? b.completionDate().getTime() : 0;
+            return dateB - dateA;
+        });
+
+        return completed.slice(0, cap).map(task => this.formatTaskInfo(task));
+    };
+
+    /**
+     * Get active projects not modified in the last N days (neglected)
+     * @param {Document} doc - OmniFocus document
+     * @param {number} thresholdDays - Days without modification (default: 30)
+     * @returns {Array<Object>} Array of neglected project objects with daysSinceModified
+     */
+    taskQuery.getNeglectedProjects = function(doc, thresholdDays) {
+        const threshold = thresholdDays || 30;
+        const projects = doc.flattenedProjects();
+        const now = new Date();
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - threshold);
+        const neglected = [];
+
+        projects.forEach(project => {
+            const status = project.status() ? project.status().toString() : '';
+            if (!status.includes('active')) return;
+
+            const modDate = project.modificationDate();
+            if (!modDate || modDate < cutoffDate) {
+                const daysSinceModified = modDate
+                    ? Math.floor((now - modDate) / (1000 * 60 * 60 * 24))
+                    : null;
+                neglected.push({
+                    id: project.id(),
+                    name: project.name(),
+                    status: status,
+                    modifiedDate: modDate ? modDate.toISOString() : null,
+                    daysSinceModified: daysSinceModified,
+                    availableTasks: project.numberOfAvailableTasks(),
+                    totalTasks: project.tasks().length
+                });
+            }
+        });
+
+        return neglected.sort(function(a, b) {
+            return (b.daysSinceModified || 9999) - (a.daysSinceModified || 9999);
+        });
+    };
+
+    /**
+     * Get folder/project hierarchy for structural analysis
+     * @param {Document} doc - OmniFocus document
+     * @returns {Array<Object>} Array of folder objects with nested projects and task counts
+     */
+    taskQuery.getFolderHierarchy = function(doc) {
+        const folders = doc.folders();
+        const result = [];
+
+        folders.forEach(folder => {
+            const directProjects = folder.projects();
+            const projectSummaries = directProjects.map(function(project) {
+                const status = project.status() ? project.status().toString() : '';
+                return {
+                    id: project.id(),
+                    name: project.name(),
+                    status: status,
+                    availableTasks: project.numberOfAvailableTasks(),
+                    totalTasks: project.tasks().length
+                };
+            });
+
+            result.push({
+                id: folder.id(),
+                name: folder.name(),
+                projectCount: directProjects.length,
+                activeProjectCount: projectSummaries.filter(function(p) { return p.status.includes('active'); }).length,
+                projects: projectSummaries
+            });
+        });
+
+        return result;
+    };
+
     return taskQuery;
 })();
