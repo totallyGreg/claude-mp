@@ -89,7 +89,7 @@ Load: `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/SKILL.md`
 - **Pillar 4 — Plugins + FM:** Plugin generation, Apple Intelligence integration
 
 **Scripts:** `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/`
-- `manage_omnifocus.js` — task CRUD: create, complete, flag, due-soon, overdue, today, flagged
+- `manage_omnifocus.js` — task CRUD: create, complete, flag, due-soon, overdue, today, flagged; project inspection: project-info, project-update; batch operations: batch-update, create --parent-id
 - `gtd-queries.js` — GTD diagnostics: inbox-count, stalled-projects, waiting-for, someday-maybe, recently-completed, neglected-projects, folder-structure, system-health
 
 ## Intent Classification
@@ -115,6 +115,12 @@ Classify each user request and route accordingly:
 | "Any neglected projects?" | omnifocus-manager | `gtd-queries.js --action neglected-projects` |
 | "How's my GTD system?" | omnifocus-manager | `gtd-queries.js --action system-health` |
 | "Show my folder structure" | omnifocus-manager | `gtd-queries.js --action folder-structure` |
+| "Show project details / subtasks" | omnifocus-manager | `manage_omnifocus.js project-info --name "Project"` |
+| "What's the review interval?" | omnifocus-manager | `manage_omnifocus.js project-info --id <id>` |
+| "Change review interval to monthly" | omnifocus-manager | `manage_omnifocus.js project-update --id <id> --review-interval 1month` |
+| "Make project sequential/parallel" | omnifocus-manager | `manage_omnifocus.js project-update --id <id> --sequential` |
+| "Add subtask to project" | omnifocus-manager | `manage_omnifocus.js create --parent-id <id> --name "Task"` |
+| "Clear defer dates on these tasks" | omnifocus-manager | `manage_omnifocus.js batch-update --ids id1,id2 --defer clear` |
 | "Create a perspective for stalled projects" | omnifocus-manager | Perspectives (Pillar 2) |
 | "Build a plugin to summarize work" | omnifocus-manager | Plugin generation (Pillar 4) |
 | "Analyze my tasks with AI" | omnifocus-manager | Foundation Models (Pillar 4) |
