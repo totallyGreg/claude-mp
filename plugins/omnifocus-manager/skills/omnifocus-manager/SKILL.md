@@ -1,11 +1,11 @@
 ---
 name: omnifocus-manager
 description: |
-  This skill should be used when working with OmniFocus data, running GTD diagnostics, or generating OmniFocus plugins. Triggers when user asks "show tasks", "overdue items", "check inbox", "stalled projects", "waiting for list", "someday maybe", "GTD health check", "create a plugin", or "analyze OmniFocus". For pure GTD methodology coaching, use the gtd-coach skill instead.
+  This skill should be used when working with OmniFocus data, running GTD diagnostics, or generating OmniFocus plugins. Triggers when user asks "show tasks", "overdue items", "check inbox", "stalled projects", "waiting for list", "someday maybe", "GTD health check", "create a plugin", "analyze OmniFocus", "AI Agent tasks", or "publish plan to OmniFocus". For pure GTD methodology coaching, use the gtd-coach skill instead.
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 metadata:
-  version: 5.4.2
+  version: 6.0.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -192,6 +192,16 @@ osascript -l JavaScript scripts/manage_omnifocus.js project-update --id lz6kHB1a
 
 # Batch update (clear defer/due dates across multiple tasks)
 osascript -l JavaScript scripts/manage_omnifocus.js batch-update --ids id1,id2,id3 --defer clear --due clear
+```
+
+**AI Agent project management:**
+```bash
+# Query all AI Agent-tagged projects with progress
+osascript -l JavaScript scripts/gtd-queries.js --action ai-agent-tasks
+osascript -l JavaScript scripts/gtd-queries.js --action ai-agent-tasks --child-tag "Claude Code"
+
+# Bulk-create a project from JSON (used by /of:plan command)
+osascript -l JavaScript scripts/manage_omnifocus.js bulk-create --json-file /tmp/plan.json
 ```
 
 See `references/jxa_guide.md` for complete JXA reference.

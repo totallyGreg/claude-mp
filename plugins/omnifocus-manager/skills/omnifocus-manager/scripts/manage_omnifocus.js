@@ -103,6 +103,8 @@ function run(argv) {
                 return projectUpdate(app, args);
             case 'batch-update':
                 return batchUpdate(app, args);
+            case 'bulk-create':
+                return bulkCreate(app, args);
             case 'help':
                 return printHelp();
             default:
@@ -630,6 +632,150 @@ function batchUpdate(app, args) {
 }
 
 /**
+ * Bulk-create a project with action groups and tasks from a JSON structure.
+ *
+ * JSON structure (via --json-file <path>):
+ * {
+ *   "project": "Project Name",
+ *   "note": "Optional project note",
+ *   "tags": ["AI Agent", "Claude Code"],  // applied as nested tags
+ *   "sequential": false,
+ *   "groups": [
+ *     {
+ *       "name": "Phase 1: Setup",
+ *       "sequential": true,
+ *       "tasks": [
+ *         { "name": "Task 1", "note": "optional" },
+ *         { "name": "Task 2" }
+ *       ]
+ *     }
+ *   ]
+ * }
+ *
+ * Returns a mapping of task names to OmniFocus IDs for the mapping file.
+ */
+function bulkCreate(app, args) {
+    var doc = app.defaultDocument;
+
+    if (!args['json-file']) {
+        throw new Error('--json-file <path> is required for bulk-create');
+    }
+
+    // Read JSON file
+    var jsonPath = args['json-file'];
+    var jsonContent = $.NSString.alloc.initWithContentsOfFileEncodingError(
+        jsonPath, $.NSUTF8StringEncoding, null
+    );
+    if (!jsonContent) {
+        throw new Error('Cannot read JSON file: ' + jsonPath);
+    }
+    var spec = JSON.parse(jsonContent.js);
+
+    if (!spec.project) {
+        throw new Error('JSON must include a "project" field');
+    }
+
+    // Check for existing project with same name
+    var existingProjects = doc.flattenedProjects.whose({ name: spec.project });
+    if (existingProjects.length > 0) {
+        return JSON.stringify({
+            success: false,
+            error: 'Project already exists: ' + spec.project + '. Use a different name or delete the existing project.',
+            existingProjectId: existingProjects[0].id()
+        });
+    }
+
+    // Create the project
+    var project = app.defaultDocument.Project({ name: spec.project });
+    if (spec.sequential !== undefined) {
+        project.sequential = spec.sequential;
+    }
+    doc.projects.push(project);
+
+    // Set project note
+    if (spec.note) {
+        project.note = spec.note;
+    }
+
+    // Create and apply tags (support nested tags like ["AI Agent", "Claude Code"])
+    var tagsToApply = [];
+    if (spec.tags && spec.tags.length > 0) {
+        // Build nested tag path and apply the leaf tag
+        var leafTag = taskMutation.findOrCreateNestedTag(app, doc, spec.tags, true);
+        if (leafTag) tagsToApply.push(leafTag);
+
+        // Also apply the parent tag if there are multiple levels
+        if (spec.tags.length > 1) {
+            var parentTag = taskMutation.findOrCreateTag(app, doc, spec.tags[0], true);
+            if (parentTag) tagsToApply.push(parentTag);
+        }
+    }
+
+    // Apply tags to project
+    for (var t = 0; t < tagsToApply.length; t++) {
+        project.addTag(tagsToApply[t]);
+    }
+
+    // Create groups and tasks, collect ID mapping
+    var taskMapping = {};
+    var createdCount = 0;
+
+    if (spec.groups && spec.groups.length > 0) {
+        for (var g = 0; g < spec.groups.length; g++) {
+            var group = spec.groups[g];
+
+            // Create action group (a task that contains subtasks)
+            var groupTask = app.Task({ name: group.name });
+            project.tasks.push(groupTask);
+
+            if (group.sequential !== undefined) {
+                // Note: in OmniFocus, task-level sequential ordering is set
+                // by making the containing entity sequential
+                // For action groups, we set it on the group task itself
+            }
+
+            // Apply tags to group task
+            for (var gt = 0; gt < tagsToApply.length; gt++) {
+                groupTask.addTag(tagsToApply[gt]);
+            }
+
+            taskMapping[group.name] = groupTask.id();
+            createdCount++;
+
+            // Create subtasks within the group
+            if (group.tasks) {
+                for (var ti = 0; ti < group.tasks.length; ti++) {
+                    var taskSpec = group.tasks[ti];
+                    var taskProps = { name: taskSpec.name };
+                    if (taskSpec.note) taskProps.note = taskSpec.note;
+
+                    var subtask = app.Task(taskProps);
+                    groupTask.tasks.push(subtask);
+
+                    // Apply tags to each subtask
+                    for (var st = 0; st < tagsToApply.length; st++) {
+                        subtask.addTag(tagsToApply[st]);
+                    }
+
+                    taskMapping[taskSpec.name] = subtask.id();
+                    createdCount++;
+                }
+            }
+        }
+    }
+
+    return JSON.stringify({
+        success: true,
+        message: 'Created project with ' + createdCount + ' tasks',
+        project: {
+            id: project.id(),
+            name: project.name()
+        },
+        taskMapping: taskMapping
+    });
+}
+
+/**
  * Print help information
  */
 function printHelp() {
@@ -647,6 +793,7 @@ Actions:
       delete         Delete a task
       info           Get task information
       batch-update   Batch update multiple tasks by ID
+      bulk-create    Create project with action groups from JSON file
 
     Project Management:
       project-info   Get project details (subtasks, repeat rule, review interval)
@@ -697,6 +844,9 @@ Batch-update Options:
     --ids <id1,id2,...>    Comma-separated task IDs
     --due <date|clear>     Set or clear due date
     --defer <date|clear>   Set or clear defer date
+
+Bulk-create Options:
+    --json-file <path>     Path to JSON file with project structure
 
 Examples:
     # Create a simple task

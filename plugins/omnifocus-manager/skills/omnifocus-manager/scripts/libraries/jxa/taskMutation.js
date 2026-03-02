@@ -66,6 +66,52 @@
     };
 
     /**
+     * Find or create a nested tag (parent/child hierarchy)
+     * @param {Application} app - OmniFocus application
+     * @param {Document} doc - OmniFocus document
+     * @param {string[]} tagPath - Array of tag names from parent to child, e.g. ["AI Agent", "Claude Code"]
+     * @param {boolean} createIfMissing - Create tags if they don't exist
+     * @returns {Tag|null} The deepest (leaf) tag, or null if not found and createIfMissing is false
+     */
+    taskMutation.findOrCreateNestedTag = function(app, doc, tagPath, createIfMissing = false) {
+        if (!tagPath || tagPath.length === 0) return null;
+
+        var currentParent = null;
+        var currentTag = null;
+
+        for (var i = 0; i < tagPath.length; i++) {
+            var tagName = tagPath[i];
+
+            if (i === 0) {
+                // Top-level tag: search in doc.flattenedTags
+                var topTags = doc.flattenedTags.whose({ name: tagName });
+                if (topTags.length > 0) {
+                    currentTag = topTags[0];
+                } else if (createIfMissing) {
+                    currentTag = app.Tag({ name: tagName });
+                    doc.tags.push(currentTag);
+                } else {
+                    return null;
+                }
+            } else {
+                // Child tag: search in currentTag.tags
+                var childTags = currentTag.tags.whose({ name: tagName });
+                if (childTags.length > 0) {
+                    currentTag = childTags[0];
+                } else if (createIfMissing) {
+                    var newChild = app.Tag({ name: tagName });
+                    currentTag.tags.push(newChild);
+                    currentTag = newChild;
+                } else {
+                    return null;
+                }
+            }
+        }
+
+        return currentTag;
+    };
+
+    /**
      * Find a task by name or ID
      * @param {Document} doc - OmniFocus document
      * @param {string} nameOrId - Task name or ID
