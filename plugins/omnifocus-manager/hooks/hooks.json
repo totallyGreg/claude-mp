@@ -1,0 +1,17 @@
+{
+  "description": "Sync Claude Code task completions to OmniFocus AI Agent projects",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "TaskUpdate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/omnifocus-task-sync.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
