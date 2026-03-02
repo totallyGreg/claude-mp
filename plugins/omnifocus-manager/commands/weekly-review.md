@@ -1,6 +1,6 @@
 ---
 description: Full GTD weekly review — saves report to clipboard and OmniFocus note
-allowed-tools: Bash(bash:*), Bash(date:*), Bash(osascript:*), Bash(pbcopy:*), Write
+allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/weekly-review-collect.sh), Bash(date:*), Bash(osascript:*), Bash(pbcopy:*), Write
 ---
 
 <!--
@@ -13,7 +13,7 @@ Weekly Review command.
 Today: !`date "+%A, %B %-d, %Y"`
 
 OmniFocus data (5 queries run in parallel):
-!`bash "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/weekly-review-collect.sh"`
+!`"${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/weekly-review-collect.sh"`
 
 Using ALL data above in a single analysis pass, generate a complete GTD Weekly Review report in markdown.
 

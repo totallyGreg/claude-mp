@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 5.4.3 | 2026-03-01 | - | Fix /weekly-review: use direct script execution + CLAUDE_PLUGIN_ROOT pattern for allowed-tools | - | - | - | - | - |
 | 5.4.0 | 2026-03-01 | - | Add /weekly-review command: parallel data collection, clipboard + OmniFocus note output | 62 | 67 | 90 | 100 | 82 |
 | 5.3.0 | 2026-03-01 | #68 | Add project-info, project-update, batch-update commands; create --parent-id | 62 | 67 | 90 | 100 | 82 |
 | 5.2.0 | 2026-03-01 | - | Unify manage_omnifocus.js with JXA library; delete omnifocus.js + query_omnifocus.py | 68 | 71 | 90 | 100 | 84 |
