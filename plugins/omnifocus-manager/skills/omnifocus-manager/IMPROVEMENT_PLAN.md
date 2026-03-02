@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 6.0.0 | 2026-03-02 | [#73](https://github.com/totallyGreg/claude-mp/issues/73) | /of:plan, /of:work commands + task-sync hook; nested tags, bulk-create, ai-agent-tasks | 55 | 64 | 90 | 100 | 80 |
 | 5.5.0 | 2026-03-02 | #71 | Fix weekly-review CWD bug; standardize loadLibrary docs + Script Conventions in SKILL.md; add test-queries.sh smoke test | - | - | - | - | - |
 | 5.4.3 | 2026-03-01 | - | Fix /weekly-review: use direct script execution + CLAUDE_PLUGIN_ROOT pattern for allowed-tools | - | - | - | - | - |
 | 5.4.0 | 2026-03-01 | - | Add /weekly-review command: parallel data collection, clipboard + OmniFocus note output | 62 | 67 | 90 | 100 | 82 |
@@ -42,7 +43,7 @@
   - ~~Pillar 1: Query~~ — Done (v5.1.0, PR #66, gtd-queries.js + taskQuery project functions)
   - **Pillar 2: Perspectives** — programmatic perspective creation from plain English (next)
 
-- [#73](https://github.com/totallyGreg/claude-mp/issues/73): /of:plan and /of:work commands + task-sync hook (In Progress)
+- ~~[#73](https://github.com/totallyGreg/claude-mp/issues/73): /of:plan and /of:work commands + task-sync hook~~ — Done (v6.0.0)
 
 See GitHub Issues for detailed plans and task checklists.
 

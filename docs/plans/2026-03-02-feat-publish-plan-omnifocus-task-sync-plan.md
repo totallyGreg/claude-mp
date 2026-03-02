@@ -1,7 +1,7 @@
 ---
 title: "feat: /of:plan and /of:work commands + OmniFocus task-sync hook"
 type: feat
-status: active
+status: completed
 date: 2026-03-02
 origin: docs/brainstorms/2026-03-02-omnifocus-plan-storage-brainstorm.md
 labels: plugin:omnifocus-manager
@@ -292,7 +292,7 @@ This is the **first hook** in the entire repo. Precedent matters:
 - [x] `components.hooks` added to `plugin.json`
 - [x] Nested tag creation tested (AI Agent / Claude Code)
 - [x] Smoke test updated (`test-queries.sh`) for new actions
-- [ ] SKILL.md updated with new capabilities
+- [x] SKILL.md updated with new capabilities
 
 ## Implementation Phases
 
