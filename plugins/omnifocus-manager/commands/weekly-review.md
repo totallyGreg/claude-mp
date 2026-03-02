@@ -1,6 +1,6 @@
 ---
 description: Full GTD weekly review — saves report to clipboard and OmniFocus note
-allowed-tools: Bash(osascript:*), Bash(pbcopy:*), Write
+allowed-tools: Bash(bash:*), Bash(date:*), Bash(osascript:*), Bash(pbcopy:*), Write
 ---
 
 <!--
