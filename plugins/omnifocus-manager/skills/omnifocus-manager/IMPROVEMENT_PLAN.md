@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 5.4.0 | 2026-03-01 | - | Add /weekly-review command: parallel data collection, clipboard + OmniFocus note output | 62 | 67 | 90 | 100 | 82 |
 | 5.3.0 | 2026-03-01 | #68 | Add project-info, project-update, batch-update commands; create --parent-id | 62 | 67 | 90 | 100 | 82 |
 | 5.2.0 | 2026-03-01 | - | Unify manage_omnifocus.js with JXA library; delete omnifocus.js + query_omnifocus.py | 68 | 71 | 90 | 100 | 84 |
 | 5.1.0 | 2026-02-28 | #63 | Add gtd-queries.js (8 GTD diagnostic actions) + 7 new taskQuery project functions | 68 | 71 | 90 | 100 | 84 |
