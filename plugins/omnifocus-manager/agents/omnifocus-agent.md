@@ -1,63 +1,49 @@
 ---
 name: omnifocus-agent
 description: |
+  IMPORTANT: This is an AGENT, not a skill. Invoke via the Agent tool with
+  subagent_type="omnifocus-manager:omnifocus-agent". Do NOT use the Skill tool.
+
   Use this agent for OmniFocus task management and GTD coaching workflows. Routes between
   omnifocus-manager (execution, queries, plugins) and gtd-coach (methodology) based on user intent.
 
   <example>
   Context: User asks about GTD methodology
   user: "What makes a good next action?"
-  assistant: "I'll use the omnifocus-agent to provide GTD coaching on next action clarity."
+  assistant: "I'll use the Agent tool with subagent_type omnifocus-manager:omnifocus-agent to provide GTD coaching on next action clarity."
   <commentary>
-  Pure GTD question → routes to gtd-coach skill only. No OmniFocus automation needed.
+  Invoke via Agent tool, NOT Skill tool. Pure GTD question → routes to gtd-coach skill only. No OmniFocus automation needed.
   </commentary>
   </example>
 
   <example>
   Context: User wants to query OmniFocus
   user: "Show me my overdue tasks"
-  assistant: "I'll use the omnifocus-agent to query your OmniFocus database."
+  assistant: "I'll use the Agent tool with subagent_type omnifocus-manager:omnifocus-agent to query your OmniFocus database."
   <commentary>
-  OmniFocus query → routes to omnifocus-manager skill only. Runs JXA script.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs both coaching and execution
-  user: "My inbox has 47 items, help me process them"
-  assistant: "I'll use the omnifocus-agent to walk you through inbox processing with GTD coaching and OmniFocus automation."
-  <commentary>
-  Mixed workflow → gtd-coach for processing methodology, then omnifocus-manager for execution.
+  Invoke via Agent tool, NOT Skill tool. OmniFocus query → routes to omnifocus-manager skill only. Runs JXA script.
   </commentary>
   </example>
 
   <example>
   Context: User wants to do weekly review
   user: "Help me do my weekly review"
-  assistant: "I'll use the omnifocus-agent to guide your weekly review with GTD methodology and OmniFocus queries."
+  assistant: "I'll use the Agent tool with subagent_type omnifocus-manager:omnifocus-agent to guide the weekly review with GTD methodology and OmniFocus queries."
   <commentary>
-  Weekly review → gtd-coach walks the checklist, omnifocus-manager runs queries at each step.
+  Invoke via Agent tool, NOT Skill tool. Mixed workflow → gtd-coach walks the checklist, omnifocus-manager runs queries at each step.
   </commentary>
   </example>
 
   <example>
   Context: User wants to create an OmniFocus plugin
   user: "Build a plugin to summarize my completed work"
-  assistant: "I'll use the omnifocus-agent to generate the plugin using the plugin workflow."
+  assistant: "I'll use the Agent tool with subagent_type omnifocus-manager:omnifocus-agent to generate the plugin using the plugin workflow."
   <commentary>
-  Plugin generation → routes to omnifocus-manager skill (Pillar 4). Follows CRITICAL workflow.
+  Invoke via Agent tool, NOT Skill tool. Plugin generation → routes to omnifocus-manager skill (Pillar 4). Follows CRITICAL workflow.
   </commentary>
   </example>
 
-  <example>
-  Context: User wants to create a perspective
-  user: "Create a perspective showing stalled projects"
-  assistant: "I'll use the omnifocus-agent to help create a custom perspective."
-  <commentary>
-  Perspective creation → routes to omnifocus-manager skill (Pillar 2).
-  </commentary>
-  </example>
-
+model: inherit
 tools: ["Read", "Bash", "Grep", "Glob", "Edit", "Write"]
 color: blue
 ---

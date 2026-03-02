@@ -1,6 +1,6 @@
 {
   "name": "omnifocus-manager",
-  "version": "5.3.0",
+  "version": "5.3.1",
   "description": "Query and manage OmniFocus tasks through database queries and JavaScript for Automation (JXA), with GTD methodology coaching.",
   "author": {
     "name": "J. Greg Williams",
