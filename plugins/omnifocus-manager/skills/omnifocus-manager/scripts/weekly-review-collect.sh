@@ -14,20 +14,20 @@
 
 set -uo pipefail
 
-# cd to scripts dir so JXA library loading (relative to CWD) works correctly
+# cd to skill root (parent of scripts/) so gtd-queries.js library paths resolve correctly
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPTS_DIR"
+cd "$(dirname "$SCRIPTS_DIR")"
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
 # Run all queries in parallel — background each osascript call
-osascript -l JavaScript gtd-queries.js --action inbox-count      > "$TMP/inbox.json"     2>&1 &
-osascript -l JavaScript gtd-queries.js --action overdue          > "$TMP/overdue.json"   2>&1 &
-osascript -l JavaScript gtd-queries.js --action waiting-for      > "$TMP/waiting.json"   2>&1 &
-osascript -l JavaScript gtd-queries.js --action stalled-projects > "$TMP/stalled.json"   2>&1 &
-osascript -l JavaScript gtd-queries.js --action recently-completed --days 7 \
-                                                                 > "$TMP/completed.json" 2>&1 &
+osascript -l JavaScript scripts/gtd-queries.js --action inbox-count      > "$TMP/inbox.json"     2>&1 &
+osascript -l JavaScript scripts/gtd-queries.js --action overdue          > "$TMP/overdue.json"   2>&1 &
+osascript -l JavaScript scripts/gtd-queries.js --action waiting-for      > "$TMP/waiting.json"   2>&1 &
+osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects > "$TMP/stalled.json"   2>&1 &
+osascript -l JavaScript scripts/gtd-queries.js --action recently-completed --days 7 \
+                                                                          > "$TMP/completed.json" 2>&1 &
 wait
 
 # Combine into a single JSON envelope
