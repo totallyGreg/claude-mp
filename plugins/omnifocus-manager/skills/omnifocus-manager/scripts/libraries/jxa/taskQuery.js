@@ -262,6 +262,143 @@
     };
 
     /**
+     * Search for tasks by tag name, including child tags
+     * @param {Document} doc - OmniFocus document
+     * @param {string} tagName - Tag name to search for (matches parent or child tags)
+     * @param {Object} options - Query options
+     * @param {string} options.childTag - Optional child tag filter
+     * @param {boolean} options.includeCompleted - Include completed tasks (default: false)
+     * @returns {Array<Object>} Array of tasks grouped by project with progress info
+     */
+    taskQuery.searchTasksByTag = function(doc, tagName, options) {
+        options = options || {};
+        var includeCompleted = options.includeCompleted || false;
+        var childTag = options.childTag || null;
+
+        // Find the tag (and all child tags)
+        var parentTag = doc.flattenedTags.whose({ name: tagName })[0];
+        if (!parentTag) return [];
+
+        // Collect tag IDs to match against (parent + all children)
+        var matchTagIds = [parentTag.id()];
+        try {
+            var childTags = parentTag.flattenedTags();
+            for (var c = 0; c < childTags.length; c++) {
+                if (childTag && childTags[c].name() !== childTag) continue;
+                matchTagIds.push(childTags[c].id());
+            }
+        } catch (e) {
+            // No child tags
+        }
+
+        // If filtering by child tag and it wasn't found, return empty
+        if (childTag) {
+            var found = false;
+            try {
+                var ct = parentTag.flattenedTags.whose({ name: childTag });
+                if (ct.length > 0) found = true;
+            } catch (e) {}
+            if (!found) return [];
+        }
+
+        // Find all tasks with any of the matching tags
+        var tasks = doc.flattenedTasks();
+        var matchingTasks = [];
+
+        for (var i = 0; i < tasks.length; i++) {
+            var task = tasks[i];
+            if (!includeCompleted && task.completed()) continue;
+            if (task.dropped()) continue;
+
+            var taskTags = task.tags();
+            for (var j = 0; j < taskTags.length; j++) {
+                if (matchTagIds.indexOf(taskTags[j].id()) !== -1) {
+                    matchingTasks.push(task);
+                    break;
+                }
+            }
+        }
+
+        return matchingTasks.map(function(task) { return this.formatTaskInfo(task); }.bind(this));
+    };
+
+    /**
+     * Get tasks by tag, grouped by project with completion progress
+     * @param {Document} doc - OmniFocus document
+     * @param {string} tagName - Tag name to search for
+     * @param {Object} options - Query options
+     * @param {string} options.childTag - Optional child tag filter
+     * @returns {Array<Object>} Array of project objects with tasks and progress
+     */
+    taskQuery.getTasksByTagGrouped = function(doc, tagName, options) {
+        options = options || {};
+
+        // Find the tag
+        var parentTag = doc.flattenedTags.whose({ name: tagName })[0];
+        if (!parentTag) return [];
+
+        // Collect tag IDs to match against
+        var matchTagIds = [parentTag.id()];
+        var childTag = options.childTag || null;
+        try {
+            var childTags = parentTag.flattenedTags();
+            for (var c = 0; c < childTags.length; c++) {
+                if (childTag && childTags[c].name() !== childTag) continue;
+                matchTagIds.push(childTags[c].id());
+            }
+        } catch (e) {}
+
+        // Find all tasks (including completed) with matching tags
+        var tasks = doc.flattenedTasks();
+        var projectMap = {};
+
+        for (var i = 0; i < tasks.length; i++) {
+            var task = tasks[i];
+            if (task.dropped()) continue;
+
+            var taskTags = task.tags();
+            var hasTag = false;
+            for (var j = 0; j < taskTags.length; j++) {
+                if (matchTagIds.indexOf(taskTags[j].id()) !== -1) {
+                    hasTag = true;
+                    break;
+                }
+            }
+            if (!hasTag) continue;
+
+            var project = task.containingProject();
+            var projectName = project ? project.name() : 'No Project';
+            var projectId = project ? project.id() : 'none';
+
+            if (!projectMap[projectId]) {
+                projectMap[projectId] = {
+                    id: projectId,
+                    name: projectName,
+                    tasks: [],
+                    completedCount: 0,
+                    totalCount: 0
+                };
+            }
+
+            projectMap[projectId].tasks.push(this.formatTaskInfo(task));
+            projectMap[projectId].totalCount++;
+            if (task.completed()) {
+                projectMap[projectId].completedCount++;
+            }
+        }
+
+        // Convert to array and add progress string
+        var result = [];
+        for (var key in projectMap) {
+            var p = projectMap[key];
+            p.progress = p.completedCount + '/' + p.totalCount + ' complete';
+            result.push(p);
+        }
+
+        return result;
+    };
+
+    /**
      * Get inbox tasks (unprocessed capture items)
      * @param {Document} doc - OmniFocus document
      * @returns {Array<Object>} Array of inbox task objects

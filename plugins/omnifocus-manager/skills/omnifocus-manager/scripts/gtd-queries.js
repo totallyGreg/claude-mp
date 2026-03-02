@@ -76,6 +76,8 @@ function parseArgs(argv) {
             args.threshold = parseInt(argv[++i]) || 30;
         } else if (arg === '--tag' && i + 1 < argv.length) {
             args.tag = argv[++i];
+        } else if (arg === '--child-tag' && i + 1 < argv.length) {
+            args.childTag = argv[++i];
         }
     }
 
@@ -121,6 +123,9 @@ function run(argv) {
                 break;
             case 'system-health':
                 result = getSystemHealth(doc, taskQuery);
+                break;
+            case 'ai-agent-tasks':
+                result = getAIAgentTasks(doc, taskQuery, args.tag || 'AI Agent', args.childTag);
                 break;
             case 'help':
                 result = getHelp();
@@ -269,6 +274,31 @@ function getSystemHealth(doc, taskQuery) {
     };
 }
 
+function getAIAgentTasks(doc, taskQuery, tagName, childTag) {
+    var options = {};
+    if (childTag) options.childTag = childTag;
+
+    var grouped = taskQuery.getTasksByTagGrouped(doc, tagName, options);
+    var totalTasks = 0;
+    var completedTasks = 0;
+    for (var i = 0; i < grouped.length; i++) {
+        totalTasks += grouped[i].totalCount;
+        completedTasks += grouped[i].completedCount;
+    }
+
+    return {
+        success: true,
+        action: 'ai-agent-tasks',
+        tag: tagName,
+        childTag: childTag || null,
+        projectCount: grouped.length,
+        totalTasks: totalTasks,
+        completedTasks: completedTasks,
+        progress: completedTasks + '/' + totalTasks + ' complete',
+        projects: grouped
+    };
+}
+
 function buildAlerts(inboxCount, stalledCount, overdueCount, agingWaitingCount, neglectedCount) {
     const alerts = [];
     if (inboxCount > 20) alerts.push({ severity: 'HIGH', message: inboxCount + ' items need processing in inbox' });
@@ -294,7 +324,8 @@ function getHelp() {
             'recently-completed': 'Tasks completed in last N days (--days <N>, default: 7)',
             'neglected-projects': 'Active projects not modified in N days (--threshold <N>, default: 30)',
             'folder-structure': 'Folder/project hierarchy with task counts',
-            'system-health': 'Aggregated GTD system health score and alerts'
+            'system-health': 'Aggregated GTD system health score and alerts',
+            'ai-agent-tasks': 'Tasks tagged AI Agent grouped by project with progress (--tag <name>, --child-tag <name>)'
         }
     };
 }

@@ -42,6 +42,8 @@
   - ~~Pillar 1: Query~~ — Done (v5.1.0, PR #66, gtd-queries.js + taskQuery project functions)
   - **Pillar 2: Perspectives** — programmatic perspective creation from plain English (next)
 
+- [#73](https://github.com/totallyGreg/claude-mp/issues/73): /of:plan and /of:work commands + task-sync hook (In Progress)
+
 See GitHub Issues for detailed plans and task checklists.
 
 ## Known Issues

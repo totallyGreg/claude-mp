@@ -62,8 +62,9 @@ done
 
 # Phase 2: Live OmniFocus queries (requires OmniFocus running with Automation permission)
 echo "  Live OmniFocus queries:"
-run_test "gtd-queries.js system-health"   scripts/gtd-queries.js    --action system-health
-run_test "manage_omnifocus.js today"      scripts/manage_omnifocus.js today
+run_test "gtd-queries.js system-health"     scripts/gtd-queries.js    --action system-health
+run_test "gtd-queries.js ai-agent-tasks"    scripts/gtd-queries.js    --action ai-agent-tasks
+run_test "manage_omnifocus.js today"        scripts/manage_omnifocus.js today
 
 echo "────────────────────────────"
 echo "  ${PASS} passed, ${FAIL} failed"
