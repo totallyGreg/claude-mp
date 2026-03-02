@@ -387,6 +387,21 @@ node scripts/generate_plugin.js --format solitary --name "Todays Tasks"
 
 ---
 
+## Script Conventions
+
+Rules for creating and modifying JXA scripts in this skill:
+
+- **CWD-relative `loadLibrary`**: All JXA scripts use `$.NSFileManager.defaultManager.currentDirectoryPath` to resolve library paths. CWD must be the skill root (`skills/omnifocus-manager/`) when any script runs. Shell callers are responsible for setting this.
+- **Skill-root-relative paths**: Call `loadLibrary('scripts/libraries/jxa/taskQuery.js')` — path is relative to the skill root, not to the script file.
+- **Shell wrappers cd to skill root**: Shell scripts that invoke JXA scripts `cd` to `skills/omnifocus-manager/` (the skill root), not into `scripts/`. Reference scripts as `scripts/gtd-queries.js`.
+- **Commands use `${CLAUDE_PLUGIN_ROOT}`**: Command `.md` files reference scripts via `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/`.
+- **No method destructuring**: Always call `taskQuery.getInboxTasks(doc)`, never `const {getInboxTasks} = taskQuery` — library methods use `this` internally.
+- **Run smoke test before version bump**: `bash scripts/test-queries.sh` validates both entry-point scripts.
+
+See `references/jxa_guide.md` § 7 for the canonical `loadLibrary` implementation to copy into new scripts.
+
+---
+
 ## Troubleshooting
 
 **Permission Issues:**
@@ -397,6 +412,7 @@ node scripts/generate_plugin.js --format solitary --name "Todays Tasks"
 - "Not authorized" → Grant automation permission
 - "Database not found" → Grant Full Disk Access
 - "Multiple tasks found" → Use task ID instead of name
+- `TypeError: undefined is not an object (evaluating 'taskQuery.getXxx')` → Library failed to load; check that `loadLibrary` uses `$.getenv('_')` pattern (not CWD-based)
 
 See `references/troubleshooting.md` for complete troubleshooting guide.
 
@@ -404,7 +420,7 @@ See `references/troubleshooting.md` for complete troubleshooting guide.
 
 ## Version Information
 
-**Current version:** 5.3.0
+**Current version:** 5.5.0
 
 **Recent changes:**
 - v5.3.0: Add project-info, project-update, batch-update commands; create --parent-id (#68)

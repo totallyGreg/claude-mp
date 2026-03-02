@@ -43,8 +43,9 @@ ObjC.import('Foundation');
 // ============================================================================
 
 /**
- * Load a JXA library relative to the current working directory.
- * Run commands from the skills/omnifocus-manager/ root so paths resolve correctly.
+ * Load a JXA library by path relative to the skill root (current working directory).
+ * Run from the skills/omnifocus-manager/ root so paths resolve correctly.
+ * Libraries use IIFE pattern and return their namespace object via eval().
  */
 function loadLibrary(relativePath) {
     const cwd = $.NSFileManager.defaultManager.currentDirectoryPath.js;
@@ -54,11 +55,7 @@ function loadLibrary(relativePath) {
         $.NSUTF8StringEncoding,
         null
     );
-
-    if (!content) {
-        throw new Error('Cannot load library: ' + libPath);
-    }
-
+    if (!content) throw new Error('Cannot load library: ' + libPath);
     return eval(content.js);
 }
 
