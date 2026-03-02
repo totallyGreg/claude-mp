@@ -7,8 +7,5 @@
     "email": "283704+totallyGreg@users.noreply.github.com"
   },
   "license": "MIT",
-  "keywords": ["omnifocus-manager", "gtd", "agent"],
-  "components": {
-    "hooks": "hooks/hooks.json"
-  }
+  "keywords": ["omnifocus-manager", "gtd", "agent"]
 }
