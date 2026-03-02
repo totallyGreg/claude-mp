@@ -170,7 +170,7 @@ function createTask(app, args) {
             project = projects[0];
         } else if (args['create-project']) {
             // Create project if it doesn't exist and flag is set
-            project = app.defaultDocument.Project({
+            project = app.Project({
                 name: args.project
             });
             doc.projects.push(project);
@@ -686,7 +686,7 @@ function bulkCreate(app, args) {
     }
 
     // Create the project
-    var project = app.defaultDocument.Project({ name: spec.project });
+    var project = app.Project({ name: spec.project });
     if (spec.sequential !== undefined) {
         project.sequential = spec.sequential;
     }
@@ -711,9 +711,14 @@ function bulkCreate(app, args) {
         }
     }
 
-    // Apply tags to project
-    for (var t = 0; t < tagsToApply.length; t++) {
-        project.addTag(tagsToApply[t]);
+    // Apply tags to project (use task reference since project inherits from task)
+    try {
+        var projectTask = doc.flattenedTasks.whose({ id: project.id() })[0];
+        for (var t = 0; t < tagsToApply.length; t++) {
+            projectTask.addTag(tagsToApply[t]);
+        }
+    } catch (e) {
+        // Tags on project failed, will still apply to subtasks
     }
 
     // Create groups and tasks, collect ID mapping

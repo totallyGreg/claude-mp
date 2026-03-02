@@ -430,9 +430,10 @@ See `references/troubleshooting.md` for complete troubleshooting guide.
 
 ## Version Information
 
-**Current version:** 5.5.0
+**Current version:** 6.0.1
 
 **Recent changes:**
+- v6.0.1: Fix JXA constructor and addTag bugs in manage_omnifocus.js (#76)
 - v5.3.0: Add project-info, project-update, batch-update commands; create --parent-id (#68)
 - v5.2.0: Unify manage_omnifocus.js with JXA library; delete omnifocus.js; single source of truth
 - v5.1.0: Add gtd-queries.js with 8 GTD diagnostic actions; 7 new taskQuery project-level functions
