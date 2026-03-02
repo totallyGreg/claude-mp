@@ -203,3 +203,60 @@ osascript -l JavaScript scripts/manage_omnifocus.js create \
 *   **Error Handling**: Wrap your code in `try...catch` blocks to handle potential errors gracefully.
 
 For more detailed troubleshooting, see `troubleshooting.md`.
+
+## 7. Script Conventions
+
+### Canonical `loadLibrary` Pattern
+
+All JXA entry-point scripts use the CWD-relative pattern below. Library paths are resolved
+against the **skill root** (`skills/omnifocus-manager/`). Both `gtd-queries.js` and
+`manage_omnifocus.js` use this identical implementation — copy it verbatim into new scripts.
+
+```javascript
+ObjC.import('stdlib');
+ObjC.import('Foundation');
+
+/**
+ * Load a JXA library by path relative to the skill root (current working directory).
+ * Run from the skills/omnifocus-manager/ root so paths resolve correctly.
+ * Libraries use IIFE pattern and return their namespace object via eval().
+ */
+function loadLibrary(relativePath) {
+    const cwd = $.NSFileManager.defaultManager.currentDirectoryPath.js;
+    const libPath = cwd + '/' + relativePath;
+    const content = $.NSString.alloc.initWithContentsOfFileEncodingError(
+        libPath, $.NSUTF8StringEncoding, null
+    );
+    if (!content) throw new Error('Cannot load library: ' + libPath);
+    return eval(content.js);
+}
+
+// Path is relative to skill root — scripts/ prefix required
+const taskQuery = loadLibrary('scripts/libraries/jxa/taskQuery.js');
+```
+
+**Key points:**
+- CWD must be `skills/omnifocus-manager/` when the script runs — callers are responsible for this
+- `scripts/libraries/jxa/<filename>` is the correct path from the skill root
+- `eval(content.js)` is required — `.js` converts NSString to a JS string before eval
+- Never destructure methods off a loaded library — call as `taskQuery.getInboxTasks(doc)`,
+  not `const {getInboxTasks} = taskQuery` (breaks `this` binding inside the library)
+
+### ❌ Anti-pattern: wrong working directory in the shell caller
+
+```bash
+# DO NOT do this in shell wrappers
+cd "$SCRIPTS_DIR"                    # CWD = .../skills/omnifocus-manager/scripts/
+osascript -l JavaScript gtd-queries.js --action inbox-count
+# loadLibrary constructs: .../scripts/scripts/libraries/jxa/taskQuery.js  ← doesn't exist
+```
+
+This was the root cause of the weekly-review query failure (issue #71).
+
+### Shell Wrapper Conventions
+
+- Shell scripts that invoke JXA scripts must `cd` to the **skill root**
+  (`skills/omnifocus-manager/`), not into `scripts/`
+- Reference JXA scripts with the `scripts/` prefix: `osascript -l JavaScript scripts/gtd-queries.js`
+- Commands (`.md` files) reference scripts via `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/`
+- Run `bash scripts/test-queries.sh` from the skill root to validate before a version bump

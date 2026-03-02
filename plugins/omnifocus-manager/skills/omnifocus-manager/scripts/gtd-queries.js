@@ -43,24 +43,20 @@ ObjC.import('Foundation');
 // ============================================================================
 
 /**
- * Load a JXA library by filename, resolved relative to this script's own directory.
- * CWD-independent: works regardless of how the caller invokes this script.
+ * Load a JXA library by path relative to the skill root (current working directory).
+ * Run from the skills/omnifocus-manager/ root so paths resolve correctly.
+ * Libraries use IIFE pattern and return their namespace object via eval().
  */
-function loadLibrary(filename) {
-    const scriptDir = $.NSString.alloc.initWithUTF8String($.getenv('_'))
-        .stringByDeletingLastPathComponent.js;
-    const libPath = scriptDir + '/libraries/jxa/' + filename;
-    try {
-        const content = $.NSString.alloc.initWithContentsOfFileEncodingError(
-            libPath,
-            $.NSUTF8StringEncoding,
-            null
-        );
-        if (!content) throw new Error('Library not found: ' + libPath);
-        return eval(content.js);
-    } catch (error) {
-        throw new Error('Failed to load library ' + filename + ': ' + error.message);
-    }
+function loadLibrary(relativePath) {
+    const cwd = $.NSFileManager.defaultManager.currentDirectoryPath.js;
+    const libPath = cwd + '/' + relativePath;
+    const content = $.NSString.alloc.initWithContentsOfFileEncodingError(
+        libPath,
+        $.NSUTF8StringEncoding,
+        null
+    );
+    if (!content) throw new Error('Cannot load library: ' + libPath);
+    return eval(content.js);
 }
 
 // ============================================================================
@@ -92,7 +88,7 @@ function parseArgs(argv) {
 
 function run(argv) {
     try {
-        const taskQuery = loadLibrary('taskQuery.js');
+        const taskQuery = loadLibrary('scripts/libraries/jxa/taskQuery.js');
         const app = Application('OmniFocus');
         const doc = app.defaultDocument;
         const args = parseArgs(argv);
