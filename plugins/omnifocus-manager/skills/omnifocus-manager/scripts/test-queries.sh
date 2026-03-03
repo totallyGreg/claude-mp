@@ -66,6 +66,18 @@ run_test "gtd-queries.js system-health"     scripts/gtd-queries.js    --action s
 run_test "gtd-queries.js ai-agent-tasks"    scripts/gtd-queries.js    --action ai-agent-tasks
 run_test "manage_omnifocus.js today"        scripts/manage_omnifocus.js today
 
+# Phase 3: Tag management lifecycle (requires OmniFocus running)
+echo "  Tag management:"
+run_test "manage_omnifocus.js list-tags"    scripts/manage_omnifocus.js list-tags
+
+# Create a throwaway tag via a temp task, then test rename/move/delete
+TEST_TAG="__smoke_test_tag_$$"
+run_test "create task with test tag"        scripts/manage_omnifocus.js create --name "__smoke_test_task_$$" --tags "$TEST_TAG" --create-tags
+run_test "rename-tag"                       scripts/manage_omnifocus.js rename-tag --name "$TEST_TAG" --new-name "${TEST_TAG}_renamed"
+run_test "move-tag to root"                 scripts/manage_omnifocus.js move-tag --name "${TEST_TAG}_renamed" --root
+run_test "delete test task"                 scripts/manage_omnifocus.js delete --name "__smoke_test_task_$$"
+run_test "delete-tag"                       scripts/manage_omnifocus.js delete-tag --name "${TEST_TAG}_renamed"
+
 echo "────────────────────────────"
 echo "  ${PASS} passed, ${FAIL} failed"
 
