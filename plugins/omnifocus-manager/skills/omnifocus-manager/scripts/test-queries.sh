@@ -39,6 +39,35 @@ run_test() {
 echo "omnifocus-manager smoke tests"
 echo "────────────────────────────"
 
+# Phase 0: JXA anti-pattern validation (no OmniFocus required)
+echo "  Anti-pattern checks:"
+if command -v node >/dev/null 2>&1; then
+    if node "$SCRIPTS_DIR/validate-jxa-patterns.js" "$SCRIPTS_DIR/libraries/jxa/" >/dev/null 2>&1; then
+        echo "    PASS  JXA libraries — no anti-patterns"
+        PASS=$((PASS + 1))
+    else
+        echo "    FAIL  JXA libraries — anti-patterns detected"
+        node "$SCRIPTS_DIR/validate-jxa-patterns.js" "$SCRIPTS_DIR/libraries/jxa/" 2>&1 | sed 's/^/    /'
+        FAIL=$((FAIL + 1))
+    fi
+    if node "$SCRIPTS_DIR/validate-jxa-patterns.js" "$SCRIPTS_DIR/manage_omnifocus.js" >/dev/null 2>&1; then
+        echo "    PASS  manage_omnifocus.js — no anti-patterns"
+        PASS=$((PASS + 1))
+    else
+        echo "    FAIL  manage_omnifocus.js — anti-patterns detected"
+        FAIL=$((FAIL + 1))
+    fi
+    if node "$SCRIPTS_DIR/validate-jxa-patterns.js" "$SCRIPTS_DIR/gtd-queries.js" >/dev/null 2>&1; then
+        echo "    PASS  gtd-queries.js — no anti-patterns"
+        PASS=$((PASS + 1))
+    else
+        echo "    FAIL  gtd-queries.js — anti-patterns detected"
+        FAIL=$((FAIL + 1))
+    fi
+else
+    echo "    SKIP  Node.js not available — skipping anti-pattern checks"
+fi
+
 # Phase 1: Library load tests (no OmniFocus required)
 # Verifies that loadLibrary() resolves paths correctly from the skill root.
 echo "  Library load checks:"
