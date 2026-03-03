@@ -8,7 +8,8 @@ This document tracks improvements, enhancements, and future development plans fo
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 2.4.0 | 2026-03-03 | Detect skill version drift from plugin.json in multi-skill plugins. Closes gap where SKILL.md bump without plugin.json bump silently staled marketplace. [#78](https://github.com/totallyGreg/claude-mp/issues/78) tracks follow-up hook improvements. |
+| 2.5.0 | 2026-03-03 | Resolves #25, #30, #75, #78: plugin-dev docs, two-pass find_repo_root(), plugin.json schema validation, pre-commit hook v5.0.0 with drift/mismatch separation. Skillsmith eval: 89/100 |
+| 2.4.0 | 2026-03-03 | Detect skill version drift from plugin.json in multi-skill plugins. Closes gap where SKILL.md bump without plugin.json bump silently staled marketplace. |
 | 2.3.0 | 2026-02-16 | Plugin versioning strategy: plugin.json as version source, detect refactor (no false positives), hook stages README.md. Skillsmith eval: 89/100 |
 | 2.0.0 | 2026-02-03 | Standalone plugin migration: Moved to plugins/, added commands, improved SKILL.md conciseness |
 | 1.5.0 | 2026-01-23 | Deprecate skill-planner skill: Removed from marketplace, updated workflow documentation |
@@ -39,10 +40,7 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ### High Priority
 
-#### 14. Pre-commit hook: handle skill drift separately from sync ([#78](https://github.com/totallyGreg/claude-mp/issues/78))
-**Goal:** Hook should distinguish drift (SKILL.md > plugin.json) from sync mismatches (plugin.json != marketplace.json) and handle each appropriately. Consider implementing alongside #75 (plugin.json schema validation) to share a single hook template version bump.
-
-#### 13. Clarify Relationship with plugin-dev ([#25](https://github.com/totallyGreg/claude-mp/issues/25))
+#### 13. Clarify Relationship with plugin-dev ([#25](https://github.com/totallyGreg/claude-mp/issues/25)) — RESOLVED in v2.5.0
 **Goal:** Document complementary relationship with official plugin-dev plugin
 
 **Problem:**
