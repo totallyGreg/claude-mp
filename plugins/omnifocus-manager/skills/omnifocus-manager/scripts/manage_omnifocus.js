@@ -70,6 +70,9 @@ ObjC.import('Foundation');
  * Libraries use IIFE pattern and return their namespace object via eval().
  */
 function loadLibrary(relativePath) {
+    if (relativePath.includes('..') || relativePath.startsWith('/')) {
+        throw new Error('Invalid library path: ' + relativePath);
+    }
     const cwd = $.NSFileManager.defaultManager.currentDirectoryPath.js;
     const libPath = cwd + '/' + relativePath;
     const content = $.NSString.alloc.initWithContentsOfFileEncodingError(
