@@ -218,7 +218,7 @@
             for (const tagName of tagNames) {
                 const tag = this.findOrCreateTag(app, doc, tagName, options.createTags);
                 if (tag) {
-                    task.addTag(tag);
+                    app.add(tag, { to: task.tags });
                 }
             }
         }
@@ -316,7 +316,7 @@
                 for (const tagName of tagNames) {
                     const tag = this.findOrCreateTag(app, doc, tagName, false);
                     if (tag) {
-                        task.addTag(tag);
+                        app.add(tag, { to: task.tags });
                     }
                 }
             }

@@ -37,7 +37,8 @@
                 // Boolean flags
                 if (key === 'flagged' || key === 'completed' || key === 'help' ||
                     key === 'sequential' || key === 'parallel' ||
-                    key === 'create-project' || key === 'create-tags') {
+                    key === 'create-project' || key === 'create-tags' ||
+                    key === 'flat' || key === 'root' || key === 'force') {
                     args[key] = true;
                 } else {
                     // Value arguments

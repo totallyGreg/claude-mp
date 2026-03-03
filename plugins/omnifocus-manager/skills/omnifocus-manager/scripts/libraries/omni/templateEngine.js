@@ -244,7 +244,7 @@
                         doc.tags.push(tag);
                     }
 
-                    task.addTag(tag);
+                    app.add(tag, { to: task.tags });
                 
             }
 
