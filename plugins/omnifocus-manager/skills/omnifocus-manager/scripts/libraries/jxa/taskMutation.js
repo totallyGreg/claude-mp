@@ -218,7 +218,7 @@
             for (const tagName of tagNames) {
                 const tag = this.findOrCreateTag(app, doc, tagName, options.createTags);
                 if (tag) {
-                    task.addTag(tag);
+                    app.add(tag, { to: task.tags });
                 }
             }
         }
@@ -306,7 +306,11 @@
 
         // Update tags
         if (updates.tags !== undefined) {
-            task.clearTags();
+            // Clear existing tags by removing each one (clearTags() not supported in JXA)
+            var currentTags = task.tags();
+            for (var ti = currentTags.length - 1; ti >= 0; ti--) {
+                app.remove(currentTags[ti], { from: task.tags });
+            }
 
             if (updates.tags !== '' && updates.tags !== null) {
                 const tagNames = typeof updates.tags === 'string'
@@ -316,7 +320,7 @@
                 for (const tagName of tagNames) {
                     const tag = this.findOrCreateTag(app, doc, tagName, false);
                     if (tag) {
-                        task.addTag(tag);
+                        app.add(tag, { to: task.tags });
                     }
                 }
             }

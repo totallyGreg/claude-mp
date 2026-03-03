@@ -1,0 +1,50 @@
+{
+  "antipatterns": [
+    {
+      "id": "no-addtag",
+      "pattern": "\\.addTag\\(",
+      "severity": "error",
+      "message": "Use app.add(tag, { to: task.tags }) instead of .addTag()",
+      "reference": "references/jxa_guide.md#adding-tags"
+    },
+    {
+      "id": "no-cleartags",
+      "pattern": "\\.clearTags\\(",
+      "severity": "error",
+      "message": "clearTags() not supported in JXA. Iterate with app.remove().",
+      "reference": "references/jxa_guide.md#removing-tags"
+    },
+    {
+      "id": "no-document-default",
+      "pattern": "Document\\.defaultDocument",
+      "severity": "error",
+      "message": "Use app.defaultDocument instead of Document.defaultDocument"
+    }
+  ],
+  "blocked_always": [
+    {
+      "id": "no-eval",
+      "pattern": "\\beval\\s*\\(",
+      "severity": "error",
+      "message": "eval() is blocked in generated JXA code"
+    },
+    {
+      "id": "no-function-constructor",
+      "pattern": "new\\s+Function\\s*\\(",
+      "severity": "error",
+      "message": "Function constructor is blocked in generated JXA code"
+    },
+    {
+      "id": "no-nstask",
+      "pattern": "\\$\\.NSTask|doShellScript",
+      "severity": "error",
+      "message": "System-level APIs (NSTask, doShellScript) are blocked in generated code"
+    },
+    {
+      "id": "no-nsurlsession",
+      "pattern": "\\$\\.NSURLSession",
+      "severity": "error",
+      "message": "Network access (NSURLSession) is blocked in generated code"
+    }
+  ]
+}

@@ -2,7 +2,21 @@
 /**
  * OmniFocus Task Manager (JavaScript for Automation)
  *
- * Provides comprehensive task management capabilities through OmniFocus AppleScript API.
+ * JXA COMPLIANCE NOTES — READ BEFORE EDITING
+ *
+ * 1. Constructors: Use app.Tag(), app.Project(), app.Task()
+ *    NEVER app.defaultDocument.Tag() — causes -1700 error
+ *
+ * 2. Tagging: Use app.add(tag, {to: task.tags})
+ *    NEVER task.addTag() — causes "Can't convert types" error
+ *    NEVER project.addTag() — also broken
+ *
+ * 3. Deleting objects: Use app.delete(obj)
+ *    NEVER obj.delete() for tags
+ *
+ * 4. whose()[0] THROWS on empty results — check .length > 0 first
+ *
+ * See: scripts/libraries/jxa/JXA_API_REFERENCE.md
  *
  * Usage:
  *     osascript -l JavaScript manage_omnifocus.js <action> [options]
@@ -19,6 +33,10 @@
  *     overdue    Show tasks past their due date
  *     flagged    Show all flagged tasks
  *     search     Search for tasks by name or note
+ *     list-tags  List all tags with hierarchy and task counts
+ *     rename-tag Rename a tag (preserves task associations)
+ *     move-tag   Move a tag under a new parent or to root
+ *     delete-tag Delete a tag (fails if tasks remain unless --force)
  *
  * Examples:
  *     # Create a simple task
@@ -52,6 +70,9 @@ ObjC.import('Foundation');
  * Libraries use IIFE pattern and return their namespace object via eval().
  */
 function loadLibrary(relativePath) {
+    if (relativePath.includes('..') || relativePath.startsWith('/')) {
+        throw new Error('Invalid library path: ' + relativePath);
+    }
     const cwd = $.NSFileManager.defaultManager.currentDirectoryPath.js;
     const libPath = cwd + '/' + relativePath;
     const content = $.NSString.alloc.initWithContentsOfFileEncodingError(
@@ -105,6 +126,14 @@ function run(argv) {
                 return batchUpdate(app, args);
             case 'bulk-create':
                 return bulkCreate(app, args);
+            case 'list-tags':
+                return listTagsCmd(app, args);
+            case 'rename-tag':
+                return renameTag(app, args);
+            case 'move-tag':
+                return moveTag(app, args);
+            case 'delete-tag':
+                return deleteTagCmd(app, args);
             case 'help':
                 return printHelp();
             default:
@@ -223,16 +252,17 @@ function createTask(app, args) {
     if (args.tags) {
         const tagNames = args.tags.split(',').map(t => t.trim());
         for (const tagName of tagNames) {
-            let tag = doc.flattenedTags.whose({ name: tagName })[0];
+            // whose()[0] throws on empty results — check length first
+            var tagMatches = doc.flattenedTags.whose({ name: tagName });
+            var tag = tagMatches.length > 0 ? tagMatches[0] : null;
 
             if (!tag && args['create-tags']) {
-                // Create tag if it doesn't exist and flag is set
                 tag = app.Tag({ name: tagName });
                 doc.tags.push(tag);
             }
 
             if (tag) {
-                task.addTag(tag);
+                app.add(tag, { to: task.tags });
             }
         }
     }
@@ -325,16 +355,19 @@ function updateTask(app, args) {
 
     // Update tags
     if (args.tags !== undefined) {
-        // Clear existing tags
-        task.clearTags();
+        // Clear existing tags by removing each one
+        var currentTags = task.tags();
+        for (var ti = currentTags.length - 1; ti >= 0; ti--) {
+            app.remove(currentTags[ti], { from: task.tags });
+        }
 
         // Add new tags
         if (args.tags !== '') {
             const tagNames = args.tags.split(',').map(t => t.trim());
             for (const tagName of tagNames) {
-                const tag = doc.flattenedTags.whose({ name: tagName })[0];
-                if (tag) {
-                    task.addTag(tag);
+                var tagResults = doc.flattenedTags.whose({ name: tagName });
+                if (tagResults.length > 0) {
+                    app.add(tagResults[0], { to: task.tags });
                 } else {
                     throw new Error(`Tag not found: ${tagName}`);
                 }
@@ -715,7 +748,7 @@ function bulkCreate(app, args) {
     try {
         var projectTask = doc.flattenedTasks.whose({ id: project.id() })[0];
         for (var t = 0; t < tagsToApply.length; t++) {
-            projectTask.addTag(tagsToApply[t]);
+            app.add(tagsToApply[t], { to: projectTask.tags });
         }
     } catch (e) {
         // Tags on project failed, will still apply to subtasks
@@ -741,7 +774,7 @@ function bulkCreate(app, args) {
 
             // Apply tags to group task
             for (var gt = 0; gt < tagsToApply.length; gt++) {
-                groupTask.addTag(tagsToApply[gt]);
+                app.add(tagsToApply[gt], { to: groupTask.tags });
             }
 
             taskMapping[group.name] = groupTask.id();
@@ -759,7 +792,7 @@ function bulkCreate(app, args) {
 
                     // Apply tags to each subtask
                     for (var st = 0; st < tagsToApply.length; st++) {
-                        subtask.addTag(tagsToApply[st]);
+                        app.add(tagsToApply[st], { to: subtask.tags });
                     }
 
                     taskMapping[taskSpec.name] = subtask.id();
@@ -777,6 +810,245 @@ function bulkCreate(app, args) {
             name: project.name()
         },
         taskMapping: taskMapping
+    });
+}
+
+/**
+ * List all tags with hierarchy and task counts.
+ * --flat returns a flat list instead of a tree.
+ */
+function listTagsCmd(app, args) {
+    var doc = app.defaultDocument;
+
+    if (args.flat) {
+        var allTags = doc.flattenedTags();
+        var flat = [];
+        for (var i = 0; i < allTags.length; i++) {
+            var t = allTags[i];
+            flat.push({
+                id: t.id(),
+                name: t.name(),
+                remainingTasks: t.remainingTaskCount(),
+                availableTasks: t.availableTaskCount()
+            });
+        }
+        return JSON.stringify({ success: true, action: 'list-tags', tagCount: flat.length, tags: flat });
+    }
+
+    function buildTree(tags, depth) {
+        var results = [];
+        for (var i = 0; i < tags.length; i++) {
+            var tag = tags[i];
+            var children = tag.tags();
+            results.push({
+                id: tag.id(),
+                name: tag.name(),
+                depth: depth,
+                remainingTasks: tag.remainingTaskCount(),
+                availableTasks: tag.availableTaskCount(),
+                childCount: children.length
+            });
+            if (children.length > 0) {
+                results = results.concat(buildTree(children, depth + 1));
+            }
+        }
+        return results;
+    }
+
+    var tree = buildTree(doc.tags(), 0);
+    return JSON.stringify({ success: true, action: 'list-tags', tagCount: tree.length, tags: tree });
+}
+
+/**
+ * Rename a tag. Preserves all task associations.
+ * --name: current tag name (required)
+ * --new-name: desired new name (required)
+ * --id: use tag ID instead of name for lookup
+ */
+function renameTag(app, args) {
+    var doc = app.defaultDocument;
+
+    if (!args.name && !args.id) {
+        throw new Error('Tag name or ID is required (use --name or --id)');
+    }
+    if (!args['new-name']) {
+        throw new Error('New name is required (use --new-name)');
+    }
+
+    var tag;
+    if (args.id) {
+        tag = doc.flattenedTags.byId(args.id);
+    } else {
+        var matches = doc.flattenedTags.whose({ name: args.name });
+        tag = matches.length > 0 ? matches[0] : null;
+    }
+    if (!tag) {
+        throw new Error('Tag not found: ' + (args.id || args.name));
+    }
+
+    // Capture properties before rename — assignment may invalidate reference
+    var oldName = tag.name();
+    var tagId = tag.id();
+    var remaining = tag.remainingTaskCount();
+
+    tag.name = args['new-name'];
+
+    return JSON.stringify({
+        success: true,
+        action: 'rename-tag',
+        oldName: oldName,
+        newName: args['new-name'],
+        id: tagId,
+        remainingTasks: remaining
+    });
+}
+
+/**
+ * Move a tag under a new parent or to root level.
+ * OmniFocus JXA does not support reparenting tags directly, so this
+ * creates a new tag at the destination, retags all tasks, and deletes the old tag.
+ *
+ * --name: tag to move (required)
+ * --parent: new parent tag name
+ * --root: move to top level (boolean)
+ * --create-tags: create parent if it doesn't exist
+ * --id: use tag ID instead of name for lookup
+ */
+function moveTag(app, args) {
+    var doc = app.defaultDocument;
+
+    if (!args.name && !args.id) {
+        throw new Error('Tag name or ID is required (use --name or --id)');
+    }
+
+    var oldTag;
+    if (args.id) {
+        oldTag = doc.flattenedTags.byId(args.id);
+    } else {
+        var moveMatches = doc.flattenedTags.whose({ name: args.name });
+        oldTag = moveMatches.length > 0 ? moveMatches[0] : null;
+    }
+    if (!oldTag) {
+        throw new Error('Tag not found: ' + (args.id || args.name));
+    }
+
+    var tagName = oldTag.name();
+    var remaining = oldTag.remainingTaskCount();
+
+    // Create new tag at destination
+    var newTag = app.Tag({ name: tagName });
+
+    if (args.parent) {
+        var parentMatches = doc.flattenedTags.whose({ name: args.parent });
+        var parent = parentMatches.length > 0 ? parentMatches[0] : null;
+        if (!parent && args['create-tags']) {
+            parent = app.Tag({ name: args.parent });
+            doc.tags.push(parent);
+        }
+        if (!parent) {
+            throw new Error('Parent tag not found: ' + args.parent + '. Use --create-tags to create it.');
+        }
+        parent.tags.push(newTag);
+    } else if (args.root) {
+        doc.tags.push(newTag);
+    } else {
+        throw new Error('Must specify --parent <name> or --root');
+    }
+
+    // Retag all tasks from old tag to new tag
+    var oldTagId = oldTag.id();
+    var retagCount = 0;
+    try {
+        var allTasks = doc.flattenedTasks();
+        for (var i = 0; i < allTasks.length; i++) {
+            var taskTags = allTasks[i].tags();
+            var hasOldTag = false;
+            for (var j = 0; j < taskTags.length; j++) {
+                if (taskTags[j].id() === oldTagId) {
+                    hasOldTag = true;
+                    break;
+                }
+            }
+            if (hasOldTag) {
+                // Get a proper task reference that supports .tags property specifier
+                var taskRef = doc.flattenedTasks.byId(allTasks[i].id());
+                app.add(newTag, { to: taskRef.tags });
+                app.remove(oldTag, { from: taskRef.tags });
+                retagCount++;
+            }
+        }
+    } catch (retagErr) {
+        return JSON.stringify({
+            success: false,
+            action: 'move-tag',
+            error: 'Retagging failed after ' + retagCount + ' tasks: ' + retagErr.toString(),
+            newTagId: newTag.id(),
+            oldTagStillExists: true
+        });
+    }
+
+    // Delete old tag
+    app.delete(oldTag);
+
+    return JSON.stringify({
+        success: true,
+        action: 'move-tag',
+        tag: tagName,
+        id: newTag.id(),
+        newParent: args.parent || '(root)',
+        tasksRetagged: retagCount
+    });
+}
+
+/**
+ * Delete a tag. Refuses if tag has remaining tasks or children unless --force.
+ * --name: tag to delete (required)
+ * --force: delete even with tasks/children (boolean)
+ * --id: use tag ID instead of name for lookup
+ *
+ * Note: Uses app.delete(tag), NOT tag.delete().
+ * See JXA_API_REFERENCE.md for details.
+ */
+function deleteTagCmd(app, args) {
+    var doc = app.defaultDocument;
+
+    if (!args.name && !args.id) {
+        throw new Error('Tag name or ID is required (use --name or --id)');
+    }
+
+    var tag;
+    if (args.id) {
+        tag = doc.flattenedTags.byId(args.id);
+    } else {
+        var delMatches = doc.flattenedTags.whose({ name: args.name });
+        tag = delMatches.length > 0 ? delMatches[0] : null;
+    }
+    if (!tag) {
+        throw new Error('Tag not found: ' + (args.id || args.name));
+    }
+
+    var tagName = tag.name();
+    var remaining = tag.remainingTaskCount();
+    var childCount = tag.tags().length;
+
+    if (remaining > 0 && !args.force) {
+        throw new Error('Tag "' + tagName + '" has ' + remaining +
+            ' remaining tasks. Use --force to delete anyway.');
+    }
+
+    if (childCount > 0 && !args.force) {
+        throw new Error('Tag "' + tagName + '" has ' + childCount +
+            ' child tags. Use --force to delete anyway.');
+    }
+
+    app.delete(tag);
+
+    return JSON.stringify({
+        success: true,
+        action: 'delete-tag',
+        deleted: tagName,
+        tasksAffected: remaining,
+        childrenRemoved: childCount
     });
 }
 
@@ -810,6 +1082,12 @@ Actions:
       due-soon   Show tasks due within N days (default: 7)
       flagged    Show all flagged tasks
       search     Search for tasks by name or note
+
+    Tag Management:
+      list-tags      List all tags with hierarchy and task counts
+      rename-tag     Rename a tag (preserves task associations)
+      move-tag       Move a tag under a new parent or to root
+      delete-tag     Delete a tag (fails if tasks remain unless --force)
 
     Other:
       help       Show this help message
@@ -852,6 +1130,14 @@ Batch-update Options:
 
 Bulk-create Options:
     --json-file <path>     Path to JSON file with project structure
+
+Tag Management Options:
+    --new-name <name>      New tag name (for rename-tag)
+    --parent <name>        Parent tag to move under (for move-tag)
+    --root                 Move tag to top level (for move-tag)
+    --flat                 Return flat list instead of tree (for list-tags)
+    --force                Delete even if tag has tasks or children (for delete-tag)
+    --id <id>              Use tag ID for lookup (for rename-tag, move-tag, delete-tag)
 
 Examples:
     # Create a simple task
@@ -899,6 +1185,21 @@ Examples:
 
     # Search for tasks
     osascript -l JavaScript manage_omnifocus.js search --query "meeting"
+
+    # List all tags with hierarchy
+    osascript -l JavaScript manage_omnifocus.js list-tags
+
+    # Rename a tag
+    osascript -l JavaScript manage_omnifocus.js rename-tag --name "Old Tag" --new-name "New Tag"
+
+    # Move a tag under a new parent
+    osascript -l JavaScript manage_omnifocus.js move-tag --name "Avoiding" --parent "State"
+
+    # Move a tag to root level
+    osascript -l JavaScript manage_omnifocus.js move-tag --name "Routine" --root
+
+    # Delete an empty tag
+    osascript -l JavaScript manage_omnifocus.js delete-tag --name "Unused Tag"
 
 Query Options:
     --filter <status>      Filter tasks: active, completed, dropped, all (for list)

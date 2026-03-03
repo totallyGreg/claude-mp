@@ -256,7 +256,7 @@
                             const tag = this.findOrCreateTag(config.updates.tag);
                             if (tag) {
                                 change.before.tags = task.tags.map(t => t.name);
-                                if (!dryRun) task.addTag(tag);
+                                if (!dryRun) app.add(tag, { to: task.tags });
                                 change.after.tags = [...change.before.tags, config.updates.tag];
                             }
                         }

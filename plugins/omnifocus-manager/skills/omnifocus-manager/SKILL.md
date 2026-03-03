@@ -5,7 +5,7 @@ description: |
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 metadata:
-  version: 6.0.0
+  version: 6.1.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -26,6 +26,9 @@ compatibility:
 ```
 Keywords in request → Classification:
 - "create plugin", "make plugin", "generate plugin" → PLUGIN GENERATION (continue to step 2)
+- "build JXA script", "write a script" → JXA COMPOSITION (compose from taskQuery.js/taskMutation.js, validate with validate-jxa-patterns.js)
+- "automate this", "recurring task" → CHANNEL SELECTION (see Channel Selection section)
+- "improve script", "fix script" → SCRIPT MODIFICATION (read existing, modify, validate)
 - "show me", "what tasks", "analyze" → QUERY/EXECUTION (use manage_omnifocus.js, STOP)
 ```
 
@@ -94,6 +97,8 @@ You don't need to understand TypeScript - the generator handles it automatically
 
 ---
 
+## Channel Selection: See "Channel Selection" section before Quick Decision Tree.
+
 ## What is OmniFocus?
 
 **OmniFocus** is a task management application for macOS and iOS implementing the Getting Things Done (GTD) methodology. It helps capture, organize, and track tasks with projects, tags, perspectives, defer/due dates, and repeating tasks.
@@ -135,6 +140,56 @@ This skill covers three of four pillars. GTD coaching lives in a separate skill.
 | Weekly Review | Review perspective |
 
 For detailed mapping and automation commands, see `references/gtd_guide.md`.
+
+---
+
+## Channel Selection (Pre-Pillar Routing)
+
+Before choosing a script or plugin, determine which automation channel to use.
+
+**Default: Mac/JXA.** Only consider other channels when the user explicitly mentions iOS, iPhone, iPad, or mobile.
+
+### Agent Capability by Channel
+
+| Channel | Agent Executes | Agent Prepares | Limitation |
+|---|---|---|---|
+| **JXA** (osascript) | Full read + write | Full generation | Mac only |
+| **Omni Automation Plugin** | Cannot invoke from CLI | Full generation + install | User triggers from OmniFocus UI |
+| **omnifocus:// URL** | Fire-and-forget (`open`) | Full generation | No result feedback |
+| **Apple Shortcuts** | Run existing only | Generate script code | Cannot create shortcuts programmatically |
+| **Omni-links** | N/A | Generate link text | Navigation/reference only |
+
+### Decision Tree
+
+```
+Is this a Mac-only request? (DEFAULT — assume yes unless user says otherwise)
+  YES → Use existing JXA scripts (manage_omnifocus.js, gtd-queries.js)
+        If no existing script covers it, compose from taskQuery.js / taskMutation.js
+  NO (user mentions iPhone/iPad/iOS/mobile) →
+    1. Reference/navigation only? → Generate omnifocus:// perspective or task link
+    2. Needs trigger (time, location, Focus mode)? → Generate Omni Automation script code + setup instructions for Apple Shortcuts
+    3. Otherwise → Generate Omni Automation plugin (cross-device, no security friction)
+    NOTE: For iOS requests, the agent PREPARES artifacts — the user completes setup.
+```
+
+### URL Scheme Security Friction
+
+| URL Type | Friction | Use When |
+|---|---|---|
+| `omnifocus:///task/<id>` | None | Navigation links in Obsidian |
+| `omnifocus:///perspective/<name>` | None | Query links — **preferred** |
+| `omnifocus:///add?name=...` | None | Quick capture |
+| `omnifocus:///omnijs-run?script=...` | **HIGH** (disabled by default, two-gate approval) | Avoid — prefer named perspective or installed plugin |
+
+See `references/omnifocus_url_scheme.md` for full URL scheme documentation and Obsidian embedding patterns.
+
+### JXA Safety Rules
+
+- Generated JXA code MUST NOT use `$.NSTask`, `doShellScript`, `$.NSURLSession`, or import ObjC frameworks beyond `Foundation` and `stdlib`.
+- For requests not covered by existing commands, compose from `taskQuery.js` and `taskMutation.js` library functions.
+- After fixing any JXA API bug, search all files in `scripts/` and `scripts/libraries/jxa/` for the same pattern and fix every instance.
+- All SKILL.md routing changes require user approval.
+- Run `node scripts/validate-jxa-patterns.js scripts/libraries/jxa/` to check for known anti-patterns.
 
 ---
 

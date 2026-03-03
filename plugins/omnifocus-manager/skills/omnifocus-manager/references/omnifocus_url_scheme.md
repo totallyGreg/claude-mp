@@ -243,6 +243,63 @@ For recurring tasks, create the first instance and set recurrence manually in Om
 omnifocus:///add?name=Weekly%20Review&project=Admin&due=2025-12-22T09:00:00&note=Set%20to%20repeat%20weekly
 ```
 
+## Security Friction by URL Type
+
+Not all URL types are equal. Script-embedding URLs have significant security gates.
+
+| URL Type | Security Friction | Notes |
+|---|---|---|
+| Navigation: `omnifocus:///task/<id>` | **None** | Opens item directly |
+| Perspective: `omnifocus:///perspective/<name>` | **None** | Opens perspective directly |
+| Search: `omnifocus:///search?q=<term>` | **None** | Built-in action |
+| Add/Create: `omnifocus:///add?name=...&autosave=true` | **None** | `autosave=true` skips dialog |
+| Script: `omnifocus:///omnijs-run?script=...` | **HIGH** | See below |
+
+### Script URL Security (omnijs-run)
+
+The `omnijs-run` URL type embeds Omni Automation JavaScript and has a **two-gate security system**:
+
+1. **Gate 1 (global toggle):** External scripts are **disabled by default**. The user must enable them in OmniFocus > Automation Configuration.
+2. **Gate 2 (per-script approval):** Each unique script/sending-app pairing requires one-time approval. The user must scroll through the entire script before the "Allow" button enables. Approval persists permanently until cleared.
+
+**The `argument` parameter** enables reusable scripts: `omnifocus:///omnijs-run?script=<stable-code>&arg=<variable-data>`. The script body is approved once; changing `&arg=` does not trigger re-approval.
+
+**Escalation path (reduces friction at each step):**
+1. URL-encoded script (`omnijs-run`) — highest friction, most flexible
+2. Named Omni Automation plugin (installed) — zero friction, requires installation
+3. Named perspective — zero friction, built-in, but limited to view configuration
+
+**Recommendation:** Prefer named perspectives or installed plugins. Use `omnijs-run` URLs only when dynamic scripting is required and the user has confirmed external scripts are enabled.
+
+## Obsidian Embedding Patterns
+
+OmniFocus URLs can be embedded in Obsidian notes as markdown links.
+
+### Navigation Links (Zero Friction)
+```markdown
+[Open task in OmniFocus](omnifocus:///task/hQS6789)
+[View Forecast perspective](omnifocus:///perspective/Forecast)
+[Search for meeting tasks](omnifocus:///search?q=meeting)
+```
+
+### Quick Capture Links (Zero Friction)
+```markdown
+[Add weekly review task](omnifocus:///add?name=Weekly%20Review&project=Admin&autosave=true)
+[Capture idea](omnifocus:///add?name=New%20idea&note=Flesh%20out%20later&autosave=true)
+```
+
+### Omni-links (Zero Friction, Cross-Device)
+```markdown
+[Project reference](omni:///doc/project-name)
+```
+Requires Connected Folders setup. Works on Mac + iOS.
+
+### Script Links (High Friction — Avoid Unless Necessary)
+```markdown
+[Run overdue report](omnifocus:///omnijs-run?script=var%20t%3DflattenedTasks.filter(...)&arg=7)
+```
+Requires user to enable external scripts and approve on first use.
+
 ## Limitations
 
 1. **Cannot modify existing tasks**: The URL scheme can only create new tasks, not edit existing ones

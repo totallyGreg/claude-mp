@@ -185,7 +185,7 @@ function createTaskFromTemplate(taskData) {
                 doc.flattenedTags.push(tag);
             }
 
-            task.addTag(tag);
+            app.add(tag, { to: task.tags });
         });
     }
 
