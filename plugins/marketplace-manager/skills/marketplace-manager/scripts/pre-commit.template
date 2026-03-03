@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# marketplace-manager pre-commit hook v4.0.0
+# marketplace-manager pre-commit hook v5.0.0
 #
 # Pre-commit hook for marketplace-manager
 # Checks staged files for version bumps and syncs marketplace.json + README.md
@@ -12,7 +12,7 @@
 #   git commit --no-verify
 #
 
-HOOK_VERSION="4.0.0"
+HOOK_VERSION="5.0.0"
 
 # Colors for output
 RED='\033[0;31m'
@@ -76,26 +76,73 @@ if ! python3 "$DETECT_SCRIPT" --check-staged > /dev/null 2>&1; then
     # Note: This is a warning, not a block - the commit can proceed
 fi
 
-# Step 2: Detect SKILL.md vs marketplace.json mismatches
+# Step 2: Detect version mismatches and skill drift
 echo -e "${BLUE}🔍 Checking marketplace version sync...${NC}"
-if ! python3 "$DETECT_SCRIPT" > /dev/null 2>&1; then
-    echo -e "${YELLOW}⚠️  Version mismatches detected${NC}"
+DETECT_OUTPUT=$(python3 "$DETECT_SCRIPT" --format json 2>/dev/null)
+DETECT_EXIT=$?
 
-    # Run sync in auto mode
-    echo -e "${BLUE}🔄 Auto-syncing marketplace.json...${NC}"
-    if python3 "$SYNC_SCRIPT" --mode=auto 2>&1 | grep -q "Updated"; then
-        # Changes were made, add marketplace.json and README.md to staging
-        git add "$MARKETPLACE_JSON"
-        README_PATH="$REPO_ROOT/README.md"
-        if [ -f "$README_PATH" ] && ! git diff --quiet "$README_PATH" 2>/dev/null; then
-            git add "$README_PATH"
+if [ $DETECT_EXIT -ne 0 ]; then
+    # Parse JSON to determine what kind of issues exist
+    HAS_MISMATCHES=$(python3 -c "
+import json, sys
+data = json.loads(sys.stdin.read())
+sys.exit(0 if data.get('mismatches') else 1)
+" <<< "$DETECT_OUTPUT" 2>/dev/null && echo "yes" || echo "no")
+
+    HAS_DRIFT=$(python3 -c "
+import json, sys
+data = json.loads(sys.stdin.read())
+sys.exit(0 if data.get('skill_drift') else 1)
+" <<< "$DETECT_OUTPUT" 2>/dev/null && echo "yes" || echo "no")
+
+    HAS_ERRORS=$(python3 -c "
+import json, sys
+data = json.loads(sys.stdin.read())
+sys.exit(0 if data.get('errors') else 1)
+" <<< "$DETECT_OUTPUT" 2>/dev/null && echo "yes" || echo "no")
+
+    # Handle sync mismatches (auto-fixable)
+    if [ "$HAS_MISMATCHES" = "yes" ]; then
+        echo -e "${BLUE}🔄 Auto-syncing marketplace.json...${NC}"
+        if python3 "$SYNC_SCRIPT" --mode=auto 2>&1 | grep -q "Updated"; then
+            git add "$MARKETPLACE_JSON"
+            README_PATH="$REPO_ROOT/README.md"
+            if [ -f "$README_PATH" ] && ! git diff --quiet "$README_PATH" 2>/dev/null; then
+                git add "$README_PATH"
+            fi
+            echo -e "${GREEN}✅ marketplace.json updated and staged${NC}"
+        else
+            echo -e "${RED}❌ Failed to sync marketplace.json${NC}"
+            echo -e "${YELLOW}   Please run: uv run .../sync_marketplace_versions.py${NC}"
+            echo -e "${YELLOW}   Or bypass with: git commit --no-verify${NC}"
+            exit 1
         fi
-        echo -e "${GREEN}✅ marketplace.json updated and staged${NC}"
-    else
-        echo -e "${RED}❌ Failed to sync marketplace.json${NC}"
-        echo -e "${YELLOW}   Please run: python3 scripts/sync_marketplace_versions.py${NC}"
+    fi
+
+    # Handle skill version drift (requires manual fix — cannot be auto-synced)
+    if [ "$HAS_DRIFT" = "yes" ]; then
+        echo -e "${RED}❌ Skill version drift detected${NC}"
+        python3 -c "
+import json, sys
+data = json.loads(sys.stdin.read())
+for d in data.get('skill_drift', []):
+    print(f\"  {d['plugin']}: skill {d['skill_path']} at {d['skill_version']} exceeds plugin.json at {d['plugin_json_version']}\")
+    print(f\"  → Bump plugin.json version to >= {d['skill_version']}\")
+" <<< "$DETECT_OUTPUT"
+        echo -e "${YELLOW}   Fix plugin.json version(s) and re-commit.${NC}"
         echo -e "${YELLOW}   Or bypass with: git commit --no-verify${NC}"
         exit 1
+    fi
+
+    # Handle errors (warn only, don't block)
+    if [ "$HAS_ERRORS" = "yes" ]; then
+        echo -e "${YELLOW}⚠️  Version detection errors (non-blocking):${NC}"
+        python3 -c "
+import json, sys
+data = json.loads(sys.stdin.read())
+for e in data.get('errors', []):
+    print(f\"  {e['plugin']}: {e['error']}\")
+" <<< "$DETECT_OUTPUT"
     fi
 else
     echo -e "${GREEN}✅ All marketplace versions up to date${NC}"

@@ -9,7 +9,11 @@ from pathlib import Path
 
 
 def find_repo_root(start_path=None):
-    """Find repository root by searching for .git or .claude-plugin directory.
+    """Find repository root by traversing up from start_path.
+
+    Two-pass search:
+    1. Look for .git directory (most reliable, avoids stopping at plugin-level .claude-plugin)
+    2. Fall back to .claude-plugin directory (for standalone plugin repos without .git)
 
     Args:
         start_path: Starting directory (defaults to current directory)
@@ -17,28 +21,25 @@ def find_repo_root(start_path=None):
     Returns:
         Path to repository root, or None if not found
     """
-    if start_path is None:
-        start_path = Path.cwd()
-    else:
-        start_path = Path(start_path).resolve()
+    start = Path(start_path).resolve() if start_path else Path.cwd()
 
-    current = start_path
-
-    # Search up to 10 levels (prevent infinite loops)
-    for _ in range(10):
-        # Check for .git directory (most reliable)
+    # Pass 1: Look for .git (preferred — avoids stopping at plugin-level .claude-plugin)
+    current = start
+    while current != current.parent:
         if (current / ".git").exists():
             return current
+        current = current.parent
+    if (current / ".git").exists():
+        return current
 
-        # Check for .claude-plugin directory
+    # Pass 2: Fall back to .claude-plugin (standalone plugin repos without .git)
+    current = start
+    while current != current.parent:
         if (current / ".claude-plugin").exists():
             return current
-
-        # Move to parent
-        parent = current.parent
-        if parent == current:  # Reached filesystem root
-            break
-        current = parent
+        current = current.parent
+    if (current / ".claude-plugin").exists():
+        return current
 
     return None
 
