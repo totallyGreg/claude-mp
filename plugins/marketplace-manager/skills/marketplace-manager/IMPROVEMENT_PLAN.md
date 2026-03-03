@@ -6,17 +6,20 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ## Version History
 
-| Version | Date | Description |
-|---------|------|-------------|
-| 2.5.0 | 2026-03-03 | Resolves #25, #30, #75, #78: plugin-dev docs, two-pass find_repo_root(), plugin.json schema validation, pre-commit hook v5.0.0 with drift/mismatch separation. Skillsmith eval: 89/100 |
-| 2.4.0 | 2026-03-03 | Detect skill version drift from plugin.json in multi-skill plugins. Closes gap where SKILL.md bump without plugin.json bump silently staled marketplace. |
-| 2.3.0 | 2026-02-16 | Plugin versioning strategy: plugin.json as version source, detect refactor (no false positives), hook stages README.md. Skillsmith eval: 89/100 |
-| 2.0.0 | 2026-02-03 | Standalone plugin migration: Moved to plugins/, added commands, improved SKILL.md conciseness |
-| 1.5.0 | 2026-01-23 | Deprecate skill-planner skill: Removed from marketplace, updated workflow documentation |
-| 1.4.0 | 2026-01-22 | Core marketplace operations automation: source path fixes, deprecation, bundling, templates |
-| 1.3.0 | 2026-01-07 | Critical bug fixes: utils.py dependency, schema compliance, metadata.version parsing |
-| 1.1.0 | 2025-12-22 | Added plugin versioning strategies, validation command, pre-commit hook |
-| 1.0.0 | 2025-12-21 | Initial release |
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
+|---------|------|-------|---------|------|------|------|------|---------|
+| 2.5.1 | 2026-03-03 | - | Add trigger phrases to description | 100 | 83 | 90 | 100 | 93 |
+| 2.5.0 | 2026-03-03 | [#25](https://github.com/totallyGreg/claude-mp/issues/25), [#30](https://github.com/totallyGreg/claude-mp/issues/30), [#75](https://github.com/totallyGreg/claude-mp/issues/75), [#78](https://github.com/totallyGreg/claude-mp/issues/78) | plugin-dev docs, two-pass find_repo_root(), plugin.json schema validation, pre-commit hook v5.0.0 with drift/mismatch separation | 100 | 83 | 90 | 100 | 89 |
+| 2.4.0 | 2026-03-03 | [#78](https://github.com/totallyGreg/claude-mp/issues/78) | Detect skill version drift from plugin.json in multi-skill plugins | - | - | - | - | - |
+| 2.3.0 | 2026-02-16 | - | Plugin versioning strategy: plugin.json as version source, detect refactor, hook stages README.md | 100 | 83 | 90 | 100 | 89 |
+| 2.0.0 | 2026-02-03 | - | Standalone plugin migration: Moved to plugins/, added commands, improved SKILL.md conciseness | - | - | - | - | - |
+| 1.5.0 | 2026-01-23 | - | Deprecate skill-planner skill: Removed from marketplace, updated workflow documentation | - | - | - | - | - |
+| 1.4.0 | 2026-01-22 | [#4](https://github.com/totallyGreg/claude-mp/issues/4), [#5](https://github.com/totallyGreg/claude-mp/issues/5) | Core marketplace operations automation: source path fixes, deprecation, bundling, templates | - | - | - | - | 75 |
+| 1.3.0 | 2026-01-07 | - | Critical bug fixes: utils.py dependency, schema compliance, metadata.version parsing | - | - | - | - | - |
+| 1.1.0 | 2025-12-22 | - | Added plugin versioning strategies, validation command, pre-commit hook | - | - | - | - | - |
+| 1.0.0 | 2025-12-21 | - | Initial release | - | - | - | - | - |
+
+**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure (0-100 scale)
 
 ## 🔮 Planned Improvements
 > Last Updated: 2026-01-22
