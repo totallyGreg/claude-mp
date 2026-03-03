@@ -307,15 +307,51 @@ def detect_staged_changes(repo_root):
     }
 
 
+# --- Semver helpers ---
+
+def parse_semver(version_str):
+    """Parse a version string into a comparable tuple.
+
+    Returns (major, minor, patch) or (0, 0, 0) on failure.
+    """
+    try:
+        parts = version_str.split('.')
+        return tuple(int(p) for p in parts[:3])
+    except (ValueError, AttributeError):
+        return (0, 0, 0)
+
+
 # --- Default mode: version source vs marketplace.json ---
+
+def get_skill_versions_for_plugin(source_dir, skills):
+    """Get SKILL.md metadata.version for each skill in a plugin.
+
+    Returns list of (skill_path, version) tuples.
+    """
+    versions = []
+    for skill_path in skills:
+        skill_path_clean = skill_path.lstrip('./')
+        skill_dir = source_dir / skill_path_clean if skill_path_clean else source_dir
+        skill_md = skill_dir / 'SKILL.md'
+        if skill_md.exists():
+            version = read_version_from_file(skill_md)
+            if version:
+                versions.append((skill_path_clean or './', version))
+    return versions
+
 
 def detect_version_mismatches(repo_root, marketplace_data):
     """Detect mismatches between version sources and marketplace.json.
 
     Compares each plugin's version source (plugin.json or SKILL.md)
     against the version in marketplace.json. One check per plugin.
+
+    For multi-skill plugins with plugin.json, also checks whether any
+    SKILL.md metadata.version exceeds plugin.json — indicating plugin.json
+    was not bumped after a skill version bump.
     """
     mismatches = []
+    skill_drift = []
     errors = []
 
     for plugin in marketplace_data.get('plugins', []):
@@ -353,8 +389,23 @@ def detect_version_mismatches(repo_root, marketplace_data):
                 'marketplace_version': marketplace_version,
             })
 
+        # Cross-check: for multi-skill plugins using plugin.json,
+        # verify no SKILL.md version exceeds plugin.json version
+        if source_label == 'plugin.json' and len(skills) >= 1:
+            plugin_semver = parse_semver(actual_version)
+            skill_versions = get_skill_versions_for_plugin(source_dir, skills)
+            for skill_path, skill_version in skill_versions:
+                if parse_semver(skill_version) > plugin_semver:
+                    skill_drift.append({
+                        'plugin': plugin_name,
+                        'skill_path': skill_path,
+                        'skill_version': skill_version,
+                        'plugin_json_version': actual_version,
+                    })
+
     return {
         'mismatches': mismatches,
+        'skill_drift': skill_drift,
         'errors': errors
     }
 
@@ -364,9 +415,10 @@ def detect_version_mismatches(repo_root, marketplace_data):
 def format_text_output(results):
     """Format default mode results as human-readable text."""
     mismatches = results['mismatches']
+    skill_drift = results.get('skill_drift', [])
     errors = results['errors']
 
-    if not mismatches and not errors:
+    if not mismatches and not skill_drift and not errors:
         print("✓ All plugin versions are synchronized with marketplace.json")
         return
 
@@ -377,6 +429,14 @@ def format_text_output(results):
             print(f"  {m['source_label']}:      {m['source_version']}")
             print(f"  marketplace.json: {m['marketplace_version']}")
             print(f"  → Sync needed\n")
+
+    if skill_drift:
+        print(f"Skill version drift detected: {len(skill_drift)}\n")
+        for d in skill_drift:
+            print(f"{d['plugin']}:")
+            print(f"  skill {d['skill_path']}:  {d['skill_version']}")
+            print(f"  plugin.json:        {d['plugin_json_version']}")
+            print(f"  → plugin.json needs a version bump\n")
 
     if errors:
         print(f"Errors: {len(errors)}\n")
@@ -480,7 +540,10 @@ Examples:
             else:
                 format_text_output(results)
 
-            sys.exit(1 if results['mismatches'] or results['errors'] else 0)
+            has_issues = (results['mismatches']
+                         or results.get('skill_drift')
+                         or results['errors'])
+            sys.exit(1 if has_issues else 0)
 
     except Exception as e:
         print(f"❌ Error: {e}")
