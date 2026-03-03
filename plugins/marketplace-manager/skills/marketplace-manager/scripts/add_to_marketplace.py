@@ -277,6 +277,59 @@ def validate_email(email_str):
     return bool(re.match(pattern, email_str))
 
 
+# Known valid fields for .claude-plugin/plugin.json
+PLUGIN_JSON_KNOWN_FIELDS = {
+    'name', 'version', 'description', 'author',
+    'license', 'keywords', 'mcpServers'
+}
+
+PLUGIN_JSON_REQUIRED_FIELDS = {'name', 'version', 'description'}
+
+
+def validate_plugin_json(plugin_json_path, plugin_name):
+    """Validate plugin.json against known schema.
+
+    Returns list of issue dicts.
+    """
+    issues = []
+    try:
+        with open(plugin_json_path) as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        issues.append({
+            'type': 'error',
+            'category': 'plugin_json',
+            'field': f'{plugin_name}/plugin.json',
+            'message': f"Failed to read plugin.json: {e}"
+        })
+        return issues
+
+    # Check for unknown fields
+    unknown = set(data.keys()) - PLUGIN_JSON_KNOWN_FIELDS
+    for field in sorted(unknown):
+        issues.append({
+            'type': 'error',
+            'category': 'plugin_json',
+            'field': f'{plugin_name}/plugin.json.{field}',
+            'message': (
+                f"Unknown field '{field}' in plugin.json "
+                f"— this will cause silent installation failure"
+            )
+        })
+
+    # Check required fields
+    for field in sorted(PLUGIN_JSON_REQUIRED_FIELDS):
+        if field not in data or not data[field]:
+            issues.append({
+                'type': 'error',
+                'category': 'plugin_json',
+                'field': f'{plugin_name}/plugin.json.{field}',
+                'message': f"Required field '{field}' missing from plugin.json"
+            })
+
+    return issues
+
+
 def validate_marketplace(marketplace_path, repo_root, output_format='text'):
     """Comprehensively validate marketplace.json structure.
 
@@ -428,13 +481,19 @@ def validate_marketplace(marketplace_path, repo_root, output_format='text'):
                     'message': f"Plugin '{plugin.get('name', 'unnamed')}' has invalid version: {plugin['version']}"
                 })
 
+            # Resolve source directory (needed for both plugin.json and skill validation)
+            source_path = plugin.get('source', './')
+            source_path_clean = source_path.lstrip('./')
+            source_dir = repo_root / source_path_clean if source_path_clean else repo_root
+
+            # Validate plugin.json schema
+            plugin_json_path = source_dir / '.claude-plugin' / 'plugin.json'
+            if plugin_json_path.exists():
+                plugin_name = plugin.get('name', f'plugins[{idx}]')
+                issues.extend(validate_plugin_json(plugin_json_path, plugin_name))
+
             # Validate skill paths
             if 'skills' in plugin and isinstance(plugin['skills'], list):
-                # Get source path for resolving skill paths
-                source_path = plugin.get('source', './')
-                source_path_clean = source_path.lstrip('./')
-                source_dir = repo_root / source_path_clean if source_path_clean else repo_root
-
                 for skill_idx, skill_path in enumerate(plugin['skills']):
                     skill_path_clean = skill_path.lstrip('./')
                     # Resolve skill path relative to source path
