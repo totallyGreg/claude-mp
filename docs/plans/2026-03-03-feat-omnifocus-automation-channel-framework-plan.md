@@ -170,9 +170,9 @@ The agent operates from a macOS CLI. Not all channels have equal execution capab
 4. **Note on scope:** `.addTag()` in `scripts/libraries/omni/patterns.js` and `templateEngine.js` may be Omni Automation context (where `addTag()` IS valid), not JXA. Verify before changing.
 
 **Success criteria:**
-- [ ] Zero `.addTag()` instances in JXA files (`scripts/libraries/jxa/`, `scripts/manage_omnifocus.js`, `scripts/gtd-queries.js`)
-- [ ] Zero `.clearTags()` instances in JXA files
-- [ ] All `.whose()[0]` usages have null/undefined guards
+- [x] Zero `.addTag()` instances in JXA files (`scripts/libraries/jxa/`, `scripts/manage_omnifocus.js`, `scripts/gtd-queries.js`)
+- [x] Zero `.clearTags()` instances in JXA files
+- [x] All `.whose()[0]` usages have null/undefined guards
 
 **Estimated scope:** 5-7 files modified
 
@@ -290,14 +290,14 @@ The agent operates from a macOS CLI. Not all channels have equal execution capab
 8. **Integrate validate-jxa-patterns.js into test-queries.sh** — Run anti-pattern checker as part of existing smoke tests.
 
 **Success criteria:**
-- [ ] `validate-jxa-patterns.js` catches `.addTag()`, `.clearTags()`, `Document.defaultDocument`, `eval()`, `$.NSTask`, `doShellScript`
-- [ ] Running against current codebase (after Phase 0 fixes) produces zero violations
-- [ ] JSON anti-pattern config serves as both validation rules and documentation source
-- [ ] `loadLibrary()` rejects paths containing `..` or absolute paths
-- [ ] SKILL.md channel selection matrix includes agent capability parity table
-- [ ] Level 2 classification handles "build JXA script" and "automate recurring task"
-- [ ] `test-queries.sh` includes JXA anti-pattern validation
-- [ ] URL scheme reference includes security friction annotations
+- [x] `validate-jxa-patterns.js` catches `.addTag()`, `.clearTags()`, `Document.defaultDocument`, `eval()`, `$.NSTask`, `doShellScript`
+- [x] Running against current codebase (after Phase 0 fixes) produces zero violations
+- [x] JSON anti-pattern config serves as both validation rules and documentation source
+- [x] `loadLibrary()` rejects paths containing `..` or absolute paths
+- [x] SKILL.md channel selection matrix includes agent capability parity table
+- [x] Level 2 classification handles "build JXA script" and "automate recurring task"
+- [x] `test-queries.sh` includes JXA anti-pattern validation
+- [x] URL scheme reference includes security friction annotations
 
 **Estimated scope:** 5 files modified (SKILL.md, test-queries.sh, omnifocus_url_scheme.md, manage_omnifocus.js loadLibrary, gtd-queries.js loadLibrary), 2 files created (validate-jxa-patterns.js, jxa-antipatterns.json)
 
