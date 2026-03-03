@@ -200,3 +200,5 @@ Users install from marketplace:
 ## See Also
 
 - **skillsmith** - Creates and improves skills
+- **plugin-dev** - Official Anthropic plugin for creating plugin components (skills, commands, agents, hooks)
+- Workflow: `plugin-dev` (build) -> `skillsmith` (improve) -> `marketplace-manager` (publish)
