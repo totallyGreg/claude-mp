@@ -701,5 +701,131 @@
         };
     };
 
+    // ========================================================================
+    // Perspective Queries
+    // ========================================================================
+
+    /**
+     * GTD-essential perspective names and their purposes.
+     * Used by getGTDPerspectiveGaps to identify missing perspectives.
+     */
+    taskQuery.GTD_ESSENTIAL_PERSPECTIVES = [
+        { name: 'Next Actions', purpose: 'See actionable tasks grouped by context/tag' },
+        { name: 'Waiting For', purpose: 'Track delegated items and follow-ups' },
+        { name: 'Stalled Projects', purpose: 'Find active projects without next actions' },
+        { name: 'Due This Week', purpose: 'Plan around upcoming deadlines' },
+        { name: 'Someday/Maybe', purpose: 'Review deferred possibilities' },
+        { name: 'Weekly Review', purpose: 'Structured weekly review checklist' }
+    ];
+
+    /**
+     * Get all custom perspectives with their filter rules and metadata.
+     * Uses Omni Automation Perspective.Custom API (OmniFocus v4.2+).
+     * @param {Document} doc - OmniFocus document (unused, perspectives are global)
+     * @returns {Array<Object>} Array of perspective objects with name, identifier, rules, aggregation
+     */
+    taskQuery.getCustomPerspectives = function(doc) {
+        var perspectives = Perspective.Custom.all;
+        var result = [];
+
+        for (var i = 0; i < perspectives.length; i++) {
+            var p = perspectives[i];
+            var rules = null;
+            var aggregation = null;
+
+            try {
+                rules = p.archivedFilterRules;
+            } catch (e) {
+                // archivedFilterRules not available (pre-v4.2)
+            }
+
+            try {
+                aggregation = p.archivedTopLevelFilterAggregation;
+            } catch (e) {
+                // aggregation not available
+            }
+
+            var encodedName = encodeURIComponent(p.name);
+            result.push({
+                name: p.name,
+                identifier: p.identifier,
+                filterRules: rules,
+                aggregation: aggregation,
+                link: 'omnifocus:///perspective/' + encodedName
+            });
+        }
+
+        return result;
+    };
+
+    /**
+     * Identify missing GTD-essential perspectives by comparing custom
+     * perspective names against the GTD_ESSENTIAL_PERSPECTIVES list.
+     * Uses case-insensitive substring matching.
+     * @param {Document} doc - OmniFocus document
+     * @returns {Object} Object with present and missing arrays
+     */
+    taskQuery.getGTDPerspectiveGaps = function(doc) {
+        var customs = this.getCustomPerspectives(doc);
+        var customNames = customs.map(function(p) { return p.name.toLowerCase(); });
+
+        var present = [];
+        var missing = [];
+
+        for (var i = 0; i < this.GTD_ESSENTIAL_PERSPECTIVES.length; i++) {
+            var essential = this.GTD_ESSENTIAL_PERSPECTIVES[i];
+            var lowerName = essential.name.toLowerCase();
+
+            // Check if any custom perspective name contains the essential name (or vice versa)
+            var found = false;
+            for (var j = 0; j < customNames.length; j++) {
+                if (customNames[j].includes(lowerName) || lowerName.includes(customNames[j])) {
+                    found = true;
+                    present.push({
+                        name: essential.name,
+                        purpose: essential.purpose,
+                        matchedPerspective: customs[j].name,
+                        link: customs[j].link
+                    });
+                    break;
+                }
+            }
+
+            if (!found) {
+                missing.push({
+                    name: essential.name,
+                    purpose: essential.purpose
+                });
+            }
+        }
+
+        return { present: present, missing: missing };
+    };
+
+    /**
+     * Get filter rules for a specific custom perspective by name.
+     * @param {Document} doc - OmniFocus document (unused)
+     * @param {string} name - Perspective name
+     * @returns {Object|null} Perspective rules or null if not found
+     */
+    taskQuery.getPerspectiveRules = function(doc, name) {
+        var p = Perspective.Custom.byName(name);
+        if (!p) return null;
+
+        var rules = null;
+        var aggregation = null;
+
+        try { rules = p.archivedFilterRules; } catch (e) {}
+        try { aggregation = p.archivedTopLevelFilterAggregation; } catch (e) {}
+
+        return {
+            name: p.name,
+            identifier: p.identifier,
+            filterRules: rules,
+            aggregation: aggregation,
+            link: 'omnifocus:///perspective/' + encodeURIComponent(p.name)
+        };
+    };
+
     return taskQuery;
 })();

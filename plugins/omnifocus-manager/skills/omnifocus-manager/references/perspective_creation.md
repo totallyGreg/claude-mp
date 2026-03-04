@@ -22,15 +22,75 @@ OmniFocus includes several standard perspectives:
 **Nearby** - Location-based tasks (iOS)
 **Review** - Projects needing review
 
-## Creating Custom Perspectives
+## Scripted Perspective Configuration (v4.2+)
 
-**Note:** Perspectives cannot be created via scripting. They must be created through the OmniFocus UI.
+OmniFocus v4.2 introduced the `archivedFilterRules` API, enabling programmatic perspective configuration:
+
+- **Read** existing perspective filter rules as JSON
+- **Modify** perspective filter rules programmatically (tags, availability, grouping, etc.)
+- **Export/import** perspective configurations as JSON
+- **Link** directly to any custom perspective via `omnifocus:///perspective/<encoded-name>`
+
+**One constraint:** A perspective _object_ cannot be instantiated from scratch via scripting — the user must create a blank perspective in the UI first (one click: Perspectives → +). After that, filter rules can be fully configured via Omni Automation.
+
+### Guided Creation Workflow
+
+1. **User creates blank perspective:** Perspectives → + (one click)
+2. **Claude configures it** using `perspective-config.js`:
+
+```bash
+cd plugins/omnifocus-manager/skills/omnifocus-manager
+
+# Apply a GTD template
+osascript -l JavaScript scripts/perspective-config.js \
+  --action apply-template --name "Next Actions" --template next-actions
+
+# Or apply custom rules
+osascript -l JavaScript scripts/perspective-config.js \
+  --action apply --name "My View" \
+  --rules '[{"actionAvailability":"available"},{"actionFlagged":true}]'
+```
+
+3. **User adjusts** grouping/sorting in UI (not scriptable)
+
+### Inventory and Gap Analysis
+
+```bash
+# List all custom perspectives with GTD gap analysis
+osascript -l JavaScript scripts/gtd-queries.js --action perspective-inventory
+
+# Show current filter rules for a perspective
+osascript -l JavaScript scripts/perspective-config.js --action show --name "Next Actions"
+```
+
+### API Reference
+
+```javascript
+// Read perspective rules (Omni Automation)
+var rules = Perspective.Custom.byName("Next Actions").archivedFilterRules;
+console.log(JSON.stringify(rules, undefined, 2));
+
+// Write perspective rules
+var p = Perspective.Custom.byName("Next Actions");
+p.archivedFilterRules = [
+  { actionAvailability: "available" },
+  { projectStatus: "active" }
+];
+p.archivedTopLevelFilterAggregation = "all"; // "all" = AND, "any" = OR, "none" = NOT
+
+// Link to a custom perspective
+// omnifocus:///perspective/<encoded-name>
+```
+
+See `perspective_templates.md` for 8 canonical GTD perspective configurations.
+
+## Creating Custom Perspectives (UI)
 
 ### Basic Workflow
 
 1. **Window → Perspectives → Show Perspectives** (⌘0)
 2. Click **+** to create new perspective
-3. Configure filters, grouping, sorting
+3. Configure filters, grouping, sorting (or use `perspective-config.js` to apply a template)
 4. Save and assign keyboard shortcut
 
 ### Perspective Components
