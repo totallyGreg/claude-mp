@@ -1,11 +1,11 @@
 ---
 name: omnifocus-manager
 description: |
-  This skill should be used when working with OmniFocus data, running GTD diagnostics, or generating OmniFocus plugins. Triggers when user asks "show tasks", "overdue items", "check inbox", "stalled projects", "waiting for list", "someday maybe", "GTD health check", "create a plugin", "analyze OmniFocus", "AI Agent tasks", or "publish plan to OmniFocus". For pure GTD methodology coaching, use the gtd-coach skill instead.
+  This skill should be used when working with OmniFocus data, running GTD diagnostics, configuring perspectives, or generating OmniFocus plugins. Triggers when user asks "show tasks", "overdue items", "check inbox", "stalled projects", "waiting for list", "someday maybe", "GTD health check", "create a plugin", "analyze OmniFocus", "AI Agent tasks", "publish plan to OmniFocus", "set up perspectives", "perspective inventory", "configure perspective", or "missing perspectives". For pure GTD methodology coaching, use the gtd-coach skill instead.
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 metadata:
-  version: 6.1.0
+  version: 6.2.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -123,7 +123,7 @@ This skill covers three of four pillars. GTD coaching lives in a separate skill.
 | Pillar | Capability | Owner |
 |--------|-----------|-------|
 | **1. Query** | JXA/Omni Automation live database queries | omnifocus-manager |
-| **2. Perspectives** | Programmatic perspective creation | omnifocus-manager |
+| **2. Perspectives** | Guided perspective configuration via `archivedFilterRules` (v4.2+) | omnifocus-manager |
 | **3. GTD Coaching** | Pure methodology coaching | **gtd-coach** skill |
 | **4. Plugins + FM** | Plugin generation, Apple Intelligence | omnifocus-manager |
 
@@ -209,6 +209,16 @@ osascript -l JavaScript scripts/gtd-queries.js --action neglected-projects --thr
 osascript -l JavaScript scripts/gtd-queries.js --action recently-completed --days 7
 osascript -l JavaScript scripts/gtd-queries.js --action folder-structure
 osascript -l JavaScript scripts/gtd-queries.js --action system-health
+```
+
+**Perspective management (inventory, configuration, templates):**
+```bash
+osascript -l JavaScript scripts/gtd-queries.js --action perspective-inventory
+osascript -l JavaScript scripts/gtd-queries.js --action perspective-rules --name "Next Actions"
+osascript -l JavaScript scripts/perspective-config.js --action show --name "Next Actions"
+osascript -l JavaScript scripts/perspective-config.js --action apply-template --name "Next Actions" --template next-actions
+osascript -l JavaScript scripts/perspective-config.js --action apply --name "My View" --rules '[{"actionAvailability":"available"}]'
+osascript -l JavaScript scripts/perspective-config.js --action list-templates
 ```
 
 **Task queries (today/upcoming/flagged):**
@@ -366,7 +376,8 @@ See `references/omnifocus_url_scheme.md` for URL scheme.
 ### Specialized Topics
 - [Foundation Models Integration](references/foundation_models_integration.md) - Apple Intelligence
 - [URL Scheme Reference](references/omnifocus_url_scheme.md) - Quick capture
-- [Perspective Creation](references/perspective_creation.md) - Custom perspectives
+- [Perspective Creation](references/perspective_creation.md) - Guided perspective configuration (v4.2+)
+- [Perspective Templates](references/perspective_templates.md) - 8 canonical GTD perspective JSON configs
 - [Workflows](references/workflows.md) - Automation patterns
 - [Troubleshooting](references/troubleshooting.md) - Common issues
 
@@ -432,6 +443,22 @@ osascript -l JavaScript scripts/manage_omnifocus.js batch-update --ids id1,id2,i
 osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects
 ```
 
+### "Set up GTD perspectives" / "What perspectives am I missing?"
+```bash
+osascript -l JavaScript scripts/gtd-queries.js --action perspective-inventory
+```
+
+### "Configure a perspective for me"
+```bash
+# User creates blank perspective in UI first, then:
+osascript -l JavaScript scripts/perspective-config.js --action apply-template --name "Next Actions" --template next-actions
+```
+
+### "Show me what a perspective is filtering on"
+```bash
+osascript -l JavaScript scripts/perspective-config.js --action show --name "Next Actions"
+```
+
 ### "What's in my Waiting For?" / "Aging waiting items?"
 ```bash
 osascript -l JavaScript scripts/gtd-queries.js --action waiting-for
@@ -485,9 +512,10 @@ See `references/troubleshooting.md` for complete troubleshooting guide.
 
 ## Version Information
 
-**Current version:** 6.0.1
+**Current version:** 6.2.0
 
 **Recent changes:**
+- v6.2.0: Pillar 2 — Perspective inventory, configuration, templates, GTD gap analysis (#80)
 - v6.0.1: Fix JXA constructor and addTag bugs in manage_omnifocus.js (#76)
 - v5.3.0: Add project-info, project-update, batch-update commands; create --parent-id (#68)
 - v5.2.0: Unify manage_omnifocus.js with JXA library; delete omnifocus.js; single source of truth

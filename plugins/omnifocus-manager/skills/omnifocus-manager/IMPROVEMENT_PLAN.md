@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 6.2.0 | 2026-03-04 | [#80](https://github.com/totallyGreg/claude-mp/issues/80) | Pillar 2 — Perspective inventory, configuration, templates, GTD gap analysis; perspective-config.js; system-health perspective warnings | 30 | 55 | 90 | 100 | 74 |
 | 6.1.0 | 2026-03-03 | [#76](https://github.com/totallyGreg/claude-mp/issues/76) | Channel Selection Layer + JXA anti-pattern checker + security hardening; fix clearTags/addTag/whose bugs; loadLibrary path validation; URL scheme security docs | 30 | 59 | 90 | 100 | 74 |
 | 6.0.0 | 2026-03-02 | [#73](https://github.com/totallyGreg/claude-mp/issues/73) | /of:plan, /of:work commands + task-sync hook; nested tags, bulk-create, ai-agent-tasks | 55 | 64 | 90 | 100 | 80 |
 | 5.5.0 | 2026-03-02 | #71 | Fix weekly-review CWD bug; standardize loadLibrary docs + Script Conventions in SKILL.md; add test-queries.sh smoke test | - | - | - | - | - |
@@ -37,12 +38,12 @@
 ## Active Work
 
 - ~~[#68](https://github.com/totallyGreg/claude-mp/issues/68): Project inspection & mutation CLI commands~~ — Done (v5.3.0, PR #69)
-- [#63](https://github.com/totallyGreg/claude-mp/issues/63): Two-track vision — 1 acceptance criterion remaining
+- ~~[#63](https://github.com/totallyGreg/claude-mp/issues/63): Two-track vision~~ — All 4 pillars complete
   - ~~Pillar 3: GTD Coaching~~ — Done (v5.0.0, PR #65, gtd-coach skill)
   - ~~Agent routing~~ — Done (v5.0.0, PR #65, omnifocus-agent)
   - ~~Pillar 4: Plugins with UI + FM~~ — Done (v4.5.0, #62, AITaskAnalyzer v3.4.0)
   - ~~Pillar 1: Query~~ — Done (v5.1.0, PR #66, gtd-queries.js + taskQuery project functions)
-  - **Pillar 2: Perspectives** — programmatic perspective creation from plain English (next)
+  - ~~Pillar 2: Perspectives~~ — Done (v6.2.0, #80, perspective-config.js + perspective-inventory + templates)
 
 - ~~[#73](https://github.com/totallyGreg/claude-mp/issues/73): /of:plan and /of:work commands + task-sync hook~~ — Done (v6.0.0)
 

@@ -9,20 +9,25 @@
  *     osascript -l JavaScript scripts/gtd-queries.js --action <action> [options]
  *
  * Actions:
- *     inbox-count          Count of unprocessed inbox items
- *     stalled-projects     Active projects with no available next actions
- *     waiting-for          Tasks tagged 'Waiting' sorted by age
- *     someday-maybe        On-hold projects (Someday/Maybe list)
- *     overdue              Tasks past their due date with days overdue
- *     recently-completed   Tasks completed in the last N days
- *     neglected-projects   Active projects not modified in N days
- *     folder-structure     Folder/project hierarchy with task counts
- *     system-health        Aggregated GTD system health summary
+ *     inbox-count              Count of unprocessed inbox items
+ *     stalled-projects         Active projects with no available next actions
+ *     waiting-for              Tasks tagged 'Waiting' sorted by age
+ *     someday-maybe            On-hold projects (Someday/Maybe list)
+ *     overdue                  Tasks past their due date with days overdue
+ *     recently-completed       Tasks completed in the last N days
+ *     neglected-projects       Active projects not modified in N days
+ *     folder-structure         Folder/project hierarchy with task counts
+ *     perspective-inventory    List custom perspectives with GTD gap analysis
+ *     perspective-rules        Show filter rules for a named perspective
+ *     system-health            Aggregated GTD system health summary (includes perspective gaps)
  *
  * Options:
  *     --days <N>           Days for recently-completed lookback (default: 7)
  *     --threshold <N>      Days without modification for neglected-projects (default: 30)
  *     --tag <pattern>      Tag name pattern for waiting-for (default: 'waiting')
+ *
+ * Options:
+ *     --name <name>        Perspective name for perspective-rules action
  *
  * Examples:
  *     osascript -l JavaScript scripts/gtd-queries.js --action inbox-count
@@ -30,6 +35,8 @@
  *     osascript -l JavaScript scripts/gtd-queries.js --action waiting-for --tag "waiting"
  *     osascript -l JavaScript scripts/gtd-queries.js --action recently-completed --days 14
  *     osascript -l JavaScript scripts/gtd-queries.js --action neglected-projects --threshold 30
+ *     osascript -l JavaScript scripts/gtd-queries.js --action perspective-inventory
+ *     osascript -l JavaScript scripts/gtd-queries.js --action perspective-rules --name "Next Actions"
  *     osascript -l JavaScript scripts/gtd-queries.js --action system-health
  *
  * @version 1.0.0
@@ -81,6 +88,8 @@ function parseArgs(argv) {
             args.tag = argv[++i];
         } else if (arg === '--child-tag' && i + 1 < argv.length) {
             args.childTag = argv[++i];
+        } else if (arg === '--name' && i + 1 < argv.length) {
+            args.name = argv[++i];
         }
     }
 
@@ -123,6 +132,12 @@ function run(argv) {
                 break;
             case 'folder-structure':
                 result = getFolderStructure(doc, taskQuery);
+                break;
+            case 'perspective-inventory':
+                result = getPerspectiveInventory(doc, taskQuery);
+                break;
+            case 'perspective-rules':
+                result = getPerspectiveRules(doc, taskQuery, args.name);
                 break;
             case 'system-health':
                 result = getSystemHealth(doc, taskQuery);
@@ -250,6 +265,14 @@ function getSystemHealth(doc, taskQuery) {
     const neglected = taskQuery.getNeglectedProjects(doc);
     const agingWaiting = waiting.filter(function(t) { return t.ageDays !== null && t.ageDays > 30; });
 
+    // Perspective gap analysis
+    var perspectiveGaps = { missing: [] };
+    try {
+        perspectiveGaps = taskQuery.getGTDPerspectiveGaps(doc);
+    } catch (e) {
+        // Perspective API not available (pre-v4.2)
+    }
+
     // Score: start at 10, deduct for each issue category
     let score = 10;
     if (inbox.length > 20) score -= 2;
@@ -260,6 +283,7 @@ function getSystemHealth(doc, taskQuery) {
     if (overdue.length > 10) score -= 2;
     else if (overdue.length > 0) score -= 1;
     if (neglected.length > 5) score -= 1;
+    if (perspectiveGaps.missing.length > 2) score -= 1;
     score = Math.max(0, score);
 
     return {
@@ -271,9 +295,11 @@ function getSystemHealth(doc, taskQuery) {
             stalledProjects: stalled.length,
             overdueCount: overdue.length,
             agingWaitingCount: agingWaiting.length,
-            neglectedProjects: neglected.length
+            neglectedProjects: neglected.length,
+            missingGTDPerspectives: perspectiveGaps.missing.length
         },
-        alerts: buildAlerts(inbox.length, stalled.length, overdue.length, agingWaiting.length, neglected.length)
+        alerts: buildAlerts(inbox.length, stalled.length, overdue.length, agingWaiting.length, neglected.length, perspectiveGaps.missing.length),
+        missingPerspectives: perspectiveGaps.missing
     };
 }
 
@@ -302,7 +328,42 @@ function getAIAgentTasks(doc, taskQuery, tagName, childTag) {
     };
 }
 
-function buildAlerts(inboxCount, stalledCount, overdueCount, agingWaitingCount, neglectedCount) {
+function getPerspectiveInventory(doc, taskQuery) {
+    var perspectives = taskQuery.getCustomPerspectives(doc);
+    var gaps = taskQuery.getGTDPerspectiveGaps(doc);
+
+    return {
+        success: true,
+        action: 'perspective-inventory',
+        customPerspectiveCount: perspectives.length,
+        perspectives: perspectives,
+        gtdAnalysis: {
+            presentCount: gaps.present.length,
+            missingCount: gaps.missing.length,
+            present: gaps.present,
+            missing: gaps.missing
+        }
+    };
+}
+
+function getPerspectiveRules(doc, taskQuery, name) {
+    if (!name) {
+        return { success: false, error: 'Missing --name parameter. Usage: --action perspective-rules --name "Perspective Name"' };
+    }
+
+    var rules = taskQuery.getPerspectiveRules(doc, name);
+    if (!rules) {
+        return { success: false, error: 'Perspective not found: ' + name };
+    }
+
+    return {
+        success: true,
+        action: 'perspective-rules',
+        perspective: rules
+    };
+}
+
+function buildAlerts(inboxCount, stalledCount, overdueCount, agingWaitingCount, neglectedCount, missingPerspectiveCount) {
     const alerts = [];
     if (inboxCount > 20) alerts.push({ severity: 'HIGH', message: inboxCount + ' items need processing in inbox' });
     else if (inboxCount > 10) alerts.push({ severity: 'MEDIUM', message: inboxCount + ' items in inbox' });
@@ -311,6 +372,8 @@ function buildAlerts(inboxCount, stalledCount, overdueCount, agingWaitingCount, 
     else if (overdueCount > 0) alerts.push({ severity: 'MEDIUM', message: overdueCount + ' tasks are overdue' });
     if (agingWaitingCount > 0) alerts.push({ severity: 'MEDIUM', message: agingWaitingCount + ' waiting-for items older than 30 days' });
     if (neglectedCount > 0) alerts.push({ severity: 'LOW', message: neglectedCount + ' active projects not touched in 30+ days' });
+    if (missingPerspectiveCount > 2) alerts.push({ severity: 'MEDIUM', message: missingPerspectiveCount + ' GTD-essential perspectives missing — run perspective-inventory for details' });
+    else if (missingPerspectiveCount > 0) alerts.push({ severity: 'LOW', message: missingPerspectiveCount + ' GTD-essential perspectives missing' });
     return alerts;
 }
 
@@ -327,7 +390,9 @@ function getHelp() {
             'recently-completed': 'Tasks completed in last N days (--days <N>, default: 7)',
             'neglected-projects': 'Active projects not modified in N days (--threshold <N>, default: 30)',
             'folder-structure': 'Folder/project hierarchy with task counts',
-            'system-health': 'Aggregated GTD system health score and alerts',
+            'perspective-inventory': 'List custom perspectives with GTD gap analysis',
+            'perspective-rules': 'Show filter rules for a named perspective (--name <name>)',
+            'system-health': 'Aggregated GTD system health score and alerts (includes perspective gaps)',
             'ai-agent-tasks': 'Tasks tagged AI Agent grouped by project with progress (--tag <name>, --child-tag <name>)'
         }
     };
