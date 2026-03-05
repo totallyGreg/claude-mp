@@ -1,0 +1,22 @@
+{
+  "$id": "riskmap.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CoSAI-RM RiskMap Schema",
+  "description": "Schema providing utility definitions",
+  "definitions": {
+    "utils": {
+      "text": {
+        "type": "array",
+        "items": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

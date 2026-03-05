@@ -85,17 +85,17 @@ Upstream generates pre-built xref tables (persona-to-risk, control-to-risk, etc.
 
 ### Phase 2: Data Sync
 
-- [ ] Download `actor-access.yaml`, `impact-type.yaml`, `lifecycle-stage.yaml` from upstream
-- [ ] Copy to `assets/cosai-schemas/yaml/` (bundled, total: 9 YAML files)
-- [ ] Download `riskmap.schema.json` from upstream
-- [ ] Copy to `assets/cosai-schemas/schemas/` (bundled, total: 11 schema files)
-- [ ] **Bundle first**: confirm all 3 YAML files and `riskmap.schema.json` are committed to `assets/cosai-schemas/` before updating the fetch script (required ordering — if fetch references files without a bundled fallback, `_fallback_to_bundled()` silently returns False)
-- [ ] Update `fetch_cosai_schemas.py` `YAML_FILES` list to include 3 new files (6 → 9)
-- [ ] Update `fetch_cosai_schemas.py` `SCHEMA_FILES` list to include `riskmap.schema.json` (10 → 11)
-- [ ] Create `assets/cosai-schemas/README.md` with minimum content: upstream repo URL, CoSAI commit hash, sync date, and file inventory (counts + names)
-- [ ] Optionally evaluate `mermaid-styles.yaml` — bundle only if diagram generation is planned
-- [ ] Verify `_fallback_to_bundled()` works for all new files (bundled copies exist before fetch can reference them)
-- [ ] Run `fetch_cosai_schemas.py --force` end-to-end and verify 9 YAML + 11 schema files download
+- [x] Download `actor-access.yaml`, `impact-type.yaml`, `lifecycle-stage.yaml` from upstream
+- [x] Copy to `assets/cosai-schemas/yaml/` (bundled, total: 9 YAML files)
+- [x] Download `riskmap.schema.json` from upstream
+- [x] Copy to `assets/cosai-schemas/schemas/` (bundled, total: 11 schema files)
+- [x] **Bundle first**: confirm all 3 YAML files and `riskmap.schema.json` are committed to `assets/cosai-schemas/` before updating the fetch script (required ordering — if fetch references files without a bundled fallback, `_fallback_to_bundled()` silently returns False)
+- [x] Update `fetch_cosai_schemas.py` `YAML_FILES` list to include 3 new files (6 → 9)
+- [x] Update `fetch_cosai_schemas.py` `SCHEMA_FILES` list to include `riskmap.schema.json` (10 → 11)
+- [x] Create `assets/cosai-schemas/README.md` with minimum content: upstream repo URL, CoSAI commit hash, sync date, and file inventory (counts + names)
+- [x] Optionally evaluate `mermaid-styles.yaml` — not bundling per YAGNI (no diagram generation planned)
+- [x] Verify `_fallback_to_bundled()` works for all new files (bundled copies exist before fetch can reference them)
+- [x] Run `fetch_cosai_schemas.py --force` end-to-end and verify 9 YAML + 11 schema files download
 
 ### Phase 3: Validation & Evaluation
 

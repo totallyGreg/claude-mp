@@ -1,0 +1,62 @@
+# Security, Privacy, and Safety Impact Types
+#
+# Categorizes the types of impacts that risks and controls address
+
+title: Impact Types
+description:
+  - >
+    Categorizes the types of security, privacy, and safety impacts that risks pose and
+    controls address. Includes traditional security concerns (confidentiality, integrity,
+    availability, privacy, compliance) and AI-specific impacts (safety, fairness,
+    accountability, reliability, transparency). These categories help assess the scope
+    and nature of AI system risks
+impactTypes:
+  - id: confidentiality
+    title: Confidentiality
+    description: Protection of sensitive data and model information from unauthorized access or disclosure
+    category: traditional-security
+
+  - id: integrity
+    title: Integrity
+    description: Ensuring data, models, and outputs are accurate, authentic, and have not been tampered with
+    category: traditional-security
+
+  - id: availability
+    title: Availability
+    description: Ensuring systems and services remain accessible and operational when needed
+    category: traditional-security
+
+  - id: privacy
+    title: Privacy
+    description: Protection of personal and sensitive information in training data and model outputs
+    category: traditional-security
+
+  - id: safety
+    title: Safety
+    description: Prevention of physical harm or dangerous outcomes from AI system behavior
+    category: ai-specific
+
+  - id: compliance
+    title: Compliance
+    description: Adherence to regulatory requirements, legal obligations, and industry standards
+    category: traditional-security
+
+  - id: fairness
+    title: Fairness
+    description: Ensuring equitable treatment and absence of bias across different groups and populations
+    category: ai-specific
+
+  - id: accountability
+    title: Accountability
+    description: Ability to trace decisions, attribute actions, and establish responsibility for AI behavior
+    category: ai-specific
+
+  - id: reliability
+    title: Reliability
+    description: Consistency and dependability of AI system performance across different conditions
+    category: ai-specific
+
+  - id: transparency
+    title: Transparency
+    description: Explainability and interpretability of AI model behavior and decision-making processes
+    category: ai-specific
