@@ -9,6 +9,7 @@ Comprehensive guide to zsh function development patterns, combining user's prefe
 3. [Completion Patterns](#completion-patterns)
 4. [macOS Keychain Security](#macos-keychain-security)
 5. [Structured Documentation Standard](#structured-documentation-standard)
+6. [Logging from Zsh Functions](#logging-from-zsh-functions)
 
 ---
 
@@ -468,6 +469,43 @@ Choose your pattern based on needs:
 | Store/retrieve secrets | Credential Security | Medium |
 | Complex argument parsing | `_arguments` | Medium |
 | Multiple subcommands | Subcommand with State | Medium |
+
+---
+
+## Logging from Zsh Functions
+
+> **Full coverage in signals-monitoring skill** — see `skills/signals-monitoring/references/macos_logging_guide.md` for the complete `logger` reference and predicate filtering guide.
+
+When your zsh function needs to emit structured, searchable log entries to macOS's unified logging system, use `logger` with the `_log` helper pattern:
+
+```zsh
+# _log helper — include in your function file or a shared autoload
+_log() {
+    local level="${1:-info}"; shift
+    local tag="${funcstack[2]:-zsh}"   # use calling function name as tag
+    logger -t "$tag" -p "user.$level" "$*"
+}
+
+# Usage inside any autoload function:
+my_deploy() {
+    _log info "starting deploy to $1"
+    # ... work ...
+    _log debug "step complete"
+    _log info "deploy finished"
+}
+
+# Find your entries:
+# log show --last 1h --predicate 'process=="logger" and eventMessage contains "my_deploy"'
+# log stream --predicate 'process=="logger" and eventMessage contains "my_deploy"'
+```
+
+**Key points:**
+- `logger` writes into the macOS unified log — no separate log file needed
+- Use `-t <tag>` (matches function name via `_log`) for filtering
+- Levels: `user.debug`, `user.info`, `user.warning`, `user.error`
+- Add `-s` to also print to stderr during development
+
+For signal/trap patterns in long-running functions, see `skills/signals-monitoring/references/signals_guide.md`.
 
 ---
 
