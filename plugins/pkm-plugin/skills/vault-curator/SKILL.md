@@ -1,15 +1,18 @@
 ---
 name: vault-curator
 description: >
-  This skill should be used when users ask to "migrate vault notes", "extract meeting from log",
-  "detect schema drift", "consolidate notes", "find duplicates", "merge notes", "redirect links",
-  "suggest properties", "what metadata am I missing", "find related notes", "show connections",
-  "what links to this", "find orphaned notes", "show discovery view", "suggest links",
-  "show knowledge map", "generate canvas", "visualize my notes", or "show me a map".
+  This skill should be used when users ask to "analyze vault metadata",
+  "check for schema drift", "fix duplicate notes", "update note properties",
+  "generate canvas", "improve vault connections", "create discovery view",
+  "validate frontmatter consistency", "build knowledge map",
+  "check for orphaned notes", or "analyze note relationships".
+  Also handles: "find duplicates", "merge notes", "redirect links",
+  "suggest properties", "show connections", "extract meeting from log",
+  "migrate vault notes", "visualize my notes", or "show me a map".
   Curates and evolves existing vault content through pattern detection, migration workflows,
   metadata intelligence, consolidation, discovery, visualization, and programmatic manipulation.
 metadata:
-  version: "1.5.0"
+  version: "1.5.1"
   plugin: "pkm-plugin"
   stage: "3"
 compatibility: Requires python3.11+ and uv for script execution. Obsidian CLI 1.12+ for intelligence workflows.
@@ -56,31 +59,11 @@ obsidian search query="Docker" format=json   # find matching notes/folders
 
 ## Obsidian CLI Integration
 
-The installed obsidian-cli skills provide safe CLI usage patterns. Key commands for curator workflows:
+Use obsidian-cli for property, search, structure, and tag operations.
 
-```bash
-# Properties (metadata workflows)
-obsidian properties path=<path> format=tsv           # list all properties
-obsidian property:read name=<key> path=<path>        # read one property
-obsidian property:set name=<key> value=<val> path=<path>  # set property
+**See:** `references/cli-patterns.md` for command reference and safety rules.
 
-# Search (scoped operations)
-obsidian search query="<text>" path=<folder> format=json matches  # scoped search with context
-
-# Structure (scope selection)
-obsidian folders                                      # list all folders
-obsidian files folder=<path> ext=md                   # list files in folder
-obsidian orphans                                      # files with no incoming links
-obsidian backlinks path=<path> counts                 # incoming links with counts
-
-# Tags
-obsidian tags all counts sort=count                   # vault-wide tags by frequency
-obsidian tag name=<tag>                               # files with specific tag
-```
-
-**Safety:** Always use `silent` flag with `create`. Always use `format=json` for programmatic output. See installed `obsidian-cli` skills for full gotcha list.
-
-**Fallback:** If CLI is unavailable (Obsidian not running), use Grep/Glob/Read for file operations.
+**Fallback:** If CLI unavailable (Obsidian not running), use Grep/Glob/Read.
 
 ## Migration Workflows
 
@@ -299,54 +282,24 @@ When asked "show me a map", "generate canvas", "visualize my notes", or "show kn
 
 ### Find Orphaned Notes
 
-```bash
-obsidian orphans                    # CLI: files with no incoming links
-# OR fallback:
-uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/find_orphans.py ${VAULT_PATH}
-```
+Use `obsidian orphans` CLI command to find files with no incoming links.
 
 ### Detect Note Clusters
 
-```bash
-uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/find_note_clusters.py ${VAULT_PATH}
-```
-
-Uses link analysis to identify groups of highly interconnected notes.
-
-## Python Script Patterns
-
-All scripts follow PEP 723 inline metadata:
-
-```python
-# /// script
-# requires-python = ">=3.11"
-# dependencies = [
-#   "pyyaml>=6.0",
-#   "python-frontmatter>=1.0.0",
-# ]
-# ///
-```
-
-**Requirements:**
-1. **PEP 723 Header** - inline dependencies for `uv run`
-2. **Path Validation** - security check (no system directories)
-3. **JSON Output** - structured output to stdout
-4. **Error Handling** - graceful failures with error JSON
-5. **`--dry-run` flag** - for destructive operations
-
-Run via: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/<script> ${VAULT_PATH}`
+Use `find_related.py` with `--scope` to identify groups of related notes within a directory.
 
 ## Available Scripts
 
-| Script | Purpose | Status |
-|--------|---------|--------|
-| `extract_section_to_meeting.py` | Extract meeting from daily note log | Stable |
-| `suggest_properties.py` | Suggest missing properties for a note | Stable |
-| `detect_schema_drift.py` | Find metadata inconsistencies across fileClass | Stable |
-| `find_related.py` | Find notes related by tags, properties, links, proximity | Stable |
-| `find_orphans.py` | Find notes with no links | Planned |
-| `find_note_clusters.py` | Identify interconnected note groups | Planned |
-| `find_similar_notes.py` | Detect duplicate/similar notes within scope | Stable |
-| `merge_notes.py` | Merge two notes (frontmatter union + content concat) | Stable |
-| `redirect_links.py` | Vault-wide wikilink replacement after merge | Stable |
-| `generate_canvas.py` | Generate JSON Canvas maps of note relationships | Stable |
+All scripts use PEP 723 inline metadata for `uv run` compatibility. Run via:
+`uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/<script> ${VAULT_PATH}`
+
+| Script | Purpose |
+|--------|---------|
+| `extract_section_to_meeting.py` | Extract meeting from daily note log |
+| `suggest_properties.py` | Suggest missing properties for a note |
+| `detect_schema_drift.py` | Find metadata inconsistencies across fileClass |
+| `find_related.py` | Find notes related by tags, properties, links, proximity |
+| `find_similar_notes.py` | Detect duplicate/similar notes within scope |
+| `merge_notes.py` | Merge two notes (frontmatter union + content concat) |
+| `redirect_links.py` | Vault-wide wikilink replacement after merge |
+| `generate_canvas.py` | Generate JSON Canvas maps of note relationships |

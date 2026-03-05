@@ -2,12 +2,13 @@
 
 ## Overview
 
-This document tracks improvements, enhancements, and future development plans for the obsidian-pkm-manager skill.
+This document tracks improvements, enhancements, and future development plans for the vault-architect skill.
 
 ## Version History
 
 | Version | Date | Description | Overall | Conciseness | Complexity | Spec Compliance | Progressive | Description Score |
 |---------|------|-------------|---------|-------------|------------|-----------------|-------------|------------------|
+| 1.2.0 | 2026-03-05 | SKILL.md restructure: 12 trigger phrases, conciseness fix, structural bug fix (#89) | 86 | 83 | 80 | 80 | 100 | 100 |
 | 1.1.1 | 2026-03-05 | Comprehensive QuickAdd 2.12.0 reference, SKILL.md section update | 78 | 34 | 88 | 80 | 100 | 100 |
 | 1.0.0 | 2025-12-15 | Initial release with core PKM guidance | — | — | — | — | — | — |
 

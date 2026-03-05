@@ -67,7 +67,8 @@ description: |
   </example>
 
 tools: ["Read", "Bash", "Grep", "Glob", "Edit", "Write"]
-color: purple
+model: inherit
+color: magenta
 ---
 
 # PKM Manager Agent

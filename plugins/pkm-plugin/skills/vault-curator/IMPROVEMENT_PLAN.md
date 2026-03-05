@@ -4,9 +4,10 @@
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.5.0 | 2026-02-16 | Visualization workflows: generate_canvas.py (grid layout, 50-node cap, folder clustering, fileClass colors). Skillsmith eval: 85/100 (conciseness 66, complexity 86, spec 90, progressive 100, description 80) |
+| Version | Date | Changes | Overall | Conc | Comp | Spec | Prog | Desc |
+|---------|------|---------|---------|------|------|------|------|------|
+| 1.5.1 | 2026-03-05 | Description + conciseness improvement: 11 trigger phrases, CLI moved to ref, planned scripts fixed (#89) | 90 | 78 | 88 | 90 | 100 | 100 |
+| 1.5.0 | 2026-02-16 | Visualization workflows: generate_canvas.py | 85 | 66 | 86 | 90 | 100 | 80 |
 | 1.4.0 | 2026-02-16 | Discovery workflows: find_related.py, progressive discovery views, auto-linking suggestions. SKILL.md + pkm-manager agent updated. Skillsmith eval: 87/100 (conciseness 76, complexity 88, spec 90, progressive 100, description 80) |
 | 1.3.0 | 2026-02-16 | Consolidation workflows: find_similar_notes.py, merge_notes.py, redirect_links.py, consolidation-protocol.md reference. Skillsmith eval: 89/100 |
 | 1.2.0 | 2026-02-15 | Scope selection, metadata workflows (suggest_properties.py, detect_schema_drift.py), SKILL.md restructure, pkm-manager agent CLI integration |

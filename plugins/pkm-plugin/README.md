@@ -21,7 +21,7 @@ vault_path: /Users/username/Documents/MyVault
 
 ## Skill Documentation
 
-See `skills/obsidian-pkm-manager/SKILL.md` for comprehensive PKM guidance (481 lines).
+See `skills/vault-architect/SKILL.md` for creating new structures and `skills/vault-curator/SKILL.md` for evolving existing content.
 
 Progressive disclosure:
 - `SKILL.md` - Core capabilities and workflows
@@ -31,7 +31,7 @@ Progressive disclosure:
 
 ## Version
 
-1.0.0
+1.6.0
 
 ## License
 
