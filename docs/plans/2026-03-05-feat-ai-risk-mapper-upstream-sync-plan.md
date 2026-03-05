@@ -1,7 +1,7 @@
 ---
 title: "ai-risk-mapper: Sync with upstream changes"
 type: feat
-status: active
+status: completed
 date: 2026-03-05
 issue: "#85"
 ---
@@ -75,43 +75,43 @@ Upstream generates pre-built xref tables (persona-to-risk, control-to-risk, etc.
 
 ### Phase 1: Quick Fixes
 
-- [ ] **SKILL.md line 40**: Change `personaModelCreator` → `personaModelProvider` in example
-- [ ] Verify all other SKILL.md examples use active persona IDs
-- [ ] **`workflow_guide.md`**: Update stale file counts ("5 YAML + 5 schema" → "9 YAML + 11 schema")
-- [ ] Review `references/exploration_guide.md` for deprecated persona references
-- [ ] Review `references/personas_guide.md` for deprecated persona references
-- [ ] Review `references/forms.md` System Profile Form — update `personas.primary_persona` comment from `ModelCreator or ModelConsumer` to reflect 8 active personas (comparison target: the local `forms.md` field comments, not upstream GitHub issue templates)
-- [ ] Add deprecation warning to `cli_persona_profile.py` when a deprecated persona ID is queried (print to stderr, exit 0, still return results) — scope limited to this script; `cli_gap_analysis.py` and `analyze_risks.py` persona filtering deferred to follow-up
+- [x] **SKILL.md line 40**: Change `personaModelCreator` → `personaModelProvider` in example
+- [x] Verify all other SKILL.md examples use active persona IDs
+- [x] **`workflow_guide.md`**: Update stale file counts ("5 YAML + 5 schema" → "9 YAML + 11 schema")
+- [x] Review `references/exploration_guide.md` for deprecated persona references
+- [x] Review `references/personas_guide.md` for deprecated persona references
+- [x] Review `references/forms.md` System Profile Form — update `personas.primary_persona` comment from `ModelCreator or ModelConsumer` to reflect 8 active personas (comparison target: the local `forms.md` field comments, not upstream GitHub issue templates)
+- [x] Add deprecation warning to `cli_persona_profile.py` when a deprecated persona ID is queried (print to stderr, exit 0, still return results) — scope limited to this script; `cli_gap_analysis.py` and `analyze_risks.py` persona filtering deferred to follow-up
 
 ### Phase 2: Data Sync
 
-- [ ] Download `actor-access.yaml`, `impact-type.yaml`, `lifecycle-stage.yaml` from upstream
-- [ ] Copy to `assets/cosai-schemas/yaml/` (bundled, total: 9 YAML files)
-- [ ] Download `riskmap.schema.json` from upstream
-- [ ] Copy to `assets/cosai-schemas/schemas/` (bundled, total: 11 schema files)
-- [ ] **Bundle first**: confirm all 3 YAML files and `riskmap.schema.json` are committed to `assets/cosai-schemas/` before updating the fetch script (required ordering — if fetch references files without a bundled fallback, `_fallback_to_bundled()` silently returns False)
-- [ ] Update `fetch_cosai_schemas.py` `YAML_FILES` list to include 3 new files (6 → 9)
-- [ ] Update `fetch_cosai_schemas.py` `SCHEMA_FILES` list to include `riskmap.schema.json` (10 → 11)
-- [ ] Create `assets/cosai-schemas/README.md` with minimum content: upstream repo URL, CoSAI commit hash, sync date, and file inventory (counts + names)
-- [ ] Optionally evaluate `mermaid-styles.yaml` — bundle only if diagram generation is planned
-- [ ] Verify `_fallback_to_bundled()` works for all new files (bundled copies exist before fetch can reference them)
-- [ ] Run `fetch_cosai_schemas.py --force` end-to-end and verify 9 YAML + 11 schema files download
+- [x] Download `actor-access.yaml`, `impact-type.yaml`, `lifecycle-stage.yaml` from upstream
+- [x] Copy to `assets/cosai-schemas/yaml/` (bundled, total: 9 YAML files)
+- [x] Download `riskmap.schema.json` from upstream
+- [x] Copy to `assets/cosai-schemas/schemas/` (bundled, total: 11 schema files)
+- [x] **Bundle first**: confirm all 3 YAML files and `riskmap.schema.json` are committed to `assets/cosai-schemas/` before updating the fetch script (required ordering — if fetch references files without a bundled fallback, `_fallback_to_bundled()` silently returns False)
+- [x] Update `fetch_cosai_schemas.py` `YAML_FILES` list to include 3 new files (6 → 9)
+- [x] Update `fetch_cosai_schemas.py` `SCHEMA_FILES` list to include `riskmap.schema.json` (10 → 11)
+- [x] Create `assets/cosai-schemas/README.md` with minimum content: upstream repo URL, CoSAI commit hash, sync date, and file inventory (counts + names)
+- [x] Optionally evaluate `mermaid-styles.yaml` — not bundling per YAGNI (no diagram generation planned)
+- [x] Verify `_fallback_to_bundled()` works for all new files (bundled copies exist before fetch can reference them)
+- [x] Run `fetch_cosai_schemas.py --force` end-to-end and verify 9 YAML + 11 schema files download
 
 ### Phase 3: Validation & Evaluation
 
-- [ ] Run `cli_persona_profile.py` for all 8 active personas (loop or manual), verify returned risks and controls reflect expanded mappings
-- [ ] Spot-check: compare `get_risks_for_persona("personaModelProvider")` output count against `grep -c personaModelProvider risks.yaml`
-- [ ] Spot-check: compare `get_controls_for_persona("personaAgenticProvider")` output count against `grep -c personaAgenticProvider controls.yaml`
-- [ ] **Count mismatch resolution**: if delta ≤ 10% document in IMPROVEMENT_PLAN.md Known Issues; if delta > 10% open a new GitHub Issue before release proceeds
-- [ ] **Decide on enum cross-validation**: check if values in `actor-access.yaml`, `impact-type.yaml`, `lifecycle-stage.yaml` match enum values embedded in `risks.yaml`/`controls.yaml`. If drift found, open a follow-up issue. If aligned, document as YAGNI (core_analyzer.py does not load these files).
-- [ ] **Decide on `frameworksApplicableTo`**: Check if any risk/control entries in current YAML actually contain this field. If not present in data yet, defer (YAGNI). If present, evaluate whether `get_framework_mappings()` should also read it.
-- [ ] **Decide on `/arm-xref`**: Review whether existing commands already cover xref needs. If so, document as "not needed" and close that sub-item.
+- [x] Run `cli_persona_profile.py` for all 8 active personas (loop or manual), verify returned risks and controls reflect expanded mappings
+- [x] Spot-check: compare `get_risks_for_persona("personaModelProvider")` output count against `grep -c personaModelProvider risks.yaml` — exact match (9 risks, 9 controls)
+- [x] Spot-check: compare `get_controls_for_persona("personaAgenticProvider")` output count against `grep -c personaAgenticProvider controls.yaml` — exact match (7 risks, 11 controls)
+- [x] **Count mismatch resolution**: no mismatches found, all counts match exactly
+- [x] **Decide on enum cross-validation**: enum files align with values used in risks.yaml/controls.yaml. No drift. YAGNI — core_analyzer.py does not need to load these files.
+- [x] **Decide on `frameworksApplicableTo`**: field does not exist in current upstream YAML data (0 occurrences). Deferred per YAGNI.
+- [x] **Decide on `/arm-xref`**: existing commands cover all xref needs. Not needed — skipped per YAGNI.
 
 ### Release
 
-- [ ] Update `SKILL.md` `metadata.version` to `5.1.0`
-- [ ] Update `IMPROVEMENT_PLAN.md` with version entry and eval score
-- [ ] Run skillsmith evaluation: `uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py plugins/ai-risk-mapper/skills/ai-risk-mapper`
+- [x] Update `SKILL.md` `metadata.version` to `5.1.0`
+- [x] Update `IMPROVEMENT_PLAN.md` with version entry and eval score (97/100)
+- [x] Run skillsmith evaluation: 97/100 (up from 93 in v5.0.0)
 
 ## Dependencies & Risks
 

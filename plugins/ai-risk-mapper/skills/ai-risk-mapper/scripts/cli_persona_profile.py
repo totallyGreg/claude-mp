@@ -30,6 +30,13 @@ def main():
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
+    # Check for deprecated persona and warn
+    persona = analyzer.find_persona(args.persona_id)
+    if persona and persona.deprecated:
+        print(f"Warning: '{args.persona_id}' is deprecated. Consider using an active persona instead.", file=sys.stderr)
+        print(f"Active personas: {', '.join(p.id for p in analyzer.get_all_personas() if not p.deprecated)}", file=sys.stderr)
+        print(file=sys.stderr)
+
     profile = analyzer.get_persona_risk_profile(args.persona_id)
 
     if "error" in profile:

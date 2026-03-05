@@ -2,7 +2,7 @@
 name: ai-risk-mapper
 description: This skill should be used when identifying, analyzing, and mitigating security risks in Artificial Intelligence systems using the CoSAI (Coalition for Secure AI) Risk Map framework. Use when users ask to "assess AI security risks", "analyze AI system threats", "map risks to controls", "run a risk assessment", "check compliance with MITRE ATLAS", "generate a CoSAI report", or "profile persona risks". Supports LLM applications, ML pipelines, model training/serving infrastructure, and compliance reporting aligned with MITRE ATLAS, NIST AI RMF, OWASP Top 10 for LLM, STRIDE, and ISO 22989 frameworks.
 metadata:
-  version: "5.0.0"
+  version: "5.1.0"
   author: J. Greg Williams
 compatibility: Requires python3 and uv for script execution
 license: Apache 2.0
@@ -37,7 +37,7 @@ For ad-hoc queries, threat modeling, or compliance mapping:
 | Search risks by keyword | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_risk_search.py "injection"` |
 | Search controls by keyword | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_control_search.py "training"` |
 | Get controls for a risk | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_controls_for_risk.py DP` |
-| Get persona risk profile | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_persona_profile.py personaModelCreator` |
+| Get persona risk profile | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_persona_profile.py personaModelProvider` |
 | Assess control coverage | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_gap_analysis.py DP --implemented controlTrainingDataSanitization` |
 | Get framework mappings | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_framework_map.py PIJ --framework mitre-atlas` |
 

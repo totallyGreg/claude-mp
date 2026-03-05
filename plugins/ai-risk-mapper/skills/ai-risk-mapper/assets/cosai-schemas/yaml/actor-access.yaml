@@ -1,0 +1,57 @@
+# Threat Actor Access Levels
+#
+# Defines the level of system access required by threat actors to exploit vulnerabilities
+
+title: Actor Access
+description:
+  - >
+    Defines the level of system access required by threat actors to exploit vulnerabilities
+    in AI systems. Access levels range from external attackers with no access to privileged
+    insiders and supply chain actors. This taxonomy includes both traditional security access
+    levels and AI-specific access patterns such as agent access and service providers
+
+actorAccessLevels:
+  - id: external
+    title: External Access
+    description: External attackers with no direct system access (e.g., remote attacks via public interfaces)
+    category: traditional
+
+  - id: api
+    title: API Access
+    description: Attackers with access to public or authenticated API endpoints
+    category: traditional
+
+  - id: user
+    title: User Access
+    description: Standard authenticated users with normal application access privileges
+    category: traditional
+
+  - id: privileged
+    title: Privileged Access
+    description: Users with elevated privileges such as administrators, operators, or power users
+    category: traditional
+
+  - id: agent
+    title: Agent Access
+    description: AI agents or autonomous systems with tool/plugin execution capabilities
+    category: modern
+
+  - id: supply-chain
+    title: Supply Chain Position
+    description: Actors positioned in the software, data, or model supply chain (e.g., data providers, model vendors)
+    category: modern
+
+  - id: infrastructure-provider
+    title: Infrastructure Provider
+    description: Cloud or infrastructure providers with access to underlying systems (e.g., hypervisor, storage)
+    category: modern
+
+  - id: service-provider
+    title: Service Provider
+    description: Third-party service providers with access to systems or data (e.g., ML platforms, annotation services)
+    category: modern
+
+  - id: physical
+    title: Physical Access
+    description: Attackers with physical access to hardware, facilities, or devices
+    category: traditional
