@@ -1,7 +1,7 @@
 ---
 title: "ai-risk-mapper: Sync with upstream changes"
 type: feat
-status: active
+status: completed
 date: 2026-03-05
 issue: "#85"
 ---
@@ -99,19 +99,19 @@ Upstream generates pre-built xref tables (persona-to-risk, control-to-risk, etc.
 
 ### Phase 3: Validation & Evaluation
 
-- [ ] Run `cli_persona_profile.py` for all 8 active personas (loop or manual), verify returned risks and controls reflect expanded mappings
-- [ ] Spot-check: compare `get_risks_for_persona("personaModelProvider")` output count against `grep -c personaModelProvider risks.yaml`
-- [ ] Spot-check: compare `get_controls_for_persona("personaAgenticProvider")` output count against `grep -c personaAgenticProvider controls.yaml`
-- [ ] **Count mismatch resolution**: if delta ≤ 10% document in IMPROVEMENT_PLAN.md Known Issues; if delta > 10% open a new GitHub Issue before release proceeds
-- [ ] **Decide on enum cross-validation**: check if values in `actor-access.yaml`, `impact-type.yaml`, `lifecycle-stage.yaml` match enum values embedded in `risks.yaml`/`controls.yaml`. If drift found, open a follow-up issue. If aligned, document as YAGNI (core_analyzer.py does not load these files).
-- [ ] **Decide on `frameworksApplicableTo`**: Check if any risk/control entries in current YAML actually contain this field. If not present in data yet, defer (YAGNI). If present, evaluate whether `get_framework_mappings()` should also read it.
-- [ ] **Decide on `/arm-xref`**: Review whether existing commands already cover xref needs. If so, document as "not needed" and close that sub-item.
+- [x] Run `cli_persona_profile.py` for all 8 active personas (loop or manual), verify returned risks and controls reflect expanded mappings
+- [x] Spot-check: compare `get_risks_for_persona("personaModelProvider")` output count against `grep -c personaModelProvider risks.yaml` — exact match (9 risks, 9 controls)
+- [x] Spot-check: compare `get_controls_for_persona("personaAgenticProvider")` output count against `grep -c personaAgenticProvider controls.yaml` — exact match (7 risks, 11 controls)
+- [x] **Count mismatch resolution**: no mismatches found, all counts match exactly
+- [x] **Decide on enum cross-validation**: enum files align with values used in risks.yaml/controls.yaml. No drift. YAGNI — core_analyzer.py does not need to load these files.
+- [x] **Decide on `frameworksApplicableTo`**: field does not exist in current upstream YAML data (0 occurrences). Deferred per YAGNI.
+- [x] **Decide on `/arm-xref`**: existing commands cover all xref needs. Not needed — skipped per YAGNI.
 
 ### Release
 
-- [ ] Update `SKILL.md` `metadata.version` to `5.1.0`
-- [ ] Update `IMPROVEMENT_PLAN.md` with version entry and eval score
-- [ ] Run skillsmith evaluation: `uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py plugins/ai-risk-mapper/skills/ai-risk-mapper`
+- [x] Update `SKILL.md` `metadata.version` to `5.1.0`
+- [x] Update `IMPROVEMENT_PLAN.md` with version entry and eval score (97/100)
+- [x] Run skillsmith evaluation: 97/100 (up from 93 in v5.0.0)
 
 ## Dependencies & Risks
 

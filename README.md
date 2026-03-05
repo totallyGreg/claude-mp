@@ -38,7 +38,7 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| **ai-risk-mapper** | 5.0.0 | AI security risk assessment using CoSAI Risk Map framework |
+| **ai-risk-mapper** | 5.1.0 | AI security risk assessment using CoSAI Risk Map framework |
 
 ### Infrastructure (1 plugin)
 
