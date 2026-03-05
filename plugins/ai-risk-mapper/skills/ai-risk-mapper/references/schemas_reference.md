@@ -62,7 +62,7 @@ This document describes the JSON schema structures used in the CoSAI Risk Map fr
   - controlsApplication
   - controlsAssurance
   - controlsGovernance
-- `personas` (array): Target audience (ModelCreator, ModelConsumer)
+- `personas` (array): Target audience (8 active personas: personaModelProvider, personaDataProvider, personaPlatformProvider, personaModelServing, personaAgenticProvider, personaApplicationDeveloper, personaGovernance, personaEndUser)
 - `components` (array or enum): Component IDs affected, or "all"/"none"
 - `risks` (array or enum): Risk IDs addressed, or "all"
 

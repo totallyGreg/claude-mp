@@ -14,7 +14,7 @@ Ensures CoSAI framework data is available:
    ```bash
    uv run scripts/fetch_cosai_schemas.py
    ```
-   - Downloads 5 YAML data files + 5 JSON schema files
+   - Downloads 9 YAML data files + 11 JSON schema files
    - Caches to `~/.cosai-cache/`
    - Options: `--force` (re-download), `--cache-dir PATH` (custom location)
 
@@ -35,7 +35,7 @@ Analyzes target for applicable risks using CoSAI framework:
 ```bash
 uv run scripts/analyze_risks.py \
   --target /path/to/codebase \
-  --persona ModelConsumer \
+  --persona ApplicationDeveloper \
   --lifecycle Application \
   --severity-filter Critical \
   --output json > analysis_results.json
@@ -43,7 +43,7 @@ uv run scripts/analyze_risks.py \
 
 **Key Parameters:**
 - `--target PATH` - File, directory, or system description (required)
-- `--persona` - ModelCreator or ModelConsumer (optional filter)
+- `--persona` - ModelProvider, DataProvider, PlatformProvider, ModelServing, AgenticProvider, ApplicationDeveloper, Governance, or EndUser (optional filter)
 - `--lifecycle` - Data, Infrastructure, Model, or Application (optional filter)
 - `--severity-filter` - Critical, High, Medium, Low (optional filter)
 - `--output` - text, json, yaml (default: text)
@@ -62,7 +62,7 @@ uv run scripts/analyze_risks.py \
     "risk_id": "[PIJ] Prompt Injection",
     "severity": "Critical",
     "confidence": "high",
-    "applicable_personas": ["ModelConsumer"],
+    "applicable_personas": ["personaApplicationDeveloper"],
     "applicable_lifecycle": ["Application"],
     "rationale": "...",
     "relevant_controls": ["controlInputValidation", "..."]
@@ -111,9 +111,15 @@ Use the **System Profile Form** from `references/FORMS.md`:
    - Organization, assessment date, assessor name
 
 2. **Persona Identification** (see `references/personas_guide.md`)
-   - **ModelCreator**: Train/tune models, secure training infrastructure
-   - **ModelConsumer**: Deploy pre-trained models in applications
-   - Both: If organization does both
+   - **ModelProvider**: Develop, train, evaluate AI/ML models
+   - **DataProvider**: Supply training/evaluation/inference data
+   - **PlatformProvider**: Provide infrastructure/compute/API services
+   - **ModelServing**: Manage runtime for model predictions at scale
+   - **AgenticProvider**: Provide agentic platform and frameworks
+   - **ApplicationDeveloper**: Build AI-powered applications
+   - **Governance**: AI system governance and compliance
+   - **EndUser**: End users of AI systems
+   - Multiple personas may apply if organization spans roles
 
 3. **Lifecycle Coverage** (see `references/cosai_overview.md`)
    - Which stages apply: Data, Infrastructure, Model, Application
@@ -133,7 +139,7 @@ system_profile:
     organization: "Tech Company"
     date: "2026-01-28"
   personas:
-    primary_persona: "ModelConsumer"
+    primary_persona: "ApplicationDeveloper"
   lifecycle_stages:
     - Infrastructure
     - Application
@@ -271,7 +277,7 @@ For comprehensive framework knowledge, see `references/cosai_overview.md`:
 1. **Components** - Building blocks of AI systems (e.g., Data Sources, The Model, Application)
 2. **Risks** - Security threats (e.g., Data Poisoning, Prompt Injection, Model Exfiltration)
 3. **Controls** - Mitigations (e.g., Input Validation, Adversarial Training, Access Controls)
-4. **Personas** - Roles (Model Creator, Model Consumer)
+4. **Personas** - Roles (8 active: Model Provider, Data Provider, Platform Provider, Model Serving, Agentic Provider, Application Developer, Governance, End User)
 
 **Four Lifecycle Domains:**
 - **Data**: Training data collection, validation, storage
@@ -281,19 +287,15 @@ For comprehensive framework knowledge, see `references/cosai_overview.md`:
 
 ### Personas and Responsibilities
 
-See `references/personas_guide.md` for detailed definitions:
+See `references/personas_guide.md` for detailed definitions of all 8 active personas aligned with ISO 22989.
 
-**Model Creator** Responsibilities:
-- Train and tune models
-- Secure training data and infrastructure
-- Implement model-level controls
-- Provide security documentation to consumers
+Key personas include:
+- **Model Provider** — Develop, train, evaluate AI/ML models
+- **Application Developer** — Build AI-powered applications
+- **Platform Provider** — Provide infrastructure/compute/API services
+- **Governance** — AI system governance and compliance
 
-**Model Consumer** Responsibilities:
-- Deploy models in applications
-- Secure application layer and user inputs
-- Implement runtime controls
-- Monitor model behavior
+See the personas guide for the full list with responsibilities and identification questions.
 
 ### Schema Structure
 

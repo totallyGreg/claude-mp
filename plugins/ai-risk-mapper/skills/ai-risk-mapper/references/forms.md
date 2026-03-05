@@ -14,8 +14,8 @@ system_profile:
     assessor_name: ""
 
   personas:
-    primary_persona: ""  # ModelCreator or ModelConsumer
-    secondary_persona: ""  # Optional: if organization has both roles
+    primary_persona: ""  # One of: ModelProvider, DataProvider, PlatformProvider, ModelServing, AgenticProvider, ApplicationDeveloper, Governance, EndUser
+    secondary_persona: ""  # Optional: additional role if organization spans multiple personas
 
   lifecycle_stages:
     - Data

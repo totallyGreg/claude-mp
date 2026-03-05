@@ -75,13 +75,13 @@ Upstream generates pre-built xref tables (persona-to-risk, control-to-risk, etc.
 
 ### Phase 1: Quick Fixes
 
-- [ ] **SKILL.md line 40**: Change `personaModelCreator` → `personaModelProvider` in example
-- [ ] Verify all other SKILL.md examples use active persona IDs
-- [ ] **`workflow_guide.md`**: Update stale file counts ("5 YAML + 5 schema" → "9 YAML + 11 schema")
-- [ ] Review `references/exploration_guide.md` for deprecated persona references
-- [ ] Review `references/personas_guide.md` for deprecated persona references
-- [ ] Review `references/forms.md` System Profile Form — update `personas.primary_persona` comment from `ModelCreator or ModelConsumer` to reflect 8 active personas (comparison target: the local `forms.md` field comments, not upstream GitHub issue templates)
-- [ ] Add deprecation warning to `cli_persona_profile.py` when a deprecated persona ID is queried (print to stderr, exit 0, still return results) — scope limited to this script; `cli_gap_analysis.py` and `analyze_risks.py` persona filtering deferred to follow-up
+- [x] **SKILL.md line 40**: Change `personaModelCreator` → `personaModelProvider` in example
+- [x] Verify all other SKILL.md examples use active persona IDs
+- [x] **`workflow_guide.md`**: Update stale file counts ("5 YAML + 5 schema" → "9 YAML + 11 schema")
+- [x] Review `references/exploration_guide.md` for deprecated persona references
+- [x] Review `references/personas_guide.md` for deprecated persona references
+- [x] Review `references/forms.md` System Profile Form — update `personas.primary_persona` comment from `ModelCreator or ModelConsumer` to reflect 8 active personas (comparison target: the local `forms.md` field comments, not upstream GitHub issue templates)
+- [x] Add deprecation warning to `cli_persona_profile.py` when a deprecated persona ID is queried (print to stderr, exit 0, still return results) — scope limited to this script; `cli_gap_analysis.py` and `analyze_risks.py` persona filtering deferred to follow-up
 
 ### Phase 2: Data Sync
 
