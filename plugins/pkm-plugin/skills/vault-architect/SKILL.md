@@ -2,7 +2,7 @@
 name: vault-architect
 description: This skill should be used when users ask to "create Obsidian templates", "design Bases queries", "set up vault structure", or "configure Templater workflows". Architects new PKM structures and provides guidance for Templater, Bases, Chronos, and Quickadd patterns. Particularly useful for creating automatic note organization systems, temporal rollup structures (daily to yearly), and maintaining job-agnostic organizational patterns.
 metadata:
-  version: "1.1.0"
+  version: "1.1.1"
   plugin: "pkm-plugin"
   stage: "3"
 ---
@@ -395,7 +395,7 @@ When a user wants to improve their vault:
 - `templater-patterns.md` - Common Templater code patterns and examples
 - `bases-patterns.md` - Example Bases queries for various use cases
 - `excalibrain-metadata.md` - Excalibrain semantic relationship mapping
-- `folder-structures.md` - Example vault organizations for different workflows
+- `references/folder-structures.md` - Example vault organizations for different workflows
 
 ### assets/
 - `base-templates/` - Starting .base files for common scenarios
@@ -428,18 +428,20 @@ views:
 **References:**
 - `references/chronos-syntax.md` - Event types, frontmatter integration, timeline patterns
 
-### 6. Quick Capture with Quickadd
+### 6. Quick Capture and Automation with QuickAdd
 
-For rapid note creation and capture workflows, use Quickadd integrated with Templater templates.
+For rapid note creation, capture workflows, and automation, use QuickAdd (v2.12.0+) integrated with Templater templates and Bases.
 
-**Common Patterns:**
-- Quick log to daily note (meeting notes during meetings)
-- Template choice menus (select note type to create)
-- Multi-step macros (create project with related notes)
-- Context-aware captures (link to current note)
+**Four Choice Types:** Template (create notes from `.md`/`.canvas`/`.base`), Capture (append to files/Canvas cards), Macro (chain scripts/commands/AI/conditionals), Multi (organize choices).
+
+**Key Capabilities:**
+- Format syntax: `{{VALUE}}`, `{{DATE}}`, `{{VDATE}}`, `{{FIELD}}`, case transforms (`|case:kebab`)
+- `.base` template insertion into Markdown notes via `{{TEMPLATE:path.base}}`
+- Canvas capture, CLI automation, multi-field input forms, AI integration
+- Package export/import for sharing configurations between vaults
 
 **References:**
-- `references/quickadd-patterns.md` - Capture templates, macros, Templater integration
+- `references/quickadd-patterns.md` - Complete reference: format syntax, all choice types, API, CLI, Canvas, Base workflows, and patterns
 
 ## Best Practices
 

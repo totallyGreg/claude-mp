@@ -6,9 +6,10 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ## Version History
 
-| Version | Date | Description |
-|---------|------|-------------|
-| 1.0.0 | 2025-12-15 | Initial release with core PKM guidance |
+| Version | Date | Description | Overall | Conciseness | Complexity | Spec Compliance | Progressive | Description Score |
+|---------|------|-------------|---------|-------------|------------|-----------------|-------------|------------------|
+| 1.1.1 | 2026-03-05 | Comprehensive QuickAdd 2.12.0 reference, SKILL.md section update | 78 | 34 | 88 | 80 | 100 | 100 |
+| 1.0.0 | 2025-12-15 | Initial release with core PKM guidance | — | — | — | — | — | — |
 
 ## Completed Improvements
 
@@ -38,6 +39,14 @@ This document tracks improvements, enhancements, and future development plans fo
   - `temporal-rollup.base`
   - `terminology.base`
   - `customer-notes.base`
+
+### v1.1.1 - QuickAdd 2.12.0 Reference (2026-03-05)
+
+**Completed:**
+- Rewrote `references/quickadd-patterns.md` from stub to comprehensive reference covering all QuickAdd features through v2.12.0
+- Documented: format syntax (15+ tokens), all four choice types, Canvas capture, CLI automation, inline scripts, global variables, QuickAdd API, Base file workflows, packages, Templater integration, and 9 PKM workflow patterns
+- Updated SKILL.md section 6 with condensed QuickAdd capabilities summary
+- Fixed orphaned reference path for `folder-structures.md`
 
 ## Planned Improvements
 
@@ -160,14 +169,9 @@ This document tracks improvements, enhancements, and future development plans fo
 
 ### Low Priority
 
-#### QuickAdd Integration Examples
+#### ~~QuickAdd Integration Examples~~ (Completed in v1.1.1)
 
-**Goal:** Show how to combine Templater with QuickAdd for even faster note capture
-
-**Proposed Solution:**
-- Add `references/quickadd-integration.md`
-- Provide example QuickAdd macros
-- Demonstrate multi-choice capture workflows
+Moved to Completed. See v1.1.1 below.
 
 #### Calendar Integration
 
