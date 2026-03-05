@@ -1,0 +1,49 @@
+#autoload
+#!/usr/bin/env zsh
+#
+# logwatch — open a filtered macOS log stream in a tmux pane (or current terminal)
+#
+# Usage:
+#   logwatch [subsystem]              Stream by subsystem (e.g. com.apple.sharing)
+#   logwatch "" [predicate]           Stream by raw NSPredicate/shorthand predicate
+#   logwatch                          Stream all log events (unfiltered, noisy)
+#
+# When inside tmux, opens a new horizontal split pane.
+# When outside tmux, streams in the current terminal (Ctrl+C to stop).
+#
+# Install as a zsh autoload function:
+#   bash /path/to/zsh-dev/scripts/install_autoload.sh logwatch /path/to/this/file
+#
+# Examples:
+#   logwatch com.apple.sharing
+#   logwatch com.apple.network
+#   logwatch "" "process==\"Safari\" and type=error"
+#   logwatch "" "s=com.myapp and type=error|fault"
+
+logwatch() {
+    local subsystem="${1:-}"
+    local predicate="${2:-}"
+
+    # Build predicate string from subsystem shorthand if only subsystem given
+    if [[ -n "$subsystem" && -z "$predicate" ]]; then
+        predicate="subsystem==\"${subsystem}\""
+    fi
+
+    # Build the log stream command
+    local cmd="sudo log stream --level debug --style compact"
+    if [[ -n "$predicate" ]]; then
+        cmd+=" --predicate '${predicate}'"
+    fi
+
+    if [[ -n "$TMUX" ]]; then
+        # Open in a new tmux split pane below
+        tmux split-window -v "$cmd"
+    else
+        # Fall back to streaming in the current terminal
+        echo "Not in tmux — streaming in current terminal. Press Ctrl+C to stop." >&2
+        echo "Command: $cmd" >&2
+        eval "$cmd"
+    fi
+}
+
+logwatch "$@"

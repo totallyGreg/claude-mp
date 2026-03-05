@@ -26,10 +26,22 @@ Zsh shell development and testing (~55% of content):
 - Performance profiling and optimization
 - Plugin compatibility validation
 
+### Skill: signals-monitoring
+System observability and event-response:
+- macOS unified logging (log show/stream/collect, predicate filtering)
+- Writing structured log entries from shell scripts (logger, _log pattern)
+- Unix process signals (kill, pkill, trap patterns)
+- Graceful shutdown and cleanup handlers for zsh scripts
+- File watching (fswatch, entr)
+- Process inspection (pgrep, lsof, ps)
+- macOS notifications (osascript, terminal-notifier)
+- `logwatch` — tmux pane with filtered live log stream
+
 ## Version History
 
 | Version | Changes |
 |---------|---------|
+| 4.0.0 | Added signals-monitoring skill: unified logging, signals/trap, file watching, notifications |
 | 3.0.0 | Split monolithic skill into plugin with agent + two focused skills |
 | 2.1.0 | Added zsh function patterns, completion guide, Plugin Standard references |
 | 2.0.0 | Initial release with terminal diagnostics and zsh configuration |
