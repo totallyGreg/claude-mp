@@ -1,5 +1,6 @@
 ---
 description: Clarify a task or project name and apply consistent duration/effort tags
+argument-hint: [task-or-project-name]
 allowed-tools: Bash(osascript:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/*), AskUserQuestion
 ---
 
@@ -14,13 +15,13 @@ Today: !`date "+%A, %B %-d, %Y"`
 
 ## Step 1: Identify the Target
 
-If the user provided a task or project name as an argument, use it.
+If `$ARGUMENTS` is provided, use it as the search term directly.
 
 Otherwise ask with AskUserQuestion: "Which task or project would you like to expound on? Provide the name (or part of it)."
 
 Search for it:
 ```bash
-cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/gtd-queries.js --action task-search --name "<user input>"
+cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/gtd-queries.js --action task-search --name "$ARGUMENTS"
 ```
 
 If no results: `osascript -l JavaScript scripts/gtd-queries.js --action task-search --name "<user input>" --include-projects true`

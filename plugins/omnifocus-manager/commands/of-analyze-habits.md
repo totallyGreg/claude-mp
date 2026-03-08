@@ -1,5 +1,6 @@
 ---
 description: Analyze repeating task cadence to optimize defer intervals and due date settings
+argument-hint: [days]
 allowed-tools: Bash(osascript:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/*)
 ---
 
@@ -11,7 +12,7 @@ vs intended gap days, and gives concrete defer/due recommendations.
 
 Today: !`date "+%A, %B %-d, %Y"`
 
-Repeating task data (!`cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/gtd-queries.js --action repeating-tasks --days 90`):
+Repeating task data (!`cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/gtd-queries.js --action repeating-tasks --days ${1:-90}`):
 
 Using the data above, generate a Habit Cadence Analysis report.
 

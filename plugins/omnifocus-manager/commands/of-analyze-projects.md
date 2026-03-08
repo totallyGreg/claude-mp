@@ -1,5 +1,6 @@
 ---
 description: Sweep all projects for stalled work, overdue accumulation, and near-duplicates
+argument-hint: [neglected-threshold-days]
 allowed-tools: Bash(osascript:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/*)
 ---
 
@@ -11,7 +12,7 @@ and near-duplicate project names that may represent fragmented capture.
 
 Today: !`date "+%A, %B %-d, %Y"`
 
-Project analysis data (!`cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/gtd-queries.js --action analyze-projects --threshold 30`):
+Project analysis data (!`cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/gtd-queries.js --action analyze-projects --threshold ${1:-30}`):
 
 Using the data above, generate a Project Health Report.
 
