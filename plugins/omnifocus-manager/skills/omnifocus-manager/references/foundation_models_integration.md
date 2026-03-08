@@ -1,442 +1,305 @@
 # Apple Foundation Models Integration
 
-This reference explores potential integration points between OmniFocus automation and Apple's Foundation Models (Apple Intelligence) for enhanced task processing.
+Practical reference for using `LanguageModel` API inside OmniFocus Omni Automation plugins.
 
-## Overview
+## Hard Boundary: Omni Automation Only
 
-Apple Foundation Models (Apple Intelligence) provide on-device AI capabilities for natural language processing, generation, and understanding. Integration with OmniFocus automation could enable:
+Foundation Models (`LanguageModel.Session`) are **only available inside Omni Automation plugins** (`.omnifocusjs`). They are **not** available in JXA scripts run via `osascript -l JavaScript`. These are different runtimes with different APIs — this is not a configuration issue.
 
-- **Smart task creation** - Natural language → structured tasks
-- **Intelligent template customization** - Context-aware task templates
-- **Enhanced insight generation** - AI-powered pattern detection
-- **Natural language queries** - Conversational task analysis
+Rule: if a task can be done deterministically (counts, dates, filtering, pattern detection), use JXA (`gtd-queries.js`, `manage_omnifocus.js`). If it requires language understanding or generation, use a Foundation Models plugin action.
 
-## Current Status
+## Platform Requirements
 
-**Note:** As of December 2025, direct API access to Apple Foundation Models is limited. Integration strategies below are conceptual and may require:
-- Future API releases
-- Shortcuts app as intermediary
-- AppleScript/JXA bridges
-- Third-party frameworks
+- OmniFocus 4.8+
+- macOS 26+ / iOS 26+ (actual floor used in plugin `validate()` functions)
+- Apple Silicon (Mac) or iPhone 15 Pro+ (iOS)
+- Apple Intelligence enabled in System Settings → Apple Intelligence & Siri
 
-## Potential Integration Points
+**Note on versions:** The existing `foundationModelsUtils.js` mentions macOS 15.2+ as a requirement, but actual plugin `validate()` functions use `Device.current.operatingSystemVersion.atLeast(new Version("26"))`. Use macOS 26 as the safe floor in new code.
 
-### 1. Natural Language Task Creation
+## Availability Check Pattern
 
-**Concept:** Convert conversational input into structured OmniFocus tasks
+Do not rely on `action.validate` to grey out FM actions — you cannot reliably detect whether Apple Intelligence is enabled without attempting to use it. Instead, always return `true` from `validate` and surface errors at runtime via Alert.
 
-**Example Input:**
-```
-"Remind me to call the dentist next Tuesday at 2pm about the crown,
-and make sure I bring the insurance card"
-```
-
-**AI Processing:**
-- Extract action: "call the dentist"
-- Extract due date: "next Tuesday at 2pm"
-- Extract note: "about the crown, bring insurance card"
-- Suggest tags: @phone, @health
-- Suggest project: "Health" or "Personal"
-
-**Output:**
 ```javascript
-// Omni Automation task creation
-task.name = "Call dentist about crown";
-task.dueDate = new Date("2025-12-29T14:00:00");
-task.note = "Bring insurance card";
-task.addTag("@phone");
-task.addTag("@health");
-```
-
-**Implementation Approach:**
-- User speaks/types natural language via Shortcuts
-- Shortcuts invokes Foundation Models for parsing
-- Shortcuts calls Omni Automation via URL scheme
-- Task created with extracted structure
-
-### 2. Context-Aware Template Customization
-
-**Concept:** Adapt task templates based on project context
-
-**Example:** "Create project kickoff for redesigning the website"
-
-**AI Processing:**
-- Recognize template: "project kickoff"
-- Extract project context: "website redesign"
-- Customize template tasks:
-  - Generic: "Schedule kickoff meeting"
-  - Customized: "Schedule website redesign kickoff meeting with design team"
-  - Generic: "Define success criteria"
-  - Customized: "Define website redesign success criteria (UX, performance, SEO)"
-
-**Benefits:**
-- Templates feel personalized, not robotic
-- Reduces manual editing after template insertion
-- Maintains template structure while adding context
-
-**Implementation Approach:**
-```javascript
-// Omni Automation plugin + Shortcuts
-async function customizeTemplate(templateName, context) {
-    // Get base template
-    const template = getTemplate(templateName);
-
-    // Send to Shortcuts for AI customization
-    const customized = await callShortcutWithAI({
-        template: template,
-        context: context
-    });
-
-    // Create tasks with customized content
-    customized.tasks.forEach(t => createTask(t));
-}
-```
-
-### 3. Intelligent Insight Generation
-
-**Concept:** Use AI to detect patterns and generate actionable insights
-
-**Current Approach (Rule-Based):**
-```javascript
-// Simple pattern detection
-if (project.tasks.filter(t => !t.completed).length === 0) {
-    insight = "Project has no next actions";
-}
-```
-
-**AI-Enhanced Approach:**
-```javascript
-// AI analyzes task patterns
-const projectData = {
-    tasks: project.tasks.map(t => ({
-        name: t.name,
-        due: t.dueDate,
-        tags: t.tags,
-        completed: t.completed
-    }))
+// In foundationModelsUtils library
+lib.isAvailable = function() {
+    if (typeof LanguageModel === 'undefined') return false;
+    if (typeof LanguageModel.Session === 'undefined') return false;
+    return true;
 };
 
-const insight = await foundationModels.analyze(projectData, {
-    prompt: "Analyze this project's task patterns and suggest GTD-aligned improvements"
-});
-
-// Result: "This project shows task accumulation without completion.
-// Suggested actions: 1) Break large tasks into subtasks,
-// 2) Review project scope, 3) Consider deferring low-priority items"
+// In action.validate
+action.validate = function(selection) {
+    // Check OS version as a proxy for FM availability
+    return Device.current.operatingSystemVersion.atLeast(new Version("26"));
+};
 ```
 
-**Benefits:**
-- Nuanced pattern recognition beyond simple rules
-- Contextual recommendations
-- Natural language insights
+Always wrap session usage in `try/catch` and show an Alert on failure regardless of the validate check.
 
-### 4. Natural Language Task Queries
+## Core API
 
-**Concept:** Query tasks conversationally without building complex filters
+### `LanguageModel.Session`
 
-**Example Queries:**
-- "What do I need to do this week at home?"
-- "Show me overdue tasks related to the marketing project"
-- "What am I waiting for from Sarah?"
-
-**AI Processing:**
-- Parse intent (list tasks, filter criteria)
-- Extract filters (time: "this week", location: "at home")
-- Map to OmniFocus query
-- Execute and return results
-
-**Implementation:**
 ```javascript
-async function naturalLanguageQuery(query) {
-    // Send to Foundation Models for parsing
-    const filters = await parseQuery(query);
-
-    // Map to OmniFocus filters
-    const tasks = omnifocus.defaultDocument.flattenedTasks().filter(t => {
-        return meetsFilters(t, filters);
-    });
-
-    return formatResults(tasks);
-}
+const session = new LanguageModel.Session();
 ```
 
-### 5. Smart Task Prioritization
+Two instance methods:
 
-**Concept:** AI-suggested task ordering based on multiple factors
+**`respond(prompt)`** → `Promise<String>`
+Returns a conversational text response. Use for free-form output.
 
-**Factors Analyzed:**
-- Due dates and time sensitivity
-- Task dependencies
-- Historical completion patterns (what time of day/week works best)
-- Energy level requirements (inferred from task content)
-- Project importance
+**`respondWithSchema(prompt, schema, generationOptions)`** → `Promise<String>`
+Returns a JSON string conforming to the provided schema. `generationOptions` can be `null`.
 
-**Example:**
-```
-"Help me prioritize today's tasks"
+### `LanguageModel.GenerationOptions`
 
-AI Analysis:
-1. "Call dentist" - Due today, quick (@phone), morning task
-2. "Write proposal" - Due tomorrow, requires focus, current energy high
-3. "Review emails" - No deadline, low energy ok, can defer
-4. "Update slides" - Due next week, not urgent
+Optional parameter to `respondWithSchema`. Controls sampling behavior.
 
-Recommendation: Do #1 and #2 now, defer #3 to afternoon, #4 to tomorrow.
-```
-
-### 6. Template Discovery and Suggestion
-
-**Concept:** AI identifies recurring patterns and suggests template creation
-
-**Pattern Detection:**
 ```javascript
-// Analyze task history
-const analysis = await foundationModels.analyze(taskHistory, {
-    prompt: "Identify recurring task patterns suitable for templates"
-});
-
-// Result: "You create 'Weekly planning' tasks every Sunday with similar
-// subtasks. Consider creating a template."
+const opts = new LanguageModel.GenerationOptions();
+// opts properties vary — pass null if defaults are acceptable
+const response = await session.respondWithSchema(prompt, schema, opts);
 ```
 
-**Auto-Generated Template:**
-Based on pattern analysis, suggest template structure:
+### Parsing the Response
+
+`respondWithSchema` returns a JSON string. Parse it directly:
+
+```javascript
+const response = await session.respondWithSchema(prompt, schema, null);
+const result = JSON.parse(response);
+```
+
+For `respond()` (unstructured), if you asked for JSON in the prompt, extract it from backtick blocks:
+
+```javascript
+const openingTag = "```json";
+const start = response.indexOf(openingTag) + openingTag.length;
+const end = response.indexOf("```", start);
+const json = JSON.parse(response.substring(start, end).trim());
+```
+
+## `LanguageModel.Schema.fromJSON()` Reference
+
+This is the most complex part of the API. Schemas are constructed from a JSON descriptor, not a class hierarchy.
+
+### Basic object with properties
+
+```javascript
+const schema = LanguageModel.Schema.fromJSON({
+    name: "result-schema",
+    properties: [
+        { name: "summary" },
+        { name: "score" }
+    ]
+});
+```
+
+### Property with description
+
+Adding `description` guides the model toward the intended value:
+
+```javascript
+{ name: "priorityTask", description: "The single most important task to do first" }
+```
+
+### Nested object
+
 ```javascript
 {
-    name: "Weekly Planning Template",
-    tasks: [
-        "Review last week's accomplishments",
-        "Process inbox to zero",
-        "Review upcoming deadlines",
-        "Plan top 3 priorities for week"
-    ],
-    suggestedDeferDate: "every Sunday at 9:00 AM"
+    name: "workloadAnalysis",
+    schema: {
+        name: "workload-schema",
+        properties: [
+            { name: "isManageable" },
+            { name: "summary" }
+        ]
+    }
 }
 ```
 
-## Technical Implementation Strategies
+### Array of strings (`arrayOf` + `constant`)
 
-### Strategy 1: Shortcuts as Bridge
-
-**Architecture:**
-```
-OmniFocus (Omni Automation) ↔ Shortcuts App ↔ Foundation Models
-```
-
-**Workflow:**
-1. Omni Automation plugin triggers Shortcuts
-2. Shortcuts invokes Foundation Models API
-3. Shortcuts returns processed data
-4. Omni Automation creates/updates tasks
-
-**Limitations:**
-- Requires user interaction (Shortcuts permission)
-- iOS/macOS only (Shortcuts dependency)
-
-### Strategy 2: AppleScript/JXA Bridge
-
-**Architecture:**
-```
-OmniFocus (JXA) → macOS Automation → Foundation Models → Return to JXA
+```javascript
+{
+    name: "recommendations",
+    schema: { arrayOf: { constant: "recommendation" } }
+}
 ```
 
-**Workflow:**
-```applescript
-tell application "Shortcuts Events"
-    run shortcut "Process Task with AI" with input taskData
-end tell
+The string `"recommendation"` is an arbitrary label; the model generates string values.
+
+### Array of objects (`arrayOf` with schema)
+
+```javascript
+{
+    name: "priorities",
+    description: "Top tasks to tackle first",
+    schema: {
+        arrayOf: {
+            name: "priority-item",
+            properties: [
+                { name: "taskName" },
+                { name: "reason" }
+            ]
+        }
+    }
+}
 ```
 
-**Limitations:**
-- macOS only
-- Requires Shortcuts automation setup
+### Array with maximum length
 
-### Strategy 3: External Processing (Current Approach)
-
-**Architecture:**
-```
-OmniFocus → Export data → Claude/AI → Generate automation → Import to OmniFocus
-```
-
-**Workflow:**
-1. Export tasks via JXA or Python queries
-2. Process with Claude or other AI
-3. Generate Omni Automation plugin code
-4. Install and run plugin
-
-**Benefits:**
-- Works today (no future API required)
-- Flexible AI model selection
-- Full control over processing
-
-**Current Use:**
-- This skill uses this approach
-- Claude analyzes patterns and generates plugins
-- User installs generated automation
-
-## Example Use Cases
-
-### Use Case 1: Meeting Prep Automation
-
-**Input (Natural Language):**
-"I have a client meeting with Acme Corp tomorrow at 10am"
-
-**AI Processing:**
-- Detect event type: client meeting
-- Extract details: client name (Acme Corp), time (tomorrow 10am)
-- Load meeting prep template
-- Customize for client context
-
-**Output (Tasks Created):**
-- "Review Acme Corp account status" (due: today)
-- "Prepare Acme Corp meeting agenda" (due: today)
-- "Client meeting: Acme Corp" (due: tomorrow 10am, flagged)
-- "Send Acme Corp meeting notes" (defer: tomorrow 11am)
-
-### Use Case 2: Project Health Check
-
-**Input:** User requests: "Analyze my projects"
-
-**AI Processing:**
-- Review all active projects
-- Detect patterns:
-  - Projects without next actions
-  - Projects with many overdue tasks
-  - Projects with no recent activity
-  - Waiting items >30 days old
-
-**Output (Insights):**
-```
-Project Health Report:
-
-⚠️ Stalled Projects (3):
-- "Website Redesign" - no next actions defined
-- "Q1 Planning" - last activity 45 days ago
-- "Vendor Search" - waiting on 3 items >30 days
-
-✅ Healthy Projects (5):
-- "Newsletter" - 3 next actions, on track
-- "Product Launch" - active, due dates clear
-...
-
-Recommendations:
-1. Add next actions to stalled projects or put on hold
-2. Follow up on waiting items
-3. Consider archiving inactive projects
+```javascript
+{
+    name: "topActions",
+    schema: {
+        arrayOf: { constant: "action" },
+        maximumElements: 3
+    }
+}
 ```
 
-### Use Case 3: Smart Daily Planning
+### Enum (`anyOf`)
 
-**Input:** Morning routine: "Plan my day"
-
-**AI Processing:**
-- Analyze calendar (via Calendar app integration)
-- Review OmniFocus tasks (due today, flagged, available)
-- Consider time blocks between meetings
-- Match tasks to available time slots
-
-**Output:**
-```
-Your Day Plan:
-
-8:00-9:00 AM (Before meetings):
-- Process inbox (15 min)
-- Review emails (@computer, low energy)
-
-11:00-12:00 PM (Between meetings):
-- Write proposal draft (@computer, high focus)
-
-2:00-3:00 PM (Afternoon focus):
-- Call dentist (@phone, quick)
-- Review project status (@computer)
-
-4:00-5:00 PM (End of day):
-- Update task statuses
-- Plan tomorrow
-
-Flagged items carried over if time permits.
+```javascript
+{
+    name: "urgency",
+    schema: {
+        anyOf: ["high", "medium", "low"]
+    }
+}
 ```
 
-## Future Possibilities
+### Optional property
 
-As Apple Foundation Models APIs evolve, additional capabilities may include:
+```javascript
+{ name: "note", isOptional: true }
+```
 
-**Voice-First Task Management:**
-- Speak to Siri: "Show my home tasks"
-- Natural conversation: "What's next?" → AI suggests based on context
+### Complete example (from `analyzeTasksWithAI.js`)
 
-**Contextual Awareness:**
-- Location: At @home → surface @home tasks
-- Time of day: Morning → suggest high-energy tasks
-- Calendar: Before meeting → suggest prep tasks
+```javascript
+const schema = LanguageModel.Schema.fromJSON({
+    name: "analysis-schema",
+    properties: [
+        {
+            name: "priorityRecommendations",
+            description: "Top 3 tasks to tackle first",
+            schema: {
+                arrayOf: {
+                    name: "priority-item",
+                    properties: [
+                        { name: "taskName" },
+                        { name: "reason" }
+                    ]
+                }
+            }
+        },
+        {
+            name: "workloadAnalysis",
+            schema: {
+                name: "workload-schema",
+                properties: [
+                    { name: "isManageable" },
+                    { name: "summary" },
+                    { name: "concerns", schema: { arrayOf: { constant: "concern" } } }
+                ]
+            }
+        },
+        {
+            name: "actionItems",
+            description: "Immediate actions to take",
+            schema: { arrayOf: { constant: "action" } }
+        }
+    ]
+});
+```
 
-**Proactive Suggestions:**
-- "You usually review email at 9am - want to do that now?"
-- "Project X review is due this week - schedule time?"
-- "Three tasks waiting >30 days - follow up?"
+## Async Action Pattern
 
-**Learning User Patterns:**
-- Best task completion times
-- Preferred task groupings
-- Energy level throughout day
-- Realistic time estimates
+All actions using Foundation Models must be declared `async`. Wrap all FM calls in `try/catch`.
 
-## Current Limitations
+```javascript
+(() => {
+    const action = new PlugIn.Action(async function(selection, sender) {
+        // 1. Check availability
+        const fmUtils = this.plugIn.library("foundationModelsUtils");
+        if (!fmUtils.isAvailable()) {
+            fmUtils.showUnavailableAlert();
+            return;
+        }
 
-**API Access:**
-- Limited public API for Foundation Models (as of Dec 2025)
-- Shortcuts provides some access but requires user interaction
-- No direct programmatic Foundation Models API
+        try {
+            // 2. Create session
+            const session = new LanguageModel.Session();
 
-**Privacy:**
-- On-device processing is ideal (Apple's approach)
-- Task data is sensitive - prefer local processing
-- Cloud AI (like Claude) requires data export
+            // 3. Build prompt from OmniFocus data
+            const prompt = `...`;
 
-**Integration Complexity:**
-- Omni Automation → Shortcuts → AI requires multiple hops
-- Error handling across boundaries
-- User permission requirements
+            // 4. Define schema
+            const schema = LanguageModel.Schema.fromJSON({ ... });
 
-## Recommended Approach (Today)
+            // 5. Call FM
+            const response = await session.respondWithSchema(prompt, schema, null);
+            const result = JSON.parse(response);
 
-Until direct Foundation Models API is available:
+            // 6. Use result
+            new Alert("Analysis", result.summary).show();
 
-**1. Use Claude (this skill) for:**
-- Generating Omni Automation plugins based on patterns
-- Creating custom perspectives
-- Analyzing task data for insights
-- Designing automation workflows
+        } catch (err) {
+            new Alert(err.name, err.message).show();
+        }
+    });
 
-**2. Use Shortcuts for:**
-- Simple natural language task capture
-- Triggering Omni Automation plugins
-- Basic AI integration via Shortcuts AI features
+    action.validate = function(selection) {
+        return Device.current.operatingSystemVersion.atLeast(new Version("26"));
+    };
 
-**3. Use Omni Automation for:**
-- Executing generated automation
-- Reusable plugins (token-efficient)
-- Cross-platform support (Mac + iOS)
+    return action;
+})();
+```
 
-**Workflow:**
-1. User describes need to Claude
-2. Claude analyzes task patterns
-3. Claude generates Omni Automation plugin
-4. User installs and runs plugin
-5. Plugin executes on-device (fast, private)
+## Per-Call Session Pattern (Multi-Step Workflows)
 
-## Resources
+For workflows that call FM multiple times (e.g., weekly review with multiple steps), create a new session per call. Sessions are not reused across steps.
 
-**Skill References:**
-- `omnifocus_automation.md` - OmniFocus Omni Automation API reference
-- `omni_automation_shared.md` - Shared Omni Automation classes (Alert, Form, etc.)
-- `OmniFocus-API.md` - Complete OmniFocus API specification
+```javascript
+// Step 1
+const session1 = new LanguageModel.Session();
+const step1Result = JSON.parse(await session1.respondWithSchema(prompt1, schema1, null));
 
-**External Resources:**
-- Apple Intelligence overview: apple.com/apple-intelligence
-- Apple Language Models: omni-automation.com/shared/alm.html
-- Shortcuts app automation
-- Omni Automation documentation: omni-automation.com
-- AppleScript/JXA for macOS automation
+// Step 2 — new session
+const session2 = new LanguageModel.Session();
+const step2Result = JSON.parse(await session2.respondWithSchema(prompt2, schema2, null));
+```
 
-**Note:** This reference will be updated as Apple releases Foundation Models APIs and integration methods evolve.
+## Context Limits
+
+The practical context limit is not publicly documented. Observed behavior:
+- Existing actions batch at 10 tasks maximum per FM call
+- Larger inputs may produce incomplete or truncated responses
+- For project sweeps or batch analysis, chunk by project or folder
+
+## When to Use FM vs. Deterministic JXA
+
+| Question | Use |
+|---|---|
+| How many tasks are overdue? | JXA (`gtd-queries.js --action overdue`) |
+| Which projects are stalled? | JXA (`gtd-queries.js --action stalled-projects`) |
+| What should I prioritize today? | FM (judgment required) |
+| Rename this task to be clearer | FM (language understanding required) |
+| What effort tag fits this action? | FM (semantic judgment) |
+| Is my inbox count healthy? | JXA (numeric threshold) |
+| What does this project need next? | FM (context + structure reasoning) |
+
+## References
+
+- `assets/AITaskAnalyzer.omnifocusjs/Resources/foundationModelsUtils.js` — availability utility library
+- `assets/AITaskAnalyzer.omnifocusjs/Resources/analyzeTasksWithAI.js` — Schema.fromJSON() example
+- `assets/AITaskAnalyzer.omnifocusjs/Resources/dailyReview.js` — GenerationOptions, anyOf enum usage
+- `assets/AITaskAnalyzer.omnifocusjs/Resources/weeklyReview.js` — per-call session pattern
+- `references/omni_automation_shared.md` — Alert, Form, Pasteboard, PlugIn.Library API
+- [omni-automation.com/shared/alm.html](https://www.omni-automation.com/shared/alm.html) — canonical LanguageModel API docs

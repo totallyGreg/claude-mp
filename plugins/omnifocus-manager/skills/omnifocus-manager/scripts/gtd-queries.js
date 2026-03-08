@@ -20,13 +20,13 @@
  *     perspective-inventory    List custom perspectives with GTD gap analysis
  *     perspective-rules        Show filter rules for a named perspective
  *     system-health            Aggregated GTD system health summary (includes perspective gaps)
+ *     repeating-tasks          Active tasks with a repeat rule + completion cadence vs intended interval
+ *     analyze-projects         Batch project sweep: stalled, neglected, overdue accumulation, near-duplicates
  *
  * Options:
- *     --days <N>           Days for recently-completed lookback (default: 7)
+ *     --days <N>           Days for recently-completed / repeating-tasks lookback (default: 7 / 90)
  *     --threshold <N>      Days without modification for neglected-projects (default: 30)
  *     --tag <pattern>      Tag name pattern for waiting-for (default: 'waiting')
- *
- * Options:
  *     --name <name>        Perspective name for perspective-rules action
  *
  * Examples:
@@ -38,6 +38,8 @@
  *     osascript -l JavaScript scripts/gtd-queries.js --action perspective-inventory
  *     osascript -l JavaScript scripts/gtd-queries.js --action perspective-rules --name "Next Actions"
  *     osascript -l JavaScript scripts/gtd-queries.js --action system-health
+ *     osascript -l JavaScript scripts/gtd-queries.js --action repeating-tasks --days 90
+ *     osascript -l JavaScript scripts/gtd-queries.js --action analyze-projects
  *
  * @version 1.0.0
  */
@@ -144,6 +146,12 @@ function run(argv) {
                 break;
             case 'ai-agent-tasks':
                 result = getAIAgentTasks(doc, taskQuery, args.tag || 'AI Agent', args.childTag);
+                break;
+            case 'repeating-tasks':
+                result = getRepeatingTasksWithCadence(doc, taskQuery, args.days || 90);
+                break;
+            case 'analyze-projects':
+                result = analyzeProjects(doc, taskQuery, args.threshold || 30);
                 break;
             case 'help':
                 result = getHelp();
@@ -377,6 +385,129 @@ function buildAlerts(inboxCount, stalledCount, overdueCount, agingWaitingCount, 
     return alerts;
 }
 
+// ============================================================================
+// Repeating Task / Habit Cadence Analysis
+// ============================================================================
+
+function getRepeatingTasksWithCadence(doc, taskQuery, days) {
+    var repeating = taskQuery.getRepeatingTasks(doc);
+    var results = repeating.map(function(task) {
+        var history = taskQuery.getCompletionHistory(doc, task.name, days);
+        var cadence = taskQuery.computeHabitCadence(history, task.repeatRule, task.hasDueDate);
+        return {
+            id: task.id,
+            name: task.name,
+            project: task.project,
+            tags: task.tags,
+            dueDate: task.dueDate,
+            repeatRule: task.repeatRule,
+            cadence: cadence
+        };
+    });
+
+    return {
+        success: true,
+        action: 'repeating-tasks',
+        count: results.length,
+        lookbackDays: days,
+        tasks: results
+    };
+}
+
+// ============================================================================
+// Batch Project Sweep
+// ============================================================================
+
+function analyzeProjects(doc, taskQuery, neglectedThreshold) {
+    var stalled = taskQuery.getStalledProjects(doc);
+    var neglected = taskQuery.getNeglectedProjects(doc, neglectedThreshold);
+
+    // Overdue accumulation: active projects with 5+ overdue tasks
+    var now = new Date();
+    var overdueAccumulation = [];
+    doc.flattenedProjects().forEach(function(project) {
+        var status = project.status() ? project.status().toString() : '';
+        if (!status.includes('active')) return;
+
+        var overdueTasks = project.tasks().filter(function(t) {
+            if (t.completed()) return false;
+            var due = t.dueDate();
+            return due && due < now;
+        });
+
+        if (overdueTasks.length >= 5) {
+            overdueAccumulation.push({
+                id: project.id(),
+                name: project.name(),
+                overdueCount: overdueTasks.length
+            });
+        }
+    });
+
+    // Near-duplicate detection via word-overlap
+    var activeProjects = doc.flattenedProjects().filter(function(p) {
+        var status = p.status() ? p.status().toString() : '';
+        return status.includes('active');
+    }).map(function(p) {
+        return { id: p.id(), name: p.name() };
+    });
+
+    var nearDuplicates = findNearDuplicateProjects(activeProjects);
+
+    return {
+        success: true,
+        action: 'analyze-projects',
+        projectCount: activeProjects.length,
+        signals: {
+            stalled: stalled,
+            neglected: neglected,
+            overdueAccumulation: overdueAccumulation,
+            nearDuplicates: nearDuplicates
+        }
+    };
+}
+
+/**
+ * Word-overlap near-duplicate detection for project names.
+ * Flags pairs sharing 2+ significant words (>=4 chars, not stop words).
+ * POSSIBLE_DUPLICATE: 2 shared words. LIKELY_DUPLICATE: 3+ shared words.
+ */
+function findNearDuplicateProjects(projects) {
+    var STOP_WORDS = { a:1, the:1, and:1, to:1, 'for':1, of:1, 'in':1, my:1, our:1, 'with':1, on:1, at:1, by:1 };
+
+    function significantWords(name) {
+        return name.toLowerCase()
+            .replace(/[^a-z0-9 ]/g, ' ')
+            .split(/\s+/)
+            .filter(function(w) { return w.length >= 4 && !STOP_WORDS[w]; });
+    }
+
+    var results = [];
+
+    for (var i = 0; i < projects.length; i++) {
+        for (var j = i + 1; j < projects.length; j++) {
+            var wordsA = significantWords(projects[i].name);
+            var wordsB = significantWords(projects[j].name);
+            var setB = {};
+            wordsB.forEach(function(w) { setB[w] = true; });
+            var shared = wordsA.filter(function(w) { return setB[w]; });
+
+            if (shared.length >= 2) {
+                results.push({
+                    confidence: shared.length >= 3 ? 'LIKELY_DUPLICATE' : 'POSSIBLE_DUPLICATE',
+                    sharedWords: shared,
+                    projects: [
+                        { id: projects[i].id, name: projects[i].name },
+                        { id: projects[j].id, name: projects[j].name }
+                    ]
+                });
+            }
+        }
+    }
+
+    return results;
+}
+
 function getHelp() {
     return {
         success: true,
@@ -393,7 +524,9 @@ function getHelp() {
             'perspective-inventory': 'List custom perspectives with GTD gap analysis',
             'perspective-rules': 'Show filter rules for a named perspective (--name <name>)',
             'system-health': 'Aggregated GTD system health score and alerts (includes perspective gaps)',
-            'ai-agent-tasks': 'Tasks tagged AI Agent grouped by project with progress (--tag <name>, --child-tag <name>)'
+            'ai-agent-tasks': 'Tasks tagged AI Agent grouped by project with progress (--tag <name>, --child-tag <name>)',
+            'repeating-tasks': 'Active tasks with repeat rule + completion cadence vs intended interval (--days <N>, default 90)',
+            'analyze-projects': 'Batch project sweep: stalled, neglected, overdue accumulation, near-duplicates (--threshold <N>, default 30)'
         }
     };
 }

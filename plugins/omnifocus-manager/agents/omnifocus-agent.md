@@ -76,7 +76,7 @@ Load: `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/SKILL.md`
 
 **Scripts:** `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/`
 - `manage_omnifocus.js` — task CRUD: create, complete, flag, due-soon, overdue, today, flagged; project inspection: project-info, project-update; batch operations: batch-update, create --parent-id
-- `gtd-queries.js` — GTD diagnostics: inbox-count, stalled-projects, waiting-for, someday-maybe, recently-completed, neglected-projects, folder-structure, system-health
+- `gtd-queries.js` — GTD diagnostics: inbox-count, stalled-projects, waiting-for, someday-maybe, recently-completed, neglected-projects, folder-structure, system-health, repeating-tasks, analyze-projects
 
 ## Intent Classification
 
@@ -114,6 +114,12 @@ Classify each user request and route accordingly:
 | "Help me do my weekly review" | Both | gtd-coach walks checklist, omnifocus-manager runs queries |
 | "Are my projects healthy?" | Both | gtd-coach for principles, `gtd-queries.js --action system-health` for data |
 | "Improve my next action names" | Both | gtd-coach for clarity rules, omnifocus-manager to update |
+| "Analyze my repeating tasks / habits" | omnifocus-manager | `gtd-queries.js --action repeating-tasks` (or `/of:analyze-habits`) |
+| "Which habits am I not doing?" | omnifocus-manager | `gtd-queries.js --action repeating-tasks` (or `/of:analyze-habits`) |
+| "Sweep my projects for issues" | omnifocus-manager | `gtd-queries.js --action analyze-projects` (or `/of:analyze-projects`) |
+| "Find duplicate projects" | omnifocus-manager | `gtd-queries.js --action analyze-projects` (or `/of:analyze-projects`) |
+| "Clarify / expound on this task" | omnifocus-manager | `/of:expound` command |
+| "Name this task better / add tags" | omnifocus-manager | `/of:expound` command |
 
 ## Routing Logic
 
