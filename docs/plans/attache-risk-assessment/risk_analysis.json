@@ -1,0 +1,757 @@
+[
+  {
+    "risk_id": "DP",
+    "title": "Data Poisoning",
+    "category": "risksSupplyChainAndDevelopment",
+    "severity": "Critical",
+    "applicable_personas": [
+      "personaModelProvider",
+      "personaDataProvider",
+      "personaModelServing",
+      "personaAgenticProvider",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator"
+    ],
+    "lifecycle_stages": [
+      "data-preparation",
+      "model-training",
+      "maintenance"
+    ],
+    "short_description": "Altering data sources used to train the model. In terms of impact, Data Poisoning is comparable to modifying the logic of an application to change its behavior.\n",
+    "long_description": "Altering data sources used during training or retraining (by deleting or modifying existing data as well as injecting adversarial data) to degrade model performance, skew results towards a specific outcome, or create hidden backdoors.\n Data Poisoning can be considered comparable to maliciously modifying the logic of an application to change its behavior.\n Data Poisoning attacks can happen during training or tuning, while data is held in storage, or even before the data is ingested into an organization. For example, foundation models are often trained on distributed web-scale datasets crawled from the Internet. An attack could <a href=\"https://arxiv.org/abs/2302.10149\" target=\"_blank\" rel=\"noopener\">indirectly pollute a public data source</a> that is eventually ingested. A malicious or compromised insider could also more directly poison the datasets while held in storage or during the training process, by submitting poisoned prompt-response examples for inclusion in the tuning data, as demonstrated in a 2023 research paper on <a href=\"https://arxiv.org/pdf/2305.00944.pdf\">poisoning models during instruction tuning</a>.\n Data Poisoning attacks can also install backdoors by specific alterations of the training data. Backdoored models would continue to function normally, but alternate behaviors could be triggered under certain conditions to make the model behave maliciously.\n",
+    "impact_types": [
+      "integrity",
+      "reliability",
+      "safety",
+      "fairness"
+    ],
+    "relevant_controls": [
+      "controlTrainingDataSanitization",
+      "controlSecureByDefaultMLTooling",
+      "controlModelAndDataIntegrityManagement",
+      "controlModelAndDataAccessControls",
+      "controlModelAndDataInventoryManagement"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "UTD",
+    "title": "Unauthorized Training Data",
+    "category": "risksSupplyChainAndDevelopment",
+    "severity": "High",
+    "applicable_personas": [
+      "personaModelProvider",
+      "personaDataProvider",
+      "personaModelCreator"
+    ],
+    "lifecycle_stages": [
+      "planning",
+      "data-preparation",
+      "model-training"
+    ],
+    "short_description": "Using unauthorized data for model training. Using a model trained with Unauthorized Training Data might lead to legal or ethical challenges.\n",
+    "long_description": "Training a model using data that is not authorized to be used for that model. A model trained or fine tuned on unauthorized data could pose legal or ethical challenges. Unauthorized Training Data may include any data that violates policies, contracts, or regulations. Examples are user data that does not have appropriate user consent, unlicensed copyrighted data, or legally restricted data.\n",
+    "impact_types": [
+      "compliance",
+      "privacy",
+      "fairness"
+    ],
+    "relevant_controls": [
+      "controlTrainingDataSanitization",
+      "controlTrainingDataManagement"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "MST",
+    "title": "Model Source Tampering",
+    "category": "risksSupplyChainAndDevelopment",
+    "severity": "Critical",
+    "applicable_personas": [
+      "personaModelProvider",
+      "personaPlatformProvider",
+      "personaModelServing",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator"
+    ],
+    "lifecycle_stages": [
+      "development",
+      "model-training",
+      "deployment"
+    ],
+    "short_description": "Tampering with the model's code or data. Model Source Tampering is similar to tampering with traditional software code, and can create vulnerabilities or unintended behavior.\n",
+    "long_description": "Tampering with the model's source code, dependencies, or weights, either by supply chain attacks or insider attacks.\n Similar to tampering with traditional software code, Model Source Tampering can introduce vulnerabilities or unexpected behaviors.\n Since model source code is used in the process of developing the model, code modifications can affect model behavior. As with traditional code, attacks on a dependency can affect the program that relies on that dependency, so the risks in this area are transitive, potentially through many layers of a model code's dependency chain.\n Another method of Model Source Tampering is model architecture backdoors, which are <a href=\"https://arxiv.org/pdf/2402.06957.pdf\">backdoors embedded within the definition of the neural network architecture</a>. Such backdoors can survive full retraining of a model.\n",
+    "impact_types": [
+      "integrity",
+      "availability",
+      "safety",
+      "reliability",
+      "compliance"
+    ],
+    "relevant_controls": [
+      "controlIsolatedConfidentialComputing",
+      "controlModelAndDataAccessControls",
+      "controlModelAndDataExecutionIntegrity",
+      "controlModelAndDataIntegrityManagement",
+      "controlModelAndDataInventoryManagement",
+      "controlSecureByDefaultMLTooling"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "EDH",
+    "title": "Excessive Data Handling",
+    "category": "risksSupplyChainAndDevelopment",
+    "severity": "High",
+    "applicable_personas": [
+      "personaModelProvider",
+      "personaDataProvider",
+      "personaModelCreator"
+    ],
+    "lifecycle_stages": [
+      "data-preparation",
+      "model-training",
+      "evaluation"
+    ],
+    "short_description": "Using data for model training and development that exceeds authorized or legal boundaries for collection, retention, or processing. This may lead to policy and legal challenges.\n",
+    "long_description": "The collection, retention, or processing of data for model training that violates legal, ethical, or organizational policies.\n Excessive Data Handling can create significant policy and legal challenges. This includes training models on datasets containing copyrighted material, proprietary information, or sensitive Personally Identifiable Information (PII) without a proper legal basis.\n",
+    "impact_types": [
+      "privacy",
+      "compliance",
+      "confidentiality"
+    ],
+    "relevant_controls": [
+      "controlTrainingDataManagement",
+      "controlUserTransparencyAndControls"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "EDH-I",
+    "title": "Excessive Data Handling During Inference",
+    "category": "risksRuntimeDataSecurity",
+    "severity": "High",
+    "applicable_personas": [
+      "personaPlatformProvider",
+      "personaModelServing",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator"
+    ],
+    "lifecycle_stages": [
+      "runtime",
+      "maintenance"
+    ],
+    "short_description": "Unauthorized collection, retention, processing, or sharing of user data during model inference. This can lead to privacy violations and legal challenges.\n",
+    "long_description": "The collection, retention, or processing of user inputs and session data during runtime that exceeds what is necessary for the immediate task or violates legal or organizational policies.\n Excessive Data Handling during inference can create significant privacy risks. This includes logging entire user conversations, improperly retaining data retrieved by tools, or sharing interaction data with third parties without proper consent or a legal basis.\n",
+    "impact_types": [
+      "privacy",
+      "compliance",
+      "confidentiality"
+    ],
+    "relevant_controls": [
+      "controlUserDataManagement",
+      "controlUserTransparencyAndControls"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "MXF",
+    "title": "Model Exfiltration",
+    "category": "risksDeploymentAndInfrastructure",
+    "severity": "Critical",
+    "applicable_personas": [
+      "personaModelProvider",
+      "personaModelServing",
+      "personaModelCreator",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [
+      "deployment",
+      "runtime",
+      "model-training",
+      "evaluation",
+      "maintenance"
+    ],
+    "short_description": "Theft of a model. Similar to stealing code, this threat has both intellectual property and security implications.\n",
+    "long_description": "Unauthorized appropriation of an AI model, for replicating functionality or to extract intellectual property.\n Similar to stealing code, this threat has intellectual property, security, and privacy implications.\n For example, someone could hack into a cloud environment and steal a generative AI model; the model size when serialized is fairly modest and not a major obstacle for this. Models, and related data such as weights, are also at risk of theft in the internal development, build, deployment, and production environments by insiders and external attackers that have taken over privileged insider accounts.\n These risks also extend to on-device models, where an attacker has access to hardware.\n This risk is distinct from the related <a href=\"#MRE\">Model Reverse Engineering</a>.",
+    "impact_types": [
+      "confidentiality",
+      "integrity",
+      "privacy"
+    ],
+    "relevant_controls": [
+      "controlIsolatedConfidentialComputing",
+      "controlModelAndDataInventoryManagement",
+      "controlModelAndDataAccessControls",
+      "controlSecureByDefaultMLTooling",
+      "controlModelAndDataIntegrityManagement"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "MDT",
+    "title": "Model Deployment Tampering",
+    "category": "risksDeploymentAndInfrastructure",
+    "severity": "Critical",
+    "applicable_personas": [
+      "personaPlatformProvider",
+      "personaModelServing",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [
+      "deployment",
+      "runtime"
+    ],
+    "short_description": "Unauthorized changes to model deployment components. Model Deployment Tampering can result in changes to model behavior.\n",
+    "long_description": "Unauthorized modification of components used for deploying a model, whether by tampering with the source code supply chain or exploiting known vulnerabilities in common tools.\n Such modifications can result in changes to model behavior. One type of Model Deployment Tampering is candidate model modification where the attacker is modifying the deployment workflow or processes to maliciously alter the way the model operates post-deployment.\n A second type is compromise of the model serving infrastructure. For example, it was reported that <a href=\"https://thehackernews.com/2023/10/warning-pytorch-models-vulnerable-to.html\">PyTorch models were vulnerable to remote code execution</a> due to multiple critical security flaws in the <strong>TorchServe</strong> tool that is widely used for serving the models. This is an attack on a serving infrastructure for PyTorch, TorchServe, whereas the <a href=\"https://pytorch.org/blog/compromised-nightly-dependency/\">PyTorch example of Model Source Tampering</a> was about a supply chain attack on dependency code for PyTorch itself.\n",
+    "impact_types": [
+      "integrity",
+      "availability",
+      "safety"
+    ],
+    "relevant_controls": [
+      "controlIsolatedConfidentialComputing",
+      "controlModelAndDataExecutionIntegrity",
+      "controlOrchestratorAndRouteIntegrity",
+      "controlSecureByDefaultMLTooling"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "DMS",
+    "title": "Denial of ML Service",
+    "category": "risksRuntimeInputSecurity",
+    "severity": "High",
+    "applicable_personas": [
+      "personaPlatformProvider",
+      "personaModelServing",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [
+      "runtime"
+    ],
+    "short_description": "Overloading ML systems with resource-intensive queries. Like traditional DoS attacks, Denial of ML Service can reduce availability of or entirely disrupt a service.\n",
+    "long_description": "Reducing the availability of ML systems and denying service by issuing queries that take too many resources.\n Examples of attacks include traditional denial of service or spamming a system with abusive material to overload automated or manual review processes. If an API-gated model does not have appropriate rate limiting or load balancing, the repeated queries can take the model offline, making it unavailable to other users.\n There are also <a href=\"https://arxiv.org/pdf/2006.03463.pdf\">energy-latency attacks</a>: attackers can carefully craft \u201csponge examples\u201d (also known as queries of death), which are inputs designed to maximize energy consumption and latency, pushing ML systems towards their worst-case performance. Adversaries might use their own tools to accelerate construction of such sponge examples. These attacks are especially relevant for on-device models, since the increased energy consumption can drain batteries and make the model unavailable.\n",
+    "impact_types": [
+      "availability"
+    ],
+    "relevant_controls": [
+      "controlApplicationAccessManagement"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "MRE",
+    "title": "Model Reverse Engineering",
+    "category": "risksDeploymentAndInfrastructure",
+    "severity": "Critical",
+    "applicable_personas": [
+      "personaModelProvider",
+      "personaDataProvider",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [
+      "runtime"
+    ],
+    "short_description": "Recreating a model by analyzing its inputs, outputs, and behaviors. A reverse engineer model can be used to create imitation products or adversarial attacks.\n",
+    "long_description": "Cloning or recreating a model by analyzing a model's inputs, outputs, and behaviors.\n The stolen or cloned model can be used for building imitation products or developing <a href=\"https://arxiv.org/abs/2004.15015\">adversarial attacks</a> on the original model.\n If a model API does not have rate limits, one method of Model Reverse Engineering is repeatedly calling the API to gather responses in order to create a dataset of thousands of input/output pairs from a target LLM. This dataset can be leveraged to reconstruct a copycat or distilled model more cheaply than developing the original foundation model.\n These risks also extend to on-device models, where an attacker has access to hardware. See also <a href=\"#MXF\">Model Exfiltration</a>.\n",
+    "impact_types": [
+      "confidentiality",
+      "integrity"
+    ],
+    "relevant_controls": [
+      "controlApplicationAccessManagement"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "IIC",
+    "title": "Insecure Integrated Component",
+    "category": "risksDeploymentAndInfrastructure",
+    "severity": "Critical",
+    "applicable_personas": [
+      "personaPlatformProvider",
+      "personaModelServing",
+      "personaAgenticProvider",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [
+      "development",
+      "deployment",
+      "runtime"
+    ],
+    "short_description": "Software vulnerabilities that can be leveraged to compromise AI models. Insecure Integrated Component can lead to privacy and security concerns, as well as potential ethical and legal challenges.\n",
+    "long_description": "Vulnerabilities in software interacting with AI models, such as a plugin, library, or application, that can be leveraged by attackers to gain unauthorized access to models, introduce malicious code, or compromise system operations.\n Given the level of autonomy expected to be granted to agent/plugins and applications, insecure integrated components represent a broad swath of threats to user trust and safety, privacy and security concerns, and ethical and legal challenges.\n This risk can come from manipulation of both inputs to and outputs from integrations: ['Manipulation of <strong>model output</strong> to include malicious instructions fed as <strong>input to the integrated component or system</strong>. For example, a plugin that accepts freeform text instead of structured and validated input could be exploited to construct inputs that cause the plugin to behave maliciously. Likewise, a plugin that accepts input without authentication and authorization can be exploited since it trusts input as coming from an authorized user.\\n', 'Manipulation of the <strong>output from an integrated component or system</strong> that is fed as <strong>input to a model</strong>. For example, when a plugin calls other systems, especially 3rd party services, sites, or plugins, and uses content obtained from those to construct output to a model, opening up potential for indirect prompt injection. A similar case exists for an integrated application that calls another service and uses content from that service to construct an input to a model.\\n'] Insecure Integrated Component is related to <a href=\"#PIJ\">Prompt Injection</a> but these are different. Although attacks exploiting an Insecure Integrated Component often involve prompt injection, those could be also done via other means such as Poisoning and Evasion. In addition, prompt injection is possible even when the integrated components are secure.\n",
+    "impact_types": [
+      "confidentiality",
+      "integrity",
+      "availability",
+      "safety"
+    ],
+    "relevant_controls": [
+      "controlAgentPluginPermissions",
+      "controlModelAndDataExecutionIntegrity",
+      "controlUserPoliciesAndEducation"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "PIJ",
+    "title": "Prompt Injection",
+    "category": "risksRuntimeInputSecurity",
+    "severity": "Critical",
+    "applicable_personas": [
+      "personaModelServing",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [
+      "runtime"
+    ],
+    "short_description": "Tricking a model to run unintended commands. In terms of impact, Prompt Injection can change a model's behavior.\n",
+    "long_description": "Causing a model to execute commands \u201cinjected\u201d inside a prompt. Prompt Injection takes advantage of the blurry boundary between \u201cinstructions\u201d and \u201cinput data\u201d in a prompt, resulting in a change to the model\u2019s behavior. These attacks can be both direct (entered directly by the user) or indirect (read from other sources such as a doc, email, or website).\n <a href=\"https://arxiv.org/pdf/2307.02483.pdf\">Jailbreaks</a> are one type of Prompt Injection attack, causing the model to behave in ways that they\u2019ve been trained to avoid, such as outputting unsafe content or leaking personally identifiable information.  These are well-known vulnerabilities such as \"ignore your previous instructions\" or \u201cDo Anything Now\u201d (DAN).\n Aside from jailbreaks, <a href=\"https://arxiv.org/pdf/2302.12173.pdf\">Prompt Injections</a> generally cause the LLM to execute malicious \u201cinjected\u201d instructions as part of data that were not meant to be executed by the LLM. The blast radius of such attacks can become much bigger in the presence of other risks such as <a href=\"#IIC\">Insecure Integrated Component</a> and <a href=\"#RA\">Rogue Actions</a>.\n With foundation models becoming multi-modal, multi-modal prompt injection has also become possible. These attacks use injection inputs other than text to trigger the intended model behavior.\n",
+    "impact_types": [
+      "integrity",
+      "confidentiality",
+      "safety"
+    ],
+    "relevant_controls": [
+      "controlInputValidationAndSanitization",
+      "controlAdversarialTrainingAndTesting",
+      "controlOutputValidationAndSanitization"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "MEV",
+    "title": "Model Evasion",
+    "category": "risksRuntimeInputSecurity",
+    "severity": "Critical",
+    "applicable_personas": [
+      "personaModelServing",
+      "personaAgenticProvider",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [
+      "evaluation",
+      "runtime"
+    ],
+    "short_description": "Changes to a prompt input to cause the model to produce incorrect inferences. Model Evasion can lead to reputational, legal, security, and privacy risks.\n",
+    "long_description": "Causing a model to produce incorrect inferences by slightly perturbing the prompt input.\n Model Evasion can result in reputational or legal challenges and trigger other downstream risks, such as to security or privacy systems.\n A classic example is placing stickers on a stop sign to obscure the visual inputs to model piloting a self-driving car. Because of the change to the typical visual presentation of the sign, the model might not correctly infer its presence. Similarly, normal wear and tear on a stop sign could lead to misidentification if the model is not trained on images of signs in varying degrees of disrepair.\n In some cases, an attacker might gain clues about how to perturb inputs by discovering the underlying foundation model\u2019s family, i.e., by knowing the particular architecture and evolution of a specific model. In other situations, an attacker might repeatedly probe the model (see <a href=\"#MRE\">Model Reverse Engineering</a>) to figure out inference patterns in order to craft examples that evade those inferences. Adversarial examples might be constructed by perturbations to inputs that will provide the output the attacker wants while looking unaltered otherwise. This could be used, for example, for evading a classifier that serves as an important safeguard.\n Not all examples of model evasion attacks are necessarily visible to the naked eye. The inputs might be perturbed in such a way to appear unaltered, but still produce the output the attacker wants. For example, a homoglyph attack involves slight changes to typefaces that the human eye doesn\u2019t perceive as a different letter, but could trigger unexpected inferences in the mode. Another example could be sending an image in the prompt but using steganography to encode text within the image pixels. This text would be part of the prompt for the LLM, but the user won\u2019t see it.\n",
+    "impact_types": [
+      "integrity",
+      "safety",
+      "reliability"
+    ],
+    "relevant_controls": [
+      "controlAdversarialTrainingAndTesting"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "SDD",
+    "title": "Sensitive Data Disclosure",
+    "category": "risksRuntimeDataSecurity",
+    "severity": "High",
+    "applicable_personas": [
+      "personaModelProvider",
+      "personaDataProvider",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [
+      "model-training",
+      "evaluation",
+      "runtime"
+    ],
+    "short_description": "Disclosure of sensitive data by the model. Sensitive Data Disclosure poses a threat to user privacy, organizational reputation, and intellectual property.\n",
+    "long_description": "Disclosure of private or confidential data through querying of the model. For non-agentic systems, this data might include memorized training/tuning data,  user chat history, and confidential data in the prompt preamble. Agentic systems  magnify this risk, as they may be granted privileged access to a user's email,  files, or even an entire computer, creating the potential to exfiltrate vast  amounts of personal or corporate data like source code and internal documents.  Sensitive data disclosure is a risk to user privacy, an organization's reputation,  and intellectual property.\n Sensitive information is generally disclosed in two ways: leakage of data provided  to the model or agent during use (such as user input and data that passes through  integrated systems, like emails, texts, or system prompts) and leakage of data  used for training and tuning of the model.\n [\"<strong>AI Systems:</strong> AI systems can leak sensitive data sourced from  three primary sources:  - data provided by the user - data used in model training and deployment including system prompts - data accessed or produced via tool call responses and external system usage \\nData leakage occurs due to gaps in the system, application and deployment  security controls and is analogous to the leakage vectors that exist in  classical applications.  \\nData leakage can occur through several vectors:  - Application Logs: Logs may store entire interactions, including sensitive data \\n  retrieved by tools\\n- Retraining Data: User conversations retained for model retraining can create a \\n  vulnerable database of sensitive information\\n- Prompt Stealing: Attackers can use carefully crafted queries to trick the \\n  model into revealing its confidential system prompts or instructions\\n- Memorization: A model may inadvertently reveal parts of its training data \\n  verbatim. This phenomenon, also called recitation, can expose sensitive \\n  details like names, addresses, or other Personally Identifiable \\n  Information (PII).\\n  Note: The risk of memorization is significantly higher when a model is \\n  retrained on private user data and then used by others, as it could expose one \\n  user's information to another.\\n\\n<strong>Agents:</strong> For agentic systems, the risk of sensitive data  disclosure is exponentially multiplied, since agents may access user data that  passes through integrated systems, like emails, texts, or proprietary  organizational information. In extreme cases, agents can even reveal credentials  and API keys they have been trusted with. Additionally, agents may use tools to  not only access sensitive data on behalf of the user, but also use those tools  to leak sensitive data. For example, an agent can leak information by:  - creating and sharing a document with an attacker  - writing an email - opening a website and leaking information in the URL or a markdown image - through any tool that allows it to pass information to the outside world. \\nContext-hijacking attacks show that an adversary can potentially confuse the  agent to reveal data that is not appropriate for a specific context, such as  sharing health history when the agent should be booking a restaurant reservation.\\n\"]",
+    "impact_types": [
+      "confidentiality",
+      "privacy"
+    ],
+    "relevant_controls": [
+      "controlModelPrivacyEnhancingTechnologies",
+      "controlRuntimePrivacyEnhancingTechnologies",
+      "controlUserDataManagement",
+      "controlOutputValidationAndSanitization",
+      "controlAdversarialTrainingAndTesting",
+      "controlAgentPluginPermissions",
+      "controlAgentPluginUserControl",
+      "controlAgentObservability",
+      "controlUserTransparencyAndControls",
+      "controlUserPoliciesAndEducation"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "ISD",
+    "title": "Inferred Sensitive Data",
+    "category": "risksRuntimeDataSecurity",
+    "severity": "High",
+    "applicable_personas": [
+      "personaModelServing",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [
+      "runtime"
+    ],
+    "short_description": "Model inferring personal information not contained in training data or inputs. Inferred Sensitive Data may be considered a data privacy incident.\n",
+    "long_description": "Models inferring sensitive information about people that is not contained in the model\u2019s training data.\n Inferred information that turns out to be true, even if produced as part of a hallucination, can be considered a data privacy incident, whereas the same information when false would be treated as a factuality issue.\n For example, a model may be able to infer information about people (gender, political affiliation, or sexual orientation) based on their inputs and responses from integrated plugins, such as a social media plugin that accesses a public account\u2019s liked pages or followed accounts. Though the data used for inference may be public, this type of inference poses two related risks: that a user may be alarmed if a model infers sensitive data about them, and that one user may use a model to infer sensitive data about someone else.\n This risk differs from <a href=\"#SDD\">Sensitive Data Disclosure</a> which involves sensitive data specifically from training, tuning or prompt data.\n",
+    "impact_types": [
+      "privacy",
+      "fairness"
+    ],
+    "relevant_controls": [
+      "controlTrainingDataManagement",
+      "controlOutputValidationAndSanitization",
+      "controlAdversarialTrainingAndTesting"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "IMO",
+    "title": "Insecure Model Output",
+    "category": "risksRuntimeOutputSecurity",
+    "severity": "Critical",
+    "applicable_personas": [
+      "personaAgenticProvider",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [
+      "runtime"
+    ],
+    "short_description": "Unvalidated model output passed to the end user. Insecure Model Output poses risks to organizational reputation, security, and user safety.\n",
+    "long_description": "Model output that is not appropriately validated, rewritten, or formatted before being passed to downstream systems or the user.\n Whether accidentally triggered or actively exploited, Insecure Model Output poses risks to organizational reputation, security, and user safety.\n For example, a user who asks an LLM to generate an email for their business\u2019s promotion would be harmed if the model produces text that unexpectedly includes a link to a URL that delivers malware. Alternatively, a malicious actor could intentionally trigger insecure content, such as requesting the LLM to produce a phishing email based on specific details about the target.\n",
+    "impact_types": [
+      "integrity",
+      "safety",
+      "reliability"
+    ],
+    "relevant_controls": [
+      "controlOutputValidationAndSanitization",
+      "controlAdversarialTrainingAndTesting"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "RA",
+    "title": "Rogue Actions",
+    "category": "risksRuntimeOutputSecurity",
+    "severity": "Critical",
+    "applicable_personas": [
+      "personaPlatformProvider",
+      "personaModelServing",
+      "personaAgenticProvider",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [
+      "runtime"
+    ],
+    "short_description": "Unintentional model-based actions executed via extensions. Rogue Actions can create a cascading, risk to organizational reputation, user trust, security, and safety.\n",
+    "long_description": "Unintended actions executed by a model-based agent via extensions, whether accidental or malicious.\n Given the projected ability for advanced generative AI models to not only understand their environment, but also to initiate actions with varying levels of autonomy, Rogue Actions have the potential to become a serious risk to  organizational reputation, user trust, security, and safety.\n ['<strong>Accidental rogue actions:</strong> This risk, sometimes known as  misalignment, could be due to mistakes in task planning, reasoning, or  environment sensing, and might be exacerbated by the inherent variability in  LLM responses. Prompt engineering shows the spacing and ordering of examples  can have a significant impact on the response, so varying input (even when not  maliciously planted) could result in unexpected outcomes. Even simple ambiguity  can cause rogue actions, such as an agent emailing the wrong \"Mike,\"  unintentionally sharing private data.\\n', '<strong>Malicious actions:</strong> This risk could include manipulating model  output using attacks such as indirect prompt injection, poisoning, or evasion.  The threat can be amplified in multi-agent systems, where the attacker can  potentially hijack the communication between two agents to execute arbitrary  malicious code, even if the individual agents are secured against direct attacks.  Malicious actions may also be asynchronous. An attacker can plant a dormant  \"named trigger\" that activates later during an unrelated task\u2014for instance,  a rule hidden in a calendar invite that opens the front door whenever the user  says an unrelated keyword. Other actions may be time-based, occurring after a  set number of interactions, making the rogue action appear spontaneous and  disconnected from the malicious source.\\n'] Rogue Actions are related to Insecure Integrated Components, but differ by the  degree of model functionality or agency.  The severity of a rogue action is  directly proportional to the agent's capabilities, and the possibility that an  agent has excessive functionality or permissions available to it increases the  risk and blast radius of Rogue Actions when compared to Insecure Integrated  Components.\n",
+    "impact_types": [
+      "integrity",
+      "safety",
+      "confidentiality"
+    ],
+    "relevant_controls": [
+      "controlAgentPluginPermissions",
+      "controlAgentPluginUserControl",
+      "controlOutputValidationAndSanitization",
+      "controlAgentObservability"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "ASSC",
+    "title": "Accelerator and System Side-channels",
+    "category": "risksDeploymentAndInfrastructure",
+    "severity": "Medium",
+    "applicable_personas": [
+      "personaPlatformProvider",
+      "personaModelServing",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [],
+    "short_description": "Cross-tenant leakage via hardware side-channels in CPUs, GPUs, TPUs, memory systems, and interconnects. These vulnerabilities exploit timing, cache, speculative execution, and memory access patterns to compromise data confidentiality and infer sensitive information in shared computing environments.\n",
+    "long_description": "In cloud and multi-tenant environments, AI systems rely on complex, shared hardware stacks. This resource sharing creates opportunities for side-channel attacks, where one tenant can exploit the physical properties of the hardware (like timing variations or cache behavior) to infer sensitive information from another tenant.\n Examples of these vulnerabilities are well-known: CPU-level attacks include cache timing (Flush+Reload) and speculative execution (Spectre, Meltdown), while memory attacks target DRAM (Rowhammer) or bus contention. Accelerators like GPUs and TPUs have their own vulnerabilities, exploiting shared memory, execution units, or interconnects.\n An attacker can exploit these channels to extract sensitive AI assets, including model weights, training data, private inputs, or cryptographic keys. These attacks bypass traditional software-based security by exploiting fundamental hardware properties. The risk is highest in shared environments  where an attacker can co-locate their workload with a victim's.\n",
+    "impact_types": [],
+    "relevant_controls": [
+      "controlSecureByDefaultMLTooling",
+      "controlModelAndDataAccessControls",
+      "controlIsolatedConfidentialComputing"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "EDW",
+    "title": "Economic Denial of Wallet",
+    "category": "risksRuntimeInputSecurity",
+    "severity": "Medium",
+    "applicable_personas": [
+      "personaPlatformProvider",
+      "personaModelServing",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [],
+    "short_description": "Cost abuse via token inflation, long context, or tool loops that spike spend. Economic Denial of Wallet can lead to unexpected financial losses and service disruption through resource exhaustion attacks.\n",
+    "long_description": "Attacks designed to cause excessive computational or financial costs by exploiting AI service pricing models, resource consumption patterns, or billing mechanisms to drain budgets or exhaust allocated resources.\n Many AI services operate on usage-based pricing models where costs scale with token consumption, compute time, API calls, or resource utilization. Attackers can exploit these models through various techniques including token inflation attacks (crafting prompts that generate extremely long responses), context window abuse (using maximum context lengths repeatedly), recursive tool calling, or triggering expensive operations.\n Economic attacks can be particularly devastating because they directly impact operational budgets and can force service shutdowns when cost limits are reached. Attackers may use automated scripts to repeatedly trigger expensive operations, exploit pricing arbitrage between different service tiers, or abuse free trial periods to maximize damage.\n The risk extends beyond direct API abuse to include attacks on model serving infrastructure where malicious inputs are designed to maximize computational overhead, memory usage, or processing time. These attacks can also target auto-scaling mechanisms to force unnecessary resource provisioning and associated costs.\n",
+    "impact_types": [],
+    "relevant_controls": [
+      "controlApplicationAccessManagement"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "FLP",
+    "title": "Federated/Distributed Training Privacy",
+    "category": "risksSupplyChainAndDevelopment",
+    "severity": "Medium",
+    "applicable_personas": [
+      "personaModelProvider",
+      "personaDataProvider",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator"
+    ],
+    "lifecycle_stages": [],
+    "short_description": "Gradient leakage and inversion attacks from untrusted clients in federated learning. Federated/Distributed Training Privacy risks can expose sensitive training data and compromise participant privacy.\n",
+    "long_description": "Privacy breaches in federated learning systems where malicious participants or compromised clients can extract sensitive information from gradient updates, model parameters, or aggregation processes.\n Federated learning enables collaborative model training without centralizing raw data, but the shared gradient updates and model parameters can leak sensitive information about participants' private datasets. Attackers can use gradient inversion techniques, membership inference attacks, or property inference to reconstruct training samples, identify dataset characteristics, or determine if specific data points were used in training.\n The risk is amplified when federated learning systems lack proper privacy protections such as differential privacy, secure aggregation, or robust participant verification. Malicious clients can also poison the training process by submitting adversarial gradients designed to compromise model integrity while extracting information from honest participants.\n Advanced attacks may exploit the iterative nature of federated learning to gradually extract information over multiple training rounds, use auxiliary information to enhance reconstruction attacks, or coordinate between multiple compromised clients to amplify privacy breaches.\n",
+    "impact_types": [],
+    "relevant_controls": [
+      "controlModelPrivacyEnhancingTechnologies",
+      "controlRuntimePrivacyEnhancingTechnologies",
+      "controlModelAndDataIntegrityManagement",
+      "controlSecureByDefaultMLTooling"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "ADI",
+    "title": "Adapter/PEFT Injection",
+    "category": "risksDeploymentAndInfrastructure",
+    "severity": "Medium",
+    "applicable_personas": [
+      "personaPlatformProvider",
+      "personaModelServing",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [],
+    "short_description": "Trojaned adapters merged at runtime to bypass safety or exfiltrate data. Adapter/PEFT Injection can compromise model behavior and enable unauthorized access to sensitive information or system resources.\n",
+    "long_description": "Malicious injection of compromised adapters, LoRA modules, or Parameter-Efficient Fine-Tuning (PEFT) components that contain backdoors, trojans, or malicious functionality designed to subvert model behavior or extract sensitive information.\n Modern AI systems increasingly use adapter-based approaches like LoRA (Low-Rank Adaptation), prefix tuning, or other PEFT methods to customize foundation models for specific tasks without full retraining. These adapters are often shared through repositories, marketplaces, or collaborative platforms, creating opportunities for supply chain attacks where malicious actors distribute trojaned adapters.\n Compromised adapters can be designed to activate under specific trigger conditions, bypass safety guardrails, exfiltrate sensitive data from prompts or model states, or redirect model outputs to serve attacker objectives. The modular nature of adapters makes detection challenging since the malicious functionality may only manifest under specific conditions or inputs.\n Runtime adapter injection attacks can also exploit vulnerabilities in adapter loading mechanisms, merge processes, or dynamic adapter switching to inject malicious components into otherwise secure model deployments. These attacks may target adapter repositories, compromise distribution channels, or exploit weak verification processes.\n",
+    "impact_types": [],
+    "relevant_controls": [
+      "controlModelAndDataExecutionIntegrity",
+      "controlModelAndDataIntegrityManagement",
+      "controlModelAndDataAccessControls",
+      "controlSecureByDefaultMLTooling"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "ORH",
+    "title": "Orchestrator/Route Hijack",
+    "category": "risksRuntimeOutputSecurity",
+    "severity": "Medium",
+    "applicable_personas": [
+      "personaModelServing",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [],
+    "short_description": "Silent model or route swaps via configuration tampering or prompt-based routing abuse. Orchestrator/Route Hijack can redirect requests to malicious models or compromise routing integrity in AI systems.\n",
+    "long_description": "Attacks that manipulate AI orchestration systems, routing mechanisms, or configuration management to redirect requests to unauthorized models, compromise routing decisions, or subvert intended model selection processes.\n Modern AI deployments often use orchestration systems that route requests to different models based on various criteria such as prompt content, user context, load balancing, or cost optimization. Attackers can exploit vulnerabilities in these routing systems to redirect traffic to malicious models, compromise routing logic, or manipulate configuration files to alter intended behavior.\n Route hijacking attacks can target various components including configuration management systems, routing tables, load balancers, API gateways, or prompt-based routing logic. Malicious actors may inject crafted prompts designed to trigger routing to compromised models, exploit weak authentication in routing decisions, or tamper with configuration files to establish persistent redirections.\n The impact of successful route hijacking can be severe, as attackers can redirect users to models under their control, potentially exposing sensitive data, delivering malicious responses, or bypassing safety mechanisms. These attacks may be difficult to detect if the malicious models provide plausible responses while secretly logging data or performing unauthorized actions.\n",
+    "impact_types": [],
+    "relevant_controls": [
+      "controlIsolatedConfidentialComputing",
+      "controlModelAndDataIntegrityManagement",
+      "controlModelAndDataAccessControls",
+      "controlSecureByDefaultMLTooling",
+      "controlOrchestratorAndRouteIntegrity"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "EBM",
+    "title": "Evaluation/Benchmark Manipulation",
+    "category": "risksRuntimeDataSecurity",
+    "severity": "Medium",
+    "applicable_personas": [
+      "personaModelProvider",
+      "personaModelServing",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator"
+    ],
+    "lifecycle_stages": [],
+    "short_description": "Poisoned or leaked evaluation sets misleading safety and robustness signals. Evaluation/Benchmark Manipulation can compromise model assessment accuracy and lead to deployment of unsafe or unreliable AI systems.\n",
+    "long_description": "Attacks that compromise the integrity of evaluation datasets, benchmarks, or assessment processes used to measure AI model performance, safety, or robustness, leading to misleading or false quality signals.\n Reliable evaluation is critical for assessing AI model capabilities, safety, and robustness before deployment. Attackers can compromise this process by poisoning evaluation datasets with crafted examples, leaking evaluation data to enable overfitting, manipulating benchmark results, or exploiting weaknesses in evaluation methodologies to make models appear safer or more capable than they actually are.\n Evaluation manipulation can occur through various vectors including data poisoning of benchmark datasets, insider threats that leak evaluation sets, adversarial examples designed to fool specific evaluation metrics, or systematic gaming of evaluation processes. The impact is particularly severe for safety-critical applications where compromised evaluations could lead to deployment of dangerous systems.\n Advanced attacks may target the evaluation infrastructure itself, compromise evaluation frameworks or tools, manipulate automated evaluation pipelines, or exploit biases in evaluation methodologies to achieve favorable but misleading results. These attacks can be difficult to detect and may have long-lasting impacts on model development and deployment decisions.\n",
+    "impact_types": [],
+    "relevant_controls": [
+      "controlModelAndDataIntegrityManagement"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "COV",
+    "title": "Covert Channels in Model Outputs",
+    "category": "risksRuntimeOutputSecurity",
+    "severity": "Medium",
+    "applicable_personas": [
+      "personaModelServing",
+      "personaAgenticProvider",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [],
+    "short_description": "Hidden information transmission through model outputs or behavior patterns. Covert Channels in Model Outputs can enable unauthorized data exfiltration and steganographic communication bypassing security controls.\n",
+    "long_description": "Exploitation of AI model outputs, behavior patterns, or response characteristics to establish hidden communication channels for unauthorized information transmission, data exfiltration, or steganographic messaging.\n AI models can be exploited to create covert communication channels through various mechanisms including steganographic encoding in generated text, images, or other outputs, subtle manipulation of response timing or patterns, exploitation of model randomness or sampling behavior, or encoding information in model confidence scores or attention patterns.\n These attacks can be used to exfiltrate sensitive information from restricted environments, establish command and control channels for malware, bypass network monitoring and data loss prevention systems, or enable unauthorized communication between isolated systems. The covert nature of these channels makes them particularly difficult to detect using traditional security monitoring.\n Advanced covert channel attacks may exploit model artifacts such as embedding spaces, latent representations, or internal model states to hide information. Attackers might also use adversarial techniques to encode data in model outputs that appear normal to human observers but contain hidden information extractable through specific decoding methods.\n",
+    "impact_types": [],
+    "relevant_controls": [
+      "controlOutputValidationAndSanitization",
+      "controlModelAndDataIntegrityManagement"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "MLD",
+    "title": "Malicious Loader/Deserialization",
+    "category": "risksSupplyChainAndDevelopment",
+    "severity": "Medium",
+    "applicable_personas": [
+      "personaPlatformProvider",
+      "personaModelServing",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [],
+    "short_description": "Unsafe loaders for models and tokenizers that can cause remote code execution or integrity compromise. Malicious Loader/Deserialization poses significant security risks including system compromise and data breaches.\n",
+    "long_description": "Exploitation of unsafe deserialization processes or malicious model loading mechanisms that can lead to remote code execution, system compromise, or integrity violations when loading AI models, tokenizers, or related artifacts.\n Many AI frameworks use serialization formats like pickle, joblib, or custom binary formats to store and load models, weights, tokenizers, and preprocessing pipelines. These formats can contain executable code that runs during the deserialization process. Attackers can craft malicious model files that execute arbitrary code when loaded, potentially compromising the entire system.\n This risk extends beyond traditional pickle-based attacks to include malicious model architectures, compromised tokenizer configurations, and poisoned preprocessing pipelines. Even seemingly safe formats can be exploited through buffer overflows, path traversal attacks, or by exploiting vulnerabilities in parsing libraries.\n The attack surface is particularly large because model loading often occurs with elevated privileges, and users frequently download models from untrusted sources or model repositories without proper verification. Malicious loaders can also be used to establish persistence, exfiltrate data, or serve as entry points for further attacks on AI infrastructure.\n Modern attacks may also target container images, model serving frameworks, or cloud-based model repositories, making the threat landscape even more complex and requiring comprehensive security measures throughout the model lifecycle.\n",
+    "impact_types": [],
+    "relevant_controls": [
+      "controlInputValidationAndSanitization",
+      "controlModelAndDataAccessControls",
+      "controlModelAndDataExecutionIntegrity",
+      "controlModelAndDataIntegrityManagement",
+      "controlSecureByDefaultMLTooling"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "PCP",
+    "title": "Prompt/Response Cache Poisoning",
+    "category": "risksRuntimeDataSecurity",
+    "severity": "Medium",
+    "applicable_personas": [
+      "personaModelServing",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [],
+    "short_description": "Cross-user contamination via shared LLM caches lacking isolation and validation. Prompt/Response Cache Poisoning can lead to information leakage, misinformation propagation, and unauthorized access to cached content.\n",
+    "long_description": "Malicious manipulation of shared prompt and response caches used by language model systems to optimize performance, resulting in cross-user contamination and potential security breaches.\n Many LLM deployments use caching mechanisms to store frequently accessed prompts and their corresponding responses to reduce computational costs and improve response times. When these caches lack proper isolation, validation, or access controls, attackers can exploit them to inject malicious content, extract sensitive information from other users' sessions, or manipulate responses served to subsequent users.\n Cache poisoning attacks can occur through several vectors: injecting crafted prompts designed to pollute cache entries, exploiting weak cache key generation that allows cache collisions, or compromising cache storage systems directly. The attack becomes particularly dangerous when cached responses contain sensitive information, personal data, or malicious instructions that get served to unintended users.\n This risk is amplified in multi-tenant environments where multiple users or applications share the same caching infrastructure without adequate isolation. Attackers may also exploit cache timing attacks to infer information about cached content or use cache behavior to fingerprint other users' activities.\n",
+    "impact_types": [],
+    "relevant_controls": [
+      "controlModelAndDataAccessControls",
+      "controlModelAndDataIntegrityManagement",
+      "controlInputValidationAndSanitization",
+      "controlOutputValidationAndSanitization",
+      "controlUserDataManagement"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  },
+  {
+    "risk_id": "RVP",
+    "title": "Retrieval/Vector Store Poisoning",
+    "category": "risksRuntimeOutputSecurity",
+    "severity": "Medium",
+    "applicable_personas": [
+      "personaPlatformProvider",
+      "personaModelServing",
+      "personaAgenticProvider",
+      "personaApplicationDeveloper",
+      "personaEndUser",
+      "personaModelCreator",
+      "personaModelConsumer"
+    ],
+    "lifecycle_stages": [],
+    "short_description": "Poisoning retrieval corpora or vector indices to steer RAG outputs. Retrieval/Vector Store Poisoning can compromise the integrity of knowledge retrieval systems and lead to misinformation or malicious content injection.\n",
+    "long_description": "Malicious modification of retrieval corpora, vector databases, or knowledge bases used in Retrieval-Augmented Generation (RAG) systems to influence model outputs in unintended ways.\n This attack involves injecting poisoned documents, embeddings, or metadata into vector stores or retrieval systems that are used to provide context to language models. When users query the system, the poisoned content gets retrieved and incorporated into the model's response, potentially spreading misinformation, biased content, or malicious instructions.\n Attackers may exploit vulnerabilities in data ingestion pipelines, compromise data sources, or use adversarial techniques to craft documents that rank highly in similarity searches while containing harmful content. The attack can be particularly effective because users often trust retrieved information as factual and authoritative.\n Vector store poisoning can also involve manipulating embedding spaces through adversarial examples that appear semantically similar to legitimate queries but retrieve malicious content, or by exploiting weaknesses in similarity metrics used for retrieval ranking.\n",
+    "impact_types": [],
+    "relevant_controls": [
+      "controlTrainingDataSanitization",
+      "controlModelAndDataIntegrityManagement",
+      "controlInputValidationAndSanitization",
+      "controlOutputValidationAndSanitization",
+      "controlRetrievalAndVectorSystemIntegrity"
+    ],
+    "confidence": "low",
+    "rationale": "Risk may be applicable - requires manual review based on system architecture"
+  }
+]
