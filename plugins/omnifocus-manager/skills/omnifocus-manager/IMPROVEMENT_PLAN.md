@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 6.4.1 | 2026-03-08 | - | Fix getOverdueTasks: use effectivelyCompleted/effectivelyDropped to exclude tasks in dropped/completed projects; eliminates false positives from archived recurring tasks | - | - | - | - | - |
 | 6.4.0 | 2026-03-07 | [#90](https://github.com/totallyGreg/claude-mp/issues/90) | Phase 1 GTD analysis commands: repeating-tasks + analyze-projects in gtd-queries.js; habit cadence math (RRULE parsing, gapRatio, stdDev) in taskQuery.js; /of:analyze-habits, /of:analyze-projects, /of:expound slash commands; agent routing updates | 83 | 88 | 90 | 100 | 91 |
 | 6.3.0 | 2026-03-07 | - | Rewrite foundation_models_integration.md with accurate API docs: macOS 26 requirement, LanguageModel.Session, Schema.fromJSON (arrayOf/anyOf/isOptional/maximumElements), GenerationOptions, async pattern, per-call session pattern; remove Shortcuts bridge speculation; update SKILL.md references | 83 | 88 | 90 | 100 | 91 |
 | 6.2.0 | 2026-03-04 | [#80](https://github.com/totallyGreg/claude-mp/issues/80) | Pillar 2 — Perspective inventory, configuration, templates, GTD gap analysis; perspective-config.js; system-health perspective warnings | 30 | 55 | 90 | 100 | 74 |

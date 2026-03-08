@@ -225,7 +225,7 @@
         const overdueTasks = [];
 
         tasks.forEach(task => {
-            if (task.completed() || task.dropped()) return;
+            if (task.effectivelyCompleted() || task.effectivelyDropped()) return;
 
             const dueDate = task.dueDate();
             if (dueDate && dueDate < now) {
