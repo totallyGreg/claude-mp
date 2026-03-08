@@ -5,7 +5,7 @@ description: |
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 metadata:
-  version: 6.3.0
+  version: 6.4.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -132,6 +132,8 @@ osascript -l JavaScript scripts/manage_omnifocus.js batch-update --ids id1,id2,i
 ```bash
 osascript -l JavaScript scripts/gtd-queries.js --action ai-agent-tasks
 osascript -l JavaScript scripts/manage_omnifocus.js bulk-create --json-file /tmp/plan.json
+osascript -l JavaScript scripts/gtd-queries.js --action repeating-tasks --days 90
+osascript -l JavaScript scripts/gtd-queries.js --action analyze-projects --threshold 30
 ```
 
 ### 2. Manage Perspectives

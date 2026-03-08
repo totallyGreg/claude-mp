@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 6.4.0 | 2026-03-07 | [#90](https://github.com/totallyGreg/claude-mp/issues/90) | Phase 1 GTD analysis commands: repeating-tasks + analyze-projects in gtd-queries.js; habit cadence math (RRULE parsing, gapRatio, stdDev) in taskQuery.js; /of:analyze-habits, /of:analyze-projects, /of:expound slash commands; agent routing updates | 83 | 88 | 90 | 100 | 91 |
 | 6.3.0 | 2026-03-07 | - | Rewrite foundation_models_integration.md with accurate API docs: macOS 26 requirement, LanguageModel.Session, Schema.fromJSON (arrayOf/anyOf/isOptional/maximumElements), GenerationOptions, async pattern, per-call session pattern; remove Shortcuts bridge speculation; update SKILL.md references | 83 | 88 | 90 | 100 | 91 |
 | 6.2.0 | 2026-03-04 | [#80](https://github.com/totallyGreg/claude-mp/issues/80) | Pillar 2 — Perspective inventory, configuration, templates, GTD gap analysis; perspective-config.js; system-health perspective warnings | 30 | 55 | 90 | 100 | 74 |
 | 6.1.0 | 2026-03-03 | [#76](https://github.com/totallyGreg/claude-mp/issues/76) | Channel Selection Layer + JXA anti-pattern checker + security hardening; fix clearTags/addTag/whose bugs; loadLibrary path validation; URL scheme security docs | 30 | 59 | 90 | 100 | 74 |
@@ -38,7 +39,7 @@
 
 ## Active Work
 
-- [#90](https://github.com/totallyGreg/claude-mp/issues/90): Phase 1 GTD Analysis Commands — habit cadence, project sweep, expound (In Progress)
+- ~~[#90](https://github.com/totallyGreg/claude-mp/issues/90): Phase 1 GTD Analysis Commands — habit cadence, project sweep, expound~~ — Done (v6.4.0)
 
 - ~~[#68](https://github.com/totallyGreg/claude-mp/issues/68): Project inspection & mutation CLI commands~~ — Done (v5.3.0, PR #69)
 - ~~[#63](https://github.com/totallyGreg/claude-mp/issues/63): Two-track vision~~ — All 4 pillars complete
