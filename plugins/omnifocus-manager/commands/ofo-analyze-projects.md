@@ -5,7 +5,7 @@ allowed-tools: Bash(osascript:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-ma
 ---
 
 <!--
-/of:analyze-projects - Project health sweep.
+/ofo:analyze-projects - Project health sweep.
 Detects stalled projects, neglected projects, overdue task accumulation,
 and near-duplicate project names that may represent fragmented capture.
 -->

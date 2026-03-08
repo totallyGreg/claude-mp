@@ -114,12 +114,18 @@ Classify each user request and route accordingly:
 | "Help me do my weekly review" | Both | gtd-coach walks checklist, omnifocus-manager runs queries |
 | "Are my projects healthy?" | Both | gtd-coach for principles, `gtd-queries.js --action system-health` for data |
 | "Improve my next action names" | Both | gtd-coach for clarity rules, omnifocus-manager to update |
-| "Analyze my repeating tasks / habits" | omnifocus-manager | `gtd-queries.js --action repeating-tasks` (or `/of:analyze-habits`) |
-| "Which habits am I not doing?" | omnifocus-manager | `gtd-queries.js --action repeating-tasks` (or `/of:analyze-habits`) |
-| "Sweep my projects for issues" | omnifocus-manager | `gtd-queries.js --action analyze-projects` (or `/of:analyze-projects`) |
-| "Find duplicate projects" | omnifocus-manager | `gtd-queries.js --action analyze-projects` (or `/of:analyze-projects`) |
-| "Clarify / expound on this task" | omnifocus-manager | `/of:expound` command |
-| "Name this task better / add tags" | omnifocus-manager | `/of:expound` command |
+| "Analyze my repeating tasks / habits" | omnifocus-manager | `gtd-queries.js --action repeating-tasks` (or `/ofo:analyze-habits`) |
+| "Which habits am I not doing?" | omnifocus-manager | `gtd-queries.js --action repeating-tasks` (or `/ofo:analyze-habits`) |
+| "Sweep my projects for issues" | omnifocus-manager | `gtd-queries.js --action analyze-projects` (or `/ofo:analyze-projects`) |
+| "Find duplicate projects" | omnifocus-manager | `gtd-queries.js --action analyze-projects` (or `/ofo:analyze-projects`) |
+| "Clarify / expound on this task" | omnifocus-manager | `/ofo:expound` command |
+| "Name this task better / add tags" | omnifocus-manager | `/ofo:expound` command |
+| `omnifocus://` URL pasted | omnifocus-manager | `/ofo:info <url>` — parse ID and look up entity |
+| "What's due today?" / "Today's tasks" | omnifocus-manager | `/ofo:today` command |
+| "Show my inbox" | omnifocus-manager | `/ofo:inbox` command |
+| "Show overdue tasks" | omnifocus-manager | `/ofo:overdue` command |
+| "How's my system?" / "Quick health check" | omnifocus-manager | `/ofo:health` command |
+| "Search for task <name>" | omnifocus-manager | `/ofo:search <term>` command |
 
 ## Routing Logic
 
@@ -150,6 +156,16 @@ For requests requiring both skills:
 7. [omnifocus-manager] osascript -l JavaScript scripts/gtd-queries.js --action waiting-for     → aging waiting items
 8. [omnifocus-manager] osascript -l JavaScript scripts/gtd-queries.js --action system-health   → overall GTD health
 9. [gtd-coach] Prompt creative brainstorming based on health data
+```
+
+**Example: omnifocus:// URL Pasted**
+
+```
+User pastes: omnifocus:///task/abc123XYZ
+→ Route to: /ofo:info omnifocus:///task/abc123XYZ
+→ Parse ID: abc123XYZ
+→ manage_omnifocus.js task-info --id abc123XYZ
+→ Present task details
 ```
 
 **Example: Inbox Processing Flow**

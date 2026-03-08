@@ -5,7 +5,7 @@ allowed-tools: Bash(osascript:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-ma
 ---
 
 <!--
-/of:analyze-habits - Habit cadence analysis for repeating tasks.
+/ofo:analyze-habits - Habit cadence analysis for repeating tasks.
 Pulls all repeating tasks and their completion history, computes actual
 vs intended gap days, and gives concrete defer/due recommendations.
 -->

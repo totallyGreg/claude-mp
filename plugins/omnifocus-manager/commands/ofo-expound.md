@@ -5,7 +5,7 @@ allowed-tools: Bash(osascript:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-ma
 ---
 
 <!--
-/of:expound - Expound on a task or project.
+/ofo:expound - Expound on a task or project.
 Fetches current name, note, tags, and duration estimate. Suggests a clearer
 action-oriented name, verifies effort/duration tags, and applies confirmed
 changes via manage_omnifocus.js.
