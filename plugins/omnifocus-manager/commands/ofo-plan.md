@@ -4,7 +4,7 @@ allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/*), B
 ---
 
 <!--
-/of:plan - Publish a plan document to OmniFocus and/or GitHub Issues.
+/ofo:plan - Publish a plan document to OmniFocus and/or GitHub Issues.
 Reads a plan markdown file, extracts phases and tasks, creates an OmniFocus
 project with action groups tagged AI Agent / Claude Code.
 -->
@@ -132,4 +132,4 @@ Report what was created:
 - OmniFocus project name, task count, and tag structure
 - GitHub issue URL (if created)
 - Mapping file location
-- Remind user they can use `/of:work` to execute tasks from the OmniFocus project
+- Remind user they can use `/ofo:work` to execute tasks from the OmniFocus project

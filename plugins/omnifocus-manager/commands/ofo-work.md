@@ -4,7 +4,7 @@ allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/*), B
 ---
 
 <!--
-/of:work - Agent-driven task execution from an OmniFocus AI Agent project.
+/ofo:work - Agent-driven task execution from an OmniFocus AI Agent project.
 Queries for AI Agent-tagged projects, presents selection, reads tasks in order,
 implements step-by-step, marks each complete in OmniFocus.
 -->
