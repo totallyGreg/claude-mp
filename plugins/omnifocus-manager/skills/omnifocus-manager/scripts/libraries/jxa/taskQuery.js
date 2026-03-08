@@ -827,5 +827,175 @@
         };
     };
 
+    // ============================================================================
+    // Repeating Task / Habit Analysis
+    // ============================================================================
+
+    /**
+     * Get all active tasks and projects that have a repetition rule.
+     * Uses iteration (not whose()) to avoid empty-result throws.
+     *
+     * @param {Document} doc - OmniFocus document
+     * @returns {Array<Object>} Active repeating tasks with repeat rule details
+     */
+    taskQuery.getRepeatingTasks = function(doc) {
+        var results = [];
+        var tasks = doc.flattenedTasks();
+
+        tasks.forEach(function(task) {
+            if (task.completed()) return;
+            if (task.dropped()) return;
+
+            var rule = task.repetitionRule();
+            if (!rule) return;
+
+            var project = task.containingProject();
+            results.push({
+                id: task.id(),
+                name: task.name(),
+                project: project ? project.name() : 'Inbox',
+                tags: task.tags().map(function(t) { return t.name(); }),
+                dueDate: task.dueDate() ? task.dueDate().toISOString() : null,
+                deferDate: task.deferDate() ? task.deferDate().toISOString() : null,
+                hasDueDate: task.dueDate() !== null,
+                repeatRule: {
+                    recurrence: rule.recurrence ? rule.recurrence() : null,
+                    repetitionMethod: rule.repetitionMethod ? rule.repetitionMethod().toString() : null,
+                    catchUpAutomatically: rule.catchUpAutomatically ? rule.catchUpAutomatically() : null
+                }
+            });
+        });
+
+        return results;
+    };
+
+    /**
+     * Get completion history for a task identified by name, within a lookback window.
+     * Groups completed tasks by case-insensitive trimmed name match.
+     * Uses getRecentlyCompleted internally to avoid full database scan.
+     *
+     * @param {Document} doc - OmniFocus document
+     * @param {string} taskName - Task name to look up (case-insensitive)
+     * @param {number} days - Lookback window in days (default: 90)
+     * @returns {Array<string>} ISO date strings of completions, newest first
+     */
+    taskQuery.getCompletionHistory = function(doc, taskName, days) {
+        var lookback = days || 90;
+        var normalizedTarget = taskName.toLowerCase().trim();
+        var completed = this.getRecentlyCompleted(doc, lookback, 500);
+
+        return completed
+            .filter(function(t) {
+                return t.name.toLowerCase().trim() === normalizedTarget && t.completionDate;
+            })
+            .map(function(t) { return t.completionDate; });
+    };
+
+    /**
+     * Compute cadence statistics and rule-based recommendations for a repeating task.
+     * Pure function — no OmniFocus API calls.
+     *
+     * @param {Array<string>} completionDates - ISO date strings, newest first
+     * @param {Object} repeatRule - From getRepeatingTasks() output
+     * @param {boolean} hasDueDate - Whether task has a due date set
+     * @returns {Object} Cadence stats and recommendation
+     */
+    taskQuery.computeHabitCadence = function(completionDates, repeatRule, hasDueDate) {
+        var count = completionDates.length;
+
+        if (count < 2) {
+            return {
+                completionCount: count,
+                actualAvgGapDays: null,
+                actualStdDevDays: null,
+                intendedGapDays: taskQuery._parseRruleGapDays(repeatRule),
+                gapRatio: null,
+                hasDueDate: hasDueDate,
+                recommendation: {
+                    removeDueDate: false,
+                    suggestedDeferDays: null,
+                    rationale: count === 0
+                        ? 'No completions found in lookback window — cannot assess cadence.'
+                        : 'Only one completion found — need more data to assess cadence.'
+                }
+            };
+        }
+
+        // Calculate gaps between consecutive completions
+        var dates = completionDates.map(function(d) { return new Date(d).getTime(); });
+        var gaps = [];
+        for (var i = 0; i < dates.length - 1; i++) {
+            gaps.push((dates[i] - dates[i + 1]) / (1000 * 60 * 60 * 24));
+        }
+
+        var avgGap = gaps.reduce(function(s, g) { return s + g; }, 0) / gaps.length;
+        var variance = gaps.reduce(function(s, g) { return s + Math.pow(g - avgGap, 2); }, 0) / gaps.length;
+        var stdDev = Math.sqrt(variance);
+
+        var intendedGap = taskQuery._parseRruleGapDays(repeatRule);
+        var gapRatio = intendedGap ? avgGap / intendedGap : null;
+
+        // Recommendation logic
+        var removeDueDate = false;
+        var suggestedDeferDays = null;
+        var rationale = '';
+
+        if (gapRatio === null) {
+            rationale = 'Repeat interval could not be parsed — review manually.';
+        } else if (gapRatio <= 1.2) {
+            rationale = 'On track. Completing roughly on schedule.';
+        } else if (stdDev > avgGap) {
+            rationale = 'Highly inconsistent cadence (stddev > avg gap). Consider a longer repeat interval or removing the due date to reduce overdue pressure.';
+            removeDueDate = hasDueDate;
+            suggestedDeferDays = Math.round(avgGap * 1.2);
+        } else if (gapRatio >= 3.0) {
+            rationale = 'Completing ' + gapRatio.toFixed(1) + 'x slower than intended. Suggest extending repeat interval to match actual cadence and removing due date.';
+            removeDueDate = hasDueDate;
+            suggestedDeferDays = Math.round(avgGap * 0.9);
+        } else if (gapRatio >= 1.5) {
+            rationale = 'Completing ' + gapRatio.toFixed(1) + 'x slower than intended.' + (hasDueDate ? ' Due date may be creating overdue accumulation. Suggest defer-after-completion.' : ' Consider extending repeat interval.');
+            removeDueDate = hasDueDate;
+            suggestedDeferDays = Math.round(avgGap * 0.8);
+        }
+
+        return {
+            completionCount: count,
+            actualAvgGapDays: Math.round(avgGap * 10) / 10,
+            actualStdDevDays: Math.round(stdDev * 10) / 10,
+            intendedGapDays: intendedGap,
+            gapRatio: gapRatio ? Math.round(gapRatio * 10) / 10 : null,
+            hasDueDate: hasDueDate,
+            recommendation: {
+                removeDueDate: removeDueDate,
+                suggestedDeferDays: suggestedDeferDays,
+                rationale: rationale
+            }
+        };
+    };
+
+    /**
+     * Parse an iCal RRULE string into approximate gap in days.
+     * Handles DAILY, WEEKLY, MONTHLY common cases only.
+     * Returns null for unknown/complex patterns.
+     * @private
+     */
+    taskQuery._parseRruleGapDays = function(repeatRule) {
+        if (!repeatRule || !repeatRule.recurrence) return null;
+        var rrule = repeatRule.recurrence;
+
+        var freqMatch = rrule.match(/FREQ=(\w+)/);
+        var intervalMatch = rrule.match(/INTERVAL=(\d+)/);
+        if (!freqMatch) return null;
+
+        var freq = freqMatch[1];
+        var interval = intervalMatch ? parseInt(intervalMatch[1]) : 1;
+
+        if (freq === 'DAILY') return interval;
+        if (freq === 'WEEKLY') return interval * 7;
+        if (freq === 'MONTHLY') return interval * 30;
+        if (freq === 'YEARLY') return interval * 365;
+        return null;
+    };
+
     return taskQuery;
 })();
