@@ -2,9 +2,7 @@ var args = argument;
 var result;
 
 if (args.type === "project") {
-  var p = flattenedProjects.find(function(proj) {
-    return proj.id.primaryKey === args.id;
-  });
+  var p = Project.byIdentifier(args.id);
   if (p) {
     result = {
       success: true,
@@ -27,9 +25,7 @@ if (args.type === "project") {
     result = { success: false, error: "Project not found: " + args.id };
   }
 } else {
-  var t = flattenedTasks.find(function(task) {
-    return task.id.primaryKey === args.id;
-  });
+  var t = Task.byIdentifier(args.id);
   if (t) {
     result = {
       success: true,

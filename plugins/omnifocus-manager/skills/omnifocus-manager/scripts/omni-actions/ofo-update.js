@@ -1,7 +1,5 @@
 var args = argument;
-var t = flattenedTasks.find(function(task) {
-  return task.id.primaryKey === args.id;
-});
+var t = Task.byIdentifier(args.id);
 
 if (!t) {
   Pasteboard.general.string = JSON.stringify({

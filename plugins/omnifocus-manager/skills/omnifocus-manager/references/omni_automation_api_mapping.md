@@ -21,7 +21,8 @@ Validated by prototype spike on 2026-03-09. The Omni Automation API used inside 
 | Global projects | `app.defaultDocument.flattenedProjects` | `flattenedProjects` |
 | Global tags | `app.defaultDocument.flattenedTags` | `flattenedTags` |
 | Inbox | `app.defaultDocument.inboxTasks` | `inbox` |
-| Find by ID | `flattenedTasks.byId(id)` | `flattenedTasks.find(t => t.id.primaryKey === id)` |
+| Find task by ID | `flattenedTasks.byId(id)` | `Task.byIdentifier(id)` (class function, not on TaskArray) |
+| Find project by ID | `flattenedProjects.byId(id)` | `Project.byIdentifier(id)` (class function) |
 | Find by name | `flattenedTasks.whose({name: n})` | `flattenedTasks.byName(n)` |
 | Get task ID | JXA-specific | `task.id.primaryKey` |
 | Mark complete | `task.completed = true` (**FAILS** via Apple Events) | `task.markComplete()` |
@@ -37,12 +38,11 @@ Validated by prototype spike on 2026-03-09. The Omni Automation API used inside 
 
 ## Key Gotchas
 
-1. **`byIdentifier()` does not exist** on the global `flattenedTasks` array despite being documented in the API reference. Use `.find()` with `id.primaryKey` comparison.
-2. **`flattenedTasks` is a `TaskArray`** (type: object, 1800+ items) with `.byName()`, `.find()`, `.filter()` but NOT `.byIdentifier()`.
-3. **Property access is direct** — `task.name` not `task.name()`. Methods use parentheses: `task.markComplete()`.
-4. **`Pasteboard.makeUnique()` exists** but unique pasteboards aren't readable from the CLI (`pbpaste` only reads `Pasteboard.general`).
-5. **Date handling**: `task.dueDate` returns a JS `Date` object. Use `.toISOString()` for serialization.
-6. **Arrow functions work** in the Omni Automation context, but `function()` syntax is safer for script URL approval (more readable in the approval dialog).
+1. **`byIdentifier()` is a class function**, not an instance method on arrays. Use `Task.byIdentifier(id)` and `Project.byIdentifier(id)` — NOT `flattenedTasks.byIdentifier(id)`. The `TaskArray` type only has `byName()` plus standard JS array methods (`find`, `filter`, `forEach`).
+2. **Property access is direct** — `task.name` not `task.name()`. Methods use parentheses: `task.markComplete()`.
+3. **`Pasteboard.makeUnique()` exists** but unique pasteboards aren't readable from the CLI (`pbpaste` only reads `Pasteboard.general`).
+4. **Date handling**: `task.dueDate` returns a JS `Date` object. Use `.toISOString()` for serialization.
+5. **Arrow functions work** in the Omni Automation context, but `function()` syntax is safer for script URL approval (more readable in the approval dialog).
 
 ## Script URL Architecture
 

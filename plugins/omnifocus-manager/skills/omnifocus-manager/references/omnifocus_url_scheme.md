@@ -274,7 +274,7 @@ The `omnijs-run` URL type embeds Omni Automation JavaScript and has a **two-gate
 **Spike findings (2026-03-09):**
 - Scripts execute inside OmniFocus with full Omni Automation API access
 - `task.markComplete()` works (unlike JXA's `task.completed = true`)
-- `flattenedTasks.find(t => t.id.primaryKey === id)` for task lookup (not `byIdentifier()`)
+- `Task.byIdentifier(id)` for task lookup (`byIdentifier` is a class function on `Task`, not on `TaskArray`)
 - `Pasteboard.general.string` is the only return mechanism (OmniFocus is sandboxed — `FileWrapper.write()` to `/tmp/` fails)
 - User must scroll to bottom of script preview before "Run Script" button enables
 
