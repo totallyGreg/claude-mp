@@ -23,6 +23,10 @@
     }
 
     try {
+      if (!this.plugIn.library('preferencesManager').hasPreferences()) {
+        console.log('No cached preferences. Run System Setup to enable.')
+      }
+
       // Validation
       const tasks = selection.tasks
 

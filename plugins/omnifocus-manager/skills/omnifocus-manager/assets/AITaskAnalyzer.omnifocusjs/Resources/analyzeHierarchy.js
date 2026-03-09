@@ -29,6 +29,10 @@
         }
 
         try {
+            if (!this.plugIn.library("preferencesManager").hasPreferences()) {
+                console.log("No cached preferences. Run System Setup to enable.");
+            }
+
             // Load all required libraries
             const folderParser = this.plugIn.library("folderParser");
             const projectParser = this.plugIn.library("projectParser");

@@ -22,6 +22,9 @@
         }
 
         try {
+            if (!this.plugIn.library("preferencesManager").hasPreferences()) {
+                console.log("No cached preferences. Run System Setup to enable.");
+            }
             const metrics = this.plugIn.library("taskMetrics");
 
             // Get today's and overdue tasks using library

@@ -83,6 +83,8 @@
         };
 
         try {
+            const prefsManager = this.plugIn.library("preferencesManager");
+            const hasCachedPrefs = prefsManager.hasPreferences();
             const metrics = this.plugIn.library("taskMetrics");
             const projectParser = this.plugIn.library("projectParser");
             const today = new Date();
@@ -404,6 +406,10 @@
                 if (coaching6.keyInsight) {
                     step6Message += `💡 ${coaching6.keyInsight}`;
                 }
+            }
+
+            if (!hasCachedPrefs) {
+                step6Message += `\n\nTip: Run System Setup to cache your system map for richer reviews.`;
             }
 
             const finalAlert = new Alert("Weekly Review Complete", step6Message);

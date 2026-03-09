@@ -21,6 +21,8 @@
         }
 
         try {
+            const prefsManager = this.plugIn.library("preferencesManager");
+            const hasCachedPrefs = prefsManager.hasPreferences();
             const metrics = this.plugIn.library("taskMetrics");
 
             const completedTasks = metrics.getCompletedToday();
@@ -163,6 +165,10 @@ Using GTD principles, provide:
             }
 
             message += `\n📊 Stats: ${completedTasks.length} done · ${todayTasks.length} today · ${overdueTasks.length} overdue · ${flaggedTasks.length} flagged`;
+
+            if (!hasCachedPrefs) {
+                message += `\n\nTip: Run System Setup to cache your system map for richer reviews.`;
+            }
 
             const resultAlert = new Alert("Daily Review", message);
             resultAlert.addOption("Copy to Clipboard");

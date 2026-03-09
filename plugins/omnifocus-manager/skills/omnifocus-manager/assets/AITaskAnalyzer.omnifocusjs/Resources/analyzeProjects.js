@@ -28,6 +28,10 @@
         }
 
         try {
+            if (!this.plugIn.library("preferencesManager").hasPreferences()) {
+                console.log("No cached preferences. Run System Setup to enable.");
+            }
+
             // Step 1: Folder Selection Form
             const selectionForm = new Form();
             selectionForm.addField(new Form.Field.String(
