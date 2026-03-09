@@ -2,6 +2,34 @@
 
 This is the complete guide to creating cross-platform plugins for OmniFocus using the Omni Automation framework. It covers everything from creating your first simple plugin to advanced development patterns.
 
+## Quick Diagnostic: Plugin Not Working?
+
+Use this before reading anything else.
+
+**All actions disabled (grayed out), even ones that should always be available:**
+→ A library IIFE is throwing at load time. Most common cause: `new Preferences()` at library IIFE top level.
+→ Check every `PlugIn.Library` file for top-level API calls outside functions.
+→ Node syntax check won't catch this — the error is runtime, OmniAutomation-specific.
+
+**Plugin name shows as `com.your.bundle.id` in Automation Menu:**
+→ Missing `Resources/en.lproj/manifest.strings`. Create it with:
+  `"com.your.bundle.id" = "Your Plugin Name";`
+
+**"Preferences objects may only be constructed when loading a plug-in":**
+→ `new Preferences()` or `new Preferences(null)` called in library context.
+→ Use lazy init with explicit bundle ID (see Storing Preferences).
+
+**"Project not found" when using SyncedPreferences:**
+→ Wrong project name. The SyncedPreferences plugin uses `"⚙️ Synced Preferences"` (with emoji), inside a folder of the same name.
+→ Use `folderNamed(name)` + `folder.projectNamed(name)`, not `flattenedProjects.byName(name)`.
+→ See Integrating with SyncedPreferences below.
+
+**Action works on Mac but not iOS (or vice versa):**
+→ Check `Device.current.operatingSystemVersion` gate — version numbers differ by platform.
+→ Check for Mac-only APIs (`Application`, JXA globals, etc.).
+
+---
+
 ## 1. What is Omni Automation?
 
 Omni Automation is OmniFocus's modern, device-independent JavaScript automation framework. It is the recommended way to build reusable, integrated automation for OmniFocus.
@@ -19,7 +47,55 @@ Unlike older methods like JXA, Omni Automation:
 *   When you need automation that works on both Mac and iOS.
 *   For tasks triggered by the user from within the OmniFocus interface.
 
-## 2. Quick Start: Your First Plugin in 5 Minutes
+---
+
+## 2. Plugin Loading Lifecycle
+
+Understanding the exact execution order is essential for diagnosing issues. This was validated empirically against OmniFocus 4 on macOS 26 (2026-03-08).
+
+```
+── Plugin load (on OmniFocus startup or plugin install) ──────────────────────
+
+  manifest.json parsed
+  └── en.lproj/manifest.strings read → sets Automation Menu display name
+      (missing = falls back to bundle identifier, NOT bundle filename)
+
+  Action file IIFEs execute  (Resources/myAction.js outer IIFE)
+  ├── new PlugIn.Action(asyncFn) registered  ← asyncFn body NOT run yet
+  ├── action.validate registered             ← NOT called yet
+  └── new Preferences()  ← SAFE here (action file scope = plugin load time)
+
+  Library file IIFEs execute  (Resources/myLibrary.js outer IIFE)
+  ├── new PlugIn.Library(...) registered
+  ├── lib.method = function() { ... }  ← method bodies NOT run yet
+  └── new Preferences()  ← FATAL: silently disables ALL plugin actions
+                                     even validate() { return true }
+
+── Automation Menu rendered ───────────────────────────────────────────────────
+
+  action.validate(selection, sender) called for each action
+  └── should be pure: check selection, OS version, return bool
+      do NOT call this.plugIn.library() here
+
+── User triggers action ───────────────────────────────────────────────────────
+
+  action handler (async function) executes
+  └── this.plugIn.library("name")  ← library method called NOW
+      └── new Preferences("com.explicit.id")  ← SAFE inside functions
+```
+
+### Key Rules from the Lifecycle
+
+| Location | `new Preferences()` | `new Preferences("id")` | `this.plugIn.library()` |
+|---|---|---|---|
+| Action file IIFE top level | ✅ Safe | ✅ Safe | ✅ Safe |
+| Action handler (`async fn`) | ❌ Throws | ✅ Safe | ✅ Safe |
+| Library file IIFE top level | ❌ Throws + **disables all actions** | ❌ Same | — |
+| Library method body | ❌ Throws | ✅ Safe | — |
+
+---
+
+## 3. Quick Start: Your First Plugin in 5 Minutes
 
 This tutorial will guide you through creating a simple "Hello World" style plugin that shows today's tasks.
 
@@ -31,6 +107,7 @@ In your terminal, create the necessary folders:
 ```bash
 mkdir MyFirstPlugin.omnifocusjs
 mkdir MyFirstPlugin.omnifocusjs/Resources
+mkdir -p MyFirstPlugin.omnifocusjs/Resources/en.lproj
 ```
 
 ### Step 2: Create the `manifest.json` File
@@ -43,7 +120,6 @@ This file describes your plugin's metadata. Create the following file at `MyFirs
   "version": "1.0.0",
   "author": "Your Name",
   "description": "A plugin to show today's tasks.",
-  "label": "My First Plugin",
   "actions": [
     {
       "identifier": "showToday",
@@ -53,7 +129,16 @@ This file describes your plugin's metadata. Create the following file at `MyFirs
 }
 ```
 
-### Step 3: Create the Action Script
+### Step 3: Create the Localization File
+
+This controls how the plugin name appears in the Automation Menu.
+
+`MyFirstPlugin.omnifocusjs/Resources/en.lproj/manifest.strings`:
+```
+"com.myname.my-first-plugin" = "My First Plugin";
+```
+
+### Step 4: Create the Action Script
 
 This is the JavaScript code that will run. Create the file `MyFirstPlugin.omnifocusjs/Resources/showToday.js`:
 
@@ -61,7 +146,6 @@ This is the JavaScript code that will run. Create the file `MyFirstPlugin.omnifo
 (() => {
     const action = new PlugIn.Action(async function(selection, sender) {
         // This is where your action's logic goes.
-        // For this example, we will just show a simple alert.
         const alert = new Alert("Hello from My First Plugin!", "The plugin is working correctly.");
         await alert.show();
     });
@@ -76,14 +160,16 @@ This is the JavaScript code that will run. Create the file `MyFirstPlugin.omnifo
 })();
 ```
 
-### Step 4: Install and Test
+### Step 5: Install and Test
 
 *   **On macOS**: Simply find `MyFirstPlugin.omnifocusjs` in Finder and double-click it. OmniFocus will ask you to install it.
 *   **On iOS**: Transfer the `.omnifocusjs` bundle to your device (e.g., via iCloud Drive or AirDrop) and tap on it in the Files app.
 
 Once installed, you can run your plugin from the **Automation** menu in OmniFocus.
 
-## 3. Understanding Plugin Bundles
+---
+
+## 4. Understanding Plugin Bundles
 
 A plugin is a directory with a specific structure.
 
@@ -94,29 +180,67 @@ A plugin is a directory with a specific structure.
 
 ```
 MyPlugin.omnifocusjs/
-├── manifest.json         # REQUIRED: Metadata, actions, libraries.
-└── Resources/            # REQUIRED: Scripts and other resources.
-    ├── action1.js       # Code for the action with identifier "action1".
-    ├── action2.js
-    └── myLibrary.js     # A library specific to this plugin.
+├── manifest.json                    # REQUIRED: metadata, actions, libraries
+└── Resources/
+    ├── en.lproj/
+    │   ├── manifest.strings         # REQUIRED for Automation Menu name
+    │   ├── myAction.strings         # Optional: action label overrides
+    │   └── myLibrary.strings        # Optional: library string overrides
+    ├── myAction.js                  # Action (identifier matches manifest)
+    └── myLibrary.js                 # Library (identifier matches manifest)
 ```
 
-## 4. The Omni Automation API: Core Concepts
+**manifest.json fields:**
+
+```json
+{
+  "identifier": "com.vendor.plugin-name",   // bundle ID — used for Preferences scoping
+  "version": "1.0.0",
+  "defaultLocale": "en",
+  "author": "Name",
+  "description": "...",
+  "image": "sf-symbol-name",                // optional plugin icon
+  "actions": [
+    {
+      "identifier": "actionName",           // matches Resources/actionName.js
+      "label": "Action Label",              // shown in menu (overridden by .strings)
+      "image": "sf-symbol-name"             // optional action icon
+    }
+  ],
+  "libraries": [
+    { "identifier": "libraryName" }         // matches Resources/libraryName.js
+  ]
+}
+```
+
+**There is no top-level `name` field.** The Automation Menu display name comes from `en.lproj/manifest.strings`, not from the bundle filename or a `name` key.
+
+---
+
+## 5. The Omni Automation API: Core Concepts
 
 ### The `PlugIn.Action` Object
 
 Every user-facing action is a `PlugIn.Action`. The constructor takes a function that is executed when the action is run.
 
 ```javascript
-const action = new PlugIn.Action(async function(selection, sender) {
-    // `selection` contains the items (tasks, projects) the user has selected.
-    // `sender` identifies what UI element triggered the action.
-});
+(() => {
+    const action = new PlugIn.Action(async function(selection, sender) {
+        // `selection` contains the items (tasks, projects) the user has selected.
+        // `sender` identifies what UI element triggered the action.
+    });
+
+    action.validate = function(selection, sender) {
+        return true;
+    };
+
+    return action;
+})();
 ```
 
 ### The `validate` Function
 
-The `validate` function is critical. It runs before showing the menu item and determines if the action should be enabled (and can dynamically change its appearance).
+The `validate` function runs before showing the menu item and determines if the action should be enabled.
 
 ```javascript
 action.validate = function(selection, sender) {
@@ -124,6 +248,12 @@ action.validate = function(selection, sender) {
     return selection.tasks.length > 0;
 };
 ```
+
+**validate rules:**
+- Keep it pure and fast — it runs every time the menu renders
+- Do NOT call `this.plugIn.library()` inside validate
+- Do NOT do async work inside validate
+- Return a plain boolean
 
 ### Accessing OmniFocus Data
 
@@ -145,30 +275,30 @@ A common source of errors is confusing properties and methods.
 
 Refer to the `api_reference.md` for a definitive list.
 
-## 5. Using and Creating Libraries
+---
 
-Libraries allow you to reuse code across different actions and plugins.
+## 6. Using and Creating Libraries
 
-### Using an Existing Library
+Libraries allow you to reuse code across different actions within a plugin.
+
+### Using a Library
 
 1.  **Declare it in `manifest.json`**:
     ```json
-    {
-      "libraries": ["taskMetrics"]
-    }
+    { "libraries": [{ "identifier": "taskMetrics" }] }
     ```
-2.  **Load it in your action script**:
+2.  **Load it inside your action handler** (not in validate):
     ```javascript
-    const metrics = this.plugIn.library("taskMetrics");
-    const tasks = metrics.getTodayTasks();
+    const action = new PlugIn.Action(async function(selection, sender) {
+        const metrics = this.plugIn.library("taskMetrics");
+        const tasks = metrics.getTodayTasks();
+    });
     ```
 
-### Creating a New Library
+### Creating a Library
 
-You can create your own library file within your plugin's `Resources` folder.
-
-**`MyPlugin.omnifocusjs/Resources/myHelpers.js`**:
 ```javascript
+// Resources/myHelpers.js
 (() => {
     var lib = new PlugIn.Library(new Version("1.0"));
 
@@ -179,9 +309,15 @@ You can create your own library file within your plugin's `Resources` folder.
     return lib;
 })();
 ```
-Declare it in your manifest (`"libraries": ["myHelpers"]`) to use it.
 
-## 6. Advanced Plugin Patterns
+**Library IIFE rules:**
+- Only `new PlugIn.Library(...)` and `lib.method = function() {}` assignments belong at IIFE top level
+- No API calls (Preferences, flattenedTasks, Alert, etc.) at IIFE top level — they disables all actions silently
+- All real work goes inside `lib.method` function bodies
+
+---
+
+## 7. Advanced Plugin Patterns
 
 ### Plugin Formats
 
@@ -191,43 +327,148 @@ Declare it in your manifest (`"libraries": ["myHelpers"]`) to use it.
 
 ### Storing Preferences
 
-Use the `Preferences` class to save settings for your plugin.
+Use the `Preferences` class to persist settings between runs. The correct pattern depends on where you're calling from.
 
+**In an action file** (safe at IIFE top level):
 ```javascript
-// Declare at the plugin scope
-var preferences = new Preferences(); // Automatically uses your plugin's identifier
+(() => {
+    const prefs = new Preferences(); // auto-scopes to plugin bundle ID
 
-// In your action:
-var count = preferences.readNumber("executionCount") || 0;
-count++;
-preferences.write("executionCount", count);
-new Alert("Info", `This action has been run ${count} times.`).show();
+    const action = new PlugIn.Action(async function(selection, sender) {
+        const count = prefs.readNumber("runCount") || 0;
+        prefs.write("runCount", count + 1);
+    });
+
+    return action;
+})();
 ```
+
+**In a library file** (lazy init required — NEVER at IIFE top level):
+```javascript
+(() => {
+    var lib = new PlugIn.Library(new Version("1.0"));
+
+    // Lazy: constructed on first call, not at IIFE evaluation time
+    let _prefs = null;
+    function getPrefs() {
+        if (!_prefs) _prefs = new Preferences("com.your.bundle.id");
+        return _prefs;
+    }
+
+    lib.readSetting = function(key) {
+        return getPrefs().readString(key);
+    };
+
+    lib.writeSetting = function(key, value) {
+        getPrefs().write(key, value);
+    };
+
+    return lib;
+})();
+```
+
+**Rules (validated 2026-03-08):**
+- Library IIFE top level: `new Preferences()` and `new Preferences(null)` both **silently disable ALL plugin actions**
+- Library method bodies: `new Preferences("explicit.bundle.id")` works; no-arg and null still throw
+- Action file IIFE top level: `new Preferences()` (no arg) works fine
+- Always use an explicit bundle ID string inside libraries
 
 ### Localization
 
 Bundles support localization by adding `.lproj` directories inside `Resources`.
 
-`MyPlugin.omnifocusjs/Resources/`
-*   `en.lproj/`
-    *   `manifest.strings`
-    *   `myAction.strings`
-*   `de.lproj/`
-    *   `manifest.strings`
-    *   `myAction.strings`
+**`manifest.strings` is required for the Automation Menu plugin name.** Without it OmniFocus shows the bundle identifier.
 
-The `.strings` files contain key-value pairs for translating labels.
+```
+// Resources/en.lproj/manifest.strings
+"com.your.bundle.identifier" = "Your Plugin Name";
+```
 
-## 7. Installation and Distribution
+Each action's menu label can be overridden with a matching `.strings` file:
+
+```
+// Resources/en.lproj/myAction.strings
+"label" = "My Action";
+"shortLabel" = "My Action";
+"mediumLabel" = "My Action";
+"longLabel" = "My Action";
+```
+
+Actions can also use a `"label"` key in `manifest.json` as a shortcut — but `manifest.strings` for the plugin name is always required separately.
+
+### Integrating with SyncedPreferences
+
+The [SyncedPreferences plugin](https://github.com/KaitlinSalzke/SyncedPreferences) (com.KaitlinSalzke.SyncedPrefLibrary) provides cross-device preference sync by storing JSON in OmniFocus task notes.
+
+**Actual storage structure** (do not assume — confirmed from source, 2026-03-08):
+```
+Folder: "⚙️ Synced Preferences"        ← emoji prefix, NOT plain "Synced Preferences"
+└── Project: "⚙️ Synced Preferences"   ← same name as folder, inside it
+    └── Task: "<your-identifier>"      ← task.note contains JSON preferences
+```
+
+**Correct lookup — use folder + project traversal:**
+```javascript
+const SYNCED_PREFS_NAME = "⚙️ Synced Preferences";
+
+function getSyncedProject() {
+    const folder = folderNamed(SYNCED_PREFS_NAME) || new Folder(SYNCED_PREFS_NAME);
+    return folder.projectNamed(SYNCED_PREFS_NAME) || new Project(SYNCED_PREFS_NAME, folder);
+}
+
+function getPrefTask(identifier) {
+    const project = getSyncedProject();
+    return project.taskNamed(identifier) || new Task(identifier, project);
+}
+```
+
+**Wrong approaches that silently fail:**
+```javascript
+// WRONG: flattenedProjects.byName() doesn't match the emoji name reliably
+const project = flattenedProjects.byName("Synced Preferences");
+
+// WRONG: missing emoji — project is named "⚙️ Synced Preferences"
+const project = flattenedProjects.byName("Synced Preferences");
+```
+
+**Hybrid persistence pattern** (local cache + synced store):
+```javascript
+// Fast reads from local Preferences, authoritative writes to task note
+lib.read = function() {
+    const cached = getPrefs().readString("myKey");
+    if (cached) { try { return JSON.parse(cached); } catch {} }
+    const task = getPrefTask("My Identifier");
+    if (!task || !task.note) return null;
+    try {
+        const data = JSON.parse(task.note);
+        getPrefs().write("myKey", task.note); // populate local cache
+        return data;
+    } catch { return null; }
+};
+
+lib.write = function(data) {
+    const json = JSON.stringify(data);
+    getPrefTask("My Identifier").note = json;
+    getPrefs().write("myKey", json);
+};
+```
+
+---
+
+## 8. Installation and Distribution
 
 *   **Installation**: Double-click the `.omnifocusjs` bundle on Mac or tap it in the Files app on iOS.
+*   **Installed location (macOS)**: `~/Library/Containers/com.omnigroup.OmniFocus4/Data/Library/Application Support/Plug-Ins/`
 *   **Distribution**: Zip the bundle (`zip -r MyPlugin.zip MyPlugin.omnifocusjs`) and share it. Include a `README.md` with instructions.
 
-## 8. Validation and Testing
+---
 
-*   **Manual Testing**: Run the plugin in OmniFocus. Check for different selections and edge cases.
-*   **Automation Console**: Open with `View > Automation > Console` (`^⌥⌘C`). You can run JavaScript snippets here to test parts of your plugin, inspect objects, and debug issues.
-*   **Linting**: Use a linter like ESLint with a proper configuration to catch syntax errors and undefined variables before you even run the code.
+## 9. Validation and Testing
+
+*   **Syntax check**: `node --check Resources/myFile.js` — catches syntax errors but NOT OmniAutomation runtime errors.
+*   **Automation Console**: Open with `View > Automation > Console` (`^⌥⌘C`). Run JavaScript snippets here to test parts of your plugin, inspect objects, and see runtime errors.
+*   **All actions grayed out**: open the Console immediately — there will be a load-time error logged there.
+*   **Linting**: Use ESLint to catch undefined variables and style issues before running.
 
 For a complete set of validation rules, refer to `javascript_generation_guide.md`.
 

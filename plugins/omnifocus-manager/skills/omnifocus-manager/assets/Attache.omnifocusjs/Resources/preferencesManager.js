@@ -2,8 +2,13 @@
  * Preferences Manager Library
  *
  * Hybrid persistence for cached system preferences:
- * - Synced store (authoritative): Task-note JSON in "Synced Preferences" project
+ * - Synced store (authoritative): Task-note JSON in SyncedPreferences plugin project
  * - Local cache (fast reads): Native Preferences API (device-local)
+ *
+ * The SyncedPreferences plugin (com.KaitlinSalzke.SyncedPrefLibrary) stores data
+ * in a task note inside a project named "⚙️ Synced Preferences", itself inside a
+ * folder of the same name. Use folderNamed() + folder.projectNamed() to locate it —
+ * flattenedProjects.byName() does not match this structure reliably.
  *
  * Read: Preferences API first (cache hit) -> task note (cache miss) -> write back
  * Write: Both simultaneously
@@ -11,31 +16,53 @@
  * Security: Strips task names, AI reasoning, recommendations, and internal IDs
  * before persisting. See STRIP_FIELDS and stripNestedField().
  *
- * @version 1.0.0
+ * @version 1.0.1
  */
 
 (() => {
     var lib = new PlugIn.Library(new Version("1.0"));
 
     const TASK_NAME = "Attache System Map";
+    const SYNCED_PREFS_NAME = "⚙️ Synced Preferences";
     const CURRENT_SCHEMA = 1;
     const STRIP_FIELDS = ["tasks", "aiReasoning", "recommendations"];
+
+    // Preferences must NOT be constructed at library IIFE top level — doing so disables
+    // all plugin actions. Use lazy initialization: construct on first use inside a function.
+    // Explicit bundle ID required (new Preferences() without args also throws in library context).
+    // Pattern confirmed by Templates.omnifocusjs (new Preferences('com.KaitlinSalzke.Templates')
+    // called inside lib methods, never at IIFE scope).
+    let _prefs = null;
+    function getPrefs() {
+        if (!_prefs) _prefs = new Preferences("com.totallytools.omnifocus.attache");
+        return _prefs;
+    }
 
     // IIFE closure cache for preference task reference
     let _cachedTask = null;
 
     /**
-     * Locate the preference task in Synced Preferences project.
-     * Searches regardless of completion/dropped status.
+     * Locate the ⚙️ Synced Preferences project via folder lookup,
+     * matching the SyncedPreferences plugin's actual storage structure.
+     * Auto-creates the folder and project if missing.
+     *
+     * @returns {Project} The synced preferences project
+     */
+    function getSyncedProject() {
+        const folder = folderNamed(SYNCED_PREFS_NAME) || new Folder(SYNCED_PREFS_NAME);
+        return folder.projectNamed(SYNCED_PREFS_NAME) || new Project(SYNCED_PREFS_NAME, folder);
+    }
+
+    /**
+     * Locate the preference task. Searches by taskNamed for efficiency.
      * Caches the reference in IIFE closure scope.
      *
      * @returns {Task|null} The preference task or null
      */
     lib.findPreferenceTask = function() {
         if (_cachedTask && _cachedTask.name === TASK_NAME) return _cachedTask;
-        const project = flattenedProjects.byName("Synced Preferences");
-        if (!project) return null;
-        _cachedTask = project.flattenedTasks.find(t => t.name === TASK_NAME) || null;
+        const project = getSyncedProject();
+        _cachedTask = project.taskNamed(TASK_NAME) || null;
         return _cachedTask;
     };
 
@@ -45,8 +72,7 @@
      */
     lib.read = function() {
         // Try local cache first (fast, no parse overhead on hit)
-        const prefs = new Preferences(null);
-        const cached = prefs.readString("systemMap");
+        const cached = getPrefs().readString("systemMap");
         if (cached) {
             try { return JSON.parse(cached); } catch {}
         }
@@ -56,7 +82,7 @@
         try {
             const data = JSON.parse(task.note);
             // Write back to local cache for next time
-            prefs.write("systemMap", task.note);
+            getPrefs().write("systemMap", task.note);
             return data;
         } catch { return null; }
     };
@@ -94,28 +120,18 @@
         task.note = json;
 
         // Write to local cache (fast reads)
-        new Preferences(null).write("systemMap", json);
+        getPrefs().write("systemMap", json);
     };
 
     /**
-     * Find or create the preference task in Synced Preferences project.
+     * Find or create the preference task, auto-creating the synced project if needed.
      * @returns {Task} The preference task
-     * @throws {Error} If Synced Preferences project not found
      */
     lib.getOrCreate = function() {
         const existing = lib.findPreferenceTask();
         if (existing) return existing;
 
-        const project = flattenedProjects.byName("Synced Preferences");
-        if (!project) {
-            throw new Error(
-                "Synced Preferences project not found.\n\n" +
-                "Please install the SyncedPreferences plugin or create a " +
-                "project named \"Synced Preferences\" to enable preference caching."
-            );
-        }
-
-        const task = new Task(TASK_NAME, project);
+        const task = new Task(TASK_NAME, getSyncedProject());
         _cachedTask = task;
         return task;
     };

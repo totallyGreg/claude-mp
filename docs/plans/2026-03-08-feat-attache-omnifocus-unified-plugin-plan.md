@@ -108,7 +108,7 @@ Attache uses a **hybrid persistence strategy** discovered during research:
 
 ### Research Insights: Persistence
 
-- **OmniAutomation `Preferences` API exists** (`new Preferences(null)` scopes to bundle ID) but is device-local only. This is why `SyncedPreferences.omnifocusjs` exists — the task-note pattern is the **canonical workaround** for cross-device sync.
+- **OmniAutomation `Preferences` API exists** but is device-local only. This is why `SyncedPreferences.omnifocusjs` exists — the task-note pattern is the **canonical workaround** for cross-device sync. **Critical:** `PlugIn.Library` files are lazy-loaded — their IIFE runs inside the action handler, not at plugin load time. `new Preferences()` and `new Preferences(null)` both throw in that context. **Use an explicit bundle ID string: `new Preferences("com.totallytools.omnifocus.attache")`** — confirmed working by real installed plugins (e.g. Templates.omnifocusjs). In action files (not libraries), `new Preferences()` works at the IIFE top level outside the async handler.
 - **Schema versioning:** Use integer `schemaVersion` (not semver string) with chain-of-migration-functions pattern. Include `lastWritten` ISO timestamp and `lastWrittenDevice` name for conflict diagnostics.
 - **Preference task protection:** Use distinctive task name "Attache System Map" and check regardless of completion/dropped status. Users may accidentally complete or drop during cleanup.
 - **Cache the task reference in IIFE closure scope** (pattern from `weeklyReview.js` concurrency guard) to avoid repeated `flattenedTasks` lookups.

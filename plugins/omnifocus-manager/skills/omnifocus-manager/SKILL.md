@@ -5,7 +5,7 @@ description: |
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 metadata:
-  version: 6.6.0
+  version: 6.6.1
   author: totally-tools
   license: MIT
 compatibility:
@@ -236,4 +236,4 @@ See `references/troubleshooting.md` for complete troubleshooting guide.
 
 ---
 
-**Current version:** 6.6.0 — See IMPROVEMENT_PLAN.md for version history.
+**Current version:** 6.6.1 — See IMPROVEMENT_PLAN.md for version history.

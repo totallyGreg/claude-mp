@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 6.6.1 | 2026-03-08 | [#93](https://github.com/totallyGreg/claude-mp/issues/93) | Attache v1.0.4: fix plugin loading (en.lproj/manifest.strings for menu name, lazy Preferences init in library, SyncedPreferences ⚙️ project lookup); restructure omni_automation_guide.md with loading lifecycle diagram, symptom→cause diagnostic table, SyncedPreferences integration section | - | - | - | - | - |
 | 6.6.0 | 2026-03-08 | - | Attache v1.0.0: unified OmniFocus AI plugin (9 actions, 9 libraries). Absorbs AITaskAnalyzer + CompletedTasksSummary + Overview + TodaysTasks. Adds preferencesManager (hybrid persistence), systemSetup, completedSummary, collectAllMetrics single-pass, weekly review Waiting For step + FM session reuse, daily review calendar prompt + deferred-today items. Phase 0-3 of attache plan. | 83 | 88 | 90 | 100 | 91 |
 | 6.5.0 | 2026-03-08 | [#84](https://github.com/totallyGreg/claude-mp/issues/84) | Add 6 ofo: slash commands (today, inbox, overdue, info, health, search); rename 5 of: commands to ofo: prefix; omnifocus:// URL directive in SKILL.md + agent routing | 83 | 88 | 90 | 100 | 91 |
 | 6.4.1 | 2026-03-08 | - | Fix getOverdueTasks: use effectivelyCompleted/effectivelyDropped to exclude tasks in dropped/completed projects; eliminates false positives from archived recurring tasks | - | - | - | - | - |
