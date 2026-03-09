@@ -210,7 +210,8 @@ See `references/jxa_guide.md` for complete JXA reference and `loadLibrary` imple
 ## Reference Documentation
 
 ### Core Guides
-- **[API Reference](references/api_reference.md)** - Complete API with quick lookup tables
+- **[Official OmniFocus API](https://omni-automation.com/omnifocus/OF-API.html)** - Canonical API reference (verify here when unsure)
+- **[API Reference](references/api_reference.md)** - Local quick lookup tables
 - **[Omni Automation Guide](references/omni_automation_guide.md)** - Plugin development
 - **[JXA Guide](references/jxa_guide.md)** - Command-line automation
 - **[GTD Guide](references/gtd_guide.md)** - GTD-to-OmniFocus mapping

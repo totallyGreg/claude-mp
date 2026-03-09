@@ -1,8 +1,10 @@
 # Omni Automation API Reference
 
-This document provides a complete reference for the OmniFocus Omni Automation API. It combines quick reference tables for code generation with the full API specification.
+This document provides a quick reference for the OmniFocus Omni Automation API. For the canonical, up-to-date API, always verify against the official source:
 
-**Last Updated:** 2026-01-17
+**Official API:** <https://omni-automation.com/omnifocus/OF-API.html>
+
+**Last Updated:** 2026-03-09
 **OmniFocus Version:** 4.8+
 
 ---

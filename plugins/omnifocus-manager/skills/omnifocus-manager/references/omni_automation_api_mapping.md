@@ -1,6 +1,8 @@
 # Omni Automation API Mapping (JXA vs Script URLs)
 
-Validated by prototype spike on 2026-03-09. The Omni Automation API used inside OmniFocus (via `omnijs-run` script URLs) differs from the JXA API used via `osascript`.
+**Official API Reference:** <https://omni-automation.com/omnifocus/OF-API.html>
+
+Validated by prototype spike on 2026-03-09. The Omni Automation API used inside OmniFocus (via `omnijs-run` script URLs) differs from the JXA API used via `osascript`. When in doubt, verify against the official API above.
 
 ## Context Differences
 
