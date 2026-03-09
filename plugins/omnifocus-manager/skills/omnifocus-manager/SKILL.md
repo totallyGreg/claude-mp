@@ -5,7 +5,7 @@ description: |
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 metadata:
-  version: 6.6.1
+  version: 7.0.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -227,6 +227,7 @@ See `references/jxa_guide.md` for complete JXA reference and `loadLibrary` imple
 
 ### Technical References
 - [OmniFocus-API.md](references/OmniFocus-API.md) - Full API specification
+- [Omni Automation API Mapping](references/omni_automation_api_mapping.md) - JXA vs script URL API differences (ofo CLI)
 - [Foundation Models Integration](references/foundation_models_integration.md) - Apple Foundation Models: availability check, Session API, Schema.fromJSON construction, async patterns (macOS 26+, Omni Automation only)
 - [Database Schema](references/database_schema.md) - SQLite structure
 - [Omni Automation Shared](references/omni_automation_shared.md) - Shared classes

@@ -1,7 +1,7 @@
 ---
 title: "OmniFocus CLI via Omni Automation Script URLs"
 type: feat
-status: active
+status: completed
 date: 2026-03-09
 origin: docs/brainstorms/2026-03-09-omnifocus-cli-rewrite-brainstorm.md
 ---
@@ -219,12 +219,12 @@ Update existing slash commands to use `ofo` instead of `osascript`.
 
 #### Phase 3: Documentation + Skill Quality
 
-- [ ] Update `references/omnifocus_url_scheme.md` with script URL findings from spike
-- [ ] Update `references/channel_selection.md` -- script URLs are now viable with `&arg=` pattern
-- [ ] Add `references/omni_automation_api_mapping.md` -- JXA vs Omni Automation API mapping table from spike
-- [ ] Update IMPROVEMENT_PLAN.md with version entry and eval score
-- [ ] Run skillsmith evaluation: `uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager`
-- [ ] Decide migration path for existing JXA scripts (keep as fallback or deprecate)
+- [x] Update `references/omnifocus_url_scheme.md` with script URL findings from spike
+- [x] Update `references/channel_selection.md` -- script URLs are now viable with `&arg=` pattern
+- [x] Add `references/omni_automation_api_mapping.md` -- JXA vs Omni Automation API mapping table from spike
+- [x] Update IMPROVEMENT_PLAN.md with version entry and eval score
+- [x] Run skillsmith evaluation: 91/100 (Conc=83, Comp=87, Spec=90, Disc=100)
+- [x] Decide migration path for existing JXA scripts — kept as fallback for advanced queries (GTD diagnostics, perspectives)
 
 ## Acceptance Criteria
 
