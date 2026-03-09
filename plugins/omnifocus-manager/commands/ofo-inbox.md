@@ -9,7 +9,7 @@ Fetches inbox count and items, presents each with a GTD clarify decision.
 -->
 
 Inbox items:
-!`cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/gtd-queries.js --action inbox-count`
+!`${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/ofo list inbox`
 
 Present the inbox items above as a table: **Item | GTD Decision | Notes**
 

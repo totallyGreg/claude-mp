@@ -10,7 +10,7 @@ Runs a text search and presents matching tasks with project context.
 -->
 
 Search results for "$ARGUMENTS":
-!`cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/manage_omnifocus.js search --query "$ARGUMENTS"`
+!`${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/ofo search $ARGUMENTS`
 
 Present the matching tasks as a table: **Task | Project | Due | Tags**
 

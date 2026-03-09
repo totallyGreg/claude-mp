@@ -269,7 +269,14 @@ The `omnijs-run` URL type embeds Omni Automation JavaScript and has a **two-gate
 2. Named Omni Automation plugin (installed) — zero friction, requires installation
 3. Named perspective — zero friction, built-in, but limited to view configuration
 
-**Recommendation:** Prefer named perspectives or installed plugins. Use `omnijs-run` URLs only when dynamic scripting is required and the user has confirmed external scripts are enabled.
+**Recommendation:** The `ofo` CLI uses this pattern with 6 stable action scripts (in `scripts/omni-actions/`) that are approved once. For ad-hoc scripting, prefer installed plugins. For task CRUD, use `ofo`.
+
+**Spike findings (2026-03-09):**
+- Scripts execute inside OmniFocus with full Omni Automation API access
+- `task.markComplete()` works (unlike JXA's `task.completed = true`)
+- `Task.byIdentifier(id)` for task lookup (`byIdentifier` is a class function on `Task`, not on `TaskArray`)
+- `Pasteboard.general.string` is the only return mechanism (OmniFocus is sandboxed — `FileWrapper.write()` to `/tmp/` fails)
+- User must scroll to bottom of script preview before "Run Script" button enables
 
 ## Obsidian Embedding Patterns
 

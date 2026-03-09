@@ -8,8 +8,14 @@ allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/*)
 Runs system-health query and presents a one-line status plus any warnings.
 -->
 
-System health:
-!`cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/gtd-queries.js --action system-health`
+Inbox count:
+!`${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/ofo list inbox`
+
+Overdue count:
+!`${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/ofo list overdue`
+
+Flagged count:
+!`${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/ofo list flagged`
 
 Present the health data as:
 

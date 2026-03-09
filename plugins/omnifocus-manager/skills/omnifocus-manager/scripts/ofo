@@ -1,0 +1,315 @@
+#!/usr/bin/env bash
+# ofo -- OmniFocus CLI via Omni Automation script URLs
+#
+# Usage: ofo <command> [arguments]
+#
+# Commands:
+#   info <id|url>              Task or project details
+#   complete <id|url>          Mark task complete
+#   create --name "..." [opts] Create a new task
+#   update <id> [opts]         Update task properties
+#   search <query>             Search tasks by name/note
+#   list <filter>              List tasks (inbox|flagged|today|overdue)
+#   setup                      Trigger approval for all action scripts
+#   help                       Show this help
+
+set -euo pipefail
+
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ACTIONS_DIR="${SCRIPTS_DIR}/omni-actions"
+
+# --- Helpers ---
+
+die() { echo "{\"success\":false,\"error\":\"$1\"}" >&2; exit 1; }
+
+check_omnifocus() {
+  if ! pgrep -x "OmniFocus" >/dev/null 2>&1; then
+    die "OmniFocus is not running"
+  fi
+}
+
+parse_omnifocus_url() {
+  local input="$1"
+  if [[ "$input" == omnifocus:///* ]]; then
+    # Extract ID and detect type
+    local path="${input#omnifocus:///}"
+    local type="${path%%/*}"
+    local id="${path#*/}"
+    echo "$id"
+  else
+    echo "$input"
+  fi
+}
+
+detect_type_from_url() {
+  local input="$1"
+  if [[ "$input" == omnifocus:///project/* ]]; then
+    echo "project"
+  else
+    echo "task"
+  fi
+}
+
+run_action() {
+  local action="$1"
+  local arg_json="$2"
+  local script_file="${ACTIONS_DIR}/${action}.js"
+
+  if [[ ! -f "$script_file" ]]; then
+    die "Unknown action: ${action}"
+  fi
+
+  local script
+  script=$(<"$script_file")
+
+  local encoded_script encoded_arg
+  encoded_script=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.stdin.read()))" <<< "$script")
+  encoded_arg=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.stdin.read()))" <<< "$arg_json")
+
+  # Set sentinel so we can detect when OmniFocus writes the result
+  echo "__ofo_pending__" | pbcopy
+
+  open "omnifocus://localhost/omnijs-run?script=${encoded_script}&arg=${encoded_arg}"
+
+  # Poll until pasteboard changes from sentinel
+  local max_attempts=50  # 50 * 0.2s = 10 second timeout
+  local attempt=0
+  while [ $attempt -lt $max_attempts ]; do
+    sleep 0.2
+    local result
+    result=$(pbpaste 2>/dev/null || true)
+    if [[ "$result" != "__ofo_pending__" ]]; then
+      echo "$result"
+      return 0
+    fi
+    attempt=$((attempt + 1))
+  done
+
+  echo '{"success":false,"error":"Timeout waiting for OmniFocus response. Is external script execution enabled?"}'
+  return 1
+}
+
+# --- Commands ---
+
+cmd_info() {
+  [[ $# -lt 1 ]] && die "Usage: ofo info <id|omnifocus-url>"
+  local id type
+  id=$(parse_omnifocus_url "$1")
+  type=$(detect_type_from_url "$1")
+  run_action "ofo-info" "{\"id\":\"${id}\",\"type\":\"${type}\"}"
+}
+
+cmd_complete() {
+  [[ $# -lt 1 ]] && die "Usage: ofo complete <id|omnifocus-url>"
+  local id
+  id=$(parse_omnifocus_url "$1")
+  run_action "ofo-complete" "{\"id\":\"${id}\"}"
+}
+
+cmd_create() {
+  local name="" project="" note="" due="" defer="" tags="" flagged="false" estimate=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --name)    name="$2"; shift 2 ;;
+      --project) project="$2"; shift 2 ;;
+      --note)    note="$2"; shift 2 ;;
+      --due)     due="$2"; shift 2 ;;
+      --defer)   defer="$2"; shift 2 ;;
+      --tags)    tags="$2"; shift 2 ;;
+      --flagged) flagged="true"; shift ;;
+      --estimate) estimate="$2"; shift 2 ;;
+      *) die "Unknown option: $1" ;;
+    esac
+  done
+
+  [[ -z "$name" ]] && die "Usage: ofo create --name \"Task name\" [--project P] [--tags t1,t2] [--due YYYY-MM-DD]"
+
+  local arg_json
+  arg_json=$(OFO_NAME="$name" OFO_PROJECT="$project" OFO_NOTE="$note" \
+    OFO_DUE="$due" OFO_DEFER="$defer" OFO_TAGS="$tags" \
+    OFO_FLAGGED="$flagged" OFO_ESTIMATE="$estimate" \
+    python3 << 'PYEOF'
+import json, os
+args = {"name": os.environ["OFO_NAME"]}
+if os.environ.get("OFO_PROJECT"): args["project"] = os.environ["OFO_PROJECT"]
+if os.environ.get("OFO_NOTE"): args["note"] = os.environ["OFO_NOTE"]
+if os.environ.get("OFO_DUE"): args["due"] = os.environ["OFO_DUE"]
+if os.environ.get("OFO_DEFER"): args["defer"] = os.environ["OFO_DEFER"]
+if os.environ.get("OFO_ESTIMATE"): args["estimate"] = int(os.environ["OFO_ESTIMATE"])
+if os.environ.get("OFO_FLAGGED") == "true": args["flagged"] = True
+tags = os.environ.get("OFO_TAGS", "")
+if tags: args["tags"] = [t.strip() for t in tags.split(",")]
+print(json.dumps(args))
+PYEOF
+  )
+
+  run_action "ofo-create" "$arg_json"
+}
+
+cmd_update() {
+  [[ $# -lt 1 ]] && die "Usage: ofo update <id> [--name N] [--due D] [--flagged] [--tags t1,t2]"
+  local id
+  id=$(parse_omnifocus_url "$1")
+  shift
+
+  local name="" note="" due="" defer="" tags="" flagged="" estimate=""
+  local has_name=false has_note=false has_due=false has_defer=false has_tags=false has_flagged=false has_estimate=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --name)     name="$2"; has_name=true; shift 2 ;;
+      --note)     note="$2"; has_note=true; shift 2 ;;
+      --due)      due="$2"; has_due=true; shift 2 ;;
+      --defer)    defer="$2"; has_defer=true; shift 2 ;;
+      --tags)     tags="$2"; has_tags=true; shift 2 ;;
+      --flagged)  flagged=true; has_flagged=true; shift ;;
+      --estimate) estimate="$2"; has_estimate=true; shift 2 ;;
+      *) die "Unknown option: $1" ;;
+    esac
+  done
+
+  local arg_json
+  arg_json=$(OFO_ID="$id" OFO_NAME="$name" OFO_NOTE="$note" OFO_DUE="$due" \
+    OFO_DEFER="$defer" OFO_TAGS="$tags" OFO_FLAGGED="$flagged" OFO_ESTIMATE="$estimate" \
+    OFO_HAS_NAME="$has_name" OFO_HAS_NOTE="$has_note" OFO_HAS_DUE="$has_due" \
+    OFO_HAS_DEFER="$has_defer" OFO_HAS_TAGS="$has_tags" OFO_HAS_FLAGGED="$has_flagged" \
+    OFO_HAS_ESTIMATE="$has_estimate" \
+    python3 << 'PYEOF'
+import json, os
+args = {"id": os.environ["OFO_ID"]}
+if os.environ.get("OFO_HAS_NAME") == "true": args["name"] = os.environ["OFO_NAME"]
+if os.environ.get("OFO_HAS_NOTE") == "true": args["note"] = os.environ["OFO_NOTE"]
+if os.environ.get("OFO_HAS_DUE") == "true":
+    args["due"] = None if os.environ["OFO_DUE"] == "clear" else os.environ["OFO_DUE"]
+if os.environ.get("OFO_HAS_DEFER") == "true":
+    args["defer"] = None if os.environ["OFO_DEFER"] == "clear" else os.environ["OFO_DEFER"]
+if os.environ.get("OFO_HAS_TAGS") == "true":
+    args["tags"] = [t.strip() for t in os.environ["OFO_TAGS"].split(",")]
+if os.environ.get("OFO_HAS_FLAGGED") == "true": args["flagged"] = True
+if os.environ.get("OFO_HAS_ESTIMATE") == "true":
+    args["estimate"] = int(os.environ["OFO_ESTIMATE"])
+print(json.dumps(args))
+PYEOF
+  )
+
+  run_action "ofo-update" "$arg_json"
+}
+
+cmd_search() {
+  [[ $# -lt 1 ]] && die "Usage: ofo search <query>"
+  local query="$*"
+  local arg_json
+  arg_json=$(OFO_QUERY="$query" python3 -c "import json,os; print(json.dumps({'query': os.environ['OFO_QUERY']}))")
+  run_action "ofo-search" "$arg_json"
+}
+
+cmd_list() {
+  local filter="${1:-inbox}"
+  case "$filter" in
+    inbox|flagged|today|overdue) ;;
+    *) die "Unknown filter: $filter. Use: inbox, flagged, today, overdue" ;;
+  esac
+  run_action "ofo-list" "{\"filter\":\"${filter}\"}"
+}
+
+cmd_setup() {
+  echo "OmniFocus CLI Setup"
+  echo "==================="
+  echo "This will send each action script to OmniFocus for approval."
+  echo "You'll need to click 'Run Script' for each one (6 total)."
+  echo ""
+
+  local actions=("ofo-info" "ofo-complete" "ofo-create" "ofo-update" "ofo-search" "ofo-list")
+  local test_args=(
+    '{"id":"__setup__","type":"task"}'
+    '{"id":"__setup__"}'
+    '{"name":"__ofo_setup_test__"}'
+    '{"id":"__setup__"}'
+    '{"query":"__setup__"}'
+    '{"filter":"inbox"}'
+  )
+
+  for i in "${!actions[@]}"; do
+    local action="${actions[$i]}"
+    local arg="${test_args[$i]}"
+    echo "[$((i+1))/6] Sending ${action}..."
+    run_action "$action" "$arg" >/dev/null 2>&1 || true
+    echo "  Approved (or already approved)."
+    sleep 1
+  done
+
+  echo ""
+  echo "Setup complete. All action scripts have been sent for approval."
+  echo "Note: The setup test may have created a task named '__ofo_setup_test__'."
+  echo "You can delete it manually if needed."
+}
+
+cmd_help() {
+  cat <<'HELP'
+ofo -- OmniFocus CLI via Omni Automation script URLs
+
+Usage: ofo <command> [arguments]
+
+Commands:
+  info <id|url>                     Get task or project details as JSON
+  complete <id|url>                 Mark a task as complete
+  create --name "..." [options]     Create a new task
+  update <id|url> [options]         Update task properties
+  search <query>                    Search tasks by name or note
+  list <filter>                     List tasks by filter
+  setup                             Trigger approval for all action scripts
+  help                              Show this help
+
+Filters for 'list':
+  inbox       Inbox tasks
+  flagged     Flagged active tasks
+  today       Due today or flagged
+  overdue     Past due date
+
+Create options:
+  --name "Task name"        Task name (required)
+  --project "Project"       Target project
+  --tags "tag1,tag2"        Comma-separated tags
+  --due YYYY-MM-DD          Due date
+  --defer YYYY-MM-DD        Defer date
+  --note "Note text"        Task note
+  --flagged                 Flag the task
+  --estimate N              Estimated minutes
+
+Update options:
+  --name "New name"         Change task name
+  --due YYYY-MM-DD|clear    Set or clear due date
+  --defer YYYY-MM-DD|clear  Set or clear defer date
+  --tags "tag1,tag2"        Replace all tags
+  --flagged                 Flag the task
+  --note "Note text"        Set task note
+  --estimate N              Set estimated minutes
+
+URL handling:
+  All commands accept omnifocus:// URLs:
+    ofo info omnifocus:///task/abc123
+    ofo complete omnifocus:///project/def456
+
+Prerequisites:
+  - OmniFocus must be running
+  - External scripts must be enabled in OmniFocus Automation settings
+  - Run 'ofo setup' once to approve all action scripts
+HELP
+}
+
+# --- Main ---
+
+check_omnifocus
+
+case "${1:-help}" in
+  info)     shift; cmd_info "$@" ;;
+  complete) shift; cmd_complete "$@" ;;
+  create)   shift; cmd_create "$@" ;;
+  update)   shift; cmd_update "$@" ;;
+  search)   shift; cmd_search "$@" ;;
+  list)     shift; cmd_list "$@" ;;
+  setup)    cmd_setup ;;
+  help|--help|-h) cmd_help ;;
+  *) die "Unknown command: $1. Run 'ofo help' for usage." ;;
+esac
