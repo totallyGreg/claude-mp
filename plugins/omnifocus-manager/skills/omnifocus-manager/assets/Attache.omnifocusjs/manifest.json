@@ -1,0 +1,66 @@
+{
+  "identifier": "com.totallytools.omnifocus.attache",
+  "version": "1.0.0",
+  "defaultLocale": "en",
+  "author": "totally-tools",
+  "description": "Attache — your quiet diplomatic aide for GTD in OmniFocus. AI-powered daily and weekly reviews, project analysis, system discovery with persistent memory. Requires macOS 26+ for Apple Intelligence features.",
+  "image": "brain.head.profile",
+  "actions": [
+    {
+      "identifier": "dailyReview",
+      "label": "Attache: Daily Review",
+      "image": "sun.horizon"
+    },
+    {
+      "identifier": "weeklyReview",
+      "label": "Attache: Weekly Review",
+      "image": "calendar.badge.checkmark"
+    },
+    {
+      "identifier": "analyzeSelected",
+      "label": "Attache: Analyze Selected",
+      "image": "wand.and.stars"
+    },
+    {
+      "identifier": "analyzeProjects",
+      "label": "Attache: Analyze Projects",
+      "image": "chart.bar.doc.horizontal"
+    },
+    {
+      "identifier": "analyzeHierarchy",
+      "label": "Attache: Analyze Hierarchy",
+      "image": "chart.bar.xaxis"
+    },
+    {
+      "identifier": "analyzeTasksWithAI",
+      "label": "Attache: Analyze Tasks",
+      "image": "brain.head.profile"
+    },
+    {
+      "identifier": "completedSummary",
+      "label": "Attache: Completed Summary",
+      "image": "checkmark.circle.fill"
+    },
+    {
+      "identifier": "systemSetup",
+      "label": "Attache: System Setup",
+      "image": "gearshape.2"
+    },
+    {
+      "identifier": "discoverSystem",
+      "label": "Attache: Discover System",
+      "image": "magnifyingglass.circle"
+    }
+  ],
+  "libraries": [
+    {"identifier": "taskMetrics"},
+    {"identifier": "exportUtils"},
+    {"identifier": "foundationModelsUtils"},
+    {"identifier": "folderParser"},
+    {"identifier": "projectParser"},
+    {"identifier": "taskParser"},
+    {"identifier": "hierarchicalBatcher"},
+    {"identifier": "systemDiscovery"},
+    {"identifier": "preferencesManager"}
+  ]
+}
