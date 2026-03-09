@@ -14,7 +14,7 @@
  *
  * Requirements:
  * - OmniFocus 4.8+
- * - For AI features: macOS 15.2+, iOS 18.2+, Apple Silicon
+ * - For AI features: macOS 26+, Apple Silicon (M1 or later)
  */
 
 ;(() => {

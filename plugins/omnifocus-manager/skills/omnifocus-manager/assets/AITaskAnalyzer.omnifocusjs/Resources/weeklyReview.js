@@ -417,9 +417,8 @@
 
         } catch (error) {
             console.error("Weekly Review error:", error);
-            const fmUtils = this.plugIn.library("foundationModelsUtils");
             const errorAlert = new Alert("Weekly Review Error",
-                `Review failed: ${error.message}\n\n${fmUtils.getUnavailableMessage()}`
+                `Review failed: ${error.message}`
             );
             errorAlert.show();
         } finally {

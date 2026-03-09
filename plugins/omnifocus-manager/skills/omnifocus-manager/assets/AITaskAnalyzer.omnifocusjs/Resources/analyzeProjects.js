@@ -12,8 +12,8 @@
  *
  * Requirements:
  * - OmniFocus 4.8+
- * - macOS 15.2+, iOS 18.2+, or later
- * - Apple Silicon or iPhone 15 Pro+ for on-device AI
+ * - macOS 26+
+ * - Apple Silicon (M1 or later)
  */
 
 (() => {
@@ -261,10 +261,9 @@ Keep analysis actionable and GTD-aligned.`;
 
         } catch (error) {
             console.error("Error:", error);
-            const fmUtils = this.plugIn.library("foundationModelsUtils");
             const errorAlert = new Alert(
                 "Error",
-                `Failed to analyze projects: ${error.message}\n\n${fmUtils.getUnavailableMessage()}`
+                `Failed to analyze projects: ${error.message}`
             );
             errorAlert.show();
         }

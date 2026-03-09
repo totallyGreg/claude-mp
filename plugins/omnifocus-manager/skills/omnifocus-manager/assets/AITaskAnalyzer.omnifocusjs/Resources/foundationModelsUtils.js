@@ -55,14 +55,14 @@
         const message = `Apple Foundation Models Not Available\n\n` +
             `This feature requires:\n` +
             `• OmniFocus 4.8 or later\n` +
-            `• macOS 15.2+ or iOS 18.2+\n` +
-            `• Apple Silicon (M1/M2/M3/M4) or iPhone 15 Pro+\n` +
+            `• macOS 26+\n` +
+            `• Apple Silicon (M1 or later)\n` +
             `• Apple Intelligence enabled in System Settings\n\n` +
             `Current issue:\n${reasons.join('\n')}\n\n` +
             `Troubleshooting:\n` +
             `1. Update OmniFocus to 4.8+ if needed\n` +
-            `2. Update to macOS 15.2+ or iOS 18.2+ if needed\n` +
-            `3. Verify you have Apple Silicon hardware\n` +
+            `2. Update to macOS 26+ if needed\n` +
+            `3. Verify you have Apple Silicon (M1 or later)\n` +
             `4. Enable Apple Intelligence:\n` +
             `   Settings → Apple Intelligence & Siri → Turn On`;
 
@@ -89,11 +89,14 @@
      * @returns {LanguageModel.Session|null} Session instance or null if API unavailable
      * @throws {Error} If session creation fails
      */
-    lib.createSession = function() {
+    lib.createSession = function(systemPrompt) {
         if (!this.isAvailable()) {
             throw new Error("LanguageModel API not available");
         }
 
+        if (systemPrompt) {
+            return new LanguageModel.Session(systemPrompt);
+        }
         return new LanguageModel.Session();
     };
 

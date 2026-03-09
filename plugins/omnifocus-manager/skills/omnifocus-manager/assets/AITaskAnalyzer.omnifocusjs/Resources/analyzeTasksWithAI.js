@@ -6,8 +6,8 @@
  *
  * Requirements:
  * - OmniFocus 4.8+
- * - macOS 15.2+, iOS 18.2+, or later
- * - Apple Silicon or iPhone 15 Pro+ for on-device AI
+ * - macOS 26+
+ * - Apple Silicon (M1 or later)
  */
 
 (() => {
@@ -218,8 +218,9 @@ Provide concise insights on:
 
         } catch (error) {
             console.error("Error:", error);
-            const fmUtils = this.plugIn.library("foundationModelsUtils");
-            const errorAlert = new Alert("Error", `Failed to analyze tasks: ${error.message}\n\n${fmUtils.getUnavailableMessage()}`);
+            const errorAlert = new Alert("Error",
+                `Failed to analyze tasks: ${error.message}`
+            );
             errorAlert.show();
         }
     });

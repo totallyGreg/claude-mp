@@ -119,38 +119,47 @@ Using GTD principles, provide:
             const opts = new LanguageModel.GenerationOptions();
             opts.maximumResponseTokens = 300;
 
-            const session = new LanguageModel.Session(
-                "You are a GTD productivity coach. Be concise and direct. Use specific GTD vocabulary: next actions, projects, contexts. Focus on what is actionable right now."
-            );
-
-            const response = await session.respondWithSchema(prompt, schema, opts);
-            const review = JSON.parse(response);
+            // FM coaching (optional - degrades gracefully)
+            let review = null;
+            try {
+                const session = fmUtils.createSession(
+                    "You are a GTD productivity coach. Be concise and direct. Use specific GTD vocabulary: next actions, projects, contexts. Focus on what is actionable right now."
+                );
+                const response = await session.respondWithSchema(prompt, schema, opts);
+                review = JSON.parse(response);
+            } catch (fmError) {
+                console.error("FM coaching unavailable:", fmError);
+            }
 
             // Format display message
-            const healthIcon = {
-                "in-control": "✅",
-                "manageable": "🟡",
-                "overwhelmed": "🔴"
-            }[review.systemHealth] || "📊";
+            let message = "";
 
-            let message = `${healthIcon} ${review.workloadNote || ""}\n\n`;
+            if (review) {
+                const healthIcon = {
+                    "in-control": "✅",
+                    "manageable": "🟡",
+                    "overwhelmed": "🔴"
+                }[review.systemHealth] || "📊";
 
-            if (review.completedCelebration) {
-                message += `🎉 WINS TODAY:\n${review.completedCelebration}\n\n`;
-            }
+                message += `${healthIcon} ${review.workloadNote || ""}\n\n`;
 
-            message += `🎯 TOP NEXT ACTIONS:\n`;
-            const actions = Array.isArray(review.topNextActions) ? review.topNextActions : [];
-            if (actions.length > 0) {
-                actions.forEach((a, i) => {
-                    message += `${i + 1}. ${a.task}\n   → ${a.reason}\n`;
-                });
-            } else {
-                message += "(No tasks found to prioritize)\n";
-            }
+                if (review.completedCelebration) {
+                    message += `🎉 WINS TODAY:\n${review.completedCelebration}\n\n`;
+                }
 
-            if (overdueTasks.length > 0 && review.overdueAdvice) {
-                message += `\n⏰ OVERDUE TRIAGE:\n${review.overdueAdvice}\n`;
+                message += `🎯 TOP NEXT ACTIONS:\n`;
+                const actions = Array.isArray(review.topNextActions) ? review.topNextActions : [];
+                if (actions.length > 0) {
+                    actions.forEach((a, i) => {
+                        message += `${i + 1}. ${a.task}\n   → ${a.reason}\n`;
+                    });
+                } else {
+                    message += "(No tasks found to prioritize)\n";
+                }
+
+                if (overdueTasks.length > 0 && review.overdueAdvice) {
+                    message += `\n⏰ OVERDUE TRIAGE:\n${review.overdueAdvice}\n`;
+                }
             }
 
             message += `\n📊 Stats: ${completedTasks.length} done · ${todayTasks.length} today · ${overdueTasks.length} overdue · ${flaggedTasks.length} flagged`;
@@ -166,9 +175,8 @@ Using GTD principles, provide:
 
         } catch (error) {
             console.error("Daily Review error:", error);
-            const fmUtils = this.plugIn.library("foundationModelsUtils");
             const errorAlert = new Alert("Daily Review Error",
-                `Could not complete review: ${error.message}\n\n${fmUtils.getUnavailableMessage()}`
+                `Could not complete review: ${error.message}`
             );
             errorAlert.show();
         }
