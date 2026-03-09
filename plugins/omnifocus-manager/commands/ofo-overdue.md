@@ -10,7 +10,7 @@ Ghost recurrences (same name, multiple instances) are flagged for batch-complete
 -->
 
 Overdue tasks:
-!`cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/manage_omnifocus.js overdue`
+!`${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/ofo list overdue`
 
 Present the overdue tasks above as a table: **Task | Project | Days Overdue | Recommended Action**
 

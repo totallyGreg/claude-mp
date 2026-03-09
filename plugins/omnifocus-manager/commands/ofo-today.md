@@ -9,7 +9,7 @@ Fetches flagged and due-today tasks from OmniFocus and presents them in a clean 
 -->
 
 Today's tasks:
-!`cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/manage_omnifocus.js today`
+!`${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/ofo list today`
 
 Present the JSON output above as a clean task list grouped by:
 - **Due Today** — tasks with a dueDate of today

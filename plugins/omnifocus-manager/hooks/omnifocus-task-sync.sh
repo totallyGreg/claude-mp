@@ -64,14 +64,14 @@ if [ -d "$MAPS_DIR" ]; then
     done
 fi
 
+# ofo CLI path
+OFO="${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/ofo"
+
 # Strategy 2: Fall back to name search (if no mapping match)
 if [ -z "$task_id" ]; then
-    # Search OmniFocus for a task matching the subject name
-    search_result=$(cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && \
-        osascript -l JavaScript scripts/manage_omnifocus.js search --query "$subject" 2>/dev/null) || true
+    search_result=$("$OFO" search "$subject" 2>/dev/null) || true
 
     if [ -n "$search_result" ]; then
-        # Check if exactly one match was found
         match_count=$(echo "$search_result" | jq -r '.count // 0' 2>/dev/null)
         if [ "$match_count" = "1" ]; then
             task_id=$(echo "$search_result" | jq -r '.tasks[0].id // empty' 2>/dev/null)
@@ -91,8 +91,7 @@ fi
 
 # Mark the task complete in OmniFocus
 if [ -n "$task_id" ]; then
-    complete_result=$(cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && \
-        osascript -l JavaScript scripts/manage_omnifocus.js complete --id "$task_id" 2>/dev/null) || true
+    complete_result=$("$OFO" complete "$task_id" 2>/dev/null) || true
 
     success=$(echo "$complete_result" | jq -r '.success // false' 2>/dev/null)
     if [ "$success" = "true" ]; then

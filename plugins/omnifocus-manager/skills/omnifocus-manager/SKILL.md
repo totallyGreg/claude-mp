@@ -90,33 +90,46 @@ For channel selection (Mac vs iOS routing), see `references/channel_selection.md
 
 ## Quick Decision Tree
 
-### 1. Query OmniFocus Data
+### 0. ofo CLI (Preferred for Core CRUD)
+
+The `ofo` CLI executes Omni Automation scripts directly inside OmniFocus via script URLs. It avoids JXA permission issues and provides clean ergonomics. **Use ofo for all task CRUD and queries when possible.**
+
+```bash
+scripts/ofo info <id-or-omnifocus-url>       # Task/project details
+scripts/ofo complete <id-or-omnifocus-url>   # Mark task complete
+scripts/ofo create --name "Task" --project "Work" --due 2026-12-31
+scripts/ofo update <id> --name "New name" --flagged
+scripts/ofo search "meeting"                 # Search by name/note
+scripts/ofo list inbox                       # List inbox tasks
+scripts/ofo list today                       # Flagged + due today
+scripts/ofo list overdue                     # Past due date
+scripts/ofo list flagged                     # All flagged active tasks
+```
+
+**Prerequisites:** OmniFocus running + external scripts enabled. Run `scripts/ofo setup` once to approve all action scripts.
+
+### 1. Query OmniFocus Data (JXA — for advanced queries not covered by ofo)
 
 **GTD diagnostics:**
 ```bash
 osascript -l JavaScript scripts/gtd-queries.js --action system-health
-osascript -l JavaScript scripts/gtd-queries.js --action inbox-count
 osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects
 osascript -l JavaScript scripts/gtd-queries.js --action waiting-for
 osascript -l JavaScript scripts/gtd-queries.js --action someday-maybe
-osascript -l JavaScript scripts/gtd-queries.js --action overdue
 osascript -l JavaScript scripts/gtd-queries.js --action recently-completed --days 7
 osascript -l JavaScript scripts/gtd-queries.js --action neglected-projects --threshold 30
 osascript -l JavaScript scripts/gtd-queries.js --action folder-structure
 ```
 
-**Task queries:**
+**Task queries (legacy — prefer ofo CLI above):**
 ```bash
 osascript -l JavaScript scripts/manage_omnifocus.js today
 osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7
-osascript -l JavaScript scripts/manage_omnifocus.js overdue
-osascript -l JavaScript scripts/manage_omnifocus.js flagged
 osascript -l JavaScript scripts/manage_omnifocus.js search --query "meeting"
 ```
 
-**Create/modify tasks:**
+**Create/modify tasks (legacy — prefer ofo CLI above):**
 ```bash
-open "omnifocus:///add?name=Task&autosave=true"
 osascript -l JavaScript scripts/manage_omnifocus.js create --name "Task" --project "Work" --due "2025-12-31"
 osascript -l JavaScript scripts/manage_omnifocus.js create --parent-id lz6kHB1apf5 --name "Subtask" --estimate 10m --tags Routine
 ```
@@ -181,11 +194,14 @@ See `references/foundation_models_integration.md` for Foundation Models API deta
 
 ## Script Conventions
 
-- **CWD must be skill root** (`skills/omnifocus-manager/`) when running JXA scripts
+- **Prefer ofo CLI** for task CRUD: `scripts/ofo <command>` (uses Omni Automation script URLs, no CWD dependency)
+- **CWD must be skill root** (`skills/omnifocus-manager/`) when running JXA scripts (legacy)
 - **Skill-root-relative paths**: `loadLibrary('scripts/libraries/jxa/taskQuery.js')`
 - **Commands use `${CLAUDE_PLUGIN_ROOT}`**: `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/`
 - **No method destructuring**: `taskQuery.getInboxTasks(doc)`, never `const {getInboxTasks} = taskQuery`
 - **Smoke test before version bump**: `bash scripts/test-queries.sh`
+
+The `ofo` CLI sends stable JavaScript action scripts (in `scripts/omni-actions/`) to OmniFocus via `omnifocus://localhost/omnijs-run` URLs. Each script is approved once; variable data flows through the `&arg=` parameter. Results return via pasteboard (`Pasteboard.general.string` → `pbpaste`).
 
 See `references/jxa_guide.md` for complete JXA reference and `loadLibrary` implementation.
 

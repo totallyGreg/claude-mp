@@ -212,10 +212,10 @@ Update existing slash commands to use `ofo` instead of `osascript`.
 
 ##### Phase 2 Deliverables
 
-- [ ] All 6 `ofo:` slash commands updated to use `ofo` CLI
-- [ ] `omnifocus-task-sync.sh` hook updated to use `ofo complete`
-- [ ] SKILL.md updated with new invocation patterns
-- [ ] Verify each command works end-to-end
+- [x] All 6 `ofo:` slash commands updated to use `ofo` CLI
+- [x] `omnifocus-task-sync.sh` hook updated to use `ofo complete`
+- [x] SKILL.md updated with new invocation patterns
+- [x] Verify each command works end-to-end
 
 #### Phase 3: Documentation + Skill Quality
 
