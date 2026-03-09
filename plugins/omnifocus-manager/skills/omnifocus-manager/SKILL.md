@@ -227,7 +227,7 @@ See `references/jxa_guide.md` for complete JXA reference and `loadLibrary` imple
 - **[Automation Best Practices](references/automation_best_practices.md)** - Patterns and anti-patterns
 
 ### Technical References
-- [OmniFocus-API.md](references/OmniFocus-API.md) - Full API specification
+- [omnifocus_api.md](references/omnifocus_api.md) - Full API specification
 - [Omni Automation API Mapping](references/omni_automation_api_mapping.md) - JXA vs script URL API differences (ofo CLI)
 - [Foundation Models Integration](references/foundation_models_integration.md) - Apple Foundation Models: availability check, Session API, Schema.fromJSON construction, async patterns (macOS 26+, Omni Automation only)
 - [Database Schema](references/database_schema.md) - SQLite structure
@@ -254,4 +254,4 @@ See `references/troubleshooting.md` for complete troubleshooting guide.
 
 ---
 
-**Current version:** 6.6.1 — See IMPROVEMENT_PLAN.md for version history.
+**Current version:** 7.0.0 — See IMPROVEMENT_PLAN.md for version history.

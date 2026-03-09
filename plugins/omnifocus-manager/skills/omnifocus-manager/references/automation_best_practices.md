@@ -536,6 +536,6 @@ See `foundation_models_integration.md` for complete documentation on:
 ## External Resources
 
 - **Official Omni Automation Reference:** [omni-automation.com/omnifocus/big-picture.html](https://omni-automation.com/omnifocus/big-picture.html)
-- **Complete API Documentation:** See `OmniFocus-API.md` in this skill's references
+- **Complete API Documentation:** See `omnifocus_api.md` in this skill's references
 - **Practical Examples:** See `workflows.md` for real-world automation patterns
 - **Plugin Development:** See `omnifocus_plugin_structure.md` and `omnifocus_automation.md`

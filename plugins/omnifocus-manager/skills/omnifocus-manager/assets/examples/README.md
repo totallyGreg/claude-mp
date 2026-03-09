@@ -386,7 +386,7 @@ Use these examples as templates:
 ## Resources
 
 - **Library Documentation:** `libraries/README.md`
-- **OmniFocus API:** `references/OmniFocus-API.md`
+- **OmniFocus API:** `references/omnifocus_api.md`
 - **JXA Guide:** `references/jxa_api_guide.md`
 - **Plugin Guide:** `references/plugin_development_guide.md`
 - **URL Scheme:** `references/omnifocus_url_scheme.md`

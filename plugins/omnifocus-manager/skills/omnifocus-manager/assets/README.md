@@ -310,7 +310,7 @@ cp -R OFBundlePlugInTemplate.omnifocusjs MyPlugin.omnifocusjs
 - Examples guide: `examples/README.md`
 
 **References:**
-- OmniFocus API: `../references/OmniFocus-API.md`
+- OmniFocus API: `../references/omnifocus_api.md`
 - URL scheme: `../references/omnifocus_url_scheme.md`
 - Automation guide: `../references/omnifocus_automation.md`
 - Foundation Models: `../references/foundation_models_integration.md`

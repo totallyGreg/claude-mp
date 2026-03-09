@@ -162,7 +162,7 @@ LanguageModel.Schema.fromJSON({
 
 **Reference:**
 - OmniFocus API: `LanguageModel.Schema.fromJSON()` documentation
-- Official examples in OmniFocus-API.md lines 1437-1483
+- Official examples in omnifocus_api.md lines 1437-1483
 
 ---
 

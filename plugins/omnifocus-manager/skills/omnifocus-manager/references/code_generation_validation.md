@@ -37,7 +37,7 @@
 
 ### 2. Verify Every API ✅
 - [ ] List all classes to instantiate (PlugIn.Action, PlugIn.Library, Version, Alert, Form, etc.)
-- [ ] Check constructor signatures in references/OmniFocus-API.md for EACH class
+- [ ] Check constructor signatures in references/omnifocus_api.md for EACH class
 - [ ] Verify all properties/methods in references/api_quick_reference.md
 - [ ] Confirm NOT using hallucinated APIs (Document.defaultDocument, Progress, etc.)
 
@@ -99,7 +99,7 @@ doc.getAllTasks();                 // Doesn't exist - not in API
 
 **Validation Steps:**
 1. Check `api_quick_reference.md` for class/property/method
-2. If not found, check `OmniFocus-API.md`
+2. If not found, check `omnifocus_api.md`
 3. If still not found, **it doesn't exist** - don't use it
 
 ---
@@ -468,7 +468,7 @@ eslint_d plugin.js
 ## See Also
 
 - **API Reference:** `api_reference.md` - Complete API with quick lookup tables
-- **Full API Spec:** `OmniFocus-API.md` - Raw API specification
+- **Full API Spec:** `omnifocus_api.md` - Raw API specification
 - **Working Examples:** `../assets/examples/` - Code patterns and templates
 - **Omni Automation Guide:** `omni_automation_guide.md` - Plugin development
 
