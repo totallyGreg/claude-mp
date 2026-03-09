@@ -472,4 +472,91 @@ lib.write = function(data) {
 
 For a complete set of validation rules, refer to `javascript_generation_guide.md`.
 
-This guide provides the foundation for building powerful, cross-platform OmniFocus plugins. For a complete, exhaustive list of all available classes and methods, see `api_reference.md`.
+---
+
+## 10. Calling Plugins Externally
+
+**Source:** <https://omni-automation.com/plugins/calling.html>
+
+Installed plugin actions can be called from external scripts (including `omnijs-run` script URLs). This means the `ofo` CLI or any script URL can invoke Attache actions or any installed plugin — with zero extra approval if the calling script is already approved.
+
+### Finding Installed Plugins
+
+```javascript
+// List all installed plugin identifiers
+var pluginIDs = PlugIn.all.map(plugin => plugin.identifier);
+console.log(pluginIDs.join("\n"));
+
+// Find a specific plugin
+var plugin = PlugIn.find("com.your.bundle.id");
+```
+
+### Listing Actions in a Plugin
+
+```javascript
+var plugin = PlugIn.find("com.your.bundle.id");
+if (plugin) {
+    var actionNames = plugin.actions.map(action => action.name);
+    console.log(actionNames);
+}
+```
+
+### Executing a Plugin Action
+
+```javascript
+function performPlugInAction(pluginID, actionName) {
+    var plugin = PlugIn.find(pluginID);
+    if (!plugin) throw new Error("Plug-in not installed.");
+    var action = plugin.action(actionName);
+    if (!action) throw new Error("Action not found: " + actionName);
+    if (action.validate()) {
+        action.perform();
+    } else {
+        throw new Error("Action not validated to execute.");
+    }
+}
+
+// Example: call an Attache action
+performPlugInAction("com.totally-tools.attache", "dailyReview");
+```
+
+### Handling External Calls in Your Actions
+
+When called externally, the `selection` parameter is `undefined`. Actions that depend on selection must handle this:
+
+```javascript
+const action = new PlugIn.Action(async function(selection, sender) {
+    if (typeof selection === 'undefined') {
+        // Called externally — generate selection manually or skip
+        var tasks = flattenedTasks.filter(t => t.flagged && !t.completed);
+    } else {
+        var tasks = selection.tasks;
+    }
+    // action code...
+});
+
+action.validate = function(selection) {
+    if (typeof selection === 'undefined') return true;
+    return selection.tasks.length > 0;
+};
+```
+
+### Integration with ofo CLI
+
+The `ofo` CLI can invoke installed plugin actions via script URLs:
+
+```bash
+# Script URL that calls an installed plugin action (approved once)
+SCRIPT='var p = PlugIn.find("com.totally-tools.attache"); if(p){ p.action("dailyReview").perform(); Pasteboard.general.string = JSON.stringify({success: true}); }'
+```
+
+This is useful when:
+- The plugin action has complex logic you don't want to duplicate in a standalone script
+- The plugin is already installed (zero friction vs. script URL approval)
+- You want to trigger on-device AI analysis (Attache) from Claude Code
+
+**Official docs:** <https://omni-automation.com/plugins/calling.html>
+
+---
+
+This guide provides the foundation for building powerful, cross-platform OmniFocus plugins. For a complete, exhaustive list of all available classes and methods, see `api_reference.md` or the [official API](https://omni-automation.com/omnifocus/OF-API.html).

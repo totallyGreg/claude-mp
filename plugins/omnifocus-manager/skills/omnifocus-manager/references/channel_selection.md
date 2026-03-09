@@ -10,7 +10,7 @@ Before choosing a script or plugin, determine which automation channel to use.
 |---|---|---|---|
 | **ofo CLI** (script URLs) | Full read + write via pasteboard | Stable action scripts | Requires one-time script approval; pasteboard return only |
 | **JXA** (osascript) | Advanced queries (GTD diagnostics, perspectives) | Full generation | Mac only; `task.completed=true` fails via Apple Events |
-| **Omni Automation Plugin** | Cannot invoke from CLI | Full generation + install | User triggers from OmniFocus UI |
+| **Omni Automation Plugin** | Invoke via script URL: `PlugIn.find(id).action(name).perform()` | Full generation + install | Requires plugin installed + script URL approval |
 | **omnifocus:// URL** (native) | Fire-and-forget (`open`) | Full generation | No result feedback (add, navigate, search only) |
 | **Apple Shortcuts** | Run existing only | Generate script code | Cannot create shortcuts programmatically |
 | **Omni-links** | N/A | Generate link text | Navigation/reference only |
