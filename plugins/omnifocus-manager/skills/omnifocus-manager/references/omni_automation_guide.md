@@ -559,4 +559,121 @@ This is useful when:
 
 ---
 
+## 11. Promises and Async Patterns
+
+**Official docs:** <https://omni-automation.com/plugins/promises.html>
+
+Omni Automation uses JavaScript Promises for operations that involve user interaction (forms, alerts) or asynchronous processing. Plugin actions should use `async/await` or `.then()` chains.
+
+### Why Async Matters
+
+JavaScript does not pause for user interactions. Without promises, a script that shows an alert and then logs a result will log *before* the user dismisses the alert.
+
+### Alert with Promise
+
+```javascript
+// Wrong — logs immediately, doesn't wait for user
+new Alert("Title", "Message").show();
+console.log("User dismissed");  // runs before dismissal
+
+// Correct — waits for user interaction
+var alertPromise = new Alert("Title", "Message").show();
+alertPromise.then(function(buttonIndex) {
+    console.log("User chose option:", buttonIndex);
+});
+```
+
+### Form with Promise
+
+```javascript
+var form = new Form();
+form.addField(new Form.Field.String("name", "Task Name", null));
+
+var formPromise = form.show("Enter details", "OK");
+
+formPromise.then(function(filledForm) {
+    var name = filledForm.values["name"];
+    new Task(name, inbox.ending);
+});
+
+formPromise.catch(function(err) {
+    console.error("User cancelled");
+});
+```
+
+### Async/Await in Plugin Actions
+
+Plugin action handlers can be `async` functions, enabling cleaner syntax:
+
+```javascript
+const action = new PlugIn.Action(async function(selection, sender) {
+    var alert = new Alert("Confirm", "Complete selected tasks?");
+    alert.addOption("Yes");
+    alert.addOption("No");
+    var choice = await alert.show();
+    if (choice === 0) {
+        selection.tasks.forEach(t => t.markComplete());
+    }
+});
+```
+
+### Relevance to ofo CLI
+
+The `ofo` action scripts (in `scripts/omni-actions/`) are synchronous — they run, write to pasteboard, and exit. They do NOT use promises because:
+- No user interaction is needed (no forms or alerts)
+- The CLI polls for results via pasteboard, not via promise resolution
+- Script URLs execute and complete in a single pass
+
+If you need to build action scripts that show forms or alerts, use the promise pattern above. But for CLI-driven automation, keep scripts synchronous.
+
+---
+
+## 12. Script Security
+
+**Official docs:** <https://omni-automation.com/script-url/security.html>
+
+External scripts (sent via `omnijs-run` URLs from other applications) are subject to OmniFocus's security system. Installed plugins are NOT affected.
+
+### Two-Gate Security Model
+
+**Gate 1 — Global Toggle (off by default):**
+- macOS: Automation menu > Plug-Ins... > Security tab > enable external scripts
+- iOS/iPadOS: Settings > Configure Plug-Ins > Security > enable external scripts
+- This only controls scripts from external apps. Installed plugins always work.
+
+**Gate 2 — Per-Script Approval (one-time):**
+- Each unique script/sending-app pairing must be approved once
+- The approval dialog shows the full script code
+- User must **scroll to the bottom** before "Run Script" enables (security measure to encourage review)
+- Optional: "Automatically run this script when sent by this or any other unknown application" checkbox auto-approves all future scripts from any source
+- Once approved, the script runs silently on subsequent invocations
+
+### How Approval Persists
+
+OmniFocus tracks approved scripts by their **script body + sending application** pair:
+- Same script from same app → approved, no prompt
+- Same script from different app → requires separate approval
+- Modified script body from same app → requires new approval
+- Same script with different `&arg=` data → approved (argument is not part of the approval key)
+
+This is why the `ofo` CLI uses stable script files with variable `&arg=` data — the script body never changes, so approval is truly one-time.
+
+### Resetting Approvals
+
+macOS: Automation menu > Plug-Ins... > Security tab > "Clear Approved Scripts"
+
+This forces re-approval of all previously approved scripts. Useful if you've modified action script files and need OmniFocus to re-evaluate them.
+
+### What's NOT Affected by Script Security
+
+- Installed Omni Automation plugins (`.omnifocusjs` bundles) — always trusted
+- Scripts in the Automation Console — always trusted
+- Plugin actions called via `PlugIn.find(id).action(name).perform()` — trusted if the calling context is trusted
+- Navigation URLs (`omnifocus:///task/<id>`) — no script execution
+- Add URLs (`omnifocus:///add?name=...`) — built-in action, no script
+
+See `omnifocus_url_scheme.md` for the complete ofo setup guide and security friction table.
+
+---
+
 This guide provides the foundation for building powerful, cross-platform OmniFocus plugins. For a complete, exhaustive list of all available classes and methods, see `api_reference.md` or the [official API](https://omni-automation.com/omnifocus/OF-API.html).

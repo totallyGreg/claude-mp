@@ -257,21 +257,57 @@ Not all URL types are equal. Script-embedding URLs have significant security gat
 
 ### Script URL Security (omnijs-run)
 
+**Official docs:** <https://omni-automation.com/script-url/security.html>
+
 The `omnijs-run` URL type embeds Omni Automation JavaScript and has a **two-gate security system**:
 
-1. **Gate 1 (global toggle):** External scripts are **disabled by default**. The user must enable them in OmniFocus > Automation Configuration.
-2. **Gate 2 (per-script approval):** Each unique script/sending-app pairing requires one-time approval. The user must scroll through the entire script before the "Allow" button enables. Approval persists permanently until cleared.
+1. **Gate 1 (global toggle):** External scripts are **disabled by default**. The user must enable them in OmniFocus > Automation menu > Plug-Ins... > Security tab. This does NOT affect installed plugins — only scripts sent from external applications.
+2. **Gate 2 (per-script approval):** Each unique script/sending-app pairing requires one-time approval. The user must scroll through the entire script before the "Run Script" button enables. Once approved, the same script from the same sending app will never prompt again.
 
-**The `argument` parameter** enables reusable scripts: `omnifocus:///omnijs-run?script=<stable-code>&arg=<variable-data>`. The script body is approved once; changing `&arg=` does not trigger re-approval.
+**What "sending app" means:** OmniFocus tracks which application sent the script URL. When using the `ofo` CLI, the sending app is Terminal (or whichever terminal emulator runs the `open` command). All `ofo` scripts sent from the same terminal are part of the same pairing.
+
+**The `argument` parameter** enables reusable scripts: `omnifocus:///omnijs-run?script=<stable-code>&arg=<variable-data>`. The script body is approved once; changing `&arg=` does not trigger re-approval. This is why `ofo` uses 6 stable action scripts with variable arguments — approve each script once during `ofo setup`, then use them freely.
+
+**Resetting approvals:** OmniFocus > Automation menu > Plug-Ins... > Security tab > "Clear Approved Scripts" button. This forces re-approval of all previously approved scripts.
+
+**Important distinction:** This security system applies ONLY to external scripts (sent via URLs from other apps). It does NOT apply to:
+- Installed Omni Automation plugins (`.omnifocusjs` bundles)
+- Scripts typed directly into the OmniFocus Automation Console
+- Plugin actions called via `PlugIn.find(id).action(name).perform()`
 
 **Escalation path (reduces friction at each step):**
-1. URL-encoded script (`omnijs-run`) — highest friction, most flexible
+1. URL-encoded script (`omnijs-run`) — one-time approval, most flexible
 2. Named Omni Automation plugin (installed) — zero friction, requires installation
 3. Named perspective — zero friction, built-in, but limited to view configuration
 
 **Recommendation:** The `ofo` CLI uses this pattern with 6 stable action scripts (in `scripts/omni-actions/`) that are approved once. For ad-hoc scripting, prefer installed plugins. For task CRUD, use `ofo`.
 
-**Spike findings (2026-03-09):**
+### ofo Setup Guide
+
+The `ofo` CLI requires a one-time setup to approve its action scripts in OmniFocus:
+
+**Step 1: Enable external scripts**
+1. Open OmniFocus
+2. Go to Automation menu > Plug-Ins...
+3. Click the Security tab (or gear icon)
+4. Check "Allow external scripts" (or equivalent toggle)
+
+**Step 2: Approve action scripts**
+```bash
+ofo setup
+```
+This sends each of the 6 action scripts to OmniFocus. For each one:
+1. An approval dialog appears showing the script code
+2. **Scroll to the bottom** of the script — the "Run Script" button is disabled until you've seen the full script
+3. Optionally check "Automatically run this script when sent by this or any other unknown application" to skip future approvals for ALL scripts (not recommended unless you trust all sources)
+4. Click "Run Script"
+
+After approving all 6 scripts, the `ofo` CLI will work without any further prompts.
+
+**Why is this safe?** The scripts are stable JavaScript files stored in `scripts/omni-actions/`. You can read them before approving — they only perform task CRUD operations (read, create, update, complete, search, list). They write results to the clipboard and do not access the filesystem, network, or any external resources. The `&arg=` parameter passes task IDs and filter options as data, not code.
+
+### Spike Findings (2026-03-09)
+
 - Scripts execute inside OmniFocus with full Omni Automation API access
 - `task.markComplete()` works (unlike JXA's `task.completed = true`)
 - `Task.byIdentifier(id)` for task lookup (`byIdentifier` is a class function on `Task`, not on `TaskArray`)
