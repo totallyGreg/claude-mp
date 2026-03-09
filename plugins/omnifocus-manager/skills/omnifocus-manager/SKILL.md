@@ -5,7 +5,7 @@ description: |
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 metadata:
-  version: 6.5.0
+  version: 6.6.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -69,7 +69,7 @@ See `references/code_generation_validation.md` for TypeScript validation details
 | **1. Query** | JXA/Omni Automation live database queries | omnifocus-manager |
 | **2. Perspectives** | Guided perspective configuration via `archivedFilterRules` (v4.2+) | omnifocus-manager |
 | **3. GTD Coaching** | Pure methodology coaching | **gtd-coach** skill |
-| **4. Plugins + FM** | Plugin generation, Apple Intelligence | omnifocus-manager |
+| **4. Plugins + FM** | Plugin generation, Apple Intelligence, Attache plugin | omnifocus-manager |
 
 ### GTD-to-OmniFocus Quick Mapping
 
@@ -165,10 +165,17 @@ See `references/omni_automation_guide.md` for plugin development details.
 Use the **gtd-coach** skill for pure methodology coaching.
 See `references/gtd_guide.md` for GTD-to-OmniFocus mapping.
 
-### 5. AI Task Analysis
+### 5. AI Task Analysis (Attache)
 
-Install `assets/AITaskAnalyzer.omnifocusjs` (OmniFocus 4.8+, macOS 15.2+, Apple Silicon).
-See `references/foundation_models_integration.md` for details.
+Install `assets/Attache.omnifocusjs` (OmniFocus 4.8+, macOS 26+, Apple Silicon).
+Attache provides 9 on-device AI actions: daily/weekly GTD reviews, project analysis,
+system discovery with persistent memory, and completed task summaries.
+
+For quick daily review, use Attache in OmniFocus; for deep system analysis, use Claude Code.
+
+After installing Attache, you can remove: AITaskAnalyzer, CompletedTasksSummary, Overview, TodaysTasks.
+
+See `references/foundation_models_integration.md` for Foundation Models API details.
 
 ---
 
@@ -229,4 +236,4 @@ See `references/troubleshooting.md` for complete troubleshooting guide.
 
 ---
 
-**Current version:** 6.3.0 — See IMPROVEMENT_PLAN.md for version history.
+**Current version:** 6.6.0 — See IMPROVEMENT_PLAN.md for version history.

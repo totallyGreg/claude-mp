@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 6.6.0 | 2026-03-08 | - | Attache v1.0.0: unified OmniFocus AI plugin (9 actions, 9 libraries). Absorbs AITaskAnalyzer + CompletedTasksSummary + Overview + TodaysTasks. Adds preferencesManager (hybrid persistence), systemSetup, completedSummary, collectAllMetrics single-pass, weekly review Waiting For step + FM session reuse, daily review calendar prompt + deferred-today items. Phase 0-3 of attache plan. | 83 | 88 | 90 | 100 | 91 |
 | 6.5.0 | 2026-03-08 | [#84](https://github.com/totallyGreg/claude-mp/issues/84) | Add 6 ofo: slash commands (today, inbox, overdue, info, health, search); rename 5 of: commands to ofo: prefix; omnifocus:// URL directive in SKILL.md + agent routing | 83 | 88 | 90 | 100 | 91 |
 | 6.4.1 | 2026-03-08 | - | Fix getOverdueTasks: use effectivelyCompleted/effectivelyDropped to exclude tasks in dropped/completed projects; eliminates false positives from archived recurring tasks | - | - | - | - | - |
 | 6.4.0 | 2026-03-07 | [#90](https://github.com/totallyGreg/claude-mp/issues/90) | Phase 1 GTD analysis commands: repeating-tasks + analyze-projects in gtd-queries.js; habit cadence math (RRULE parsing, gapRatio, stdDev) in taskQuery.js; /of:analyze-habits, /of:analyze-projects, /of:expound slash commands; agent routing updates | 83 | 88 | 90 | 100 | 91 |
@@ -47,7 +48,7 @@
 - ~~[#63](https://github.com/totallyGreg/claude-mp/issues/63): Two-track vision~~ — All 4 pillars complete
   - ~~Pillar 3: GTD Coaching~~ — Done (v5.0.0, PR #65, gtd-coach skill)
   - ~~Agent routing~~ — Done (v5.0.0, PR #65, omnifocus-agent)
-  - ~~Pillar 4: Plugins with UI + FM~~ — Done (v4.5.0, #62, AITaskAnalyzer v3.4.0)
+  - ~~Pillar 4: Plugins with UI + FM~~ — Done (v4.5.0, #62, AITaskAnalyzer v3.4.0 → Attache v1.0.0)
   - ~~Pillar 1: Query~~ — Done (v5.1.0, PR #66, gtd-queries.js + taskQuery project functions)
   - ~~Pillar 2: Perspectives~~ — Done (v6.2.0, #80, perspective-config.js + perspective-inventory + templates)
 
