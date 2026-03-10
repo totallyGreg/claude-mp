@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 7.1.0 | 2026-03-09 | [#97](https://github.com/totallyGreg/claude-mp/issues/97) | Fix query accuracy: inbox filters completed/dropped; overdue uses Task.Status + completed() to exclude repeating instances (100→11 items); new ofo-perspective.js queries perspectives by name/ID; getStalledProjects uses flattenedTasks(); add "Prefer Perspectives" best practice | 83 | 90 | 90 | 100 | 91 |
 | 7.0.1 | 2026-03-09 | - | Fix ofo-list.js: use effectivelyCompleted/effectivelyDropped to exclude tasks in completed/dropped parent projects from flagged/today/overdue filters; update api_reference.md and automation_best_practices.md with correct patterns; trim SKILL.md conciseness (257→209 lines) | 83 | 90 | 90 | 100 | 91 |
 | 7.0.0 | 2026-03-09 | [#94](https://github.com/totallyGreg/claude-mp/issues/94) | ofo CLI: Omni Automation script URL execution replacing JXA for core CRUD. 6 stable action scripts (info, complete, create, update, search, list) with `&arg=` reuse pattern. Fixes task completion (markComplete works where JXA fails). Pasteboard-based return. Migrate all /ofo: slash commands + task-sync hook. Add omni_automation_api_mapping.md reference. | 83 | 87 | 90 | 100 | 91 |
 | 6.6.1 | 2026-03-08 | [#93](https://github.com/totallyGreg/claude-mp/issues/93) | Attache v1.0.4: fix plugin loading (en.lproj/manifest.strings for menu name, lazy Preferences init in library, SyncedPreferences ⚙️ project lookup); restructure omni_automation_guide.md with loading lifecycle diagram, symptom→cause diagnostic table, SyncedPreferences integration section | - | - | - | - | - |
@@ -44,6 +45,9 @@
 **Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure (0-100 scale)
 
 ## Active Work
+
+- ~~[#97](https://github.com/totallyGreg/claude-mp/issues/97): Query accuracy fixes — inbox, overdue, stalled~~ — Done (v7.1.0)
+- [#98](https://github.com/totallyGreg/claude-mp/issues/98): Consolidate taskQuery.js functions — fix 8 remaining weak `completed()`/`dropped()` filters
 
 - ~~[#94](https://github.com/totallyGreg/claude-mp/issues/94): ofo CLI via Omni Automation script URLs~~ — Done (v7.0.0)
 
