@@ -71,9 +71,11 @@ Calendar, LanguageModel
 |----------|------|---------|-------------|
 | `name` | String | `task.name` | Task name |
 | `note` | String | `task.note` | Task note/description |
-| `completed` | Boolean | `task.completed` | Is task completed? |
+| `completed` | Boolean | `task.completed` | Is task itself completed? |
+| `effectivelyCompleted` | Boolean | `task.effectivelyCompleted` | Completed (including via parent)? |
 | `completionDate` | Date\|null | `task.completionDate` | When completed |
-| `dropped` | Boolean | `task.dropped` | Is task dropped? |
+| `dropped` | Boolean | `task.dropped` | Is task itself dropped? |
+| `effectivelyDropped` | Boolean | `task.effectivelyDropped` | Dropped (including via parent)? |
 | `flagged` | Boolean | `task.flagged` | Is task flagged? |
 | `dueDate` | Date\|null | `task.dueDate` | Task due date |
 | `deferDate` | Date\|null | `task.deferDate` | Task defer date |
@@ -105,9 +107,10 @@ newTask.note = "Task details";
 newTask.dueDate = new Date("2025-12-31");
 newTask.flagged = true;
 
-// Filter tasks
-const activeTasks = flattenedTasks.filter(t => !t.completed && !t.dropped);
-const flaggedTasks = flattenedTasks.filter(t => t.flagged && !t.completed);
+// Filter tasks — ALWAYS use effectivelyCompleted/effectivelyDropped
+// to exclude tasks inside completed/dropped parent projects
+const activeTasks = flattenedTasks.filter(t => !t.effectivelyCompleted && !t.effectivelyDropped);
+const flaggedTasks = flattenedTasks.filter(t => t.flagged && !t.effectivelyCompleted && !t.effectivelyDropped);
 
 // Mark complete
 task.markComplete();

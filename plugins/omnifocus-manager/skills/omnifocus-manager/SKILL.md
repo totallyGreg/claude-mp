@@ -5,7 +5,7 @@ description: |
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 metadata:
-  version: 7.0.0
+  version: 7.0.1
   author: totally-tools
   license: MIT
 compatibility:
@@ -71,20 +71,8 @@ See `references/code_generation_validation.md` for TypeScript validation details
 | **3. GTD Coaching** | Pure methodology coaching | **gtd-coach** skill |
 | **4. Plugins + FM** | Plugin generation, Apple Intelligence, Attache plugin | omnifocus-manager |
 
-### GTD-to-OmniFocus Quick Mapping
-
-| GTD Concept | OmniFocus Implementation |
-|-------------|--------------------------|
-| Inbox | Inbox |
-| Projects | Projects |
-| Next Actions | Available tasks |
-| Contexts | Tags |
-| Waiting For | `@waiting` tag |
-| Someday/Maybe | On Hold status |
-| Weekly Review | Review perspective |
-
-For detailed mapping, see `references/gtd_guide.md`.
-For channel selection (Mac vs iOS routing), see `references/channel_selection.md`.
+See `references/gtd_guide.md` for GTD-to-OmniFocus mapping.
+See `references/channel_selection.md` for Mac vs iOS routing.
 
 ---
 
@@ -110,7 +98,7 @@ scripts/ofo list flagged                     # All flagged active tasks
 
 ### 1. Query OmniFocus Data (JXA — for advanced queries not covered by ofo)
 
-**GTD diagnostics:**
+**GTD diagnostics** via `scripts/gtd-queries.js`:
 ```bash
 osascript -l JavaScript scripts/gtd-queries.js --action system-health
 osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects
@@ -118,36 +106,14 @@ osascript -l JavaScript scripts/gtd-queries.js --action waiting-for
 osascript -l JavaScript scripts/gtd-queries.js --action someday-maybe
 osascript -l JavaScript scripts/gtd-queries.js --action recently-completed --days 7
 osascript -l JavaScript scripts/gtd-queries.js --action neglected-projects --threshold 30
+osascript -l JavaScript scripts/gtd-queries.js --action ai-agent-tasks
+osascript -l JavaScript scripts/gtd-queries.js --action repeating-tasks --days 90
+osascript -l JavaScript scripts/gtd-queries.js --action analyze-projects --threshold 30
 osascript -l JavaScript scripts/gtd-queries.js --action folder-structure
 ```
 
-**Task queries (legacy — prefer ofo CLI above):**
-```bash
-osascript -l JavaScript scripts/manage_omnifocus.js today
-osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7
-osascript -l JavaScript scripts/manage_omnifocus.js search --query "meeting"
-```
-
-**Create/modify tasks (legacy — prefer ofo CLI above):**
-```bash
-osascript -l JavaScript scripts/manage_omnifocus.js create --name "Task" --project "Work" --due "2025-12-31"
-osascript -l JavaScript scripts/manage_omnifocus.js create --parent-id lz6kHB1apf5 --name "Subtask" --estimate 10m --tags Routine
-```
-
-**Project inspection & mutation:**
-```bash
-osascript -l JavaScript scripts/manage_omnifocus.js project-info --name "Project Name"
-osascript -l JavaScript scripts/manage_omnifocus.js project-update --id <id> --review-interval 2weeks
-osascript -l JavaScript scripts/manage_omnifocus.js batch-update --ids id1,id2,id3 --defer clear --due clear
-```
-
-**AI Agent project management:**
-```bash
-osascript -l JavaScript scripts/gtd-queries.js --action ai-agent-tasks
-osascript -l JavaScript scripts/manage_omnifocus.js bulk-create --json-file /tmp/plan.json
-osascript -l JavaScript scripts/gtd-queries.js --action repeating-tasks --days 90
-osascript -l JavaScript scripts/gtd-queries.js --action analyze-projects --threshold 30
-```
+**Legacy task/project commands** via `scripts/manage_omnifocus.js` (prefer ofo CLI):
+`today`, `due-soon`, `search`, `create`, `project-info`, `project-update`, `batch-update`, `bulk-create`. See `references/jxa_guide.md` for full usage.
 
 ### 2. Manage Perspectives
 
@@ -228,30 +194,16 @@ See `references/jxa_guide.md` for complete JXA reference and `loadLibrary` imple
 
 ### Technical References
 - [omnifocus_api.md](references/omnifocus_api.md) - Full API specification
-- [Omni Automation API Mapping](references/omni_automation_api_mapping.md) - JXA vs script URL API differences (ofo CLI)
-- [Foundation Models Integration](references/foundation_models_integration.md) - Apple Foundation Models: availability check, Session API, Schema.fromJSON construction, async patterns (macOS 26+, Omni Automation only)
-- [Database Schema](references/database_schema.md) - SQLite structure
-- [Omni Automation Shared](references/omni_automation_shared.md) - Shared classes
-- [Insight Patterns](references/insight_patterns.md) - Pattern detection
-- [Workflows](references/workflows.md) - Automation patterns
-- [Troubleshooting](references/troubleshooting.md) - Common issues
+- [Omni Automation API Mapping](references/omni_automation_api_mapping.md) - JXA vs script URL API differences
+- [Foundation Models Integration](references/foundation_models_integration.md) - Apple Intelligence (macOS 26+)
+- [Database Schema](references/database_schema.md), [Shared Classes](references/omni_automation_shared.md), [Insight Patterns](references/insight_patterns.md), [Workflows](references/workflows.md), [Troubleshooting](references/troubleshooting.md)
 
 ---
 
 ## Troubleshooting
 
-**Permission Issues:**
-- Automation: System Settings → Privacy & Security → Automation → Enable OmniFocus for Terminal
-- Full Disk Access: Required for database queries only
-
-**Common Errors:**
-- "Not authorized" → Grant automation permission
-- "Database not found" → Grant Full Disk Access
-- "Multiple tasks found" → Use task ID instead of name
-- `TypeError: undefined is not an object` → Library failed to load; check CWD is skill root
-
-See `references/troubleshooting.md` for complete troubleshooting guide.
+See `references/troubleshooting.md` for permission issues, common errors, and debugging.
 
 ---
 
-**Current version:** 7.0.0 — See IMPROVEMENT_PLAN.md for version history.
+**Current version:** 7.0.1 — See IMPROVEMENT_PLAN.md for version history.

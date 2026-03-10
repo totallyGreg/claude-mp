@@ -256,11 +256,29 @@ if (customPerspective) {
 
 **Pattern:** Filter by task status for targeted operations.
 
+> **⚠️ CRITICAL: Use `effectivelyCompleted` / `effectivelyDropped`, NOT `completed` / `dropped`**
+>
+> `task.completed` and `task.dropped` only check the task itself. If a parent project is completed or dropped, its child tasks still report `completed: false` and `dropped: false`. This causes stale tasks from years-old completed/dropped projects to appear in queries.
+>
+> **Always use:**
+> - `task.effectivelyCompleted` — true if the task OR any ancestor is completed
+> - `task.effectivelyDropped` — true if the task OR any ancestor is dropped
+>
+> Only use `task.completed`/`task.dropped` when you specifically need to know whether the task itself (not its parent) was marked.
+
 ```javascript
 const doc = Application('OmniFocus').defaultDocument;
 const tasks = doc.flattenedTasks();
 
-// Filter by status
+// ✅ CORRECT: respects parent project status
+const activeTasks = tasks.filter(task =>
+    !task.effectivelyCompleted && !task.effectivelyDropped
+);
+
+// ❌ WRONG: leaks tasks from completed/dropped projects
+// const activeTasks = tasks.filter(task => !task.completed && !task.dropped);
+
+// Filter by status enum (also respects hierarchy)
 const availableTasks = tasks.filter(task =>
     task.taskStatus === Task.Status.Available
 );
@@ -279,6 +297,8 @@ const droppedTasks = tasks.filter(task =>
 - `Task.Status.Completed` - Completed tasks
 - `Task.Status.Dropped` - Dropped/cancelled tasks
 - `Task.Status.Blocked` - Blocked by dependencies
+- `Task.Status.CompletedWithContainer` - Task active but parent completed
+- `Task.Status.DroppedWithContainer` - Task active but parent dropped
 
 ## Bulk Operations Pattern
 
