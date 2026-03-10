@@ -24,6 +24,35 @@ if (args.type === "project") {
   } else {
     result = { success: false, error: "Project not found: " + args.id };
   }
+} else if (args.type === "tag") {
+  var tag = Tag.byIdentifier(args.id);
+  if (tag) {
+    var activeTasks = [];
+    tag.flattenedTasks.forEach(function(t) {
+      if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
+      if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
+      activeTasks.push(t);
+    });
+    result = {
+      success: true,
+      tag: {
+        id: tag.id.primaryKey,
+        name: tag.name,
+        activeTaskCount: activeTasks.length,
+        tasks: activeTasks.slice(0, 50).map(function(t) {
+          return {
+            id: t.id.primaryKey,
+            name: t.name,
+            project: t.containingProject ? t.containingProject.name : null,
+            dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+            flagged: t.flagged
+          };
+        })
+      }
+    };
+  } else {
+    result = { success: false, error: "Tag not found: " + args.id };
+  }
 } else {
   var t = Task.byIdentifier(args.id);
   if (t) {
