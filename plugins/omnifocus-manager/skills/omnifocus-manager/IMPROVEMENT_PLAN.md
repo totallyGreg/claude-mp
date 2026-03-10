@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 7.4.1 | 2026-03-09 | [#99](https://github.com/totallyGreg/claude-mp/issues/99) | Fix tag lookup: Tag has no flattenedTasks; use remainingTasks (TaskArray that excludes completed/dropped) | 83 | 90 | 90 | 100 | 91 |
 | 7.4.0 | 2026-03-09 | [#99](https://github.com/totallyGreg/claude-mp/issues/99) | ofo info tag URL support: detect_type_from_url adds tag branch; ofo-info.js adds Tag.byIdentifier() lookup with triple-check active task filter, returns name/activeTaskCount/tasks (capped 50) | 83 | 90 | 90 | 100 | 91 |
 | 7.3.0 | 2026-03-09 | - | Update omnifocus-agent.md: add /ofo:plan, /ofo:work, /ofo:weekly-review routing entries; update weekly review example to use command; clean up omnifocus:// URL example | 83 | 90 | 90 | 100 | 91 |
 | 7.2.0 | 2026-03-09 | [#98](https://github.com/totallyGreg/claude-mp/issues/98) | Fix 8 remaining weak filters in taskQuery.js + ofo-search.js: upgrade completed()/dropped() to effectivelyCompleted/effectivelyDropped/completed triple-check pattern across listTasks, getTodayTasks, getDueSoon, getFlagged, searchTasks, searchTasksByTag, getWaitingForTasks, getRepeatingTasks | 83 | 90 | 90 | 100 | 91 |

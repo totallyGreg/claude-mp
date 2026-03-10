@@ -28,7 +28,7 @@ if (args.type === "project") {
   var tag = Tag.byIdentifier(args.id);
   if (tag) {
     var activeTasks = [];
-    tag.flattenedTasks.forEach(function(t) {
+    tag.remainingTasks.forEach(function(t) {
       if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
       if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
       activeTasks.push(t);
