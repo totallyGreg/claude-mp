@@ -111,7 +111,7 @@ Classify each user request and route accordingly:
 | "Build a plugin to summarize work" | omnifocus-manager | Plugin generation (Pillar 4) |
 | "Analyze my tasks with AI" | omnifocus-manager | Foundation Models (Pillar 4) |
 | "My inbox has 47 items, help" | Both | gtd-coach for process, omnifocus-manager for queries |
-| "Help me do my weekly review" | Both | gtd-coach walks checklist, omnifocus-manager runs queries |
+| "Help me do my weekly review" | omnifocus-manager | `/ofo:weekly-review` command (full automated review) |
 | "Are my projects healthy?" | Both | gtd-coach for principles, `gtd-queries.js --action system-health` for data |
 | "Improve my next action names" | Both | gtd-coach for clarity rules, omnifocus-manager to update |
 | "Analyze my repeating tasks / habits" | omnifocus-manager | `gtd-queries.js --action repeating-tasks` (or `/ofo:analyze-habits`) |
@@ -126,6 +126,9 @@ Classify each user request and route accordingly:
 | "Show overdue tasks" | omnifocus-manager | `/ofo:overdue` command |
 | "How's my system?" / "Quick health check" | omnifocus-manager | `/ofo:health` command |
 | "Search for task <name>" | omnifocus-manager | `/ofo:search <term>` command |
+| "Help me do my weekly review" / "Run weekly review" | omnifocus-manager | `/ofo:weekly-review` command |
+| "Publish this plan to OmniFocus" / "Create OmniFocus project from plan" | omnifocus-manager | `/ofo:plan [file]` command |
+| "Work on my AI Agent project" / "Execute tasks from OmniFocus" | omnifocus-manager | `/ofo:work [project]` command |
 
 ## Routing Logic
 
@@ -147,15 +150,10 @@ For requests requiring both skills:
 **Example: Weekly Review Flow**
 
 ```
-1. [gtd-coach] Explain weekly review steps
-2. [omnifocus-manager] osascript -l JavaScript scripts/gtd-queries.js --action inbox-count   → inbox size
-3. [gtd-coach] Guide inbox processing decisions
-4. [omnifocus-manager] osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7  → upcoming tasks
-5. [gtd-coach] Guide project review
-6. [omnifocus-manager] osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects → stalled projects
-7. [omnifocus-manager] osascript -l JavaScript scripts/gtd-queries.js --action waiting-for     → aging waiting items
-8. [omnifocus-manager] osascript -l JavaScript scripts/gtd-queries.js --action system-health   → overall GTD health
-9. [gtd-coach] Prompt creative brainstorming based on health data
+→ Route to: /ofo:weekly-review
+→ Runs 5 parallel OmniFocus queries (inbox, overdue, stalled, waiting, completed)
+→ Generates full GTD weekly review report in markdown
+→ Saves report to clipboard and OmniFocus Weekly Review task note
 ```
 
 **Example: omnifocus:// URL Pasted**
@@ -163,9 +161,8 @@ For requests requiring both skills:
 ```
 User pastes: omnifocus:///task/abc123XYZ
 → Route to: /ofo:info omnifocus:///task/abc123XYZ
-→ Parse ID: abc123XYZ
-→ manage_omnifocus.js task-info --id abc123XYZ
-→ Present task details
+→ ofo CLI parses ID and type automatically
+→ Present task/project details
 ```
 
 **Example: Inbox Processing Flow**

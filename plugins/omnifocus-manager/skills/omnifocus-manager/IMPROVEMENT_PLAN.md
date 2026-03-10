@@ -4,6 +4,7 @@
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 7.3.0 | 2026-03-09 | - | Update omnifocus-agent.md: add /ofo:plan, /ofo:work, /ofo:weekly-review routing entries; update weekly review example to use command; clean up omnifocus:// URL example | 83 | 90 | 90 | 100 | 91 |
 | 7.2.0 | 2026-03-09 | [#98](https://github.com/totallyGreg/claude-mp/issues/98) | Fix 8 remaining weak filters in taskQuery.js + ofo-search.js: upgrade completed()/dropped() to effectivelyCompleted/effectivelyDropped/completed triple-check pattern across listTasks, getTodayTasks, getDueSoon, getFlagged, searchTasks, searchTasksByTag, getWaitingForTasks, getRepeatingTasks | 83 | 90 | 90 | 100 | 91 |
 | 7.1.0 | 2026-03-09 | [#97](https://github.com/totallyGreg/claude-mp/issues/97) | Fix query accuracy: inbox filters completed/dropped; overdue uses Task.Status + completed() to exclude repeating instances (100→11 items); new ofo-perspective.js queries perspectives by name/ID; getStalledProjects uses flattenedTasks(); add "Prefer Perspectives" best practice | 83 | 90 | 90 | 100 | 91 |
 | 7.0.1 | 2026-03-09 | - | Fix ofo-list.js: use effectivelyCompleted/effectivelyDropped to exclude tasks in completed/dropped parent projects from flagged/today/overdue filters; update api_reference.md and automation_best_practices.md with correct patterns; trim SKILL.md conciseness (257→209 lines) | 83 | 90 | 90 | 100 | 91 |
