@@ -252,19 +252,49 @@ if (customPerspective) {
 - Show relevant perspective for context
 - Guide user attention to specific areas
 
+## Prefer Perspectives Over Reimplemented Queries
+
+**Pattern:** When a user has a configured perspective for a view (e.g., Stalled Projects, Overdue, Waiting For), query the perspective rather than reimplementing its filter logic.
+
+Perspectives are the user's canonical, configured view of their data. Reimplementing filter logic in JXA or Omni Automation will inevitably drift from the perspective's actual rules and produce different counts.
+
+**Use `ofo perspective` to query perspectives:**
+```bash
+scripts/ofo perspective "Projects - Stalled"
+scripts/ofo perspective --id meu1tA5k8OT
+```
+
+**When to use:**
+- Counting items for system-health reports (stalled, overdue, etc.)
+- Validating query results against what the user sees
+- Any diagnostic that should match an OmniFocus perspective
+
+**When to fall back to manual queries:**
+- No matching perspective exists
+- The query needs data the perspective doesn't expose
+- Running in JXA where the ofo CLI is not available (use the best available JXA logic as fallback)
+
+**How it works:** `ofo-perspective.js` reads the perspective's `archivedFilterRules`, detects known patterns (e.g., stalled projects), and evaluates equivalent queries using `Task.Status.Available` for accurate results.
+
 ## Conditional Task Processing
 
 **Pattern:** Filter by task status for targeted operations.
 
-> **⚠️ CRITICAL: Use `effectivelyCompleted` / `effectivelyDropped`, NOT `completed` / `dropped`**
+> **⚠️ CRITICAL: Use `Task.Status.Available` (Omni Automation) or triple-check with `effectivelyCompleted` + `completed` (JXA)**
 >
-> `task.completed` and `task.dropped` only check the task itself. If a parent project is completed or dropped, its child tasks still report `completed: false` and `dropped: false`. This causes stale tasks from years-old completed/dropped projects to appear in queries.
+> `task.effectivelyCompleted` does NOT reliably catch completed repeating task instances. A repeating task that was completed on a previous day may have `effectivelyCompleted === false` while `completed === true`. This causes completed repeating instances to leak into overdue and today queries.
 >
-> **Always use:**
-> - `task.effectivelyCompleted` — true if the task OR any ancestor is completed
-> - `task.effectivelyDropped` — true if the task OR any ancestor is dropped
+> **In Omni Automation scripts (ofo):**
+> - **Prefer `task.taskStatus === Task.Status.Available`** — this is the most reliable filter for active, actionable tasks
+> - It correctly excludes completed, dropped, blocked, and completed-via-parent tasks
 >
-> Only use `task.completed`/`task.dropped` when you specifically need to know whether the task itself (not its parent) was marked.
+> **In JXA scripts:**
+> - `Task.Status` enum is not available — use all three checks:
+> - `!task.effectivelyCompleted()` — catches tasks completed via parent
+> - `!task.effectivelyDropped()` — catches tasks dropped via parent
+> - `!task.completed()` — catches directly completed repeating instances
+>
+> Only use `task.completed`/`task.dropped` alone when you specifically need to know whether the task itself (not its parent) was marked.
 
 ```javascript
 const doc = Application('OmniFocus').defaultDocument;

@@ -34,7 +34,9 @@ if (filter === "inbox") {
 } else if (filter === "today") {
   flattenedTasks.forEach(function(t) {
     if (results.length >= limit) return;
-    if (t.taskStatus !== Task.Status.Available) return;
+    if (t.taskStatus === Task.Status.Completed ||
+        t.taskStatus === Task.Status.Dropped) return;
+    if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
     var isDueToday = t.dueDate && t.dueDate >= todayStart && t.dueDate < todayEnd;
     var isDeferredToday = t.deferDate && t.deferDate <= now && !t.deferDate.valueOf() === 0;
     var isFlagged = t.flagged;
@@ -45,7 +47,9 @@ if (filter === "inbox") {
 } else if (filter === "overdue") {
   flattenedTasks.forEach(function(t) {
     if (results.length >= limit) return;
-    if (t.taskStatus !== Task.Status.Available) return;
+    if (t.taskStatus === Task.Status.Completed ||
+        t.taskStatus === Task.Status.Dropped) return;
+    if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
     if (t.dueDate && t.dueDate < todayStart) {
       results.push(taskSummary(t));
     }
