@@ -46,6 +46,8 @@ detect_type_from_url() {
   local input="$1"
   if [[ "$input" == omnifocus:///project/* ]]; then
     echo "project"
+  elif [[ "$input" == omnifocus:///tag/* ]]; then
+    echo "tag"
   else
     echo "task"
   fi
