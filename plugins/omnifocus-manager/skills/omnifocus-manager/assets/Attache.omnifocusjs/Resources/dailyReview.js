@@ -138,9 +138,11 @@ Using GTD principles, provide:
 
             // Format display message
             let message = "";
+            let md = "";
 
             // Calendar prompt (GTD: date-specific commitments are non-negotiable anchors)
             message += "Review your calendar for today's commitments.\n\n";
+            md += "> Review your calendar for today's commitments.\n\n";
 
             if (review) {
                 const healthIcon = {
@@ -150,42 +152,55 @@ Using GTD principles, provide:
                 }[review.systemHealth] || "📊";
 
                 message += `${healthIcon} ${review.workloadNote || ""}\n\n`;
+                md += `## ${healthIcon} Status\n${review.workloadNote || ""}\n\n`;
 
                 if (review.completedCelebration) {
                     message += `WINS TODAY:\n${review.completedCelebration}\n\n`;
+                    md += `## Wins Today\n${review.completedCelebration}\n\n`;
                 }
 
                 message += `TOP NEXT ACTIONS:\n`;
+                md += `## Top Next Actions\n`;
                 const actions = Array.isArray(review.topNextActions) ? review.topNextActions : [];
                 if (actions.length > 0) {
                     actions.forEach((a, i) => {
                         message += `${i + 1}. ${a.task}\n   > ${a.reason}\n`;
+                        md += `${i + 1}. **${a.task}** — ${a.reason}\n`;
                     });
                 } else {
                     message += "(No tasks found to prioritize)\n";
+                    md += "(No tasks found to prioritize)\n";
                 }
 
                 if (overdueTasks.length > 0 && review.overdueAdvice) {
                     message += `\nOVERDUE TRIAGE:\n${review.overdueAdvice}\n`;
+                    md += `\n## Overdue Triage\n${review.overdueAdvice}\n`;
                 }
             }
 
             // Newly available deferred items (absorbed from TodaysTasks)
             if (deferredTasks.length > 0) {
-                message += `\nNEWLY AVAILABLE: ${deferredTasks.length} deferred item${deferredTasks.length !== 1 ? 's' : ''} now actionable\n`;
+                const deferredLabel = `${deferredTasks.length} deferred item${deferredTasks.length !== 1 ? 's' : ''} now actionable`;
+                message += `\nNEWLY AVAILABLE: ${deferredLabel}\n`;
+                md += `\n## Newly Available (${deferredTasks.length})\n`;
                 deferredTasks.slice(0, 5).forEach(t => {
                     message += `  - ${t.name} [${t.project || "Inbox"}]\n`;
+                    md += `- ${t.name} \`[${t.project || "Inbox"}]\`\n`;
                 });
                 if (deferredTasks.length > 5) {
                     message += `  ... and ${deferredTasks.length - 5} more\n`;
+                    md += `- _…and ${deferredTasks.length - 5} more_\n`;
                 }
             }
 
             // System orientation stats (absorbed from Overview)
-            message += `\nSTATS: ${completedTasks.length} done | ${todayTasks.length} today | ${overdueTasks.length} overdue | ${flaggedTasks.length} flagged | ${inboxTasks.length} inbox`;
+            const statsLine = `${completedTasks.length} done | ${todayTasks.length} today | ${overdueTasks.length} overdue | ${flaggedTasks.length} flagged | ${inboxTasks.length} inbox`;
+            message += `\nSTATS: ${statsLine}`;
+            md += `\n---\n✅ ${completedTasks.length} done · 📋 ${todayTasks.length} today · ⚠️ ${overdueTasks.length} overdue · 🚩 ${flaggedTasks.length} flagged · 📥 ${inboxTasks.length} inbox`;
 
             if (!hasCachedPrefs) {
                 message += `\n\nTip: Run Attache: System Setup to cache your system map for richer reviews.`;
+                md += `\n\n> **Tip:** Run Attache: System Setup to cache your system map for richer reviews.`;
             }
 
             const resultAlert = new Alert("Attache: Daily Review", message);
@@ -194,7 +209,7 @@ Using GTD principles, provide:
             const choice = await resultAlert.show();
 
             if (choice === 0) {
-                Pasteboard.general.string = message;
+                Pasteboard.general.string = md;
             }
 
         } catch (error) {
