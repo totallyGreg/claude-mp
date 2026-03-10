@@ -426,15 +426,18 @@
             const status = project.status() ? project.status().toString() : '';
             if (!status.includes('active')) return;
 
-            const allTasks = project.tasks();
-            if (allTasks.length === 0) return; // skip empty projects
+            const allTasks = project.flattenedTasks();
+            const remaining = allTasks.filter(t =>
+                !t.effectivelyCompleted() && !t.effectivelyDropped() && !t.completed()
+            );
+            if (remaining.length === 0) return;
 
             if (project.numberOfAvailableTasks() === 0) {
                 stalled.push({
                     id: project.id(),
                     name: project.name(),
                     status: status,
-                    totalTasks: allTasks.length,
+                    totalTasks: remaining.length,
                     availableTasks: 0,
                     modifiedDate: project.modificationDate() ? project.modificationDate().toISOString() : null
                 });

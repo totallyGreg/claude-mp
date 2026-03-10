@@ -10,6 +10,7 @@
 #   update <id> [opts]         Update task properties
 #   search <query>             Search tasks by name/note
 #   list <filter>              List tasks (inbox|flagged|today|overdue)
+#   perspective <name>         Query a custom perspective by name
 #   setup                      Trigger approval for all action scripts
 #   help                       Show this help
 
@@ -213,14 +214,35 @@ cmd_list() {
   run_action "ofo-list" "{\"filter\":\"${filter}\"}"
 }
 
+cmd_perspective() {
+  [[ $# -lt 1 ]] && die "Usage: ofo perspective <name> [--id ID]"
+  local name="" id=""
+
+  if [[ "$1" == "--id" ]]; then
+    id="$2"
+  else
+    name="$*"
+  fi
+
+  local arg_json
+  arg_json=$(OFO_NAME="$name" OFO_ID="$id" python3 -c "
+import json, os
+args = {}
+if os.environ.get('OFO_NAME'): args['name'] = os.environ['OFO_NAME']
+if os.environ.get('OFO_ID'): args['id'] = os.environ['OFO_ID']
+print(json.dumps(args))
+")
+  run_action "ofo-perspective" "$arg_json"
+}
+
 cmd_setup() {
   echo "OmniFocus CLI Setup"
   echo "==================="
   echo "This will send each action script to OmniFocus for approval."
-  echo "You'll need to click 'Run Script' for each one (6 total)."
+  echo "You'll need to click 'Run Script' for each one (7 total)."
   echo ""
 
-  local actions=("ofo-info" "ofo-complete" "ofo-create" "ofo-update" "ofo-search" "ofo-list")
+  local actions=("ofo-info" "ofo-complete" "ofo-create" "ofo-update" "ofo-search" "ofo-list" "ofo-perspective")
   local test_args=(
     '{"id":"__setup__","type":"task"}'
     '{"id":"__setup__"}'
@@ -228,12 +250,13 @@ cmd_setup() {
     '{"id":"__setup__"}'
     '{"query":"__setup__"}'
     '{"filter":"inbox"}'
+    '{"name":"__setup__"}'
   )
 
   for i in "${!actions[@]}"; do
     local action="${actions[$i]}"
     local arg="${test_args[$i]}"
-    echo "[$((i+1))/6] Sending ${action}..."
+    echo "[$((i+1))/${#actions[@]}] Sending ${action}..."
     run_action "$action" "$arg" >/dev/null 2>&1 || true
     echo "  Approved (or already approved)."
     sleep 1
@@ -258,6 +281,7 @@ Commands:
   update <id|url> [options]         Update task properties
   search <query>                    Search tasks by name or note
   list <filter>                     List tasks by filter
+  perspective <name> [--id ID]      Query a custom perspective
   setup                             Trigger approval for all action scripts
   help                              Show this help
 
@@ -308,8 +332,9 @@ case "${1:-help}" in
   create)   shift; cmd_create "$@" ;;
   update)   shift; cmd_update "$@" ;;
   search)   shift; cmd_search "$@" ;;
-  list)     shift; cmd_list "$@" ;;
-  setup)    cmd_setup ;;
+  list)        shift; cmd_list "$@" ;;
+  perspective) shift; cmd_perspective "$@" ;;
+  setup)       cmd_setup ;;
   help|--help|-h) cmd_help ;;
   *) die "Unknown command: $1. Run 'ofo help' for usage." ;;
 esac
