@@ -5,7 +5,8 @@ var results = [];
 
 flattenedTasks.forEach(function(t) {
   if (results.length >= limit) return;
-  if (t.completed || t.dropped) return;
+  if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
+  if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
   var nameMatch = t.name.toLowerCase().indexOf(query) !== -1;
   var noteMatch = t.note && t.note.toLowerCase().indexOf(query) !== -1;
   if (nameMatch || noteMatch) {

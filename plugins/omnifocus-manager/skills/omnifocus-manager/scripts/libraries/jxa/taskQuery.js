@@ -127,7 +127,7 @@
         tasks.forEach(task => {
             if (filter === 'all') {
                 filteredTasks.push(task);
-            } else if (filter === 'active' && !task.completed() && !task.dropped()) {
+            } else if (filter === 'active' && !task.effectivelyCompleted() && !task.effectivelyDropped() && !task.completed()) {
                 filteredTasks.push(task);
             } else if (filter === 'completed' && task.completed()) {
                 filteredTasks.push(task);
@@ -153,7 +153,8 @@
         const todayTasks = [];
 
         tasks.forEach(task => {
-            if (task.completed() || task.dropped()) return;
+            if (task.effectivelyCompleted() || task.effectivelyDropped()) return;
+            if (task.completed()) return;
 
             const dueDate = task.dueDate();
             const deferDate = task.deferDate();
@@ -183,7 +184,8 @@
         const dueSoonTasks = [];
 
         tasks.forEach(task => {
-            if (task.completed() || task.dropped()) return;
+            if (task.effectivelyCompleted() || task.effectivelyDropped()) return;
+            if (task.completed()) return;
 
             const dueDate = task.dueDate();
             if (dueDate && dueDate >= now && dueDate <= futureDate) {
@@ -204,7 +206,8 @@
         const flaggedTasks = [];
 
         tasks.forEach(task => {
-            if (task.completed() || task.dropped()) return;
+            if (task.effectivelyCompleted() || task.effectivelyDropped()) return;
+            if (task.completed()) return;
 
             if (task.flagged()) {
                 flaggedTasks.push(task);
@@ -249,6 +252,7 @@
         const matchingTasks = [];
 
         tasks.forEach(task => {
+            if (task.effectivelyCompleted() || task.effectivelyDropped()) return;
             if (task.completed()) return;
 
             const name = task.name() ? task.name().toLowerCase() : '';
@@ -308,8 +312,8 @@
 
         for (var i = 0; i < tasks.length; i++) {
             var task = tasks[i];
-            if (!includeCompleted && task.completed()) continue;
-            if (task.dropped()) continue;
+            if (!includeCompleted && (task.effectivelyCompleted() || task.completed())) continue;
+            if (task.effectivelyDropped()) continue;
 
             var taskTags = task.tags();
             for (var j = 0; j < taskTags.length; j++) {
@@ -460,7 +464,8 @@
         const waitingTasks = [];
 
         tasks.forEach(task => {
-            if (task.completed() || task.dropped()) return;
+            if (task.effectivelyCompleted() || task.effectivelyDropped()) return;
+            if (task.completed()) return;
             const hasWaitingTag = task.tags().some(tag => tag.name().toLowerCase().includes(pattern));
             if (hasWaitingTag) {
                 const info = this.formatTaskInfo(task);
@@ -847,8 +852,8 @@
         var tasks = doc.flattenedTasks();
 
         tasks.forEach(function(task) {
+            if (task.effectivelyCompleted() || task.effectivelyDropped()) return;
             if (task.completed()) return;
-            if (task.dropped()) return;
 
             var rule = task.repetitionRule();
             if (!rule) return;
