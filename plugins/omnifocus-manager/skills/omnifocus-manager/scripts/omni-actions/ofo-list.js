@@ -21,19 +21,20 @@ function taskSummary(t) {
 if (filter === "inbox") {
   inbox.forEach(function(t) {
     if (results.length >= limit) return;
+    if (t.effectivelyCompleted || t.effectivelyDropped) return;
     results.push(taskSummary(t));
   });
 } else if (filter === "flagged") {
   flattenedTasks.forEach(function(t) {
     if (results.length >= limit) return;
-    if (t.flagged && !t.effectivelyCompleted && !t.effectivelyDropped) {
+    if (t.flagged && t.taskStatus === Task.Status.Available) {
       results.push(taskSummary(t));
     }
   });
 } else if (filter === "today") {
   flattenedTasks.forEach(function(t) {
     if (results.length >= limit) return;
-    if (t.effectivelyCompleted || t.effectivelyDropped) return;
+    if (t.taskStatus !== Task.Status.Available) return;
     var isDueToday = t.dueDate && t.dueDate >= todayStart && t.dueDate < todayEnd;
     var isDeferredToday = t.deferDate && t.deferDate <= now && !t.deferDate.valueOf() === 0;
     var isFlagged = t.flagged;
@@ -44,7 +45,7 @@ if (filter === "inbox") {
 } else if (filter === "overdue") {
   flattenedTasks.forEach(function(t) {
     if (results.length >= limit) return;
-    if (t.effectivelyCompleted || t.effectivelyDropped) return;
+    if (t.taskStatus !== Task.Status.Available) return;
     if (t.dueDate && t.dueDate < todayStart) {
       results.push(taskSummary(t));
     }

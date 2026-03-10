@@ -226,6 +226,7 @@
 
         tasks.forEach(task => {
             if (task.effectivelyCompleted() || task.effectivelyDropped()) return;
+            if (task.completed()) return;
 
             const dueDate = task.dueDate();
             if (dueDate && dueDate < now) {
@@ -406,7 +407,7 @@
     taskQuery.getInboxTasks = function(doc) {
         const tasks = doc.inboxTasks();
         return tasks
-            .filter(t => !t.completed())
+            .filter(t => !t.effectivelyCompleted() && !t.effectivelyDropped())
             .map(task => this.formatTaskInfo(task));
     };
 
