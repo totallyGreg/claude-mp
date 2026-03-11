@@ -2,7 +2,7 @@
 name: terminal-emulation
 description: This skill should be used when diagnosing, fixing, or understanding Unix terminal display issues including terminfo database problems, Unicode/UTF-8 character rendering, locale configuration, TUI application display, SSH terminal setup, and terminal emulator configuration. Use for garbled characters, wrong colors, broken box drawing, emoji rendering, and character encoding problems.
 metadata:
-  version: "3.0.0"
+  version: "3.1.0"
 ---
 
 # Terminal Emulation
@@ -19,7 +19,8 @@ Diagnose and fix Unix terminal display issues: terminfo capabilities, Unicode/UT
 - Locale and encoding configuration
 - TUI application display problems
 - SSH terminal configuration
-- Tmux/Screen terminal setup
+- Tmux/Screen terminal setup and mouse bindings
+- Per-segment click actions in the tmux status bar
 - Character width and alignment issues
 - Font selection for Unicode coverage
 
@@ -126,6 +127,7 @@ Key information to verify:
 |----------|--------|-----------|
 | Wrong colors, broken function keys | Terminfo | `references/terminfo_guide.md` |
 | Garbled text, emoji broken, box drawing issues | Unicode/UTF-8 | `references/unicode_troubleshooting.md` |
+| Mouse click bindings not firing, wrong range value | Tmux mouse | `references/tmux_mouse_bindings.md` |
 
 ### Step 3: Apply Targeted Fixes
 
@@ -215,3 +217,4 @@ fi
 ### references/
 - **`terminfo_guide.md`** - Complete terminfo database reference and troubleshooting
 - **`unicode_troubleshooting.md`** - Unicode/UTF-8 character rendering and encoding issues
+- **`tmux_mouse_bindings.md`** - Named status bar ranges, correct mouse events, diagnostic technique, live binding vs bootstrap
