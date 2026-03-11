@@ -1,5 +1,7 @@
 ---
 name: confluence-pages
+metadata:
+  version: 1.0.0
 description: >-
   This skill should be used when creating, updating, moving, or deleting
   Confluence pages via the REST API. Supplements the official Atlassian plugin

@@ -27,10 +27,11 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 | **swift-dev** | 1.2.0 | Swift development expert for SwiftUI, iOS/macOS frameworks, Server-side Swift, and Objective-C migration |
 | **terminal-guru** | 4.0.0 | Terminal diagnostics, configuration, and zsh development expert with triage agent and two focused skills |
 
-### Productivity (2 plugins)
+### Productivity (3 plugins)
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
+| **confluence-pages** | 1.0.0 | Create, update, move, and delete Confluence pages via REST API |
 | **omnifocus-manager** | 7.4.1 | Interface with OmniFocus to surface insights, create reusable automations and perspectives, and suggest workflow optimizations |
 | **pkm-plugin** | 1.6.0 | Personal Knowledge Management expert for Obsidian vaults with dual-skill architecture: vault-architect (create structures) and vault-curator (evolve content) |
 
