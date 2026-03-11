@@ -2,7 +2,7 @@
 name: zsh-dev
 description: This skill should be used when the user asks to "create a zsh function", "configure fpath", "add a keychain secret", "set up keychainctl", "check shell startup", or needs help with autoload functions, completions, zsh testing, Plugin Standard compliance, storing tokens, retrieving secrets, or macOS keychain management via keychainctl.
 metadata:
-  version: "3.0.0"
+  version: "3.1.0"
 ---
 
 # Zsh Development
