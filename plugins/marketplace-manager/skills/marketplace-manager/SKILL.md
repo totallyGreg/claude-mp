@@ -1,11 +1,27 @@
 ---
+
 name: marketplace-manager
-description: This skill should be used when managing Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance. Supports programmatic invocation by other skills for automated version management. Use when adding skills to marketplace, updating skill versions, syncing marketplace.json, or managing plugin distributions. Triggers on "sync versions", "validate plugin", "add to marketplace", "check marketplace", "publish skill", "marketplace status", or "version mismatch".
+description: >-
+  This skill should be used when managing Claude Code plugin marketplace
+  operations including version syncing, skill publishing, and marketplace.json
+  maintenance. Supports programmatic invocation by other skills for automated
+  version management. Use when adding skills to marketplace, updating skill
+  versions, syncing marketplace.json, or managing plugin distributions.
+  Triggers on "sync versions", "validate plugin", "add to marketplace",
+  "check marketplace", "update marketplace", "create plugin", "configure
+  marketplace hook", or "fix version mismatch".
 metadata:
+  conciseness: 100
+  complexity: 90
+  spec_compliance: 90
+  progressive: 100
+  overall: 95
+  last_evaluated: 2026-03-11
   version: "2.5.1"
   author: J. Greg Williams
   license: MIT
 compatibility: Requires git repository with .claude-plugin/marketplace.json
+
 ---
 
 # Marketplace Manager
@@ -23,8 +39,6 @@ This plugin enables marketplace management for Claude Code skills:
 
 ## Quick Commands
 
-This plugin includes slash commands for common operations:
-
 | Command | Purpose |
 |---------|---------|
 | `/mp-sync` | Sync plugin versions to marketplace.json |
@@ -33,16 +47,7 @@ This plugin includes slash commands for common operations:
 | `/mp-list` | List all marketplace plugins |
 | `/mp-status` | Show version mismatches |
 
-## When to Use
-
-Use marketplace-manager when:
-- Adding new skills to marketplace.json
-- Updating skill versions in marketplace
-- Syncing versions between SKILL.md and marketplace.json
-- Detecting version mismatches
-- Creating new plugins or migrating legacy skills
-
-## Core Operations
+## Operations
 
 ### Version Syncing
 
@@ -84,102 +89,47 @@ uv run scripts/add_to_marketplace.py validate --format json
 
 ## Git Integration
 
-### Pre-Commit Hook
-
-Auto-sync marketplace.json before commits:
+Auto-sync marketplace.json before commits via pre-commit hook:
 
 ```bash
-# Install hook
-bash scripts/install_hook.sh
-
-# Preview installation
-bash scripts/install_hook.sh --dry-run
-
-# Force reinstall
-bash scripts/install_hook.sh --force
+bash scripts/install_hook.sh           # Install hook
+bash scripts/install_hook.sh --dry-run # Preview installation
 ```
 
-Hook behavior:
-- Detects version mismatches before commit
-- Auto-syncs marketplace.json
-- Stages updated marketplace.json
-- Bypassable with `git commit --no-verify`
+Hook detects version mismatches, auto-syncs marketplace.json, and stages updates. Bypassable with `git commit --no-verify`.
 
-## Plugin Scaffolding
-
-### Create New Plugin
+## Scaffolding & Migration
 
 ```bash
+# Create new plugin
 uv run scripts/create_plugin.py <plugin-name> \
   --description "Plugin description" \
   --skill <skill-path>
-```
 
-### Migrate Legacy Skill
-
-```bash
-# Preview migration
-uv run scripts/migrate_to_plugin.py <skill-name> --dry-run
-
-# Execute migration
-uv run scripts/migrate_to_plugin.py <skill-name>
+# Migrate legacy skill
+uv run scripts/migrate_to_plugin.py <skill-name>          # Execute
+uv run scripts/migrate_to_plugin.py <skill-name> --dry-run # Preview
 ```
 
 ## Version Management
 
-### Semantic Versioning
-
-- **MAJOR**: Breaking changes
-- **MINOR**: New features, backward-compatible
-- **PATCH**: Bug fixes, documentation
-
-### Versioning Modes
-
 **Auto Mode** (single-skill plugins): Plugin version syncs from skill version automatically.
-
-**Manual Mode** (multi-component plugins): Warns about mismatches, requires manual plugin version update.
+**Manual Mode** (multi-component plugins): Warns about mismatches, requires manual update.
 
 ```bash
-# Auto mode (default)
-uv run scripts/sync_marketplace_versions.py
-
-# Manual mode
-uv run scripts/sync_marketplace_versions.py --mode=manual
+uv run scripts/sync_marketplace_versions.py               # Auto (default)
+uv run scripts/sync_marketplace_versions.py --mode=manual  # Manual
 ```
 
-## Programmatic Invocation
-
-marketplace-manager integrates with Skillsmith for automated workflows:
-
-1. Skillsmith completes skill changes
-2. Calls marketplace-manager to sync versions
-3. marketplace-manager updates marketplace.json
-4. Prompts user for commit approval
-5. Returns commit status
-
-## Additional Tools
-
-### Deprecating Skills
+### Additional Tools
 
 ```bash
 uv run scripts/deprecate_skill.py --skill <name> --reason "Reason"
-```
-
-### Bundling Analysis
-
-```bash
 uv run scripts/analyze_bundling.py
-```
-
-### Utils Template Generation
-
-```bash
 uv run scripts/generate_utils_template.py --skill <name>
 ```
 
-## Reference Documentation
-
-For detailed documentation, see:
+## References
 
 | Reference | Content |
 |-----------|---------|
@@ -188,17 +138,8 @@ For detailed documentation, see:
 | `references/marketplace_distribution_guide.md` | Distribution workflow and best practices |
 | `references/troubleshooting.md` | Common issues and solutions |
 
-## Installation
-
-Users install from marketplace:
-
-```bash
-/plugin marketplace add totallyGreg/claude-mp
-/plugin install marketplace-manager@totally-tools
-```
-
 ## See Also
 
-- **skillsmith** - Creates and improves skills
-- **plugin-dev** - Official Anthropic plugin for creating plugin components (skills, commands, agents, hooks)
-- Workflow: `plugin-dev` (build) -> `skillsmith` (improve) -> `marketplace-manager` (publish)
+- **skillsmith** — creates and improves skills
+- **plugin-dev** — official Anthropic plugin for plugin components
+- Workflow: `plugin-dev` (build) → `skillsmith` (improve) → `marketplace-manager` (publish)

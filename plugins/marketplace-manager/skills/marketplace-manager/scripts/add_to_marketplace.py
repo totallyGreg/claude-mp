@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # /// script
-# dependencies = []
+# dependencies = [
+#   "pyyaml>=6.0.1",
+# ]
 # ///
 """
 Add a skill to the Claude Code plugin marketplace.
@@ -14,7 +16,6 @@ This script helps manage the .claude-plugin/marketplace.json file by:
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -96,6 +97,44 @@ def add_skill_to_plugin(marketplace_data, plugin_name, skill_path):
     return True
 
 
+def extract_skill_version(skill_path, repo_root):
+    """Extract version from a skill's SKILL.md frontmatter.
+
+    Returns version string or "1.0.0" as default.
+    """
+    import yaml
+
+    skill_dir = repo_root / skill_path.lstrip("./")
+    skill_md = skill_dir / "SKILL.md"
+
+    if not skill_md.exists():
+        return "1.0.0"
+
+    try:
+        content = skill_md.read_text()
+        if not content.startswith("---"):
+            return "1.0.0"
+
+        end = content.find("---", 3)
+        if end == -1:
+            return "1.0.0"
+
+        frontmatter = yaml.safe_load(content[3:end])
+        if not frontmatter:
+            return "1.0.0"
+
+        # Check metadata.version first, then deprecated version field
+        metadata = frontmatter.get("metadata", {})
+        if isinstance(metadata, dict) and "version" in metadata:
+            return str(metadata["version"])
+        if "version" in frontmatter:
+            return str(frontmatter["version"])
+    except Exception:
+        pass
+
+    return "1.0.0"
+
+
 def create_plugin(marketplace_data, plugin_name, plugin_description, skill_paths):
     """Create a new plugin with skills."""
     # Check if plugin already exists
@@ -115,23 +154,34 @@ def create_plugin(marketplace_data, plugin_name, plugin_description, skill_paths
         skills_list = ["./"]
     else:
         # Multi-skill bundle - use common parent as source
-        # For now, keep current behavior (will be enhanced in future)
-        # TODO: Implement proper bundling logic in analyze_bundling.py
         source_path = "./"
         skills_list = normalized_skills
 
-    # Create new plugin
+    # Extract version from skill frontmatter
+    repo_root = Path(marketplace_data.get("_repo_root", "."))
+    version = extract_skill_version(normalized_skills[0], repo_root)
+
+    # Inherit author from marketplace owner
+    owner = marketplace_data.get("owner", {})
+
+    # Create new plugin with all required fields
     new_plugin = {
         "name": plugin_name,
         "description": plugin_description,
+        "category": "productivity",
+        "version": version,
+        "author": {
+            "name": owner.get("name", ""),
+            "email": owner.get("email", ""),
+        },
         "source": source_path,
-        "strict": False,
         "skills": skills_list,
     }
 
     marketplace_data["plugins"].append(new_plugin)
     print(f"✅ Created new plugin: {plugin_name}")
     print(f"   Source: {source_path}")
+    print(f"   Version: {version}")
     print(f"   Skills: {skills_list}")
     return True
 
@@ -840,9 +890,13 @@ Examples:
         for skill in args.skills:
             validate_skill_exists(skill, repo_root)
 
+        # Pass repo_root for version extraction, then remove before saving
+        marketplace_data["_repo_root"] = str(repo_root)
         if create_plugin(marketplace_data, args.name, args.description, args.skills):
+            marketplace_data.pop("_repo_root", None)
             save_marketplace(marketplace_path, marketplace_data)
         else:
+            marketplace_data.pop("_repo_root", None)
             return 1
 
     elif args.command == "add-skill":
