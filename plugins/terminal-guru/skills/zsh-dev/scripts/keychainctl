@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Colors (stderr only)
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+info()  { echo -e "${GREEN}$*${NC}" >&2; }
+warn()  { echo -e "${YELLOW}$*${NC}" >&2; }
+die()   { echo -e "${RED}error:${NC} $*" >&2; exit 1; }
+
+KEYCHAINCTL_KEYCHAIN="${KEYCHAINCTL_KEYCHAIN:-login.keychain}"
+
+has_fzf() { command -v fzf &>/dev/null; }
+is_tty()  { [[ -t 0 ]] && [[ -t 1 ]]; }
+
+# Normalize keychain name: auto-append .keychain if missing
+normalize_keychain() {
+  local kc="$1"
+  if [[ "$kc" != *.keychain && "$kc" != *.keychain-db ]]; then
+    echo "${kc}.keychain"
+  else
+    echo "$kc"
+  fi
+}
+
+resolve_keychain() {
+  local raw
+  # 1. Explicit argument
+  if [[ -n "${1:-}" ]]; then
+    raw="$1"
+  # 2. fzf interactive (if available + TTY)
+  elif has_fzf && is_tty; then
+    raw=$(security list-keychains | xargs -I{} basename {} '-db' \
+      | grep -v '^System\.keychain$' | fzf --prompt="Keychain> ") || true
+  fi
+  # 3. Default (env var or login.keychain)
+  normalize_keychain "${raw:-$KEYCHAINCTL_KEYCHAIN}"
+}
+
+cmd_get() {
+  local name="${1:-}" keychain
+  keychain=$(resolve_keychain "${2:-}")
+  if [[ -z "$name" ]]; then
+    # Interactive: browse secrets with fzf
+    if has_fzf && is_tty; then
+      name=$(security dump-keychain "$keychain" \
+        | awk -F= '/0x00000007/ {print $2}' | tr -d '"' \
+        | fzf --prompt="Secret> ") || die "No secret selected"
+    else
+      die "Usage: keychainctl get <name> [keychain]"
+    fi
+  fi
+  security find-generic-password -a "$USER" -s "$name" -w "$keychain" 2>/dev/null \
+    || die "Secret '$name' not found in $keychain"
+}
+
+cmd_set() {
+  local name="${1:-}" value="${2:-}" keychain
+  [[ -z "$name" ]] && die "Usage: keychainctl set <name> [value] [keychain]"
+  if [[ -z "$value" ]]; then
+    # Prompt for password securely
+    read -rsp "Password for '$name': " value < /dev/tty
+    echo >&2  # newline after hidden input
+    [[ -z "$value" ]] && die "Password cannot be empty"
+    keychain=$(resolve_keychain "${2:-}")
+  else
+    keychain=$(resolve_keychain "${3:-}")
+  fi
+  security add-generic-password -U -a "$USER" -s "$name" -w "$value" "$keychain" \
+    || die "Failed to store secret '$name' in $keychain"
+  info "Secret '$name' stored in $keychain"
+}
+
+cmd_rm() {
+  local name="${1:-}" keychain
+  [[ -z "$name" ]] && die "Usage: keychainctl rm <name> [keychain]"
+  keychain=$(resolve_keychain "${2:-}")
+  security delete-generic-password -a "$USER" -s "$name" "$keychain" &>/dev/null \
+    || die "Secret '$name' not found in $keychain"
+  info "Secret '$name' deleted from $keychain"
+}
+
+cmd_ls() {
+  local keychain
+  keychain=$(resolve_keychain "${1:-}")
+  local secrets
+  secrets=$(security dump-keychain "$keychain" \
+    | awk -F= '/0x00000007/ {print $2}' | tr -d '"' | sort -u)
+  if has_fzf && is_tty; then
+    echo "$secrets" | fzf --prompt="Secrets in $keychain> "
+  else
+    echo "$secrets"
+  fi
+}
+
+print_usage() {
+  cat >&2 << EOF
+Usage: $(basename "$0") <command> [args]
+
+Commands:
+  get <name> [keychain]    Retrieve a secret (password only to stdout)
+  set <name> [value] [kc]  Store a secret (prompts if value omitted)
+  rm  <name> [keychain]    Delete a secret
+  ls  [keychain]           List secrets (interactive with fzf if available)
+
+Environment:
+  KEYCHAINCTL_KEYCHAIN     Default keychain (default: login.keychain)
+
+Keychain names are auto-suffixed: 'login' becomes 'login.keychain'.
+
+Examples:
+  ASANA_TOKEN=\$(keychainctl get CLAUDE_ASANA)
+  keychainctl set CLAUDE_ASANA              # prompts for password
+  keychainctl set CLAUDE_ASANA sk-12345
+  keychainctl ls work                       # lists secrets in work.keychain
+EOF
+  exit 0
+}
+
+case "${1:-}" in
+  get)        shift; cmd_get "$@" ;;
+  set)        shift; cmd_set "$@" ;;
+  rm|delete)  shift; cmd_rm "$@" ;;
+  ls|list)    shift; cmd_ls "$@" ;;
+  -h|--help|"") print_usage ;;
+  *)          die "Unknown command: $1. Run '$(basename "$0") --help' for usage." ;;
+esac

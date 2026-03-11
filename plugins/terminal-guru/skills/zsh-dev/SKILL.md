@@ -1,6 +1,6 @@
 ---
 name: zsh-dev
-description: This skill should be used when working with Zsh shell configuration, autoload functions, fpath management, completions, function generation using established patterns, and comprehensive testing with isolated environments for performance optimization and plugin compatibility validation. Use for creating zsh functions, configuring fpath, testing config changes safely, optimizing shell startup, and Plugin Standard compliance.
+description: This skill should be used when the user asks to "create a zsh function", "configure fpath", "add a keychain secret", "set up keychainctl", "check shell startup", or needs help with autoload functions, completions, zsh testing, Plugin Standard compliance, storing tokens, retrieving secrets, or macOS keychain management via keychainctl.
 metadata:
   version: "3.0.0"
 ---
@@ -22,6 +22,7 @@ Create, test, and optimize Zsh shell configurations: autoload functions, fpath m
 - Plugin configuration and compatibility testing
 - Safe testing of configuration changes
 - Comparing different plugin managers or configurations
+- Storing and retrieving secrets via macOS keychain (`keychainctl`)
 
 ### Zsh Function Generation
 
@@ -284,9 +285,42 @@ zsh -x
 4. Compare: `python3 scripts/terminal_test_runner.py --compare omz.json zinit.json`
 5. Choose based on performance and compatibility results
 
+## Keychain Secret Management
+
+The `keychainctl` script provides a consistent CLI for macOS keychain operations, designed for storing and retrieving environment variables securely.
+
+```bash
+# Store a secret (prompts for password securely)
+keychainctl set CLAUDE_ASANA
+
+# Store with value inline
+keychainctl set CLAUDE_ASANA sk-12345
+
+# Retrieve for use in scripts
+ASANA_TOKEN=$(keychainctl get CLAUDE_ASANA)
+
+# List secrets (interactive with fzf if available)
+keychainctl ls
+
+# Use a specific keychain (auto-suffixed: 'work' becomes 'work.keychain')
+keychainctl ls work
+keychainctl get API_KEY work
+
+# Delete a secret
+keychainctl rm OLD_SECRET
+```
+
+**Key features:**
+- `get` outputs only the password to stdout — safe for `$(...)` capture
+- All other output goes to stderr
+- Optional fzf integration (interactive browse when TTY + fzf available, plain output otherwise)
+- `KEYCHAINCTL_KEYCHAIN` env var overrides default keychain (default: `login.keychain`)
+- Keychain names auto-suffixed with `.keychain` if missing
+
 ## Resources
 
 ### scripts/
+- **`keychainctl`** - macOS keychain secret management CLI (get, set, rm, ls)
 - **`environment_builder.py`** - Create and manage isolated ZDOTDIR test environments
 - **`terminal_test_runner.py`** - Run automated test suites in isolated environments
 - **`install_autoload.sh`** - Install Zsh autoload functions to correct fpath location
