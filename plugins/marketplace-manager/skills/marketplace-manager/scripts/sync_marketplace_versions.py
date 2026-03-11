@@ -227,6 +227,24 @@ def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
             print(f"⚠️  Plugin '{plugin_name}' uses deprecated 'version' field in SKILL.md")
             print(f"   Please use 'metadata.version' instead")
 
+        # Detect version drift between plugin.json and SKILL.md
+        # For single-skill plugins, plugin.json and SKILL.md should agree.
+        # For multi-skill bundles, individual skill versions track independently.
+        if source_label == 'plugin.json' and len(skills) == 1:
+            skill_versions_for_drift = get_skill_versions(source_dir, skills)
+            for skill_path, skill_ver in skill_versions_for_drift:
+                if skill_ver != source_version:
+                    print(f"⚠️  Version drift in plugin '{plugin_name}':")
+                    print(f"   plugin.json: {source_version}")
+                    print(f"   SKILL.md ({skill_path}): {skill_ver}")
+                    print(f"   Update both files to the same version before committing.")
+                    warnings.append({
+                        'plugin': plugin_name,
+                        'source': 'drift',
+                        'source_version': source_version,
+                        'marketplace_version': skill_ver,
+                    })
+
         current_marketplace_version = plugin.get('version', '1.0.0')
 
         # Report individual skill versions for multi-skill plugins
