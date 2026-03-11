@@ -1,7 +1,7 @@
 ---
 name: confluence-pages
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 compatibility:
   min_claude_code_version: "1.0.0"
 license: MIT
@@ -121,32 +121,75 @@ rm /tmp/confluence-update.json
 
 ### Move Page
 
+#### Same space — change parent
+
 ```bash
-# Same space — change parent
 curl -s -X PUT \
   -H "Authorization: Bearer $CONFLUENCE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"ancestors": [{"id": NEW_PARENT_PAGE_ID}]}' \
   "$CONFLUENCE_BASE_URL/rest/api/content/PAGE_ID"
+```
 
-# Different space — include space key and increment version
-cat > /tmp/confluence-move.json << 'EOF'
-{
-  "version": { "number": CURRENT_VERSION + 1 },
-  "title": "Page Title",
-  "type": "page",
-  "space": { "key": "NEW_SPACE_KEY" },
-  "ancestors": [{ "id": NEW_PARENT_PAGE_ID }]
+#### Cross-space move — workaround required
+
+> **Known issue:** Confluence Data Center does not reliably support cross-space moves via the REST API. The `PUT /content/{id}` endpoint with a different `space.key` often returns a generic error (`Could not update Content of type`), even when you have write access to both spaces. The `/content/{id}/move/append/{targetId}` endpoint may not exist on older DC versions.
+
+**Workaround: create in target space, redirect old page, then delete it.**
+
+```bash
+# Step 1: Fetch the source page body
+SOURCE_PAGE=$(curl -s -H "Authorization: Bearer $CONFLUENCE_TOKEN" \
+  "$CONFLUENCE_BASE_URL/rest/api/content/SOURCE_PAGE_ID?expand=body.storage")
+
+# Step 2: Create new page in target space (use Python + temp file for large bodies)
+python3 -c "
+import json, sys
+d = json.loads('''$SOURCE_PAGE''')  # or read from file
+payload = {
+    'type': 'page',
+    'title': d['title'],
+    'space': {'key': 'TARGET_SPACE_KEY'},
+    'ancestors': [{'id': TARGET_PARENT_ID}],
+    'body': d['body']
 }
-EOF
+with open('/tmp/confluence-move.json', 'w') as f:
+    json.dump(payload, f)
+"
 
-curl -s -X PUT \
+curl -s -X POST \
   -H "Authorization: Bearer $CONFLUENCE_TOKEN" \
   -H "Content-Type: application/json" \
   -d @/tmp/confluence-move.json \
-  "$CONFLUENCE_BASE_URL/rest/api/content/PAGE_ID"
+  "$CONFLUENCE_BASE_URL/rest/api/content"
 rm /tmp/confluence-move.json
+
+# Step 3: Update old page with redirect (optional, helps anyone with bookmarks)
+curl -s -X PUT \
+  -H "Authorization: Bearer $CONFLUENCE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "version": {"number": CURRENT_VERSION + 1},
+    "title": "Old Title - MOVED",
+    "type": "page",
+    "body": {"storage": {
+      "value": "<ac:structured-macro ac:name=\"info\" ac:schema-version=\"1\"><ac:parameter ac:name=\"title\">This page has moved</ac:parameter><ac:rich-text-body><p>This page has been moved to <a href=\"NEW_PAGE_URL\">new location</a>.</p></ac:rich-text-body></ac:structured-macro>",
+      "representation": "storage"
+    }}
+  }' \
+  "$CONFLUENCE_BASE_URL/rest/api/content/SOURCE_PAGE_ID"
+
+# Step 4: Delete old page when ready
+curl -s -X DELETE \
+  -H "Authorization: Bearer $CONFLUENCE_TOKEN" \
+  "$CONFLUENCE_BASE_URL/rest/api/content/SOURCE_PAGE_ID"
 ```
+
+**Recommended approach for cross-space moves:**
+1. Fetch source page content (body + title)
+2. Create new page in target space under desired parent
+3. Update old page title to "… - MOVED" with redirect link
+4. Delete old page once confirmed
 
 ### Delete Page
 
