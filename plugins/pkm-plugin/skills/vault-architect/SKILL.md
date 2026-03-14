@@ -9,8 +9,9 @@ description: >
   Architects new PKM structures and provides guidance for Templater, Bases, Chronos,
   and QuickAdd patterns. Particularly useful for creating automatic note organization systems,
   temporal rollup structures (daily to yearly), and maintaining job-agnostic organizational patterns.
+compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
   plugin: "pkm-plugin"
   stage: "3"
 ---
@@ -119,6 +120,36 @@ Each vault should maintain a System Guide documenting: folder structure, metadat
 3. Identify pain points (manual work, hard-to-find notes, inconsistencies)
 4. Propose specific improvements (frontmatter, queries, templates, folders)
 5. Implement incrementally, starting with highest-impact changes
+
+### Workflow Lookup, Capture, and Refinement
+
+**Before creating a workflow note, always check if one exists:**
+
+```bash
+obsidian search query="<topic>" limit=10
+obsidian read file="Workflows"   # shows Workflows.base — scan Current Workflows view
+```
+
+Workflows are discovered by `900 📐Templates/970 Bases/Workflows.base` via any of:
+- `file.folder == "700 Notes/Workflows"`
+- `fileClass == "Workflow"`
+- `tags.contains("workflow")`
+
+**Creating a new workflow note:** use the `New Workflow.md` Templater template (`900 📐Templates/910 File Templates/New Workflow.md`). It prompts for a title and auto-moves to `700 Notes/Workflows/`.
+
+Required frontmatter fields for the `Workflow` fileClass:
+
+| Field | Values |
+|-------|--------|
+| `status` | `Idea 💡` → `Scoping 🔭` → `Evolving ⤴️` → `Operational ⚙️` → `Degrading ⤵️` → `Deprecated ⛔️` |
+| `type` | `Ad-Hoc`, `AI🤖`, `Application`, `Documentation`, `Macros`, `Scripts`, `Task Template`, `Sequential`, `Agentic` |
+| `parent` / `child` | wikilinks to related workflows |
+| `dependencies` | wikilinks to tools/notes this workflow requires |
+| `fileClass` | `Workflow` (required for Bases to pick it up) |
+
+**Canonical note structure:** Description (inputs/outputs) → Steps → Use Cases table → Mermaid diagram → `## ![[#Mermaid]]` embed. See `[[Capture to Review]]` (`700 Notes/Workflows/Capture to Review.md`) as the reference example.
+
+**Capture-to-Review workflow** (for deferring non-urgent work): create note → inject wikilink into today's daily note under `## 🔗 Notes & References` (via `918 Snippet Templates/Insert Note Link.md` Templater snippet) → create OmniFocus inbox task with `obsidian://` deep link in Notes field. See `[[Capture to Review]]` for full steps.
 
 ## Resources
 

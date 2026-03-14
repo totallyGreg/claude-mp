@@ -89,35 +89,38 @@ def validate_skill(skill_path):
     if not match:
         return False, "Invalid frontmatter format", None
 
-    frontmatter = match.group(1)
+    frontmatter_text = match.group(1)
+
+    # Parse frontmatter as YAML to correctly handle block scalars (|, >), quoted
+    # strings, and nested keys — avoiding false positives from raw text scanning.
+    import yaml
+    try:
+        fm = yaml.safe_load(frontmatter_text) or {}
+    except yaml.YAMLError as e:
+        return False, f"Invalid YAML frontmatter: {e}", None
 
     # Check required fields
-    if 'name:' not in frontmatter:
+    if 'name' not in fm:
         return False, "Missing 'name' in frontmatter", None
-    if 'description:' not in frontmatter:
+    if 'description' not in fm:
         return False, "Missing 'description' in frontmatter", None
 
-    # Extract name for validation
-    name_match = re.search(r'name:\s*(.+)', frontmatter)
-    if name_match:
-        name = name_match.group(1).strip()
-        # Check naming convention (hyphen-case: lowercase with hyphens)
-        if not re.match(r'^[a-z0-9-]+$', name):
-            return False, f"Name '{name}' should be hyphen-case (lowercase letters, digits, and hyphens only)", None
-        if name.startswith('-') or name.endswith('-') or '--' in name:
-            return False, f"Name '{name}' cannot start/end with hyphen or contain consecutive hyphens", None
+    # Validate name
+    name = str(fm['name']).strip()
+    if not re.match(r'^[a-z0-9-]+$', name):
+        return False, f"Name '{name}' should be hyphen-case (lowercase letters, digits, and hyphens only)", None
+    if name.startswith('-') or name.endswith('-') or '--' in name:
+        return False, f"Name '{name}' cannot start/end with hyphen or contain consecutive hyphens", None
 
-    # Extract and validate description
-    desc_match = re.search(r'description:\s*(.+)', frontmatter)
-    if desc_match:
-        description = desc_match.group(1).strip()
-        # Check for angle brackets
-        if '<' in description or '>' in description:
-            return False, "Description cannot contain angle brackets (< or >)", None
+    # Validate description (parsed value — block scalar indicators are not included)
+    description = str(fm['description']).strip()
+    if '<' in description or '>' in description:
+        return False, "Description cannot contain angle brackets (< or >)", None
 
-    # Extract version for potential use by other scripts
-    version_match = re.search(r'version:\s*(.+)', frontmatter)
-    skill_version = version_match.group(1).strip() if version_match else None
+    # Extract version — may be top-level or nested under metadata:
+    metadata = fm.get('metadata', {}) or {}
+    skill_version = str(fm['version']).strip() if 'version' in fm else \
+                    str(metadata['version']).strip() if 'version' in metadata else None
 
     return True, "Skill is valid!", skill_version
 
