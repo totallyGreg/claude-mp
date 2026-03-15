@@ -12,7 +12,7 @@ description: >
   Curates and evolves existing vault content through pattern detection, migration workflows,
   metadata intelligence, consolidation, discovery, visualization, and programmatic manipulation.
 metadata:
-  version: "1.5.1"
+  version: "1.5.2"
   plugin: "pkm-plugin"
   stage: "3"
 compatibility: Requires python3.11+ and uv for script execution. Obsidian CLI 1.12+ for intelligence workflows.

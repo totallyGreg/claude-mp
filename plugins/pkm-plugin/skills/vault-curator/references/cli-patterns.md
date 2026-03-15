@@ -32,8 +32,18 @@ obsidian tags all counts sort=count                   # vault-wide tags by frequ
 obsidian tag name=<tag>                               # files with specific tag
 ```
 
+## File Creation
+
+```bash
+# WARNING: folder= parameter in create is broken — files land at vault root
+# Always use create + move:
+obsidian create "Note Title" silent                        # creates at vault root
+obsidian move file="Note Title.md" to="Folder/SubFolder"  # moves to correct location
+```
+
 ## Safety Rules
 
+- **`folder=` in `create` is unreliable** — always use `create` + `move` instead
 - Always use `silent` flag with `create` (prevents opening files in UI)
 - Always use `format=json` for programmatic output
 - Use `tasks all todo` not `tasks todo` (latter defaults to active file)
