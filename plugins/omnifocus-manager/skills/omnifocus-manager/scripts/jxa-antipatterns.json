@@ -19,6 +19,13 @@
       "pattern": "Document\\.defaultDocument",
       "severity": "error",
       "message": "Use app.defaultDocument instead of Document.defaultDocument"
+    },
+    {
+      "id": "no-exact-tag-match",
+      "pattern": "\\.name\\(\\)\\s*===?\\s*['\"]",
+      "severity": "warning",
+      "message": "Exact tag name matching fails when names contain Unicode/emoji. Use .toLowerCase().includes() for lookup.",
+      "reference": "references/jxa_guide.md#looking-up-tags"
     }
   ],
   "blocked_always": [

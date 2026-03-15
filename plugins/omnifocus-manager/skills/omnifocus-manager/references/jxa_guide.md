@@ -164,6 +164,41 @@ This is a summary of the most common objects and properties available through th
 *   `.name()`: The name of the tag.
 *   `.tasks()`: An array of tasks associated with the tag.
 
+## Looking Up Tags
+
+Tag names in OmniFocus often contain Unicode characters or emoji (e.g. `"Capture 📥"`, `"Claude Code 🦀"`). Exact string matching with `===` will fail silently or return `undefined`.
+
+**Always use substring matching:**
+
+```javascript
+// WRONG — fails when tag name contains Unicode/emoji
+const tag = of.flattenedTags().find(t => t.name() === 'Capture');
+
+// CORRECT — case-insensitive substring match
+const tag = of.flattenedTags().find(t => t.name().toLowerCase().includes('capture'));
+```
+
+## Adding Tags to a Task
+
+The `.addTag()` method on the Task object is not supported in JXA. Use `app.add()` with the `to:` parameter instead:
+
+```javascript
+// WRONG — throws type error
+task.addTag(tagObject);
+
+// CORRECT
+of.add(tagObject, { to: task.tags });
+```
+
+## Removing Tags from a Task
+
+`clearTags()` is not supported. Iterate and remove:
+
+```javascript
+const tagsToRemove = task.tags().filter(t => t.name().toLowerCase().includes('sometag'));
+tagsToRemove.forEach(t => of.remove(t, { from: task.tags }));
+```
+
 ## 5. Command-Line Interface (`manage_omnifocus.js`)
 
 This skill includes a ready-to-use CLI script for common operations.
