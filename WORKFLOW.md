@@ -152,10 +152,16 @@ git commit -m "feat(skill-name): Final changes (#123)"
 # Sync marketplace before committing release
 uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py
 
-git add skills/skill-name/IMPROVEMENT_PLAN.md skills/skill-name/SKILL.md .claude-plugin/marketplace.json
+git add plugins/plugin-name/skills/skill-name/IMPROVEMENT_PLAN.md \
+        plugins/plugin-name/skills/skill-name/SKILL.md \
+        plugins/plugin-name/.claude-plugin/plugin.json \
+        .claude-plugin/marketplace.json
 git commit -m "chore: Release skill-name v1.5.0
 
 Closes #123"
+
+# Push to remote
+git push origin main
 ```
 
 **Post-release:**
@@ -340,11 +346,13 @@ uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py \
 
 # 4. Update IMPROVEMENT_PLAN.md — add version row with metrics from step 3
 # 5. Bump version in SKILL.md metadata.version (PATCH/MINOR/MAJOR)
-# 6. If plugin has plugin.json — bump version there too to match
+# 6. Bump version in plugin.json to match (always required for plugin-based skills)
 # 7. Sync marketplace versions
 uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py
-# 8. Include marketplace.json in release commit
-# 9. Create two-commit release (see "Implementation & Release" section)
+# 8. Create release commit including SKILL.md, plugin.json, IMPROVEMENT_PLAN.md, marketplace.json
+# 9. Push to remote
+git push origin main
+# See "Implementation & Release" section for two-commit strategy details
 ```
 
 ### Plugin Component Checklist (agents, hooks, commands)

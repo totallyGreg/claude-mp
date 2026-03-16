@@ -69,7 +69,7 @@ For each **incomplete** task in order:
 3. **Verify**: Run relevant tests or checks to confirm the work is done
 4. **Mark complete in OmniFocus**:
    ```bash
-   cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/manage_omnifocus.js complete --id "<task-id>"
+   ${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/ofo complete "<task-id>"
    ```
 5. **Ask to continue**: After each task, ask: "Task complete. Continue to next task?"
 
