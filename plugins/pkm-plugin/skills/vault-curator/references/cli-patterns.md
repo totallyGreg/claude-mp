@@ -41,8 +41,20 @@ obsidian create "Note Title" silent                        # creates at vault ro
 obsidian move file="Note Title.md" to="Folder/SubFolder"  # moves to correct location
 ```
 
+## File Updates
+
+```bash
+# WARNING: obsidian file is READ-ONLY — content and overwrite params are silently ignored
+# WRONG — appears to succeed but file contents are unchanged:
+obsidian file path="note.md" overwrite content="updated content" silent
+
+# CORRECT — use create with overwrite to update file content:
+obsidian create path="note.md" overwrite content="updated content" silent
+```
+
 ## Safety Rules
 
+- **`obsidian file` is read-only** — `content` and `overwrite` params are silently ignored; use `obsidian create ... overwrite` for content writes
 - **`folder=` in `create` is unreliable** — always use `create` + `move` instead
 - Always use `silent` flag with `create` (prevents opening files in UI)
 - Always use `format=json` for programmatic output

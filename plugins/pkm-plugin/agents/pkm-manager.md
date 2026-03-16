@@ -90,6 +90,8 @@ At session start, discover vault location:
 
 The installed obsidian-cli skills provide safe CLI patterns. Key safety rules:
 
+- **`obsidian file` is read-only** — `content` and `overwrite` params are silently ignored; use `obsidian create ... overwrite` for content writes
+- **`folder=` in `create` is unreliable** — always use `create` + `move` instead
 - Always use `silent` flag with `create` (prevents opening files in UI)
 - Always use `format=json` for programmatic output
 - Use `tasks all todo` not `tasks todo` (latter defaults to active file)

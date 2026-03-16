@@ -1,11 +1,12 @@
 # Vault Curator - Improvement Plan
 
-## Current Version: 1.5.2
+## Current Version: 1.5.3
 
 ## Version History
 
 | Version | Date | Changes | Overall | Conc | Comp | Spec | Prog | Desc |
 |---------|------|---------|---------|------|------|------|------|------|
+| 1.5.3 | 2026-03-16 | Fix: document `obsidian file` is read-only; warn content/overwrite silently ignored (#103) | 90 | 78 | 88 | 90 | 100 | 100 |
 | 1.5.2 | 2026-03-14 | Fix: document create+move pattern; warn folder= in create is unreliable | 78 | 88 | 90 | 100 | 90 | — |
 | 1.5.1 | 2026-03-05 | Description + conciseness improvement: 11 trigger phrases, CLI moved to ref, planned scripts fixed (#89) | 90 | 78 | 88 | 90 | 100 | 100 |
 | 1.5.0 | 2026-02-16 | Visualization workflows: generate_canvas.py | 85 | 66 | 86 | 90 | 100 | 80 |
@@ -22,6 +23,7 @@
 | [#45](https://github.com/totallyGreg/claude-mp/issues/45) | High | Consolidation Workflows (Phase 2) | Done |
 | [#46](https://github.com/totallyGreg/claude-mp/issues/46) | Medium | Discovery Workflows (Phase 3) | Done |
 | [#47](https://github.com/totallyGreg/claude-mp/issues/47) | Medium | Visualization Workflows (Phase 4) | Done |
+| [#103](https://github.com/totallyGreg/claude-mp/issues/103) | High | Document `obsidian file` is read-only; use `obsidian create ... overwrite` for updates | Done |
 | — | High | Phase 4 Scripts (original): import_calendar_event.py, migrate_meetings_scope.py, match_person_by_email.py, find_orphans.py | Planned |
 | — | Medium | Slash Commands: /extract-meeting, /import-calendar, /migrate-meetings | Planned |
 | — | Medium | Test Suite: pytest tests for Python scripts | Planned |
