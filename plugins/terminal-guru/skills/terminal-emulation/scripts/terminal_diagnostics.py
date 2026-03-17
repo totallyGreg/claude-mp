@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.9"
+# ///
 """
 Terminal diagnostics tool to check terminal capabilities, environment, and locale settings.
 
