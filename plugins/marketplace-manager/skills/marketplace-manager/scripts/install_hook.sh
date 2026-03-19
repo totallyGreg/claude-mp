@@ -54,6 +54,15 @@ HOOK_PATH="$REPO_ROOT/.git/hooks/pre-commit"
 echo -e "${BLUE}🔧 marketplace-manager pre-commit hook installer${NC}"
 echo ""
 
+# Check if marketplace.json exists in target repo
+MARKETPLACE_JSON="$REPO_ROOT/.claude-plugin/marketplace.json"
+if [ ! -f "$MARKETPLACE_JSON" ]; then
+    echo -e "${YELLOW}⚠️  No marketplace.json found in target repo${NC}"
+    echo -e "${YELLOW}   The hook requires .claude-plugin/marketplace.json to function.${NC}"
+    echo -e "${YELLOW}   Initialize with: uv run $SCRIPT_DIR/add_to_marketplace.py init${NC}"
+    echo ""
+fi
+
 # Check if template exists
 if [ ! -f "$TEMPLATE_PATH" ]; then
     echo -e "${RED}❌ Error: Template not found at $TEMPLATE_PATH${NC}"
@@ -87,8 +96,10 @@ if [ -f "$HOOK_PATH" ]; then
         exit 0
     fi
     
-    # Check if hook content matches template
-    if diff -q "$TEMPLATE_PATH" "$HOOK_PATH" >/dev/null 2>&1 && [ "$FORCE" = false ]; then
+    # Check if hook content matches template (ignoring embedded path lines)
+    HOOK_NORMALIZED=$(grep -v "^EMBEDDED_SCRIPTS_DIR=" "$HOOK_PATH" | grep -v "^EMBEDDED_INSTALL_CMD=")
+    TEMPLATE_NORMALIZED=$(grep -v "^EMBEDDED_SCRIPTS_DIR=" "$TEMPLATE_PATH" | grep -v "^EMBEDDED_INSTALL_CMD=")
+    if [ "$HOOK_NORMALIZED" = "$TEMPLATE_NORMALIZED" ] && [ "$FORCE" = false ]; then
         echo ""
         echo -e "${GREEN}✅ Hook is up-to-date (identical to template)${NC}"
         echo -e "   Use --force to reinstall anyway"
@@ -117,7 +128,8 @@ if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}[DRY RUN] Would perform:${NC}"
     echo -e "  1. Copy $TEMPLATE_PATH"
     echo -e "     to   $HOOK_PATH"
-    echo -e "  2. Set executable permissions (chmod +x)"
+    echo -e "  2. Embed script path: $SCRIPT_DIR"
+    echo -e "  3. Set executable permissions (chmod +x)"
     echo ""
     echo -e "${GREEN}✅ Dry run complete${NC}"
     exit 0
@@ -133,13 +145,21 @@ mkdir -p "$(dirname "$HOOK_PATH")"
 # Copy template to hook location
 cp "$TEMPLATE_PATH" "$HOOK_PATH"
 
+# Embed the resolved script directory and install command into the hook
+# Portable sed -i across macOS (BSD) and Linux (GNU)
+sed_inplace() { if [[ "$OSTYPE" == "darwin"* ]]; then sed -i '' "$@"; else sed -i "$@"; fi; }
+sed_inplace "s|^EMBEDDED_SCRIPTS_DIR=.*|EMBEDDED_SCRIPTS_DIR=\"$SCRIPT_DIR\"|" "$HOOK_PATH"
+INSTALL_CMD="bash $SCRIPT_DIR/install_hook.sh"
+sed_inplace "s|^EMBEDDED_INSTALL_CMD=.*|EMBEDDED_INSTALL_CMD=\"$INSTALL_CMD\"|" "$HOOK_PATH"
+
 # Set executable permissions
 chmod +x "$HOOK_PATH"
 
 echo -e "${GREEN}✅ Hook installed successfully (v$TEMPLATE_VERSION)${NC}"
 echo ""
-echo -e "Location: $HOOK_PATH"
-echo -e "Version:  v$TEMPLATE_VERSION"
+echo -e "Location:    $HOOK_PATH"
+echo -e "Version:     v$TEMPLATE_VERSION"
+echo -e "Scripts at:  $SCRIPT_DIR"
 echo ""
 echo -e "${GREEN}The hook will now automatically sync marketplace.json on commits${NC}"
 echo -e "To bypass temporarily: ${YELLOW}git commit --no-verify${NC}"

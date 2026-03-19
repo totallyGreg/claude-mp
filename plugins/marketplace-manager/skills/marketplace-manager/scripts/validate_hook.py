@@ -119,10 +119,13 @@ def validate_hook(json_output=False):
                 f"template={template_version}"
             )
     
-    # Check if content matches template
+    # Check if content matches template (ignoring embedded path lines)
     try:
         with open(template_path, 'r') as f1, open(hook_path, 'r') as f2:
-            if f1.read() == f2.read():
+            embedded_prefixes = ('EMBEDDED_SCRIPTS_DIR=', 'EMBEDDED_INSTALL_CMD=')
+            template_lines = [l for l in f1.readlines() if not l.startswith(embedded_prefixes)]
+            hook_lines = [l for l in f2.readlines() if not l.startswith(embedded_prefixes)]
+            if template_lines == hook_lines:
                 results["matches_template"] = True
     except Exception as e:
         results["warnings"].append(f"Could not compare files: {e}")
