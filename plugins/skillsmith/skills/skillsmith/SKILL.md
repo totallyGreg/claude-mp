@@ -3,7 +3,7 @@ name: skillsmith
 description: This skill should be used when users ask to "create a skill", "validate a skill for quality", "evaluate skill improvements", "research skill opportunities", "analyze skill metrics", "improve skill quality", "init a new skill", "check skill compliance", or "sync skill to marketplace". Provides comprehensive skill development with automated validation, metrics tracking, and improvement workflows.
 metadata:
   author: J. Greg Williams
-  version: "5.3.0"
+  version: "6.0.0"
 compatibility: Requires python3 and uv for script execution and validation
 license: Complete terms in LICENSE.txt
 ---
@@ -98,7 +98,7 @@ Evaluate → Identify lowest score → Apply targeted fix → Re-evaluate → Re
 
 **Improvement routing** (see `references/improvement_workflow_guide.md`):
 - **Quick updates** (<50 lines, single file, additive): Fix directly, auto PATCH bump
-- **Complex improvements** (>50 lines, multi-file, structural): GitHub Issue + IMPROVEMENT_PLAN.md
+- **Complex improvements** (>50 lines, multi-file, structural): GitHub Issue + README.md version row
 
 **Additional commands:**
 
@@ -109,7 +109,7 @@ uv run scripts/evaluate_skill.py <skill-path> --store-metrics
 # Compare before/after improvement
 uv run scripts/evaluate_skill.py <skill-path> --compare <original-path>
 
-# Export version history row for IMPROVEMENT_PLAN.md
+# Export version history row for README.md Version History table
 uv run scripts/evaluate_skill.py <skill-path> --export-table-row --version 2.0.0
 ```
 
@@ -126,12 +126,13 @@ After improvements, optionally invoke **marketplace-manager** to sync versions t
 |-----------|---------|
 | `references/agentskills_specification.md` | Complete AgentSkills spec, validation checklist, naming rules |
 | `references/skill_creation_detailed_guide.md` | Detailed editing, writing style, progressive disclosure |
-| `references/validation_tools_guide.md` | Full evaluate_skill.py and research_skill.py documentation |
+| `references/validation_tools_guide.md` | Full evaluate_skill.py documentation |
 | `references/python_uv_guide.md` | Python scripts with uv and PEP 723 inline metadata |
 | `references/improvement_workflow_guide.md` | Improvement routing logic and workflows |
 | `references/progressive_disclosure_discipline.md` | Avoiding documentation bloat |
 | `references/reference_management_guide.md` | Managing reference files |
-| `references/improvement_plan_best_practices.md` | Version history and planning documentation |
+| `references/improvement_plan_best_practices.md` | README.md format, version history and planning documentation |
+| `references/readme_template.md` | README.md template and authoring guidance |
 | `references/research_guide.md` | Research phases, metrics interpretation |
 | `references/integration_guide.md` | Integration patterns with marketplace-manager |
 | `references/form_templates.md` | Form templates for structured data collection |
