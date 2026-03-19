@@ -1,21 +1,17 @@
 # Skill Validation & Analysis Tools Guide
 
-This reference provides comprehensive documentation for skillsmith's validation and analysis tools. Load this file when you need detailed guidance on using `evaluate_skill.py` or `research_skill.py`.
+This reference provides comprehensive documentation for skillsmith's validation and analysis tools. Load this file when you need detailed guidance on using `evaluate_skill.py`.
 
 ---
 
 ## Overview
 
-**`evaluate_skill.py` is the primary tool** for all skill validation and evaluation. Other scripts are either deprecated or serve specialized purposes.
+**`evaluate_skill.py` is the primary tool** for all skill validation and evaluation.
 
 | Script | Status | Purpose |
 |--------|--------|---------|
 | `evaluate_skill.py` | **PRIMARY** | All validation and evaluation |
 | `init_skill.py` | Active | Create new skills from template |
-| `research_skill.py` | Experimental | Deep research (40% complete) |
-| `validate_workflow.py` | **DEPRECATED** | Use evaluate_skill.py directly |
-| `audit_improvements.py` | **DEPRECATED** | Only works with old format |
-| `update_references.py` | Active | Reference duplicate detection |
 
 ---
 
@@ -62,7 +58,7 @@ Fast structural validation for pre-commit hooks and CI/CD pipelines:
 - Character limits (name ≤64 chars, description ≤1024 chars)
 - Naming conventions (lowercase-with-hyphens)
 - Version field presence (in metadata or frontmatter)
-- IMPROVEMENT_PLAN.md completeness checking (optional)
+- README.md completeness checking (optional)
 
 #### Comprehensive Evaluation Mode
 Full quality assessment with detailed metrics:
@@ -148,7 +144,7 @@ When strict mode reports issues you want to defer:
 
 1. Acknowledge the issues (don't ignore them)
 2. Create a GitHub issue for the deferred work
-3. Document the deferral in your IMPROVEMENT_PLAN.md
+3. Document the deferral in your README.md
 4. Later: Complete the deferred work in a follow-up phase
 
 Example workflow:
@@ -161,7 +157,7 @@ uv run scripts/evaluate_skill.py skills/my-skill --quick --strict
 gh issue create --title "my-skill: Fix documentation issues"
 # Output: Created issue #456
 
-# 2. Document in IMPROVEMENT_PLAN.md Active Work section:
+# 2. Document in README.md Active Work section:
 # - [#456](link): Fix documentation issues (Planning)
 
 # 3. Later: Complete the deferred work and run strict validation again
@@ -380,7 +376,7 @@ User: "Improve the skillsmith skill"
 → Skillsmith runs research_skill.py for baseline analysis
 → Research findings inform GitHub Issue creation
 → Issue includes baseline metrics and opportunities
-→ IMPROVEMENT_PLAN.md updated with research context
+→ README.md updated with research context
 → Implementation proceeds with data-driven approach
 ```
 

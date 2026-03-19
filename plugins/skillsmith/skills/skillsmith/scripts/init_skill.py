@@ -335,15 +335,39 @@ Example asset files from other skills:
 Note: This is a text placeholder. Actual assets can be any file type.
 """
 
-IMPROVEMENT_PLAN_TEMPLATE = """# {skill_title} - Improvement Plan
+README_TEMPLATE = """# {skill_title}
+
+[TODO: 2-4 sentence prose description of what this skill enables and when to use it.
+Written for a developer onboarding to the skill — not a trigger description.]
+
+## Capabilities
+
+- [TODO: Concrete capability 1]
+- [TODO: Concrete capability 2]
+- [TODO: Concrete capability 3]
+
+## Current Metrics
+
+*Last evaluated: {date}*
+
+| Metric | Score | Interpretation |
+|--------|-------|----------------|
+| Conciseness | -/100 | Run evaluate_skill.py to score |
+| Complexity | -/100 | Run evaluate_skill.py to score |
+| Spec Compliance | -/100 | Run evaluate_skill.py to score |
+| Progressive Disclosure | -/100 | Run evaluate_skill.py to score |
+| Description Quality | -/100 | Run evaluate_skill.py to score |
+| **Overall** | **-/100** | Run `--update-readme` after first eval |
+
+Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
 
 ## Version History
 
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
-|---------|------|-------|---------|------|------|------|------|---------|
-| 1.0.0 | {date} | - | Initial release | - | - | - | - | - |
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
+|---------|------|-------|---------|------|------|------|------|------|---------|
+| 1.0.0 | {date} | - | Initial release | - | - | - | - | - | - |
 
-**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure (0-100 scale)
+**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure, Desc=Description Quality (0-100 scale)
 
 ## Active Work
 
@@ -353,24 +377,17 @@ See GitHub Issues for detailed plans and task checklists.
 
 ## Known Issues
 
-None yet. Report issues at https://github.com/{{{{repo}}}}/issues
+None yet. Report issues at https://github.com/totallyGreg/claude-mp/issues
 
 ## Archive
 
-For complete development history:
-- Git commit history: `git log --grep="{skill_name}"`
-- Closed issues: https://github.com/{{{{repo}}}}/issues?q=label:enhancement+is:closed
-- Cross-skill learnings: docs/lessons/
+- Git history: `git log --grep="{skill_name}"`
+- Closed issues: https://github.com/totallyGreg/claude-mp/issues?q=label:enhancement+is:closed
+- Cross-skill learnings: `docs/lessons/`
 
 ---
 
-**Development Workflow:**
-
-See repository `/WORKFLOW.md` for complete documentation on:
-- GitHub Issues as source of truth for ALL planning
-- IMPROVEMENT_PLAN.md format (this lightweight release notes + metrics)
-- Two-commit release strategy
-- Using `uv run scripts/evaluate_skill.py --export-table-row` to capture metrics
+*Run `uv run scripts/evaluate_skill.py <path> --update-readme` after each evaluation to keep metrics current.*
 """
 
 
@@ -433,19 +450,19 @@ def init_skill(skill_name, skills_dir, template_type=TEMPLATE_STANDARD):
         print(f"❌ Error creating SKILL.md: {e}")
         return None
 
-    # Create IMPROVEMENT_PLAN.md from template (skip for minimal)
+    # Create README.md from template (skip for minimal)
     if template_type != TEMPLATE_MINIMAL:
         today = datetime.now().strftime("%Y-%m-%d")
-        improvement_plan_content = IMPROVEMENT_PLAN_TEMPLATE.format(
+        readme_content = README_TEMPLATE.format(
             skill_name=skill_name, skill_title=skill_title, date=today
         )
 
-        improvement_plan_path = skill_dir / "IMPROVEMENT_PLAN.md"
+        readme_path = skill_dir / "README.md"
         try:
-            improvement_plan_path.write_text(improvement_plan_content)
-            print("✅ Created IMPROVEMENT_PLAN.md")
+            readme_path.write_text(readme_content)
+            print("✅ Created README.md")
         except Exception as e:
-            print(f"❌ Error creating IMPROVEMENT_PLAN.md: {e}")
+            print(f"❌ Error creating README.md: {e}")
             return None
 
     # Create resource directories based on template type
@@ -455,7 +472,7 @@ def init_skill(skill_name, skills_dir, template_type=TEMPLATE_STANDARD):
             pass
 
         elif template_type == TEMPLATE_STANDARD:
-            # Standard: references/ and optional scripts/
+            # Standard: references/, scripts/, and examples/
             references_dir = skill_dir / "references"
             references_dir.mkdir(exist_ok=True)
             example_reference = references_dir / "detailed_guide.md"
@@ -468,6 +485,11 @@ def init_skill(skill_name, skills_dir, template_type=TEMPLATE_STANDARD):
             example_script.write_text(EXAMPLE_SCRIPT.format(skill_name=skill_name))
             example_script.chmod(0o755)
             print("✅ Created scripts/helper.py")
+
+            examples_dir = skill_dir / "examples"
+            examples_dir.mkdir(exist_ok=True)
+            (examples_dir / ".gitkeep").write_text("")
+            print("✅ Created examples/")
 
         else:  # TEMPLATE_COMPLETE
             # Complete: All resource directories
@@ -493,6 +515,12 @@ def init_skill(skill_name, skills_dir, template_type=TEMPLATE_STANDARD):
                 ref_file.write_text(EXAMPLE_REFERENCE.format(skill_title=skill_title))
                 print(f"✅ Created references/{ref_name}")
 
+            # Create examples/ directory
+            examples_dir = skill_dir / "examples"
+            examples_dir.mkdir(exist_ok=True)
+            (examples_dir / ".gitkeep").write_text("")
+            print("✅ Created examples/")
+
             # Create assets/ directory
             assets_dir = skill_dir / "assets"
             assets_dir.mkdir(exist_ok=True)
@@ -513,8 +541,10 @@ def init_skill(skill_name, skills_dir, template_type=TEMPLATE_STANDARD):
     if template_type == TEMPLATE_MINIMAL:
         print("2. Run the validator when ready: uv run scripts/evaluate_skill.py <path> --quick")
     else:
-        print("2. Customize or delete the example files in resource directories")
-        print("3. Run the validator when ready: uv run scripts/evaluate_skill.py <path> --quick")
+        print("2. Fill in the prose description and capabilities in README.md")
+        print("3. Customize or delete the example files in resource directories")
+        print("4. Run the validator when ready: uv run scripts/evaluate_skill.py <path> --quick")
+        print("5. Update README.md metrics: uv run scripts/evaluate_skill.py <path> --update-readme")
 
     return skill_dir
 

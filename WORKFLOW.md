@@ -3,17 +3,17 @@
 ## Overview: Source of Truth Hierarchy
 
 ```
-docs/lessons/         →  docs/plans/           →  GitHub Issues      →  IMPROVEMENT_PLAN.md
+docs/lessons/         →  docs/plans/           →  GitHub Issues      →  README.md
 (Post-work learnings)    (Pre-work planning)      (Active tracking)      (Issue state summary)
                                                   (SOURCE OF TRUTH)
 ```
 
-**Key Principle**: GitHub Issues are the canonical source of truth for work tracking. IMPROVEMENT_PLAN.md is a simple table that reflects issue state, not detailed planning.
+**Key Principle**: GitHub Issues are the canonical source of truth for work tracking. README.md is a simple table that reflects issue state, not detailed planning.
 
 ## Quick Reference
 
 **Simple changes**: Commit directly to main
-**Complex work**: Lessons → Plans → Issues → IMPROVEMENT_PLAN.md
+**Complex work**: Lessons → Plans → Issues → README.md
 
 ## Workflow Steps
 
@@ -72,9 +72,9 @@ The issue checklist is the **source of truth** for work status.
 - Timeline and discussion history
 - Email notifications and mentions
 
-### 4. Update IMPROVEMENT_PLAN.md (Reflects Issues)
+### 4. Update README.md (Reflects Issues)
 
-**IMPORTANT**: IMPROVEMENT_PLAN.md is a **lightweight release notes + metrics tracker**, not detailed planning.
+**IMPORTANT**: README.md is a **lightweight release notes + metrics tracker**, not detailed planning.
 
 **Target Size**: 100-300 lines total (bounded and scannable)
 
@@ -119,7 +119,7 @@ For complete development history:
 
 **Example workflow:**
 1. Create issue #123 with detailed tasks
-2. Add to IMPROVEMENT_PLAN.md Active Work section: `- [#123](link): Feature Name (Planning)`
+2. Add to README.md Active Work section: `- [#123](link): Feature Name (Planning)`
 3. Start work: Update to "In Progress"
 4. Complete work: Add row to Version History table with metrics from `evaluate_skill.py --export-table-row`
 5. Close issue #123 in GitHub
@@ -142,7 +142,7 @@ git commit -m "feat(skill-name): Final changes (#123)"
 ```
 
 **Commit 2 - Release** (version bump):
-- Update IMPROVEMENT_PLAN.md table (move #123 from Planned → Completed)
+- Update README.md table (move #123 from Planned → Completed)
 - Add version, date, and key changes to Completed table
 - Bump version in SKILL.md
 - Sync marketplace: run `/mp-sync` or `uv run .../sync_marketplace_versions.py`
@@ -152,7 +152,7 @@ git commit -m "feat(skill-name): Final changes (#123)"
 # Sync marketplace before committing release
 uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py
 
-git add plugins/plugin-name/skills/skill-name/IMPROVEMENT_PLAN.md \
+git add plugins/plugin-name/skills/skill-name/README.md \
         plugins/plugin-name/skills/skill-name/SKILL.md \
         plugins/plugin-name/.claude-plugin/plugin.json \
         .claude-plugin/marketplace.json
@@ -166,7 +166,7 @@ git push origin main
 
 **Post-release:**
 - GitHub automatically closes issue #123
-- IMPROVEMENT_PLAN.md now shows historical record in Completed table
+- README.md now shows historical record in Completed table
 - Issue remains searchable with full implementation discussion
 
 ### 6. Closing an Issue
@@ -235,7 +235,7 @@ docs/
   lessons/        # Cross-skill learnings (permanent, post-work retrospectives)
 skills/
   skill-name/
-    IMPROVEMENT_PLAN.md  # Lightweight metrics + release notes (~100-300 lines)
+    README.md  # Lightweight metrics + release notes (~100-300 lines)
     SKILL.md            # Metadata and version
     references/         # Detailed documentation
 ```
@@ -265,10 +265,10 @@ Keep planning documents INSIDE the repository where they are:
 | Active work tracking | GitHub Issues | Source of truth for ALL planning & tracking | Until closed |
 | Pre-work planning | docs/plans/ | Design and research (version controlled in repo) | Ephemeral or permanent |
 | Post-work learnings | docs/lessons/ | Cross-skill retrospectives and patterns | Permanent |
-| Release notes + metrics | IMPROVEMENT_PLAN.md | Lightweight version history (~100-300 lines) | Permanent |
+| Release notes + metrics | README.md | Lightweight version history (~100-300 lines) | Permanent |
 | Detailed docs | skills/*/references/ | Implementation guides and API docs | Permanent |
 
-**Key Principle**: ALL detailed planning happens in GitHub Issues. IMPROVEMENT_PLAN.md just reflects issue state with version history and metrics.
+**Key Principle**: ALL detailed planning happens in GitHub Issues. README.md just reflects issue state with version history and metrics.
 
 ## Validation Gates and Quality Enforcement
 
@@ -294,7 +294,7 @@ Skills use a validation gate system to ensure quality before release:
 2. **Before release**: Run strict validation to ensure quality
 3. **If issues found in strict mode**:
    - Either fix them (preferred)
-   - Or explicitly defer with GitHub issue + document in IMPROVEMENT_PLAN.md
+   - Or explicitly defer with GitHub issue + document in README.md
 4. **Release**: Only release when strict validation passes (exit code 0)
 
 ### Marketplace Sync
@@ -340,16 +340,16 @@ uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py \
 #    Option A (preferred): Fix them and re-run validation
 #    Option B: Create GitHub issue and document deferral
 
-# 3. Full evaluation for metrics (used in IMPROVEMENT_PLAN.md row)
+# 3. Full evaluation for metrics (used in README.md row)
 uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py \
   plugins/<plugin-name>/skills/<skill-name> --export-table-row
 
-# 4. Update IMPROVEMENT_PLAN.md — add version row with metrics from step 3
+# 4. Update README.md — add version row with metrics from step 3
 # 5. Bump version in SKILL.md metadata.version (PATCH/MINOR/MAJOR)
 # 6. Bump version in plugin.json to match (always required for plugin-based skills)
 # 7. Sync marketplace versions
 uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py
-# 8. Create release commit including SKILL.md, plugin.json, IMPROVEMENT_PLAN.md, marketplace.json
+# 8. Create release commit including SKILL.md, plugin.json, README.md, marketplace.json
 # 9. Push to remote
 git push origin main
 # See "Implementation & Release" section for two-commit strategy details
@@ -379,18 +379,18 @@ These skills catch structural issues (broken routing, missing frontmatter, bad e
 Is it a typo or small fix?
 ├─ Yes → Commit directly to main
 └─ No → Is it complex (multi-file, architectural)?
-    ├─ No → Create GitHub issue, add to IMPROVEMENT_PLAN.md Active Work, implement
+    ├─ No → Create GitHub issue, add to README.md Active Work, implement
     │       Run: `uv run scripts/evaluate_skill.py <skill> --quick` periodically
     │       Before release: Run with `--strict` flag
     │
     └─ Yes → Follow full workflow:
             1. Create plan in docs/plans/ (if pre-work research needed)
             2. Create GitHub issue with task checklist (source of truth)
-            3. Add to IMPROVEMENT_PLAN.md Active Work section
+            3. Add to README.md Active Work section
             4. Implement with commits referencing issue
             5. Validate with: `uv run scripts/evaluate_skill.py <skill> --quick --strict`
             6. Sync marketplace: `uv run .../sync_marketplace_versions.py`
-            7. Release: Add version row to IMPROVEMENT_PLAN.md with metrics
+            7. Release: Add version row to README.md with metrics
             8. Optional: Document learnings in docs/lessons/ (if cross-skill pattern)
 ```
 
@@ -403,7 +403,7 @@ Is this improvement specific to ONE skill?
 ├─ YES → Create GitHub Issue with label "enhancement"
 │        Title format: "skill-name: Feature description"
 │        Example: "omnifocus-manager: Add TypeScript validation"
-│        Update: skills/skill-name/IMPROVEMENT_PLAN.md
+│        Update: skills/skill-name/README.md
 │
 └─ NO → Does it affect multiple skills OR repo structure?
          ├─ Multiple skills → Consider creating individual issues per skill
@@ -439,7 +439,7 @@ gh issue create --title "omnifocus-manager: Add task filtering" \
 
 # Returns: Created issue #125
 
-# 2. Add to IMPROVEMENT_PLAN.md Active Work section
+# 2. Add to README.md Active Work section
 # - [#125](link): Add task filtering (Planning)
 
 # 3. Implement
@@ -447,7 +447,7 @@ git commit -m "feat(omnifocus-manager): Add task filtering (#125)"
 
 # 4. Release with metrics
 # Run: uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager --export-table-row
-# Copy output to IMPROVEMENT_PLAN.md Version History table
+# Copy output to README.md Version History table
 # Remove from Active Work section
 git commit -m "chore: Release omnifocus-manager v2.1.0
 
@@ -481,7 +481,7 @@ gh issue create --title "omnifocus-manager: Add TypeScript validation" \
 
 # Returns: Created issue #126
 
-# 4. Add to IMPROVEMENT_PLAN.md Active Work section
+# 4. Add to README.md Active Work section
 # - [#126](link): TypeScript validation (Planning)
 
 # 5. Implement with multiple commits
@@ -490,7 +490,7 @@ git commit -m "feat(omnifocus-manager): Validate plugins on execution (#126)"
 
 # 6. Release with metrics
 # Run: uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager --export-table-row
-# Add row to IMPROVEMENT_PLAN.md Version History table
+# Add row to README.md Version History table
 # Remove from Active Work section
 git commit -m "chore: Release omnifocus-manager v2.2.0
 
@@ -503,7 +503,7 @@ Closes #126"
 
 ## Migration from Old Format
 
-**Old format** (verbose, detailed planning in IMPROVEMENT_PLAN.md):
+**Old format** (verbose, detailed planning in README.md):
 ```markdown
 #### 1. Feature Name
 **GitHub Issue**: #123
@@ -528,9 +528,9 @@ Closes #126"
 ```
 
 **Migration strategy:**
-1. Extract planned improvements from IMPROVEMENT_PLAN.md
+1. Extract planned improvements from README.md
 2. Create GitHub Issues for each active planned improvement (copy details to issue)
-3. Update IMPROVEMENT_PLAN.md to new format:
+3. Update README.md to new format:
    - Version History table for completed work
    - Active Work section listing open issues
    - Known Issues section
@@ -541,7 +541,7 @@ Closes #126"
 ## Benefits
 
 1. **Single Source of Truth**
-   - GitHub Issues are canonical for ALL planning (not IMPROVEMENT_PLAN.md)
+   - GitHub Issues are canonical for ALL planning (not README.md)
    - No duplication of planning details
    - Cross-machine accessible and searchable
    - Native task tracking with checkboxes
@@ -550,9 +550,9 @@ Closes #126"
    - `docs/lessons/` - Cross-skill post-work learnings
    - `docs/plans/` - Pre-work design (version controlled in repo)
    - GitHub Issues - Active tracking (source of truth)
-   - IMPROVEMENT_PLAN.md - Lightweight release notes + metrics
+   - README.md - Lightweight release notes + metrics
 
-3. **Bounded IMPROVEMENT_PLAN.md Size**
+3. **Bounded README.md Size**
    - Target: 100-300 lines (vs current 2000+ in some skills)
    - Scannable version history table with metrics
    - Quick overview of skill evolution

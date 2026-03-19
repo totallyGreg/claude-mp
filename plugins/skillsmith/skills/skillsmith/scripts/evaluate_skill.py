@@ -38,10 +38,26 @@ Usage:
     uv run scripts/evaluate_skill.py <skill-path> --export-table-row --version 2.0.0 --issue 123
     uv run scripts/evaluate_skill.py <skill-path> --export-table-row --version 1.0.0
 
+    # Per-metric coaching with actionable improvement suggestions
+    uv run scripts/evaluate_skill.py <skill-path> --explain
+
+    # Validate reference file mentions and structure
+    uv run scripts/evaluate_skill.py <skill-path> --validate-references
+
+    # Detect consolidation opportunities across reference files
+    uv run scripts/evaluate_skill.py <skill-path> --detect-duplicates
+
+    # Generate/update README.md with capabilities prose + metrics + version history
+    uv run scripts/evaluate_skill.py <skill-path> --update-readme
+
 Options:
     --quick                   Fast validation mode (structure only)
     --strict                  Strict mode: treat warnings as errors (requires --quick)
-    --check-improvement-plan  Validate IMPROVEMENT_PLAN.md (requires --quick)
+    --check-improvement-plan  Validate IMPROVEMENT_PLAN.md if present (legacy, requires --quick)
+    --explain                 Per-metric coaching with actionable improvements (incompatible with --quick)
+    --validate-references     Validate references/ structure and mention coverage
+    --detect-duplicates       Detect consolidation opportunities across reference files (opt-in)
+    --update-readme           Generate/update README.md with capabilities prose + metrics + version history
     --compare <path>          Compare against original skill version
     --validate-functionality  Run functionality validation tests
     --store-metrics          Store metrics in SKILL.md metadata
@@ -590,8 +606,8 @@ def count_total_lines_recursive(directory):
 
 
 def estimate_tokens(text):
-    """Estimate token count (rough: 1 token ≈ 4 chars)"""
-    return len(text) // 4
+    """Estimate token count (word-count based: ~1.3 tokens per word for English prose)"""
+    return int(len(text.split()) * 1.3)
 
 
 def read_skill_md(skill_path):
@@ -755,13 +771,21 @@ def calculate_complexity_score(skill_path, body):
     # Calculate max nesting depth
     max_depth = max(heading_levels) if heading_levels else 0
 
+    # Detect scannable structure: many short sections score better than a few dense ones
+    total_lines = len(lines)
+    avg_section_length = total_lines / section_count if section_count > 0 else total_lines
+    is_scannable = avg_section_length < 15  # short avg section = well-organized reference table
+
     # Complexity scoring
     if section_count <= 5:
         section_score = 40
     elif section_count <= 10:
         section_score = 30
     else:
-        section_score = max(0, 30 - (section_count - 10) * 2)
+        raw_deduction = (section_count - 10) * 2
+        if is_scannable:
+            raw_deduction = int(raw_deduction * 0.8)  # 20% reduction for scannable structure
+        section_score = max(0, 30 - raw_deduction)
 
     if max_depth <= 3:
         depth_score = 30
@@ -853,13 +877,19 @@ def calculate_progressive_disclosure_score(basic_metrics):
         score -= 10
         issues.append("Moderate length with no bundled resources; consider if content could be split")
 
-    # If skill has references but minimal content
-    if has_references and basic_metrics['references_lines'] < 50:
+    # If skill has references but minimal content (require ≥100 total lines AND ≥2 files)
+    refs_lines = basic_metrics['references_lines']
+    refs_count = basic_metrics['references_count']
+    if has_references and (refs_lines < 100 or refs_count < 2):
         score -= 15
-        issues.append("Has references directory but minimal content; ensure references are substantial")
+        issues.append(
+            "References directory exists but is too thin "
+            f"({refs_lines} lines, {refs_count} file(s)); "
+            "aim for ≥100 lines across ≥2 files"
+        )
 
-    # Good use of progressive disclosure
-    if has_references and 200 <= lines <= 400:
+    # Good use of progressive disclosure: medium-length skill with substantial references
+    if has_references and 200 <= lines <= 400 and refs_lines >= 100 and refs_count >= 2:
         score = min(100, score + 10)
 
     return {
@@ -899,13 +929,35 @@ def validate_description_quality(frontmatter_dict):
 
     # Check for trigger phrases (patterns in quotes)
     import re
+    _TRIGGER_VERBS = {
+        'create', 'validate', 'evaluate', 'improve', 'analyze', 'check', 'init',
+        'add', 'build', 'configure', 'set up', 'research', 'sync', 'generate',
+        'update', 'fix', 'debug', 'run', 'install', 'migrate', 'deploy', 'optimize',
+        'refactor', 'review', 'test', 'write', 'parse', 'convert', 'search',
+    }
+    _ARTICLES = {'a', 'an', 'the', 'my', 'your', 'its', 'this', 'that', 'all',
+                 'any', 'some', 'new', 'existing'}
+    _NEGATION_WORDS = {'not', "don't", "don't", 'never', 'no', 'without',
+                       'avoid', "don't", 'cannot', "can't", 'stop', 'prevent'}
+
+    def _is_valid_trigger_phrase(phrase):
+        """Return True if phrase has a trigger verb as its first non-article word,
+        with no negation before the verb."""
+        words = phrase.lower().split()
+        if not words:
+            return False
+        # Reject phrases containing negation anywhere
+        if any(w in _NEGATION_WORDS for w in words):
+            return False
+        # Verb must be the first non-article word
+        for word in words:
+            if word in _ARTICLES:
+                continue
+            return any(word == verb or word.startswith(verb) for verb in _TRIGGER_VERBS)
+        return False
+
     quoted_phrases = re.findall(r'"([^"]+)"', description)
-    trigger_patterns = [p for p in quoted_phrases if any(
-        verb in p.lower() for verb in ['create', 'validate', 'evaluate', 'improve',
-                                        'analyze', 'check', 'init', 'add', 'build',
-                                        'configure', 'set up', 'research', 'sync',
-                                        'generate', 'update', 'fix', 'debug']
-    )]
+    trigger_patterns = [p for p in quoted_phrases if _is_valid_trigger_phrase(p)]
     trigger_phrases_found = trigger_patterns
 
     if len(trigger_patterns) >= 3:
@@ -1088,8 +1140,11 @@ def validate_file_references(skill_path, body):
     skill_path = Path(skill_path)
     refs_dir = skill_path / 'references'
 
-    # Check for absolute paths
-    if '/Users/' in body or '/home/' in body or 'C:\\' in body:
+    # Check for absolute paths — strip code blocks first to avoid false positives
+    import re as _re
+    _body_no_code = _re.sub(r'```.*?```', '', body, flags=_re.DOTALL)
+    _body_no_code = _re.sub(r'`[^`\n]+`', '', _body_no_code)
+    if '/Users/' in _body_no_code or '/home/' in _body_no_code or 'C:\\' in _body_no_code:
         issues.append("Found absolute paths in SKILL.md; use relative paths")
 
     # Extract all referenced files from body
@@ -1400,6 +1455,288 @@ def validate_reference_catalog(skill_path):
         'total_refs': len(actual_refs),
         'issues': issues
     }
+
+
+def detect_duplicate_references(skill_path):
+    """
+    Detect consolidation opportunities in references/ using Jaccard similarity.
+
+    Ported from update_references.py detect_similar_references().
+
+    Returns: list of dicts:
+        [{
+            'files': [str, str],
+            'similarity': float,   # percentage
+            'recommendation': str
+        }]
+    """
+    refs_dir = Path(skill_path) / 'references'
+    if not refs_dir.exists():
+        return []
+
+    def _tokenize(text):
+        words = re.findall(r'\b[a-zA-Z][a-zA-Z0-9\-_]{2,}\b', text.lower())
+        common = {'the', 'and', 'for', 'with', 'this', 'that', 'from', 'about',
+                  'how', 'what', 'when', 'where', 'which', 'who', 'will', 'can',
+                  'are', 'was', 'were', 'been', 'have', 'has', 'had', 'does', 'did'}
+        return set(w for w in words if w not in common)
+
+    def _jaccard(a, b):
+        union = a | b
+        return len(a & b) / len(union) if union else 0.0
+
+    # Build token sets from headings + first paragraph of each ref file
+    tokens_by_file = {}
+    for ref_file in sorted(refs_dir.glob('*.md')):
+        if ref_file.name.startswith('.'):
+            continue
+        try:
+            content = ref_file.read_text(encoding='utf-8')
+        except Exception:
+            continue
+        headings = re.findall(r'^#{1,3}\s+(.+)$', content, re.MULTILINE)
+        paras = [p.strip() for p in content.split('\n\n') if p.strip() and not p.strip().startswith('#')]
+        text = ' '.join(headings) + ' ' + (paras[0][:300] if paras else '')
+        tokens_by_file[ref_file.name] = _tokenize(text)
+
+    filenames = list(tokens_by_file.keys())
+    clusters = []
+    for i in range(len(filenames)):
+        for j in range(i + 1, len(filenames)):
+            sim = _jaccard(tokens_by_file[filenames[i]], tokens_by_file[filenames[j]])
+            if sim > 0.70:
+                rec = ('High priority consolidation (likely duplicates)' if sim > 0.90
+                       else 'Review for overlapping content')
+                clusters.append({
+                    'files': [filenames[i], filenames[j]],
+                    'similarity': round(sim * 100, 1),
+                    'recommendation': rec
+                })
+
+    clusters.sort(key=lambda x: x['similarity'], reverse=True)
+    return clusters
+
+
+def _extract_improvement_plan_sections(skill_path):
+    """
+    Extract version history table and active work from IMPROVEMENT_PLAN.md.
+
+    Returns: {
+        'version_table': str,   # raw markdown table block (empty string if not found)
+        'active_work': str,     # raw active work list (empty string if not found)
+        'metric_legend': str,   # legend line (empty string if not found)
+    }
+    """
+    ip_path = Path(skill_path) / 'IMPROVEMENT_PLAN.md'
+    if not ip_path.exists():
+        return {'version_table': '', 'active_work': '', 'metric_legend': ''}
+
+    content = ip_path.read_text(encoding='utf-8')
+
+    # Extract Version History table (from "## Version History" to next "##")
+    version_table = ''
+    table_match = re.search(
+        r'## Version History\s*\n(.*?)(?=\n## |\Z)',
+        content, re.DOTALL
+    )
+    if table_match:
+        version_table = table_match.group(1).strip()
+
+    # Extract metric legend line
+    metric_legend = ''
+    legend_match = re.search(r'\*\*Metric Legend:.*?\*\*', content)
+    if legend_match:
+        metric_legend = legend_match.group(0)
+
+    # Extract Active Work section
+    active_work = ''
+    active_match = re.search(
+        r'## Active Work\s*\n(.*?)(?=\n## |\Z)',
+        content, re.DOTALL
+    )
+    if active_match:
+        active_work = active_match.group(1).strip()
+
+    return {
+        'version_table': version_table,
+        'active_work': active_work,
+        'metric_legend': metric_legend,
+    }
+
+
+def _generate_metrics_content(metrics, today):
+    """
+    Generate the body of the ## Current Metrics section (everything after the heading line).
+    Starts with \\n\\n and ends with \\n (single newline, no trailing blank line).
+    """
+    conc = metrics['conciseness']['score']
+    comp = metrics['complexity']['score']
+    spec = metrics['spec_compliance']['score']
+    disc = metrics['progressive_disclosure']['score']
+    desc_q = metrics.get('description_quality', {}).get('score', '-')
+    overall = metrics['overall_score']
+
+    def _interp(score):
+        if score >= 95:
+            return 'Excellent'
+        elif score >= 80:
+            return 'Good'
+        elif score >= 60:
+            return 'Fair'
+        return 'Needs work'
+
+    rows = [
+        f'| Conciseness | {conc}/100 | {_interp(conc)} |',
+        f'| Complexity | {comp}/100 | {_interp(comp)} |',
+        f'| Spec Compliance | {spec}/100 | {_interp(spec)} |',
+        f'| Progressive Disclosure | {disc}/100 | {_interp(disc)} |',
+    ]
+    if desc_q != '-':
+        rows.append(f'| Description Quality | {desc_q}/100 | {_interp(int(desc_q))} |')
+    rows.append(f'| **Overall** | **{overall}/100** | **{_interp(overall)}** |')
+
+    return (
+        f'\n\n*Last evaluated: {today}*\n\n'
+        '| Metric | Score | Interpretation |\n'
+        '|--------|-------|----------------|\n'
+        + '\n'.join(rows) + '\n\n'
+        'Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.\n'
+    )
+
+
+def _update_current_metrics_section(content, metrics_content):
+    """
+    Replace the ## Current Metrics section body in existing README.md.
+    Preserves all other sections verbatim. If section not found, inserts before footer.
+
+    metrics_content: return value of _generate_metrics_content (starts \\n\\n, ends \\n)
+    """
+    # Match heading (at start of line) + body up to next ## section, --- separator, or end of file
+    # (?ms) = MULTILINE (^ matches start of line) + DOTALL (. matches newlines)
+    pattern = r'(?ms)^(## Current Metrics)(.*?)(?=\n## |\n---|\Z)'
+    updated, n = re.subn(
+        pattern,
+        lambda m: m.group(1) + metrics_content,
+        content
+    )
+    if n == 0:
+        # Section not found — insert before footer separator or append
+        sep = '\n\n---\n'
+        if sep in content:
+            idx = content.rfind(sep)
+            updated = content[:idx] + '\n\n## Current Metrics' + metrics_content + content[idx:]
+        else:
+            updated = content.rstrip('\n') + '\n\n## Current Metrics' + metrics_content
+    return updated
+
+
+def generate_skill_readme(skill_path, metrics):
+    """
+    Generate or update README.md content for a skill.
+
+    If README.md already exists: only the ## Current Metrics section is replaced
+    (idempotent — all other sections are preserved verbatim).
+
+    If README.md does not exist: generates a full document from scratch using
+    SKILL.md frontmatter and IMPROVEMENT_PLAN.md version history (migration path).
+
+    Args:
+        skill_path: Path to skill directory
+        metrics: dict from calculate_all_metrics()
+
+    Returns:
+        str: Complete README.md content
+    """
+    sp = Path(skill_path)
+    today = datetime.now().strftime('%Y-%m-%d')
+    metrics_content = _generate_metrics_content(metrics, today)
+
+    # IDEMPOTENT PATH: if README.md already exists, only refresh ## Current Metrics
+    readme_path = sp / 'README.md'
+    if readme_path.exists():
+        existing = readme_path.read_text(encoding='utf-8')
+        return _update_current_metrics_section(existing, metrics_content)
+
+    # FIRST-TIME GENERATION: build full document from SKILL.md + IMPROVEMENT_PLAN.md
+    frontmatter, body, _ = read_skill_md(sp)
+    fm = parse_frontmatter(frontmatter)
+
+    skill_name = fm.get('name', sp.name)
+    description = fm.get('description', '')
+    when_to_use = fm.get('when_to_use', '')
+
+    # Pull version history from IMPROVEMENT_PLAN.md if present
+    ip_sections = _extract_improvement_plan_sections(sp)
+
+    lines = [f"# {skill_name}", '']
+
+    # Capabilities section — use description as prose
+    if description:
+        # Strip "This skill should be used when..." prefix for cleaner prose
+        prose = re.sub(
+            r'^This skill should be used when[^.]*\.\s*',
+            '',
+            description,
+            flags=re.IGNORECASE
+        ).strip()
+        lines += ['## Capabilities', '', prose or description, '']
+    elif when_to_use:
+        lines += ['## Capabilities', '', when_to_use, '']
+
+    # Metrics section (inline for consistent list-building in fresh-gen path)
+    conc = metrics['conciseness']['score']
+    comp = metrics['complexity']['score']
+    spec = metrics['spec_compliance']['score']
+    disc = metrics['progressive_disclosure']['score']
+    desc_q = metrics.get('description_quality', {}).get('score', '-')
+    overall = metrics['overall_score']
+
+    def _interp(score):
+        if score >= 95:
+            return 'Excellent'
+        elif score >= 80:
+            return 'Good'
+        elif score >= 60:
+            return 'Fair'
+        return 'Needs work'
+
+    lines += [
+        '## Current Metrics',
+        '',
+        f'*Last evaluated: {today}*',
+        '',
+        '| Metric | Score | Interpretation |',
+        '|--------|-------|----------------|',
+        f'| Conciseness | {conc}/100 | {_interp(conc)} |',
+        f'| Complexity | {comp}/100 | {_interp(comp)} |',
+        f'| Spec Compliance | {spec}/100 | {_interp(spec)} |',
+        f'| Progressive Disclosure | {disc}/100 | {_interp(disc)} |',
+    ]
+    if desc_q != '-':
+        lines.append(f'| Description Quality | {desc_q}/100 | {_interp(int(desc_q))} |')
+    lines += [
+        f'| **Overall** | **{overall}/100** | **{_interp(overall)}** |',
+        '',
+        'Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.',
+        '',
+    ]
+
+    # Version history from IMPROVEMENT_PLAN.md
+    if ip_sections['version_table']:
+        lines += ['## Version History', '', ip_sections['version_table'], '']
+
+    # Active work from IMPROVEMENT_PLAN.md
+    if ip_sections['active_work']:
+        lines += ['## Active Work', '', ip_sections['active_work'], '']
+
+    lines += [
+        '---',
+        '',
+        f'*Generated by skillsmith on {today}. '
+        'Run `uv run scripts/evaluate_skill.py <path> --update-readme` to refresh.*',
+    ]
+
+    return '\n'.join(lines) + '\n'
 
 
 def validate_functionality(skill_path):
@@ -1759,6 +2096,263 @@ def format_score_bar(score, width=20):
     return f"[{bar}] {score}/100"
 
 
+def print_explain_output(evaluation):
+    """Print per-metric coaching output with actionable improvement suggestions.
+
+    Template (from #37 spec):
+      <Metric> Score: <N>/100
+
+        Why: <reason>
+
+        To improve:
+        - <specific action>
+
+        See: <reference file if relevant>
+
+    Followed by a Top-3 improvements summary with estimated overall score delta.
+    """
+    metrics = evaluation['metrics']
+    basic = metrics['basic_metrics']
+    overall = int(metrics['overall_score'])
+
+    print(f"\n{'='*60}")
+    print(f"Skill Evaluation: {metrics['skill_name']} — Explain Mode")
+    print(f"{'='*60}\n")
+
+    # Brief score overview
+    print("Quality Scores:")
+    print(f"  Conciseness:     {format_score_bar(metrics['conciseness']['score'])}")
+    print(f"  Complexity:      {format_score_bar(metrics['complexity']['score'])}")
+    print(f"  Spec Compliance: {format_score_bar(metrics['spec_compliance']['score'])}")
+    print(f"  Progressive:     {format_score_bar(metrics['progressive_disclosure']['score'])}")
+    if 'description_quality' in metrics:
+        print(f"  Description:     {format_score_bar(metrics['description_quality']['score'])}")
+    print(f"  Overall:         {format_score_bar(overall)}")
+    print()
+
+    improvements = []  # list of (delta_overall, label)
+
+    # ── CONCISENESS ──────────────────────────────────────────────────────────
+    conc = metrics['conciseness']
+    conc_score = conc['score']
+    lines = basic['skill_md_lines']
+    tokens = basic['skill_md_tokens']
+    ref_lines = basic['references_lines']
+
+    print(f"Conciseness Score: {conc_score}/100\n")
+    print("  Why:")
+    if lines <= 150:
+        print(f"    SKILL.md is {lines} lines — excellent (≤150 target ✓)")
+    elif lines <= 250:
+        print(f"    SKILL.md is {lines} lines — within ≤250 recommended range")
+    elif lines <= 350:
+        print(f"    SKILL.md is {lines} lines — slightly over ≤250 recommended range")
+    elif lines <= 500:
+        print(f"    SKILL.md is {lines} lines — approaching 500-line max")
+    else:
+        print(f"    SKILL.md is {lines} lines — over 500-line max")
+
+    if tokens <= 1500:
+        print(f"    Tokens: ~{tokens} — excellent (≤1500 target ✓)")
+    elif tokens <= 2000:
+        print(f"    Tokens: ~{tokens} — within ≤2000 max")
+    else:
+        print(f"    Tokens: ~{tokens} — over 2000-token max")
+    print()
+
+    conc_gap = 100 - conc_score
+    if conc_gap > 0:
+        print("  To improve:")
+        if lines > 150:
+            over = lines - 150
+            print(f"    - Move supplemental content to references/ to reduce by ~{over} lines")
+            print(f"      (target: ≤150 lines for max line score)")
+        if tokens > 1500:
+            print(f"    - Reduce prose density; aim for ≤1500 tokens (currently ~{tokens})")
+        if ref_lines <= 500:
+            print(f"    - references/ content >500 lines earns a +5 bonus (currently {ref_lines})")
+        delta = int(conc_gap * 0.20)
+        if delta > 0:
+            improvements.append((delta, f"Reduce SKILL.md length/tokens → +{delta} overall"))
+    else:
+        print("  ✓ Nothing to improve — already at 100")
+    print()
+
+    # ── COMPLEXITY ───────────────────────────────────────────────────────────
+    comp = metrics['complexity']
+    comp_score = comp['score']
+    section_count = comp['section_count']
+    max_depth = comp['max_nesting_depth']
+    code_blocks = comp['code_blocks']
+
+    # Reconstruct sub-scores for the "Why" explanation
+    if section_count <= 5:
+        section_sub = 40
+    elif section_count <= 10:
+        section_sub = 30
+    else:
+        section_sub = max(0, 30 - (section_count - 10) * 2)
+
+    if max_depth <= 3:
+        depth_sub = 30
+    elif max_depth <= 5:
+        depth_sub = 20
+    else:
+        depth_sub = max(0, 20 - (max_depth - 5) * 5)
+
+    if 2 <= code_blocks <= 10:
+        code_sub = 30
+    elif code_blocks < 2:
+        code_sub = 20
+    else:
+        code_sub = max(0, 30 - (code_blocks - 10))
+
+    print(f"Complexity Score: {comp_score}/100\n")
+    print("  Why:")
+    print(f"    Sections (H1/H2): {section_count}  → {section_sub}/40 pts")
+    print(f"    Max nesting depth: {max_depth}      → {depth_sub}/30 pts")
+    print(f"    Code blocks: {code_blocks}           → {code_sub}/30 pts")
+    print()
+
+    comp_gap = 100 - comp_score
+    if comp_gap > 0:
+        print("  To improve:")
+        if section_count > 10:
+            print(f"    - Merge or flatten sections (currently {section_count}; target ≤10 for 30 pts)")
+        if max_depth > 3:
+            print(f"    - Reduce heading nesting (currently depth {max_depth}; target ≤3 for 30 pts)")
+        if code_blocks < 2:
+            print(f"    - Add at least 2 code examples (currently {code_blocks}; 2-10 earns 30 pts)")
+        elif code_blocks > 10:
+            print(f"    - Move code-heavy content to references/ (currently {code_blocks} blocks)")
+        delta = int(comp_gap * 0.20)
+        if delta > 0:
+            improvements.append((delta, f"Fix complexity sub-scores → +{delta} overall"))
+    else:
+        print("  ✓ Nothing to improve — already at 100")
+    print()
+
+    # ── SPEC COMPLIANCE ──────────────────────────────────────────────────────
+    spec = metrics['spec_compliance']
+    spec_score = spec['score']
+
+    print(f"Spec Compliance Score: {spec_score}/100\n")
+    print("  Why:")
+    print(f"    Required frontmatter: {spec['required_fields_present']}")
+    print(f"    Recommended frontmatter: {spec['recommended_fields_present']}")
+    for v in spec['violations']:
+        print(f"    ✗ {v}")
+    for w in spec['warnings']:
+        print(f"    ⚠ {w}")
+    print()
+
+    spec_gap = 100 - spec_score
+    if spec_gap > 0:
+        print("  To improve:")
+        for v in spec['violations']:
+            print(f"    - Fix violation: {v}")
+        for w in spec['warnings']:
+            print(f"    - Address warning: {w}")
+        delta = int(spec_gap * 0.30)
+        if delta > 0:
+            improvements.append((delta, f"Fix spec violations/warnings → +{delta} overall"))
+    else:
+        print("  ✓ Nothing to improve — already at 100")
+    print()
+
+    # ── PROGRESSIVE DISCLOSURE ───────────────────────────────────────────────
+    prog = metrics['progressive_disclosure']
+    prog_score = prog['score']
+
+    print(f"Progressive Disclosure Score: {prog_score}/100\n")
+    print("  Why:")
+    if prog['issues']:
+        for issue in prog['issues']:
+            print(f"    - {issue}")
+    else:
+        uses = []
+        if prog['uses_scripts']:
+            uses.append("scripts")
+        if prog['uses_references']:
+            uses.append("references")
+        if prog['uses_assets']:
+            uses.append("assets")
+        layer_str = ", ".join(uses) if uses else "none"
+        print(f"    Layered content ({layer_str}) — no issues detected")
+    print()
+
+    prog_gap = 100 - prog_score
+    if prog_gap > 0:
+        print("  To improve:")
+        for issue in prog['issues']:
+            if "Very long" in issue:
+                print("    - Create references/ directory and move supporting content there")
+            elif "Moderate length" in issue:
+                print("    - Consider splitting verbose sections into references/ or scripts/")
+            elif "too thin" in issue:
+                print("    - Add more reference files (aim for ≥100 lines across ≥2 files)")
+            else:
+                print(f"    - {issue}")
+        delta = int(prog_gap * 0.20)
+        if delta > 0:
+            improvements.append((delta, f"Improve disclosure layering → +{delta} overall"))
+    else:
+        print("  ✓ Nothing to improve — already at 100")
+    print()
+
+    # ── DESCRIPTION QUALITY ──────────────────────────────────────────────────
+    if 'description_quality' in metrics:
+        desc = metrics['description_quality']
+        desc_score = desc['score']
+        phrases = desc.get('trigger_phrases_found', [])
+
+        print(f"Description Quality Score: {desc_score}/100\n")
+        print("  Why:")
+        if phrases:
+            sample = ', '.join(f'"{p}"' for p in phrases[:3])
+            print(f"    Trigger phrases ({len(phrases)} found): {sample}")
+        else:
+            print("    No trigger phrases found (need ≥3 quoted action phrases for full score)")
+        print(f"    Third-person format: {'✓' if desc.get('has_third_person') else '✗'}")
+        print(f"    Specific scenarios: {'✓' if desc.get('is_specific') else '✗'}")
+        print(f"    Under 1024 chars: {'✓' if desc.get('length_ok') else '✗'}")
+        for issue in desc.get('issues', []):
+            print(f"    ✗ {issue}")
+        print()
+
+        desc_gap = 100 - desc_score
+        if desc_gap > 0:
+            print("  To improve:")
+            for suggestion in desc.get('suggestions', []):
+                print(f"    - {suggestion}")
+            if not desc.get('has_third_person'):
+                print('    - Start description with: "This skill should be used when..."')
+            if not desc.get('is_specific'):
+                print("    - Add concrete scenarios rather than vague capability descriptions")
+            if not desc.get('length_ok'):
+                print("    - Trim description to under 1024 characters")
+            delta = int(desc_gap * 0.10)
+            if delta > 0:
+                improvements.append((delta, f"Improve description quality → +{delta} overall"))
+        else:
+            print("  ✓ Nothing to improve — already at 100")
+        print()
+
+    # ── TOP-3 SUMMARY ─────────────────────────────────────────────────────────
+    improvements.sort(reverse=True)
+    print(f"{'='*60}")
+    print("Top improvements:")
+    if not improvements:
+        print("  ✓ All metrics at 100 — no improvements needed")
+    else:
+        for i, (delta, label) in enumerate(improvements[:3], 1):
+            print(f"  {i}. {label}")
+        total_delta = sum(d for d, _ in improvements[:3])
+        estimated = min(100, overall + total_delta)
+        print(f"\n  Estimated overall: {overall} → {estimated}")
+    print()
+
+
 def print_evaluation_text(evaluation):
     """Print evaluation in human-readable text format"""
     print(f"\n{'='*60}")
@@ -1998,6 +2592,10 @@ def main():
     quick_mode = False
     strict_mode = False
     check_improvement_plan = False
+    explain_mode = False
+    validate_refs_mode = False
+    detect_dups_mode = False
+    update_readme_mode = False
     compare_with = None
     validate_func = False
     store_metrics_flag = False
@@ -2019,6 +2617,18 @@ def main():
             i += 1
         elif arg == '--check-improvement-plan':
             check_improvement_plan = True
+            i += 1
+        elif arg == '--explain':
+            explain_mode = True
+            i += 1
+        elif arg == '--validate-references':
+            validate_refs_mode = True
+            i += 1
+        elif arg == '--detect-duplicates':
+            detect_dups_mode = True
+            i += 1
+        elif arg == '--update-readme':
+            update_readme_mode = True
             i += 1
         elif arg == '--compare' and i + 1 < len(sys.argv):
             compare_with = sys.argv[i + 1]
@@ -2047,6 +2657,11 @@ def main():
         else:
             print(f"Unknown argument: {arg}")
             sys.exit(1)
+
+    # Validate flag compatibility
+    if explain_mode and quick_mode:
+        print("❌ Error: --explain is incompatible with --quick (explain requires full evaluation)")
+        sys.exit(1)
 
     try:
         # Export table row mode
@@ -2098,11 +2713,100 @@ def main():
             comp = int(metrics['complexity']['score'])
             spec = int(metrics['spec_compliance']['score'])
             disc = int(metrics['progressive_disclosure']['score'])
+            desc_q = metrics.get('description_quality', {}).get('score', '-')
+            desc_str = str(int(desc_q)) if desc_q != '-' else '-'
             overall = int(metrics['overall_score'])
 
-            # Output table row
-            table_row = f"| {version_number} | {today} | {issue_link} | {summary} | {conc} | {comp} | {spec} | {disc} | {overall} |"
+            # Output table row (includes Desc column for README.md Version History)
+            table_row = f"| {version_number} | {today} | {issue_link} | {summary} | {conc} | {comp} | {spec} | {disc} | {desc_str} | {overall} |"
             print(table_row)
+            sys.exit(0)
+
+        # Validate references mode
+        if validate_refs_mode:
+            sp = Path(skill_path)
+            _, body, _ = read_skill_md(sp)
+            ref_result = validate_file_references(sp, body)
+            structure = {'issues': [], 'warnings': []}
+            refs_dir = sp / 'references'
+            if refs_dir.exists():
+                for item in refs_dir.rglob('*'):
+                    if item.is_dir():
+                        structure['issues'].append(
+                            f"Nested subdirectory not allowed: {item.relative_to(refs_dir)}"
+                        )
+                for ref_file in refs_dir.glob('*.md'):
+                    try:
+                        size_kb = len(ref_file.read_text(encoding='utf-8').encode()) / 1024
+                        if size_kb > 100:
+                            structure['warnings'].append(
+                                f"{ref_file.name}: Large file ({size_kb:.1f} KB)"
+                            )
+                    except Exception as e:
+                        structure['issues'].append(f"{ref_file.name}: Cannot read — {e}")
+            all_ok = (ref_result['valid'] and not structure['issues']
+                      and not ref_result['summary']['orphaned_files']
+                      and not ref_result['summary']['missing_files'])
+            print(f"\nReference Validation: {sp.name}")
+            print(f"{'='*40}")
+            if ref_result['summary']['orphaned_files']:
+                print("\n⚠ Orphaned references (exist but not mentioned in SKILL.md):")
+                for f in ref_result['summary']['orphaned_files']:
+                    print(f"  - {f}")
+            if ref_result['summary']['missing_files']:
+                print("\n✗ Missing references (mentioned but not on disk):")
+                for f in ref_result['summary']['missing_files']:
+                    print(f"  - {f}")
+            if structure['issues']:
+                print("\n✗ Structure issues:")
+                for issue in structure['issues']:
+                    print(f"  - {issue}")
+            if structure['warnings']:
+                print("\n⚠ Warnings:")
+                for w in structure['warnings']:
+                    print(f"  - {w}")
+            if ref_result['issues']:
+                print("\n✗ Issues:")
+                for issue in ref_result['issues']:
+                    print(f"  - {issue}")
+            # Filter warnings: omit orphan warnings already shown from summary
+            extra_warnings = [w for w in ref_result['warnings'] if 'Orphaned reference' not in w]
+            if extra_warnings:
+                print("\n⚠ Other warnings:")
+                for w in extra_warnings:
+                    print(f"  - {w}")
+            if all_ok and not ref_result['summary']['orphaned_files']:
+                print("✓ All references valid and mentioned in SKILL.md")
+            print()
+            sys.exit(0 if all_ok else 1)
+
+        # Detect duplicates mode
+        if detect_dups_mode:
+            sp = Path(skill_path)
+            clusters = detect_duplicate_references(sp)
+            print(f"\nDuplicate Detection: {sp.name}")
+            print(f"{'='*40}")
+            if not clusters:
+                print("✓ No consolidation opportunities detected")
+            else:
+                print(f"\nConsolidation Opportunities ({len(clusters)} cluster(s)):\n")
+                for i, cluster in enumerate(clusters, 1):
+                    print(f"Cluster {i} ({cluster['similarity']}% similar):")
+                    for f in cluster['files']:
+                        print(f"  - references/{f}")
+                    print(f"  Recommendation: {cluster['recommendation']}")
+                    print()
+            sys.exit(0)
+
+        # Update README mode
+        if update_readme_mode:
+            sp = Path(skill_path)
+            metrics = calculate_all_metrics(sp)
+            readme_content = generate_skill_readme(sp, metrics)
+            readme_path = sp / 'README.md'
+            readme_path.write_text(readme_content, encoding='utf-8')
+            print(f"✓ README.md written to {readme_path}")
+            print(f"  Overall score: {metrics['overall_score']}/100")
             sys.exit(0)
 
         # Quick validation mode
@@ -2144,6 +2848,12 @@ def main():
                 print(f"Results saved to {output_file}")
             else:
                 print(output)
+        elif explain_mode and not export_table_row:
+            print_explain_output(evaluation)
+            if output_file:
+                with open(output_file, 'w') as f:
+                    json.dump(evaluation, f, indent=2)
+                print(f"Detailed results saved to {output_file}")
         else:
             print_evaluation_text(evaluation)
             if output_file:

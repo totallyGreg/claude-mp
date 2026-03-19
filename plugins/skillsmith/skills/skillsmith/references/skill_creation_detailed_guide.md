@@ -130,7 +130,7 @@ After testing the skill, users may request improvements. Often this happens righ
 ### For Complex Improvements
 
 When improvements are substantial (multi-file changes, architectural decisions, etc.):
-- Use WORKFLOW.md pattern: Create GitHub Issue → Add to IMPROVEMENT_PLAN.md → Plan in docs/plans/
+- Use WORKFLOW.md pattern: Create GitHub Issue → Add to README.md → Plan in docs/plans/
 - See `references/improvement_workflow_guide.md` for detailed improvement routing logic
 - Research skill opportunities with `scripts/research_skill.py`
 

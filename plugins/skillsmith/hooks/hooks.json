@@ -1,0 +1,17 @@
+{
+  "description": "Fire quick skill evaluation when SKILL.md is edited in the repo source",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-skill-edit.sh",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

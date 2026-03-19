@@ -1,33 +1,53 @@
-# IMPROVEMENT_PLAN.md Best Practices
+# README.md Best Practices
+
+> **v6.0.0+**: `IMPROVEMENT_PLAN.md` is replaced by `README.md` as the per-skill artifact. See `references/readme_template.md` for the format and `--update-readme` for automated metrics refresh.
 
 ## Overview
 
-IMPROVEMENT_PLAN.md is a **lightweight release notes + metrics tracker**, not a planning document. It provides a bounded, scannable history of skill evolution.
+`README.md` is the human-readable companion to `SKILL.md`. It documents capabilities, tracks metric history, and provides onboarding context for developers.
 
 **Target Size:** 100-300 lines total (bounded and maintainable)
 
 **Purpose:**
+- Describe what the skill enables (prose + capabilities bullets)
+- Track current metric scores (auto-updated by `--update-readme`)
 - Track version history with metrics (Version History table)
 - List active work items (Active Work section linking to GitHub Issues)
 - Track known bugs (Known Issues section)
 - Provide archive pointers (Archive section)
 
-**Key Principle:** GitHub Issues are the canonical source of truth for ALL planning. IMPROVEMENT_PLAN.md just reflects issue state with version history and metrics.
+**Key Principle:** GitHub Issues are the canonical source of truth for ALL planning. README.md reflects issue state with version history and metrics. `--update-readme` only replaces `## Current Metrics` — all other sections are preserved.
 
 ## Standard Format
 
 ```markdown
-# {Skill Name} - Improvement Plan
+# {Skill Name}
+
+{2-4 sentence prose description for developers onboarding to the skill.}
+
+## Capabilities
+
+- {Concrete capability 1}
+- {Concrete capability 2}
+
+## Current Metrics
+
+*Last evaluated: YYYY-MM-DD*
+
+| Metric | Score | Interpretation |
+|--------|-------|----------------|
+| Conciseness | X/100 | Excellent |
+| **Overall** | **X/100** | **Excellent** |
 
 ## Version History
 
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
-|---------|------|-------|---------|------|------|------|------|---------|
-| 2.0.0 | 2026-01-18 | [#123](link) | TypeScript validation | 67 | 90 | 100 | 100 | 89 |
-| 1.5.0 | 2026-01-10 | [#120](link) | Plugin generation | 72 | 88 | 95 | 100 | 89 |
-| 1.0.0 | 2025-12-01 | - | Initial release | - | - | - | - | - |
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
+|---------|------|-------|---------|------|------|------|------|------|---------|
+| 2.0.0 | 2026-01-18 | [#123](link) | TypeScript validation | 67 | 90 | 100 | 100 | 95 | 89 |
+| 1.5.0 | 2026-01-10 | [#120](link) | Plugin generation | 72 | 88 | 95 | 100 | - | 89 |
+| 1.0.0 | 2025-12-01 | - | Initial release | - | - | - | - | - | - |
 
-**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure (0-100 scale)
+**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure, Desc=Description Quality (0-100 scale)
 
 ## Active Work
 
