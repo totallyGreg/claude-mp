@@ -1,9 +1,9 @@
 ---
 name: skillsmith
-description: This skill should be used when users ask to "create a skill", "validate a skill for quality", "evaluate skill improvements", "research skill opportunities", "analyze skill metrics", "improve skill quality", "init a new skill", "check skill compliance", or "sync skill to marketplace". Provides comprehensive skill development with automated validation, metrics tracking, and improvement workflows.
+description: This skill should be used when users ask to "create a skill", "validate a skill for quality", "evaluate skill improvements", "improve my skill", "update my skill", "fix skill", "iterate on skill", "optimize skill", "skill quality", "skill performance", "skill isn't working", "analyze skill metrics", "init a new skill", "check skill compliance", or "sync skill to marketplace". Provides comprehensive skill development with automated validation, metrics tracking, and improvement workflows.
 metadata:
   author: J. Greg Williams
-  version: "6.0.0"
+  version: "6.1.0"
 compatibility: Requires python3 and uv for script execution and validation
 license: Complete terms in LICENSE.txt
 ---
@@ -12,127 +12,111 @@ license: Complete terms in LICENSE.txt
 
 Forge effective skills with automated validation, metrics tracking, and improvement workflows.
 
-For foundational skill concepts (anatomy, progressive disclosure, writing style, common mistakes), defer to `plugin-dev:skill-development`. Skillsmith extends the official guidance with tooling, metrics-driven evaluation, and self-improvement workflows.
+Skillsmith owns Steps 5–6 of the plugin-dev skill development loop (Validate and Iterate). For Steps 1–4, defer to `plugin-dev:skill-development`.
 
-## When NOT to Use Skillsmith
+## Skill Development Routing
 
-- **Adding commands to existing plugins** → Use `plugin-dev:command-development`
-- **Plugin structure/manifest changes** → Use `plugin-dev:plugin-structure`
-- **Creating hooks or agents** → Use `plugin-dev:hook-development` or `plugin-dev:agent-development`
+| Task | Use |
+|------|-----|
+| Skill anatomy, writing style, progressive disclosure | `plugin-dev:skill-development` |
+| Creating hooks | `plugin-dev:hook-development` |
+| Creating agents | `plugin-dev:agent-development` |
+| Slash commands | `plugin-dev:command-development` |
+| Plugin manifest/structure | `plugin-dev:plugin-structure` |
+| **Validating, evaluating, improving skills** | **skillsmith** (this skill) |
+| Syncing versions to marketplace | `marketplace-manager` |
 
-## Skill Creation Process
+## Skill Development Loop
 
 ### Step 1: Understand the Skill
 
-Identify concrete usage examples and trigger phrases. Ask targeted questions:
+See `plugin-dev:skill-development` Step 1 for guidance on identifying usage examples, trigger phrases, and resource types needed.
 
-- "What functionality should this skill support?"
-- "What would a user say that should trigger this skill?"
-- "What scripts, references, or assets would help?"
+### Step 2: Plan Reusable Contents
 
-### Step 2: Initialize the Skill
+See `plugin-dev:skill-development` Step 2 for content planning, choosing reference files vs. inline content, and progressive disclosure strategy.
+
+### Step 3: Create Structure
 
 ```bash
 uv run scripts/init_skill.py <skill-name> --path <output-directory>
 ```
 
-Generates a skill directory with SKILL.md template, frontmatter TODOs, and example resource directories (`scripts/`, `references/`, `assets/`). Customize or remove generated files as needed.
+Generates SKILL.md template, README.md stub, and resource directories (`scripts/`, `references/`, `examples/`). See `plugin-dev:skill-development` Step 3 for full structure guidance.
 
-### Step 3: Edit the Skill
+### Step 4: Edit SKILL.md
 
-Write SKILL.md using imperative form, keeping it lean (<500 lines, <2000 tokens ideal). Focus on procedural knowledge non-obvious to Claude. Move detailed content to `references/`.
+See `plugin-dev:skill-development` Step 4 for writing style, frontmatter format, and progressive disclosure. Skillsmith-specific requirements:
 
-**Frontmatter requirements** (AgentSkills spec):
-- `name`: 1-64 chars, lowercase alphanumeric and hyphens, must match directory name
-- `description`: Max 1024 chars, third-person format with trigger phrases
-- Optional: `license`, `compatibility`, `metadata` (including `version`), `allowed-tools`
+- **Frontmatter**: `name`, `description` (max 1024 chars), `metadata.version`, `compatibility`, `license`
+- **Python scripts**: PEP 723 inline metadata required for `uv run`. See `references/python_uv_guide.md`
+- **Size target**: <300 lines, <2000 tokens; move detailed content to `references/`
 
-**Python scripts** must use PEP 723 inline metadata for uv execution. See `references/python_uv_guide.md`.
-
-See `references/skill_creation_detailed_guide.md` for comprehensive editing guidance and `references/agentskills_specification.md` for complete spec.
-
-### Step 4: Validate the Skill
+### Step 5: Validate
 
 ```bash
-# Quick validation (structure-only) — use during development
+# Quick validation during development
 uv run scripts/evaluate_skill.py <skill-path> --quick
-
-# Strict validation (warnings as errors) — use before release
-uv run scripts/evaluate_skill.py <skill-path> --quick --strict
 
 # Full evaluation with metrics
 uv run scripts/evaluate_skill.py <skill-path>
+
+# Per-metric coaching with actionable improvements
+uv run scripts/evaluate_skill.py <skill-path> --explain
 ```
 
-**Quality scores** (0-100 each):
+**Quality scores** (0–100 each):
 
 | Score | What It Measures | How to Improve |
 |-------|-----------------|----------------|
-| Conciseness | Lines (<300 rec, <500 max) and tokens (<2000 max) | Move content to `references/` |
-| Complexity | Section count (<10 H2s), nesting depth (<3), code blocks (<10) | Consolidate sections, move examples to references |
-| Spec Compliance | Required fields (name, description), recommended fields (metadata, compatibility, license), structure | Add missing frontmatter fields |
-| Progressive Disclosure | Use of references, scripts, assets alongside SKILL.md | Add `references/` for skills >200 lines |
-| Description | Trigger phrases with action verbs, third-person format, specificity | Add phrases like "create X", "validate Y", "configure Z" |
+| Conciseness | Lines and tokens vs. targets | Move content to `references/` |
+| Complexity | Section count, nesting, code blocks | Merge sections, move examples to references |
+| Spec Compliance | Required and recommended frontmatter fields | Add `metadata.version`, `compatibility`, `license` |
+| Progressive Disclosure | Use of references alongside SKILL.md | Create `references/` for skills >200 lines |
+| Description Quality | Trigger phrase format and specificity | Use action verb phrases ("create X", "fix Y") |
 
-See `references/validation_tools_guide.md` for complete command reference.
+See `references/validation_tools_guide.md` for the complete flag reference.
 
-### Step 5: Iterate and Self-Improve
-
-Skillsmith supports a **metrics-driven improvement cycle**. After any change, re-evaluate and use the scores to identify the next fix.
-
-**Self-improvement loop:**
+### Step 6: Iterate (Skillsmith's Core Loop)
 
 ```
-Evaluate → Identify lowest score → Apply targeted fix → Re-evaluate → Repeat
+Evaluate → Explain → Fix → Re-evaluate → Update README → Sync
 ```
-
-**Targeted fixes by score:**
-
-| Low Score | Diagnosis | Fix |
-|-----------|-----------|-----|
-| Conciseness <80 | SKILL.md too long | Extract sections to `references/`, condense examples |
-| Complexity <80 | Too many sections or code blocks | Merge related H2 sections, move code examples to references |
-| Spec Compliance <90 | Missing frontmatter fields | Add `metadata.version`, `compatibility`, `license` |
-| Progressive <90 | No bundled resources | Create `references/` for detailed content |
-| Description <90 | Weak triggers or wrong format | Rewrite with "This skill should be used when..." and action verb phrases |
-
-**Improvement routing** (see `references/improvement_workflow_guide.md`):
-- **Quick updates** (<50 lines, single file, additive): Fix directly, auto PATCH bump
-- **Complex improvements** (>50 lines, multi-file, structural): GitHub Issue + README.md version row
-
-**Additional commands:**
 
 ```bash
-# Store metrics in SKILL.md frontmatter
-uv run scripts/evaluate_skill.py <skill-path> --store-metrics
+# Identify top-3 improvements with estimated score impact
+uv run scripts/evaluate_skill.py <skill-path> --explain
 
-# Compare before/after improvement
-uv run scripts/evaluate_skill.py <skill-path> --compare <original-path>
+# After fixes: re-evaluate and refresh README.md metrics
+uv run scripts/evaluate_skill.py <skill-path> --update-readme
 
-# Export version history row for README.md Version History table
-uv run scripts/evaluate_skill.py <skill-path> --export-table-row --version 2.0.0
+# Export version history row (paste into README.md Version History)
+uv run scripts/evaluate_skill.py <skill-path> --export-table-row --version X.Y.Z
 ```
 
-**Version bumping:**
-- PATCH (auto): Bug fixes, docs, minor updates
-- MINOR (user selects): New features, backward-compatible
-- MAJOR (user selects): Breaking changes
+**Improvement routing:**
+- **Quick updates** (<50 lines, single file): Fix directly, PATCH bump
+- **Complex improvements** (multi-file, structural): GitHub Issue + README.md version row
 
-After improvements, optionally invoke **marketplace-manager** to sync versions to marketplace.json.
+**Version bumping:**
+- PATCH: Bug fixes, docs, minor updates
+- MINOR: New features, backward-compatible
+- MAJOR: Breaking changes
+
+After improvements, invoke **marketplace-manager** to sync `marketplace.json`.
 
 ## Reference Documentation
 
 | Reference | Content |
 |-----------|---------|
-| `references/agentskills_specification.md` | Complete AgentSkills spec, validation checklist, naming rules |
+| `references/agentskills_specification.md` | Complete AgentSkills spec, validation checklist |
 | `references/skill_creation_detailed_guide.md` | Detailed editing, writing style, progressive disclosure |
-| `references/validation_tools_guide.md` | Full evaluate_skill.py documentation |
-| `references/python_uv_guide.md` | Python scripts with uv and PEP 723 inline metadata |
-| `references/improvement_workflow_guide.md` | Improvement routing logic and workflows |
+| `references/validation_tools_guide.md` | Full evaluate_skill.py flag reference |
+| `references/python_uv_guide.md` | PEP 723 inline metadata for uv scripts |
+| `references/improvement_workflow_guide.md` | Improvement routing and workflows |
 | `references/progressive_disclosure_discipline.md` | Avoiding documentation bloat |
 | `references/reference_management_guide.md` | Managing reference files |
-| `references/improvement_plan_best_practices.md` | README.md format, version history and planning documentation |
+| `references/improvement_plan_best_practices.md` | README.md format, version history documentation |
 | `references/readme_template.md` | README.md template and authoring guidance |
-| `references/research_guide.md` | Research phases, metrics interpretation |
 | `references/integration_guide.md` | Integration patterns with marketplace-manager |
 | `references/form_templates.md` | Form templates for structured data collection |
