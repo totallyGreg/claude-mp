@@ -1,7 +1,7 @@
 ---
 title: "feat: Marketplace manager external repo support"
 type: feat
-status: active
+status: completed
 date: 2026-03-19
 origin: 800 Generated/820 Brainstorms/2026-03-19-marketplace-manager-external-repo-support-requirements.md
 ---
