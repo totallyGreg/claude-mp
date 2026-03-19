@@ -3,9 +3,12 @@ name: gtd-coach
 description: |
   This skill should be used when users need GTD methodology coaching on productivity, workflow, or task management systems. Triggers when user asks "create a next action", "check my GTD system", "analyze my projects", "improve my workflow", "weekly review", "inbox zero", "someday maybe", or "GTD coaching". For OmniFocus-specific automation, use the omnifocus-manager skill instead.
 metadata:
-  version: 1.1.0
+  version: 1.2.0
   author: totally-tools
-  license: MIT
+license: MIT
+compatibility:
+  platforms: [macos]
+  notes: GTD methodology coaching is platform-agnostic; OmniFocus data queries require macOS
 ---
 
 # GTD Coach
@@ -37,10 +40,15 @@ Collect everything that has your attention into a trusted inbox. The goal is **1
 Process each captured item: "What is it? Is it actionable?"
 
 **Decision tree for each item:**
-- **Not actionable** → Trash, Reference, or Someday/Maybe
-- **Actionable, single step, <2 minutes** → Do it now
-- **Actionable, single step, >2 minutes** → Delegate or defer
-- **Actionable, multiple steps** → Create a Project
+
+```
+Item in inbox?
+├── Not actionable → Trash / Reference / Someday/Maybe
+└── Actionable?
+    ├── < 2 minutes → Do it now
+    ├── Multiple steps → Create Project + define next action
+    └── Single step, > 2 min → Delegate or defer
+```
 
 **The 2-minute rule:** If it takes less than 2 minutes, do it immediately. The overhead of tracking it exceeds the effort of doing it.
 
@@ -191,66 +199,18 @@ When using OmniFocus, ground coaching in actual data rather than assumptions. Us
 | "What did you accomplish?" | `osascript -l JavaScript scripts/gtd-queries.js --action recently-completed` |
 | "Overall system health?" | `osascript -l JavaScript scripts/gtd-queries.js --action system-health` |
 
-Run commands from `plugins/omnifocus-manager/skills/omnifocus-manager/` directory. Use the returned data to make coaching specific and actionable rather than generic.
+```bash
+# Run from plugins/omnifocus-manager/skills/omnifocus-manager/
+osascript -l JavaScript scripts/gtd-queries.js --action system-health
+osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects
+osascript -l JavaScript scripts/gtd-queries.js --action inbox-count
+```
 
----
-
-## Coaching Areas
-
-### Inbox Processing Coaching
-
-When a user has many unprocessed items:
-1. Guide them through the clarify decision tree for each item
-2. Help distinguish actionable from non-actionable
-3. Apply the 2-minute rule
-4. Help identify which items are actually projects
-
-### Next Action Clarity
-
-When tasks are vague:
-1. Ask "What's the very next physical action?"
-2. Help rewrite to be concrete and specific
-3. Ensure the action starts with a verb
-4. Test: "Can you picture yourself doing this?"
-
-### Project Definition
-
-When outcomes are unclear:
-1. Ask "What does 'done' look like?"
-2. Help write a clear outcome statement
-3. Identify the very next action
-4. Set an appropriate review cadence
-
-### Weekly Review Coaching
-
-Walk through the six-step checklist:
-1. Guide inbox processing
-2. Review each project for next actions
-3. Check Waiting For items for follow-up
-4. Review Someday/Maybe for relevance
-5. Look ahead on calendar
-6. Brainstorm new ideas
-
----
-
-## Tool Implementation
-
-GTD works with any trusted system. Common implementations include:
-
-- **OmniFocus** — Full GTD support with projects, contexts, perspectives, and review
-- **Things 3** — Simplified GTD with areas, projects, and tags
-- **Todoist** — Cross-platform with labels and filters
-- **Paper** — Index cards, notebooks, or folders
-- **Plain text** — Markdown files, org-mode
-
-For OmniFocus-specific automation and queries, use the **omnifocus-manager** skill.
+Use the returned data to make coaching specific and actionable rather than generic.
 
 ---
 
 ## References
 
-See `references/gtd_methodology.md` for detailed methodology reference including:
-- Deep dive into each of the five phases
-- Project planning model
-- Weekly review detailed walkthrough
-- Common failure modes and recovery strategies
+- `references/gtd_methodology.md` — Deep dive into each phase, project planning model, weekly review walkthrough, common failure modes
+- `references/gtd_coaching_patterns.md` — Coaching patterns by scenario, tool implementation guide, response templates
