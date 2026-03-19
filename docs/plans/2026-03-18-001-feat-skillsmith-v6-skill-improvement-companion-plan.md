@@ -1,7 +1,7 @@
 ---
 title: "feat: Skillsmith v6 — Skill Improvement Companion"
 type: feat
-status: active
+status: completed
 date: 2026-03-18
 origin: "800 Generated/820 Brainstorms/2026-03-18-skillsmith-v6-evolution-requirements.md"
 ---
