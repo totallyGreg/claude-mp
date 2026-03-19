@@ -31,6 +31,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
 |---------|------|-------|---------|------|------|------|------|------|---------|
+| 6.4.0 | 2026-03-19 | [#104](https://github.com/totallyGreg/claude-mp/issues/104) | Phase 6: self-application — all metrics 100/100; closes v6 improvement arc | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.3.0 | 2026-03-19 | - | Phase 5: skill-observer agent + analyze_transcript.py + /ss-observe command | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.2.0 | 2026-03-19 | - | Phase 4: PostToolUse hook on SKILL.md edits; /ss-improve unified improvement loop command | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.1.0 | 2026-03-19 | - | Phase 3: SKILL.md rewrite — plugin-dev 6-step loop backbone, routing table, improvement-specific trigger phrases; delete research_guide.md | 100 | 100 | 100 | 100 | 100 | 100 |
@@ -62,7 +63,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 ## Active Work
 
-- [#104](https://github.com/totallyGreg/claude-mp/issues/104): skillsmith v6 — Phase 6: Self-application + final version bump (Next)
+No active work. See [GitHub Issues](https://github.com/totallyGreg/claude-mp/issues?q=label:skillsmith+is:open) for the current tracker.
 
 See GitHub Issues for detailed plans and task checklists.
 
