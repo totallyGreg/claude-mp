@@ -23,6 +23,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
 |---------|------|-------|---------|------|------|------|------|---------|
+| 5.3.0 | 2026-03-18 | [#104](https://github.com/totallyGreg/claude-mp/issues/104) | Phase 1: fix 5 metric weaknesses (token estimation, progressive disclosure thresholds, trigger verb false positives, complexity scannable structure, absolute path detection); add --explain, --validate-references, --detect-duplicates, --update-readme flags; delete 4 deprecated scripts; generate README.md | 100 | 100 | 100 | 100 | 100 |
 | 5.2.1 | 2026-03-14 | - | Fix `validate_skill()` in evaluate_skill.py: replace regex frontmatter parsing with `yaml.safe_load()` to prevent false-positive angle bracket errors on YAML block scalars (`>`, `\|`); fix version extraction for metadata-nested version fields | - | - | - | - | - |
 | 5.2.0 | 2026-02-24 | [#55](https://github.com/totallyGreg/claude-mp/issues/55) | Support remote GitLab/GitHub URLs in evaluate_skill.py | 55 | 77 | 100 | 100 | 86 |
 | 5.1.0 | 2026-02-16 | [#32](https://github.com/totallyGreg/claude-mp/issues/32) | Add "When NOT to use" redirect section to prevent misrouting to skillsmith when plugin-dev skills are needed | 55 | 77 | 100 | 100 | 86 |
@@ -49,8 +50,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 ## Active Work
 
-- [#37](https://github.com/totallyGreg/claude-mp/issues/37): Add --explain mode to evaluate_skill.py (Planned)
-- [#24](https://github.com/totallyGreg/claude-mp/issues/24): Complete script consolidation - Phases 2-3 (Planned)
+- [#104](https://github.com/totallyGreg/claude-mp/issues/104): skillsmith v6 — Phase 2+ (plugin-dev loop integration, PostToolUse hook, /ss-improve command, README migration) (In Progress)
 
 See GitHub Issues for detailed plans and task checklists.
 
