@@ -31,6 +31,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
 |---------|------|-------|---------|------|------|------|------|------|---------|
+| 6.3.0 | 2026-03-19 | - | Phase 5: skill-observer agent + analyze_transcript.py + /ss-observe command | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.2.0 | 2026-03-19 | - | Phase 4: PostToolUse hook on SKILL.md edits; /ss-improve unified improvement loop command | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.1.0 | 2026-03-19 | - | Phase 3: SKILL.md rewrite — plugin-dev 6-step loop backbone, routing table, improvement-specific trigger phrases; delete research_guide.md | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.0.0 | 2026-03-19 | - | **BREAKING**: README.md replaces IMPROVEMENT_PLAN.md; delete deprecated scripts; idempotent --update-readme; Desc column in --export-table-row | 100 | 100 | 100 | 100 | 100 | 100 |
@@ -61,7 +62,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 ## Active Work
 
-- [#104](https://github.com/totallyGreg/claude-mp/issues/104): skillsmith v6 — Phase 5: Transcript-Replay Observation Agent (Next)
+- [#104](https://github.com/totallyGreg/claude-mp/issues/104): skillsmith v6 — Phase 6: Self-application + final version bump (Next)
 
 See GitHub Issues for detailed plans and task checklists.
 
