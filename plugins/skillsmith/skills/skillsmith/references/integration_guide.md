@@ -14,7 +14,7 @@ User Request → Skillsmith (Main Actor)
                     |
                     └── Complex Update? → WORKFLOW.md Pattern
                         ├── Create GitHub Issue with task checklist
-                        ├── Add to IMPROVEMENT_PLAN.md table
+                        ├── Add to README.md table
                         ├── Create docs/plans/ planning doc if needed
                         ├── Ask user: MINOR or MAJOR version?
                         └── Call marketplace-manager → Commit changes
@@ -221,7 +221,7 @@ Steps executed:
    - Labels: enhancement, breaking-change (if applicable)
    - Link to docs/plans/ if planning doc exists
 
-2. Update IMPROVEMENT_PLAN.md:
+2. Update README.md:
    - Add row to "Planned Improvements" table
    - Link to GitHub Issue (source of truth)
    - Status: "Open"
@@ -240,7 +240,7 @@ Steps executed:
 **After Implementation:**
 1. Skillsmith asks user: "Version bump? MINOR (new feature) or MAJOR (breaking change)?"
 2. Updates metadata.version in SKILL.md
-3. Updates IMPROVEMENT_PLAN.md (move to Completed section)
+3. Updates README.md (move to Completed section)
 4. Calls marketplace-manager for version sync
 5. Closes GitHub Issue
 
@@ -338,7 +338,7 @@ Results returned to Skillsmith:
    - Labels: enhancement
    - gh issue create returns: Issue #42
    ↓
-5. Skillsmith updates IMPROVEMENT_PLAN.md
+5. Skillsmith updates README.md
    - Adds row to "Planned Improvements" table
    - Links to GitHub Issue #42
    - Status: "Open"
@@ -365,7 +365,7 @@ Results returned to Skillsmith:
     - Commits to main
     - Asks about push → YES
     ↓
-11. Skillsmith updates IMPROVEMENT_PLAN.md
+11. Skillsmith updates README.md
     - Moves from Planned to Completed section
     - Adds completion date and summary
     ↓
@@ -388,7 +388,7 @@ Results returned to Skillsmith:
 
 **Skillsmith response:**
 - "Understood. Switching to systematic planning."
-- Follows WORKFLOW.md pattern (GitHub Issue + IMPROVEMENT_PLAN.md)
+- Follows WORKFLOW.md pattern (GitHub Issue + README.md)
 - Notes for future: user's complexity preference
 
 **Scenario**: Skillsmith chooses complex but change is actually simple
@@ -407,7 +407,7 @@ Results returned to Skillsmith:
 **Skillsmith response:**
 1. Reports error to user with specific failure details
 2. Preserves GitHub Issue with unchecked tasks for visibility
-3. Updates IMPROVEMENT_PLAN.md status to reflect blockage
+3. Updates README.md status to reflect blockage
 4. Offers manual fallback: "Continue manually or debug?"
 5. Does NOT auto-bump version or call marketplace-manager
 
@@ -499,7 +499,7 @@ uv run scripts/validate_workflow.py <skill-path> --mode release
 
 **Checks:** All quick mode checks plus:
 - Strict enforcement: Both errors AND warnings block release
-- IMPROVEMENT_PLAN.md completeness
+- README.md completeness
 - Reference file validation
 - All metrics must be within acceptable ranges
 
@@ -560,7 +560,7 @@ uv run scripts/validate_workflow.py skills/my-skill --mode quick --output json |
 1. Run strict validation: `validate_workflow.py --mode release`
 2. Fix all errors and warnings
 3. Re-run strict validation (repeat until clean)
-4. Update IMPROVEMENT_PLAN.md metrics
+4. Update README.md metrics
 5. Bump version in SKILL.md
 6. Call marketplace-manager to sync and commit
 

@@ -53,7 +53,7 @@ Usage:
 Options:
     --quick                   Fast validation mode (structure only)
     --strict                  Strict mode: treat warnings as errors (requires --quick)
-    --check-improvement-plan  Validate IMPROVEMENT_PLAN.md (requires --quick)
+    --check-improvement-plan  Validate IMPROVEMENT_PLAN.md if present (legacy, requires --quick)
     --explain                 Per-metric coaching with actionable improvements (incompatible with --quick)
     --validate-references     Validate references/ structure and mention coverage
     --detect-duplicates       Detect consolidation opportunities across reference files (opt-in)
@@ -1564,36 +1564,11 @@ def _extract_improvement_plan_sections(skill_path):
     }
 
 
-def generate_skill_readme(skill_path, metrics):
+def _generate_metrics_content(metrics, today):
     """
-    Generate README.md content for a skill.
-
-    The README is the human-readable companion document covering:
-    - Capabilities and primary use cases (from SKILL.md frontmatter)
-    - Current metric scores with interpretation
-    - Version history table (from IMPROVEMENT_PLAN.md if present)
-    - Active work / known issues
-
-    Args:
-        skill_path: Path to skill directory
-        metrics: dict from calculate_all_metrics()
-
-    Returns:
-        str: Complete README.md content
+    Generate the body of the ## Current Metrics section (everything after the heading line).
+    Starts with \\n\\n and ends with \\n (single newline, no trailing blank line).
     """
-    sp = Path(skill_path)
-    frontmatter, body, _ = read_skill_md(sp)
-    fm = parse_frontmatter(frontmatter)
-
-    skill_name = fm.get('name', sp.name)
-    description = fm.get('description', '')
-    when_to_use = fm.get('when_to_use', '')
-    compatible_with = fm.get('compatible_with', '')
-    version_str = ''
-    if 'metadata' in fm and isinstance(fm['metadata'], dict):
-        version_str = fm['metadata'].get('version', '')
-
-    # Current metric scores
     conc = metrics['conciseness']['score']
     comp = metrics['complexity']['score']
     spec = metrics['spec_compliance']['score']
@@ -1610,16 +1585,90 @@ def generate_skill_readme(skill_path, metrics):
             return 'Fair'
         return 'Needs work'
 
-    # Pull version history from IMPROVEMENT_PLAN.md
+    rows = [
+        f'| Conciseness | {conc}/100 | {_interp(conc)} |',
+        f'| Complexity | {comp}/100 | {_interp(comp)} |',
+        f'| Spec Compliance | {spec}/100 | {_interp(spec)} |',
+        f'| Progressive Disclosure | {disc}/100 | {_interp(disc)} |',
+    ]
+    if desc_q != '-':
+        rows.append(f'| Description Quality | {desc_q}/100 | {_interp(int(desc_q))} |')
+    rows.append(f'| **Overall** | **{overall}/100** | **{_interp(overall)}** |')
+
+    return (
+        f'\n\n*Last evaluated: {today}*\n\n'
+        '| Metric | Score | Interpretation |\n'
+        '|--------|-------|----------------|\n'
+        + '\n'.join(rows) + '\n\n'
+        'Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.\n'
+    )
+
+
+def _update_current_metrics_section(content, metrics_content):
+    """
+    Replace the ## Current Metrics section body in existing README.md.
+    Preserves all other sections verbatim. If section not found, inserts before footer.
+
+    metrics_content: return value of _generate_metrics_content (starts \\n\\n, ends \\n)
+    """
+    # Match heading (at start of line) + body up to next ## section, --- separator, or end of file
+    # (?ms) = MULTILINE (^ matches start of line) + DOTALL (. matches newlines)
+    pattern = r'(?ms)^(## Current Metrics)(.*?)(?=\n## |\n---|\Z)'
+    updated, n = re.subn(
+        pattern,
+        lambda m: m.group(1) + metrics_content,
+        content
+    )
+    if n == 0:
+        # Section not found — insert before footer separator or append
+        sep = '\n\n---\n'
+        if sep in content:
+            idx = content.rfind(sep)
+            updated = content[:idx] + '\n\n## Current Metrics' + metrics_content + content[idx:]
+        else:
+            updated = content.rstrip('\n') + '\n\n## Current Metrics' + metrics_content
+    return updated
+
+
+def generate_skill_readme(skill_path, metrics):
+    """
+    Generate or update README.md content for a skill.
+
+    If README.md already exists: only the ## Current Metrics section is replaced
+    (idempotent — all other sections are preserved verbatim).
+
+    If README.md does not exist: generates a full document from scratch using
+    SKILL.md frontmatter and IMPROVEMENT_PLAN.md version history (migration path).
+
+    Args:
+        skill_path: Path to skill directory
+        metrics: dict from calculate_all_metrics()
+
+    Returns:
+        str: Complete README.md content
+    """
+    sp = Path(skill_path)
+    today = datetime.now().strftime('%Y-%m-%d')
+    metrics_content = _generate_metrics_content(metrics, today)
+
+    # IDEMPOTENT PATH: if README.md already exists, only refresh ## Current Metrics
+    readme_path = sp / 'README.md'
+    if readme_path.exists():
+        existing = readme_path.read_text(encoding='utf-8')
+        return _update_current_metrics_section(existing, metrics_content)
+
+    # FIRST-TIME GENERATION: build full document from SKILL.md + IMPROVEMENT_PLAN.md
+    frontmatter, body, _ = read_skill_md(sp)
+    fm = parse_frontmatter(frontmatter)
+
+    skill_name = fm.get('name', sp.name)
+    description = fm.get('description', '')
+    when_to_use = fm.get('when_to_use', '')
+
+    # Pull version history from IMPROVEMENT_PLAN.md if present
     ip_sections = _extract_improvement_plan_sections(sp)
 
-    today = datetime.now().strftime('%Y-%m-%d')
-    version_header = f" (v{version_str})" if version_str else ''
-
-    lines = [
-        f"# {skill_name}{version_header}",
-        '',
-    ]
+    lines = [f"# {skill_name}", '']
 
     # Capabilities section — use description as prose
     if description:
@@ -1630,14 +1679,27 @@ def generate_skill_readme(skill_path, metrics):
             description,
             flags=re.IGNORECASE
         ).strip()
-        if prose:
-            lines += ['## Capabilities', '', prose, '']
-        else:
-            lines += ['## Capabilities', '', description, '']
+        lines += ['## Capabilities', '', prose or description, '']
     elif when_to_use:
         lines += ['## Capabilities', '', when_to_use, '']
 
-    # Metrics section
+    # Metrics section (inline for consistent list-building in fresh-gen path)
+    conc = metrics['conciseness']['score']
+    comp = metrics['complexity']['score']
+    spec = metrics['spec_compliance']['score']
+    disc = metrics['progressive_disclosure']['score']
+    desc_q = metrics.get('description_quality', {}).get('score', '-')
+    overall = metrics['overall_score']
+
+    def _interp(score):
+        if score >= 95:
+            return 'Excellent'
+        elif score >= 80:
+            return 'Good'
+        elif score >= 60:
+            return 'Fair'
+        return 'Needs work'
+
     lines += [
         '## Current Metrics',
         '',
@@ -1659,23 +1721,13 @@ def generate_skill_readme(skill_path, metrics):
         '',
     ]
 
-    # Version history
+    # Version history from IMPROVEMENT_PLAN.md
     if ip_sections['version_table']:
-        lines += [
-            '## Version History',
-            '',
-            ip_sections['version_table'],
-            '',
-        ]
+        lines += ['## Version History', '', ip_sections['version_table'], '']
 
-    # Active work
+    # Active work from IMPROVEMENT_PLAN.md
     if ip_sections['active_work']:
-        lines += [
-            '## Active Work',
-            '',
-            ip_sections['active_work'],
-            '',
-        ]
+        lines += ['## Active Work', '', ip_sections['active_work'], '']
 
     lines += [
         '---',
@@ -2661,10 +2713,12 @@ def main():
             comp = int(metrics['complexity']['score'])
             spec = int(metrics['spec_compliance']['score'])
             disc = int(metrics['progressive_disclosure']['score'])
+            desc_q = metrics.get('description_quality', {}).get('score', '-')
+            desc_str = str(int(desc_q)) if desc_q != '-' else '-'
             overall = int(metrics['overall_score'])
 
-            # Output table row
-            table_row = f"| {version_number} | {today} | {issue_link} | {summary} | {conc} | {comp} | {spec} | {disc} | {overall} |"
+            # Output table row (includes Desc column for README.md Version History)
+            table_row = f"| {version_number} | {today} | {issue_link} | {summary} | {conc} | {comp} | {spec} | {disc} | {desc_str} | {overall} |"
             print(table_row)
             sys.exit(0)
 

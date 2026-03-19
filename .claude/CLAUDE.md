@@ -1,18 +1,18 @@
 # Claude-MP Repository Instructions
 
-This repository contains Claude Code skills and follows a GitHub Issues + IMPROVEMENT_PLAN.md workflow.
+This repository contains Claude Code skills and follows a GitHub Issues + README.md workflow.
 
 ## Development Workflow
 
 See `/WORKFLOW.md` for complete documentation on:
 - Simple vs complex change workflows
 - GitHub Issue integration
-- IMPROVEMENT_PLAN.md management
+- README.md management
 - Two-commit release strategy
 
 ## Repository Structure
 
-- `skills/*/` - Individual skills with IMPROVEMENT_PLAN.md
+- `skills/*/` - Individual skills with README.md
 - `docs/plans/` - Ephemeral planning for complex work
 - `docs/lessons/` - Cross-skill learnings
 - `WORKFLOW.md` - Primary workflow documentation
@@ -20,7 +20,7 @@ See `/WORKFLOW.md` for complete documentation on:
 ## Workflow Hierarchy
 
 ```
-docs/lessons/         →  docs/plans/           →  GitHub Issues      →  IMPROVEMENT_PLAN.md
+docs/lessons/         →  docs/plans/           →  GitHub Issues      →  README.md
 (Post-work learnings)    (Pre-work planning)      (Active tracking)      (Issue state summary)
                                                   (SOURCE OF TRUTH)
 ```
@@ -29,17 +29,17 @@ docs/lessons/         →  docs/plans/           →  GitHub Issues      →  IM
 
 1. **Simple changes**: Commit directly to main
 2. **Complex work**:
-   - Add to skill's IMPROVEMENT_PLAN.md (simple table format)
+   - Add to skill's README.md (simple table format)
    - Create GitHub Issue for tracking (source of truth)
-   - Link issue in commits and IMPROVEMENT_PLAN.md
+   - Link issue in commits and README.md
 
-**IMPORTANT**: GitHub Issues are the canonical source of truth for work tracking. IMPROVEMENT_PLAN.md should be a simple table that reflects issue state, not detailed planning.
+**IMPORTANT**: GitHub Issues are the canonical source of truth for work tracking. README.md should be a simple table that reflects issue state, not detailed planning.
 
 **IMPORTANT**: When modifying any skill (SKILL.md, scripts, references), run skillsmith evaluation before committing:
 ```bash
 uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py <skill-path>
 ```
-Record the eval score in the skill's IMPROVEMENT_PLAN.md version history entry.
+Record the eval score in the skill's README.md version history entry.
 
 See WORKFLOW.md for details.
 
@@ -54,13 +54,13 @@ When exploring the marketplace, repository structure, or migration status:
 
 ### Migration & Status Checks
 - **Grep tool** for config analysis (marketplace.json, plugin.json)
-- **Glob** for finding IMPROVEMENT_PLAN.md, plugin manifests, etc.
+- **Glob** for finding README.md, plugin manifests, etc.
 - **Explore agent** for understanding complex migration patterns
 
 ### Example workflow for marketplace examination
 1. `tree -L 2 -d` → See full structure
 2. Glob `**/.claude-plugin/plugin.json` → Find all migrated plugins
-3. Glob `skills/*/IMPROVEMENT_PLAN.md` → Find remaining skills
+3. Glob `skills/*/README.md` → Find remaining skills
 4. Grep for "source" in marketplace.json → Compare declared vs actual locations
 
 ## Search Best Practices

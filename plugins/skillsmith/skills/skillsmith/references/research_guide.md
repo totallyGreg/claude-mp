@@ -219,7 +219,7 @@ Research findings integrate seamlessly with the WORKFLOW.md pattern for improvem
 2. Skillsmith runs research_skill.py for baseline analysis
 3. Research analyzes skill and identifies issues
 4. Create GitHub Issue with research findings
-5. Add to IMPROVEMENT_PLAN.md with baseline metrics
+5. Add to README.md with baseline metrics
 6. Create docs/plans/ planning doc with research data
 7. Implementation guided by objective metrics
 
@@ -284,7 +284,7 @@ This structured format enables programmatic consumption by GitHub Issues and pla
 - Low progressive disclosure: Better separation of concerns
 
 **Acting on findings:**
-- Use WORKFLOW.md pattern for systematic improvements (GitHub Issues + IMPROVEMENT_PLAN.md)
+- Use WORKFLOW.md pattern for systematic improvements (GitHub Issues + README.md)
 - Address violations before warnings
 - Prioritize opportunities with highest impact
 - Measure before/after to validate improvements

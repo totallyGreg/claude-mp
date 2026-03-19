@@ -1,27 +1,31 @@
-Research a skill to identify improvement opportunities.
+---
+name: ss-research
+description: Research a skill to identify improvement opportunities
+argument-hint: [skill-path]
+---
 
-Run the research command:
+Research a skill for improvement opportunities using evaluate_skill.py with --explain:
 
 ```bash
-uv run ${CLAUDE_PLUGIN_ROOT}/skills/skillsmith/scripts/research_skill.py $ARGUMENTS
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/skillsmith/scripts/evaluate_skill.py $ARGUMENTS --explain
 ```
+
+For deep structural guidance on skill intent and domain understanding, use `plugin-dev:skill-development`.
 
 Common arguments:
 - `<skill-path>` - Path to skill directory (required)
-- `--focus <area>` - Focus on specific area (conciseness, complexity, disclosure)
-- `--output <format>` - Output format (text, json, markdown)
+- `--explain` - Per-metric coaching with actionable improvements (included by default)
 
 Examples:
 ```
 /ss-research skills/my-skill
-/ss-research ./my-skill --focus conciseness
-/ss-research skills/skillsmith --output markdown
+/ss-research plugins/skillsmith/skills/skillsmith
 ```
 
 Research analyzes:
-- Content structure and organization
-- Reference file utilization
-- Script complexity and coverage
-- Improvement opportunities based on metrics
+- Per-metric scores with specific improvement suggestions
+- Top-3 improvements with estimated score impact
+- Reference file utilization and coverage gaps
+- Description quality and trigger phrase effectiveness
 
-Report the research findings with specific recommendations for improvement.
+Report the findings with specific recommendations for improvement.

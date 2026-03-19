@@ -1,10 +1,9 @@
 # .skillignore - Files and directories to exclude from skill packaging
 
 # Development and planning documents
-IMPROVEMENT_PLAN.md
+# (README.md is intentionally included — it travels with the skill as per-skill documentation)
 
 # Examples and test files
-examples/
 test/
 tests/
 *.test.js
