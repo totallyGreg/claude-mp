@@ -17,7 +17,7 @@ metadata:
   progressive: 100
   overall: 95
   last_evaluated: 2026-03-11
-  version: "2.6.0"
+  version: "2.7.0"
   author: J. Greg Williams
   license: MIT
 compatibility: Requires git repository with .claude-plugin/marketplace.json
@@ -97,6 +97,26 @@ bash scripts/install_hook.sh --dry-run # Preview installation
 ```
 
 Hook detects version mismatches, auto-syncs marketplace.json, and stages updates. Bypassable with `git commit --no-verify`.
+
+## External Repo Usage
+
+When marketplace-manager is installed as a plugin (not vendored in the repo), the hook auto-embeds the script path at install time:
+
+```bash
+# Install from plugin cache (run from within target repo)
+bash ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/install_hook.sh
+
+# Preview installation
+bash ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/install_hook.sh --dry-run
+```
+
+**Requirements:** The target repo needs `.claude-plugin/marketplace.json`. Initialize with:
+
+```bash
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/add_to_marketplace.py init
+```
+
+After a plugin version update, re-run `install_hook.sh` to refresh the embedded path.
 
 ## Scaffolding & Migration
 

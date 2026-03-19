@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# marketplace-manager pre-commit hook v5.0.0
+# marketplace-manager pre-commit hook v5.1.0
 #
 # Pre-commit hook for marketplace-manager
 # Checks staged files for version bumps and syncs marketplace.json + README.md
@@ -12,7 +12,12 @@
 #   git commit --no-verify
 #
 
-HOOK_VERSION="5.0.0"
+HOOK_VERSION="5.1.0"
+
+# Embedded at install time by install_hook.sh
+# If empty, falls back to repo-local discovery only
+EMBEDDED_SCRIPTS_DIR=""
+EMBEDDED_INSTALL_CMD=""
 
 # Colors for output
 RED='\033[0;31m'
@@ -33,25 +38,39 @@ if [ ! -f "$MARKETPLACE_JSON" ]; then
     exit 0
 fi
 
-# Discover script paths dynamically (robust to skill renames)
-# Try plugin path first (v2.0.0+), then legacy skills path
+# Discover script paths dynamically
+# Priority: 1) repo-local  2) embedded path (from install_hook.sh)  3) give up gracefully
+DETECT_SCRIPT=""
+SYNC_SCRIPT=""
+
+# 1) Repo-local discovery (plugin path v2.0.0+, then legacy skills path, then find)
 if [ -f "$REPO_ROOT/plugins/marketplace-manager/skills/marketplace-manager/scripts/detect_version_changes.py" ]; then
     DETECT_SCRIPT="$REPO_ROOT/plugins/marketplace-manager/skills/marketplace-manager/scripts/detect_version_changes.py"
     SYNC_SCRIPT="$REPO_ROOT/plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py"
 elif [ -f "$REPO_ROOT/skills/marketplace-manager/scripts/detect_version_changes.py" ]; then
-    # Legacy path (pre-v2.0.0)
     DETECT_SCRIPT="$REPO_ROOT/skills/marketplace-manager/scripts/detect_version_changes.py"
     SYNC_SCRIPT="$REPO_ROOT/skills/marketplace-manager/scripts/sync_marketplace_versions.py"
 else
-    # Fallback: search for scripts anywhere in repository
     SYNC_SCRIPT=$(find "$REPO_ROOT/plugins" "$REPO_ROOT/skills" -type f -name "sync_marketplace_versions.py" 2>/dev/null | head -n 1)
     DETECT_SCRIPT=$(find "$REPO_ROOT/plugins" "$REPO_ROOT/skills" -type f -name "detect_version_changes.py" 2>/dev/null | head -n 1)
 fi
 
-# Validate scripts were found
+# 2) Embedded path fallback (for external repos where scripts live in plugin cache)
+if { [ -z "$DETECT_SCRIPT" ] || [ -z "$SYNC_SCRIPT" ]; } && [ -n "$EMBEDDED_SCRIPTS_DIR" ] && [ -d "$EMBEDDED_SCRIPTS_DIR" ]; then
+    if [ -f "$EMBEDDED_SCRIPTS_DIR/detect_version_changes.py" ] && [ -f "$EMBEDDED_SCRIPTS_DIR/sync_marketplace_versions.py" ]; then
+        DETECT_SCRIPT="$EMBEDDED_SCRIPTS_DIR/detect_version_changes.py"
+        SYNC_SCRIPT="$EMBEDDED_SCRIPTS_DIR/sync_marketplace_versions.py"
+        echo -e "${BLUE}   Using scripts from plugin cache: $EMBEDDED_SCRIPTS_DIR${NC}"
+    fi
+fi
+
+# 3) Give up gracefully
 if [ -z "$DETECT_SCRIPT" ] || [ -z "$SYNC_SCRIPT" ] || [ ! -f "$DETECT_SCRIPT" ] || [ ! -f "$SYNC_SCRIPT" ]; then
     echo -e "${YELLOW}⚠️  marketplace-manager scripts not found, skipping version sync${NC}"
     echo -e "${YELLOW}   Expected: sync_marketplace_versions.py and detect_version_changes.py${NC}"
+    if [ -n "$EMBEDDED_INSTALL_CMD" ]; then
+        echo -e "${YELLOW}   Reinstall hook with: $EMBEDDED_INSTALL_CMD${NC}"
+    fi
     exit 0
 fi
 
@@ -61,7 +80,11 @@ if [ -f "$TEMPLATE_PATH" ]; then
     TEMPLATE_VERSION=$(grep -m 1 "^# marketplace-manager pre-commit hook v" "$TEMPLATE_PATH" | sed 's/.*v\([0-9.]*\).*/\1/')
     if [ -n "$TEMPLATE_VERSION" ] && [ "$TEMPLATE_VERSION" != "$HOOK_VERSION" ]; then
         echo -e "${YELLOW}⚠️  Hook version outdated: v$HOOK_VERSION (template: v$TEMPLATE_VERSION)${NC}"
-        echo -e "${YELLOW}   Update with: bash plugins/marketplace-manager/skills/marketplace-manager/scripts/install_hook.sh${NC}"
+        if [ -n "$EMBEDDED_INSTALL_CMD" ]; then
+            echo -e "${YELLOW}   Update with: $EMBEDDED_INSTALL_CMD${NC}"
+        else
+            echo -e "${YELLOW}   Update with: bash plugins/marketplace-manager/skills/marketplace-manager/scripts/install_hook.sh${NC}"
+        fi
     fi
 fi
 
