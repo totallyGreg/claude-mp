@@ -5,7 +5,7 @@ description: |
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 metadata:
-  version: 7.4.3
+  version: 7.5.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -94,7 +94,7 @@ scripts/ofo list overdue                     # Past due date
 scripts/ofo list flagged                     # All flagged active tasks
 ```
 
-**Prerequisites:** OmniFocus running + external scripts enabled. Run `scripts/ofo setup` once to approve all action scripts.
+**Prerequisites:** OmniFocus running + external scripts enabled. First command triggers a one-time approval dialog.
 
 ### 1. Query OmniFocus Data (JXA — for advanced queries not covered by ofo)
 
@@ -206,4 +206,4 @@ See `references/troubleshooting.md` for permission issues, common errors, and de
 
 ---
 
-**Current version:** 7.4.2 — See IMPROVEMENT_PLAN.md for version history.
+**Current version:** 7.5.0 — See IMPROVEMENT_PLAN.md for version history.

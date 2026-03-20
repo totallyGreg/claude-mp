@@ -22,6 +22,7 @@
  *     system-health            Aggregated GTD system health summary (includes perspective gaps)
  *     repeating-tasks          Active tasks with a repeat rule + completion cadence vs intended interval
  *     analyze-projects         Batch project sweep: stalled, neglected, overdue accumulation, near-duplicates
+ *     tagged-tasks             Tasks with a specific tag grouped by project with progress
  *
  * Options:
  *     --days <N>           Days for recently-completed / repeating-tasks lookback (default: 7 / 90)
@@ -152,6 +153,9 @@ function run(argv) {
                 break;
             case 'analyze-projects':
                 result = analyzeProjects(doc, taskQuery, args.threshold || 30);
+                break;
+            case 'tagged-tasks':
+                result = getTaggedTasks(doc, taskQuery, args.tag, args.childTag);
                 break;
             case 'help':
                 result = getHelp();
@@ -508,6 +512,38 @@ function findNearDuplicateProjects(projects) {
     return results;
 }
 
+function getTaggedTasks(doc, taskQuery, tagName, childTag) {
+    if (!tagName) {
+        return { success: false, error: 'Missing --tag parameter. Usage: --action tagged-tasks --tag "Tag Name" [--child-tag "Child"]' };
+    }
+
+    var options = {};
+    if (childTag) options.childTag = childTag;
+
+    var grouped = taskQuery.getTasksByTagGrouped(doc, tagName, options);
+    var totalTasks = 0;
+    var completedTasks = 0;
+    var activeTasks = 0;
+    for (var i = 0; i < grouped.length; i++) {
+        totalTasks += grouped[i].totalCount;
+        completedTasks += grouped[i].completedCount;
+    }
+    activeTasks = totalTasks - completedTasks;
+
+    return {
+        success: true,
+        action: 'tagged-tasks',
+        tag: tagName,
+        childTag: childTag || null,
+        projectCount: grouped.length,
+        totalTasks: totalTasks,
+        activeTasks: activeTasks,
+        completedTasks: completedTasks,
+        progress: completedTasks + '/' + totalTasks + ' complete',
+        projects: grouped
+    };
+}
+
 function getHelp() {
     return {
         success: true,
@@ -526,7 +562,8 @@ function getHelp() {
             'system-health': 'Aggregated GTD system health score and alerts (includes perspective gaps)',
             'ai-agent-tasks': 'Tasks tagged AI Agent grouped by project with progress (--tag <name>, --child-tag <name>)',
             'repeating-tasks': 'Active tasks with repeat rule + completion cadence vs intended interval (--days <N>, default 90)',
-            'analyze-projects': 'Batch project sweep: stalled, neglected, overdue accumulation, near-duplicates (--threshold <N>, default 30)'
+            'analyze-projects': 'Batch project sweep: stalled, neglected, overdue accumulation, near-duplicates (--threshold <N>, default 30)',
+            'tagged-tasks': 'Tasks with a specific tag grouped by project with progress (--tag <name>, --child-tag <name>)'
         }
     };
 }
