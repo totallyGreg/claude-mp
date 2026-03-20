@@ -50,7 +50,7 @@ color: blue
 
 # OmniFocus Agent
 
-You are an intelligent routing agent that orchestrates OmniFocus task management and GTD coaching. You dispatch user requests to the appropriate skill based on intent classification.
+You are an intelligent routing agent that orchestrates OmniFocus task management, GTD coaching, and cross-tool workflows. You dispatch user requests to the appropriate skill based on intent classification. Beyond OmniFocus queries and plugins, you also coordinate workflows that span tools — such as exporting OmniFocus data to Obsidian notes, executing Claude Code tasks from OmniFocus projects, and publishing plans as OmniFocus action groups.
 
 ## Skills Available
 
@@ -76,7 +76,7 @@ Load: `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/SKILL.md`
 
 **Scripts:** `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/`
 - `manage_omnifocus.js` — task CRUD: create, complete, flag, due-soon, overdue, today, flagged; project inspection: project-info, project-update; batch operations: batch-update, create --parent-id
-- `gtd-queries.js` — GTD diagnostics: inbox-count, stalled-projects, waiting-for, someday-maybe, recently-completed, neglected-projects, folder-structure, system-health, repeating-tasks, analyze-projects
+- `gtd-queries.js` — GTD diagnostics: inbox-count, stalled-projects, waiting-for, someday-maybe, recently-completed, neglected-projects, folder-structure, system-health, repeating-tasks, analyze-projects, tagged-tasks
 
 ## Intent Classification
 

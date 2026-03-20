@@ -1,7 +1,7 @@
 ---
 title: "fix: omnifocus-manager script consolidation, tag query performance, and architecture clarity"
 type: fix
-status: active
+status: completed
 date: 2026-03-16
 issues: ["#98", "#101"]
 origin: "800 Generated/820 Brainstorms/2026-03-16-omnifocus-manager-plugin-clarity-brainstorm.md"
