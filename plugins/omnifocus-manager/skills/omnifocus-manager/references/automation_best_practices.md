@@ -252,6 +252,8 @@ if (customPerspective) {
 - Show relevant perspective for context
 - Guide user attention to specific areas
 
+**Caveat:** `w.perspective = p` fails with "Cannot change perspectives while a sheet is presented" if any OmniFocus sheet/dialog is open. This makes programmatic perspective switching unreliable for automation.
+
 ## Prefer Perspectives Over Reimplemented Queries
 
 **Pattern:** When a user has a configured perspective for a view (e.g., Stalled Projects, Overdue, Waiting For), query the perspective rather than reimplementing its filter logic.
@@ -275,6 +277,31 @@ scripts/ofo perspective --id meu1tA5k8OT
 - Running in JXA where the ofo CLI is not available (use the best available JXA logic as fallback)
 
 **How it works:** `ofo-perspective.js` reads the perspective's `archivedFilterRules`, detects known patterns (e.g., stalled projects), and evaluates equivalent queries using `Task.Status.Available` for accurate results.
+
+### Perspective API Limitations (Omni Automation)
+
+`Perspective.Custom` does **not** expose evaluated content. There is no `.tasks`, `.items`, `.content`, or `.nodes` property — you cannot ask a perspective for its results.
+
+**Available on `Perspective.Custom`:**
+- `id`, `name` — identity
+- `archivedFilterRules` — raw filter rules (array of rule objects)
+- `archivedTopLevelFilterAggregation` — `"all"` or `"any"`
+- `fileWrapper`, `writeFileRepresentationIntoDirectory` — export only
+
+**Not available:**
+- No method to evaluate/execute a perspective's rules and get matching tasks
+- No `.tasks`, `.items`, `.content`, `.nodes`, `.children` properties
+
+**Window-based workaround (unreliable):**
+Setting `document.windows[0].perspective = p` and reading `window.content` is theoretically possible but fails with "Cannot change perspectives while a sheet is presented" and changes the user's visible view. **Do not use this approach.**
+
+**Consequence:** `ofoPerspective()` in ofo-core must re-implement each perspective's filter logic by detecting known rule patterns (e.g., `actionAvailability: "completed"` + `actionDateIsToday: true`) and running equivalent queries against `flattenedTasks`. Each new perspective pattern requires a new code branch.
+
+**Known filter rule patterns:**
+| Rule Keys | Meaning | Implementation |
+|-----------|---------|----------------|
+| `actionHasProjectWithStatus: "stalled"` | Stalled projects | Filter `flattenedProjects` for active projects with remaining but no available tasks |
+| `actionAvailability: "completed"` + `actionDateField: "completed", actionDateIsToday: true` | Completed today | Filter `flattenedTasks` for `taskStatus === Completed` with `completionDate` matching today |
 
 ## Conditional Task Processing
 

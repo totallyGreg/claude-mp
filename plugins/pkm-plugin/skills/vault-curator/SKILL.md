@@ -12,9 +12,10 @@ description: >
   Curates and evolves existing vault content through pattern detection, migration workflows,
   metadata intelligence, consolidation, discovery, visualization, and programmatic manipulation.
 metadata:
-  version: "1.5.3"
+  version: "1.6.0"
   plugin: "pkm-plugin"
   stage: "3"
+license: MIT
 compatibility: Requires python3.11+ and uv for script execution. Obsidian CLI 1.12+ for intelligence workflows.
 ---
 
@@ -280,26 +281,7 @@ When asked "show me a map", "generate canvas", "visualize my notes", or "show kn
 
 ## Pattern Detection
 
-### Find Orphaned Notes
+- **Orphaned notes**: `obsidian orphans` — files with no incoming links
+- **Note clusters**: `find_related.py --scope` — groups of related notes within a directory
 
-Use `obsidian orphans` CLI command to find files with no incoming links.
-
-### Detect Note Clusters
-
-Use `find_related.py` with `--scope` to identify groups of related notes within a directory.
-
-## Available Scripts
-
-All scripts use PEP 723 inline metadata for `uv run` compatibility. Run via:
-`uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/<script> ${VAULT_PATH}`
-
-| Script | Purpose |
-|--------|---------|
-| `extract_section_to_meeting.py` | Extract meeting from daily note log |
-| `suggest_properties.py` | Suggest missing properties for a note |
-| `detect_schema_drift.py` | Find metadata inconsistencies across fileClass |
-| `find_related.py` | Find notes related by tags, properties, links, proximity |
-| `find_similar_notes.py` | Detect duplicate/similar notes within scope |
-| `merge_notes.py` | Merge two notes (frontmatter union + content concat) |
-| `redirect_links.py` | Vault-wide wikilink replacement after merge |
-| `generate_canvas.py` | Generate JSON Canvas maps of note relationships |
+**See:** `references/available-scripts.md` for full script inventory

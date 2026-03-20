@@ -41,6 +41,28 @@ obsidian create "Note Title" silent                        # creates at vault ro
 obsidian move file="Note Title.md" to="Folder/SubFolder"  # moves to correct location
 ```
 
+## Reading Notes
+
+```bash
+obsidian read file="Note Name"                          # read by wikilink name
+obsidian read path="folder/note.md"                     # read by exact path
+```
+
+## Appending Content
+
+```bash
+obsidian append file="Note Name" content="New content"  # append to end
+obsidian append path="folder/note.md" content="New content"
+```
+
+To insert content after a specific heading, use `obsidian append` with the note path, then use the Read tool to verify placement. For precise insertion at a specific location within a note, read the file with the Read tool, then use the Edit tool to insert content at the exact position.
+
+**Pattern — Append CLI output to a note:**
+```bash
+OUTPUT=$(some-command --markdown)
+obsidian append path="folder/note.md" content="$OUTPUT"
+```
+
 ## File Updates
 
 ```bash
@@ -54,7 +76,8 @@ obsidian create path="note.md" overwrite content="updated content" silent
 
 ## Safety Rules
 
-- **`obsidian file` is read-only** — `content` and `overwrite` params are silently ignored; use `obsidian create ... overwrite` for content writes
+- **`obsidian create overwrite` is destructive** — it replaces the entire file. If the content pipeline fails (e.g., a sed error produces empty output), the note is wiped. **Never pipe untransformed or shell-processed content into `obsidian create overwrite`.** For inserting content at a specific location, use the Read tool + Edit tool on the vault file directly.
+- **`obsidian file` is read-only** — `content` and `overwrite` params are silently ignored; use `obsidian create ... overwrite` for content writes (with the above caveat)
 - **`folder=` in `create` is unreliable** — always use `create` + `move` instead
 - Always use `silent` flag with `create` (prevents opening files in UI)
 - Always use `format=json` for programmatic output

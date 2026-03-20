@@ -263,6 +263,11 @@ function ofoPerspective(args: OfoArgs): OfoResult {
   const isStalled = rules.some(function(r: any) {
     return r.actionHasProjectWithStatus === 'stalled';
   });
+  const isCompletedToday = rules.some(function(r: any) {
+    return r.actionAvailability === 'completed';
+  }) && rules.some(function(r: any) {
+    return r.actionDateField === 'completed' && r.actionDateIsToday === true;
+  });
 
   const results: object[] = [];
   if (isStalled) {
@@ -282,6 +287,23 @@ function ofoPerspective(args: OfoArgs): OfoResult {
           modifiedDate: p.modified ? p.modified.toISOString() : null
         });
       }
+    });
+  } else if (isCompletedToday) {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+    flattenedTasks.forEach(function(t: Task) {
+      if (results.length >= limit) return;
+      if (t.taskStatus !== Task.Status.Completed) return;
+      if (!t.completionDate || t.completionDate < todayStart || t.completionDate >= todayEnd) return;
+      results.push({
+        id: t.id.primaryKey, name: t.name, type: 'task',
+        project: t.containingProject ? t.containingProject.name : null,
+        dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+        flagged: t.flagged,
+        tags: t.tags.map(function(tag: Tag) { return tag.name; })
+      });
     });
   } else {
     flattenedTasks.forEach(function(t: Task) {
