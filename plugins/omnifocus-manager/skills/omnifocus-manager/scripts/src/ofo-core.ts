@@ -371,7 +371,7 @@ function ofoTags(_args: OfoArgs): OfoResult {
     });
     return result;
   }
-  return { success: true, tags: buildTree(document.tags) };
+  return { success: true, tags: buildTree(tags) };
 }
 
 // === CREATE BATCH ===

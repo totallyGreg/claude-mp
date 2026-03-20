@@ -35,4 +35,5 @@ interface Tag {
   removeTag(tag: Tag): void;
 }
 
-declare const document: { tags: Tag[] };
+// Top-level tag hierarchy (from Database global)
+declare const tags: Tag[];
