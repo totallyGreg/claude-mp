@@ -6,7 +6,9 @@ __pycache__/
 .Python
 *.egg-info/
 dist/
-build/
+/build/
+# ofo-core plugin bundle is a build artifact deployed to OmniFocus separately
+plugins/omnifocus-manager/skills/omnifocus-manager/scripts/build/ofo-core.omnifocusjs/
 
 # IDEs
 .vscode/

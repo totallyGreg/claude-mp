@@ -21,3 +21,26 @@ __pycache__/
 
 # Development/planning files (keep in git, exclude from packaging)
 IMPROVEMENT_PLAN.md
+
+# TypeScript source (build output is distributed instead)
+scripts/src/
+
+# Build dependencies (not needed at runtime — CLI uses Node built-ins only)
+scripts/node_modules/
+scripts/package.json
+scripts/package-lock.json
+scripts/build-plugin.sh
+
+# TypeScript configs
+scripts/tsconfig*.json
+
+# Build intermediates and OmniFocus plugin bundle (deployed separately via npm run deploy)
+scripts/build/intermediate/
+scripts/build/ofo-core.omnifocusjs/
+
+# Test and validation scripts
+scripts/test-*.js
+scripts/validate-*.js
+
+# Legacy generator (not used by CLI)
+scripts/generate_plugin.js
