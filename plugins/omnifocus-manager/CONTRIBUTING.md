@@ -25,7 +25,7 @@ CLI polls pasteboard, outputs JSON to stdout
 ```
 
 **Source files** (TypeScript, in `scripts/src/`):
-- `ofo-core.ts` — All action handlers (info, complete, create, create-batch, update, search, list, tag, tags, perspective)
+- `ofo-core.ts` — All action handlers (info, complete, create, create-batch, update, search, list, tag, tags, perspective, perspective-configure)
 - `ofo-cli.ts` — Argument parsing, URL construction, pasteboard polling
 - `ofo-stub.js` — Stable script sent via URL (approved once, never changes)
 - `manifest.json` — Plugin bundle manifest

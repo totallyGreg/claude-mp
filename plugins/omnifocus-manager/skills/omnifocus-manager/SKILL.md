@@ -4,10 +4,10 @@ description: |
   This skill should be used when working with OmniFocus data, running GTD diagnostics, configuring perspectives, or generating OmniFocus plugins. Triggers when user asks "show tasks", "overdue items", "check inbox", "stalled projects", "waiting for list", "someday maybe", "GTD health check", "create a plugin", "analyze OmniFocus", "AI Agent tasks", "publish plan to OmniFocus", "set up perspectives", "perspective inventory", "configure perspective", or "missing perspectives". Also triggers when the user pastes an `omnifocus://` URL — parse the entity type and ID from the URL, then use `/ofo:info <url>` to look it up directly. For pure GTD methodology coaching, use the gtd-coach skill instead.
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
+license: MIT
 metadata:
-  version: 8.1.0
+  version: 8.2.0
   author: totally-tools
-  license: MIT
 compatibility:
   platforms: [macos]
   requires:
@@ -95,6 +95,9 @@ scripts/ofo list flagged                     # All flagged active tasks
 scripts/ofo tag <id> --add "Tag" --remove "Other"  # Granular tag manipulation
 scripts/ofo tag <id> --capture question      # Capture pipeline shortcut
 scripts/ofo tags                             # Full tag hierarchy as JSON
+scripts/ofo perspective-configure --name "View" --rules '[...]'  # Set perspective filter rules
+scripts/ofo completed-today                  # Today's completions categorized by tag (JSON)
+scripts/ofo completed-today --markdown       # Same, formatted for Obsidian append
 echo "Buy milk" | scripts/ofo create         # Stdin: first line = name
 echo '{"name":"X","project":"P"}' | scripts/ofo create  # Stdin: JSON
 ```
@@ -122,13 +125,22 @@ osascript -l JavaScript scripts/gtd-queries.js --action folder-structure
 
 ### 2. Manage Perspectives
 
+**Principle: Perspectives over scripts.** Prefer codifying perspectives as the query engine over creating new plugin actions. Use `ofo perspective` to read and `ofo perspective-configure` to write filter rules on existing perspectives. The CLI handles post-processing (filtering, categorization, formatting).
+
 ```bash
+# ofo CLI (preferred)
+scripts/ofo perspective "Completed Today"           # Query perspective contents
+scripts/ofo perspective-configure --name "Completed Today" --rules '[{"actionAvailability":"completed"},{"actionDateField":"completed","actionDateIsToday":true}]'
+scripts/ofo perspective-configure --name "My View" --aggregation any
+
+# JXA (legacy, for perspective inventory)
 osascript -l JavaScript scripts/gtd-queries.js --action perspective-inventory
 osascript -l JavaScript scripts/perspective-config.js --action show --name "Next Actions"
 osascript -l JavaScript scripts/perspective-config.js --action apply-template --name "Next Actions" --template next-actions
-osascript -l JavaScript scripts/perspective-config.js --action apply --name "My View" --rules '[{"actionAvailability":"available"}]'
 osascript -l JavaScript scripts/perspective-config.js --action list-templates
 ```
+
+Note: Perspectives must be created manually in OmniFocus Pro — the API has no constructor. Filter rules use tag IDs, not names.
 
 See `references/perspective_templates.md` for 8 canonical GTD perspective JSON configs.
 See `references/perspective_creation.md` for the guided configuration workflow.
