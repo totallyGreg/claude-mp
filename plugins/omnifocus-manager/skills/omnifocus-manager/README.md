@@ -12,16 +12,16 @@ Query and manage OmniFocus tasks via Omni Automation script URLs (ofo CLI) and J
 
 ## Current Metrics
 
-*Last evaluated: 2026-03-19*
+*Last evaluated: 2026-03-20*
 
 | Metric | Score | Interpretation |
 |--------|-------|----------------|
-| Conciseness | 100/100 | Excellent |
+| Conciseness | 98/100 | Excellent |
 | Complexity | 90/100 | Good |
-| Spec Compliance | 90/100 | Good |
+| Spec Compliance | 100/100 | Excellent |
 | Progressive Disclosure | 100/100 | Excellent |
 | Description Quality | 100/100 | Excellent |
-| **Overall** | **95/100** | Good |
+| **Overall** | **97/100** | **Excellent** |
 
 Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
 
@@ -29,6 +29,8 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
 |---------|------|-------|---------|------|------|------|------|------|---------|
+| 8.2.0 | 2026-03-20 | — | Add perspective-configure action, completed-today CLI command (perspectives-over-scripts pattern); fix license frontmatter placement | 98 | 90 | 100 | 100 | 100 | 97 |
+| 8.1.0 | 2026-03-19 | [#116](https://github.com/totallyGreg/claude-mp/pull/116) | ofo CLI: tag command with capture shortcuts, tags hierarchy, create-batch; fix flattenedTags global | 100 | 90 | 90 | 100 | 100 | 95 |
 | 8.0.0 | 2026-03-19 | [#111](https://github.com/totallyGreg/claude-mp/issues/111) | Migrate ofo CLI to TypeScript plugin library: ofo-core.ts (7 actions), ofo-cli.ts (arg parsing), installed .omnifocusjs bundle, stable stub script, zero auth prompts after checkbox; CONTRIBUTING.md rewrite | 100 | 90 | 90 | 100 | 100 | 95 |
 | 7.5.0 | 2026-03-19 | [#98](https://github.com/totallyGreg/claude-mp/issues/98), [#101](https://github.com/totallyGreg/claude-mp/issues/101) | Tag query perf: flattenedTasks→tag.tasks() (563x speedup), whose() crash fix; consolidate 7 action scripts into ofo-dispatcher.js, remove ofo setup; add /ofo-tagged command; CONTRIBUTING.md; inbox filter fix | 100 | 90 | 90 | 100 | 100 | 95 |
 | 7.4.3 | 2026-03-15 | — | ofo-work: use `ofo complete` (Omni Automation) not `manage_omnifocus.js complete` (JXA) — fixes -10003 permission error | 83 | 90 | 90 | 100 | - | 91 |

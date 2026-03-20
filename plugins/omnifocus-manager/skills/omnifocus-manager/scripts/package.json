@@ -9,7 +9,7 @@
     "build:generator": "tsc",
     "build:plugin": "bash build-plugin.sh",
     "build:cli": "tsc --project src/tsconfig.cli.json && cp src/ofo-stub.js build/ofo-stub.js",
-    "deploy": "cp -r build/ofo-core.omnifocusjs \"$HOME/Library/Containers/com.omnigroup.OmniFocus4/Data/Library/Application Support/Plug-Ins/ofo-core.omnifocusjs\"",
+    "deploy": "rm -rf \"$HOME/Library/Containers/com.omnigroup.OmniFocus4/Data/Library/Application Support/Plug-Ins/ofo-core.omnifocusjs\" && cp -r build/ofo-core.omnifocusjs \"$HOME/Library/Containers/com.omnigroup.OmniFocus4/Data/Library/Application Support/Plug-Ins/ofo-core.omnifocusjs\"",
     "watch": "tsc --watch",
     "generate": "node generate_plugin.js"
   },

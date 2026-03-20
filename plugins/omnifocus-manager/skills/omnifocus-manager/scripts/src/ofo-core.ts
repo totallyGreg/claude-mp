@@ -308,6 +308,37 @@ function ofoPerspective(args: OfoArgs): OfoResult {
   };
 }
 
+// === PERSPECTIVE CONFIGURE ===
+
+function ofoPerspectiveConfigure(args: OfoArgs): OfoResult {
+  const name = (args.name as string) || null;
+  const id = (args.id as string) || null;
+
+  let target: Perspective.Custom | null = null;
+  if (id) target = Perspective.Custom.byIdentifier(id);
+  else if (name) target = Perspective.Custom.byName(name);
+
+  if (!target) return { success: false, error: 'Perspective not found: ' + (name || id) };
+
+  const rules = args.rules as object[] | undefined;
+  const aggregation = args.aggregation as string | undefined;
+
+  if (!rules && !aggregation) {
+    return { success: false, error: 'At least one of rules or aggregation is required' };
+  }
+
+  if (rules) target.archivedFilterRules = rules;
+  if (aggregation) target.archivedTopLevelFilterAggregation = aggregation;
+
+  return {
+    success: true,
+    perspective: target.name,
+    perspectiveId: target.id.primaryKey,
+    filterRules: target.archivedFilterRules,
+    aggregation: target.archivedTopLevelFilterAggregation
+  };
+}
+
 // === TAG ===
 
 function ofoTag(args: OfoArgs): OfoResult {
@@ -401,6 +432,7 @@ function dispatch(args: OfoArgs): OfoResult {
     case 'ofo-search':      return ofoSearch(args);
     case 'ofo-list':        return ofoList(args);
     case 'ofo-perspective': return ofoPerspective(args);
+    case 'ofo-perspective-configure': return ofoPerspectiveConfigure(args);
     case 'ofo-tag':         return ofoTag(args);
     case 'ofo-tags':        return ofoTags(args);
     case 'ofo-create-batch': return ofoCreateBatch(args);

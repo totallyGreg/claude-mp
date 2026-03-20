@@ -314,6 +314,178 @@ function cmdTag(args: string[]): void {
   runAction('ofo-tag', { id, add: addTags, remove: removeTags });
 }
 
+function cmdPerspectiveConfigure(args: string[]): void {
+  let name = '', id = '', rules = '', aggregation = '';
+
+  let i = 0;
+  while (i < args.length) {
+    switch (args[i]) {
+      case '--name': name = args[++i] || ''; break;
+      case '--id':   id = args[++i] || ''; break;
+      case '--rules': rules = args[++i] || ''; break;
+      case '--aggregation': aggregation = args[++i] || ''; break;
+      default: die('Unknown option: ' + args[i]);
+    }
+    i++;
+  }
+
+  if (!name && !id) die('Usage: ofo perspective-configure --name "Name" --rules \'[...]\'');
+  if (!rules && !aggregation) die('At least one of --rules or --aggregation is required');
+
+  const argObj: Record<string, unknown> = {};
+  if (name) argObj.name = name;
+  if (id) argObj.id = id;
+  if (rules) {
+    try {
+      argObj.rules = JSON.parse(rules);
+    } catch {
+      die('Invalid JSON for --rules: ' + rules);
+    }
+  }
+  if (aggregation) argObj.aggregation = aggregation;
+
+  runAction('ofo-perspective-configure', argObj);
+}
+
+function cmdCompletedToday(args: string[]): void {
+  let markdown = false;
+  for (const arg of args) {
+    if (arg === '--markdown') markdown = true;
+    else die('Unknown option: ' + arg);
+  }
+
+  // Use a synchronous approach: call runAction which writes to stdout,
+  // but we need to intercept the result for post-processing.
+  // Override stdout to capture the perspective result.
+  const perspectiveName = 'Completed Today';
+  const stubPath = join(__dirname, 'ofo-stub.js');
+  let stub: string;
+  try {
+    stub = readFileSync(stubPath, 'utf-8');
+  } catch {
+    die('Stub script not found: ' + stubPath);
+  }
+
+  const argJson = JSON.stringify({ action: 'ofo-perspective', name: perspectiveName });
+  const encodedScript = urlEncode(stub);
+  const encodedArg = urlEncode(argJson);
+
+  pbcopy('__ofo_pending__');
+
+  execSync(`open "omnifocus://localhost/omnijs-run?script=${encodedScript}&arg=${encodedArg}"`, {
+    stdio: 'ignore'
+  });
+
+  const maxAttempts = 50;
+  let rawResult = '';
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    execSync('sleep 0.2');
+    const result = pbpaste();
+    if (result !== '__ofo_pending__') {
+      rawResult = result;
+      break;
+    }
+  }
+
+  if (!rawResult) {
+    process.stdout.write('{"success":false,"error":"Timeout waiting for OmniFocus response"}');
+    process.exit(1);
+  }
+
+  let data: any;
+  try {
+    data = JSON.parse(rawResult);
+  } catch {
+    process.stdout.write(rawResult);
+    return;
+  }
+
+  if (!data.success) {
+    process.stdout.write(rawResult);
+    return;
+  }
+
+  const items: any[] = data.items || [];
+
+  // Filter out Routine🔁 tagged tasks
+  const filtered = items.filter((t: any) =>
+    !t.tags || !t.tags.includes('Routine🔁')
+  );
+
+  // Categorize by capture tags
+  const questions: any[] = [];
+  const discontents: any[] = [];
+  const decisions: any[] = [];
+  const tasks: any[] = [];
+
+  for (const t of filtered) {
+    const tagList: string[] = t.tags || [];
+    if (tagList.includes('Question❓')) questions.push(t);
+    else if (tagList.includes('Discontent⁉️')) discontents.push(t);
+    else if (tagList.includes('Decide😤')) decisions.push(t);
+    else tasks.push(t);
+  }
+
+  if (markdown) {
+    const lines: string[] = [];
+
+    if (filtered.length === 0) {
+      lines.push('No completions logged today.');
+    } else {
+      lines.push('## Completed Today');
+      lines.push('');
+
+      if (tasks.length > 0) {
+        lines.push('### Tasks');
+        for (const t of tasks) {
+          const proj = t.project ? ` (${t.project})` : '';
+          lines.push(`- ${t.name}${proj}`);
+        }
+        lines.push('');
+      }
+
+      if (questions.length > 0) {
+        lines.push('### Questions Answered');
+        for (const t of questions) {
+          const proj = t.project ? ` (${t.project})` : '';
+          lines.push(`- ${t.name}${proj}`);
+        }
+        lines.push('');
+      }
+
+      if (discontents.length > 0) {
+        lines.push('### Discontents Resolved');
+        for (const t of discontents) {
+          const proj = t.project ? ` (${t.project})` : '';
+          lines.push(`- ${t.name}${proj}`);
+        }
+        lines.push('');
+      }
+
+      if (decisions.length > 0) {
+        lines.push('### Decisions Made');
+        for (const t of decisions) {
+          const proj = t.project ? ` (${t.project})` : '';
+          lines.push(`- ${t.name}${proj}`);
+        }
+        lines.push('');
+      }
+    }
+
+    process.stdout.write(lines.join('\n'));
+  } else {
+    process.stdout.write(JSON.stringify({
+      success: true,
+      date: new Date().toISOString().slice(0, 10),
+      totalCompleted: filtered.length,
+      tasks,
+      questions,
+      discontents,
+      decisions
+    }));
+  }
+}
+
 function cmdTags(): void {
   runAction('ofo-tags', {});
 }
@@ -333,6 +505,8 @@ Commands:
   tag <id|url> [options]            Add/remove tags on a task
   tags                              List all tags as JSON hierarchy
   perspective <name> [--id ID]      Query a custom perspective
+  perspective-configure [options]   Set filter rules on a perspective
+  completed-today [--markdown]      Today's completions categorized by tag
   help                              Show this help
 
 Filters for 'list':
@@ -372,6 +546,18 @@ Stdin support (create):
   echo '[{"name":"A"},...]' | ofo create     JSON array for batch creation
   Flags (--project, --tags) merge with stdin; --name overrides stdin name
 
+Perspective-configure options:
+  --name "Name"             Perspective to configure (by name)
+  --id "ID"                 Perspective to configure (by ID)
+  --rules '[...]'           JSON array of filter rule objects
+  --aggregation all|any|none  Filter aggregation mode
+
+Completed-today options:
+  --markdown                Output as markdown (default: JSON)
+  Queries "Completed Today" perspective, excludes Routine🔁,
+  categorizes by Question❓, Discontent⁉️, Decide😤 tags.
+  Pipe to obsidian-cli: ofo completed-today --markdown | obsidian append "path"
+
 URL handling:
   All commands accept omnifocus:// URLs:
     ofo info omnifocus:///task/abc123
@@ -406,9 +592,11 @@ switch (command) {
   case 'update':      cmdUpdate(commandArgs); break;
   case 'search':      cmdSearch(commandArgs); break;
   case 'list':        cmdList(commandArgs); break;
-  case 'tag':         cmdTag(commandArgs); break;
-  case 'tags':        cmdTags(); break;
-  case 'perspective': cmdPerspective(commandArgs); break;
+  case 'tag':                   cmdTag(commandArgs); break;
+  case 'tags':                  cmdTags(); break;
+  case 'perspective':           cmdPerspective(commandArgs); break;
+  case 'perspective-configure': cmdPerspectiveConfigure(commandArgs); break;
+  case 'completed-today':       cmdCompletedToday(commandArgs); break;
   case 'help':
   case '--help':
   case '-h':          cmdHelp(); break;
