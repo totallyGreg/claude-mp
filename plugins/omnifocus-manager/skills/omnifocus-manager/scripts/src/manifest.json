@@ -1,0 +1,9 @@
+{
+  "identifier": "com.totally-tools.ofo-core",
+  "version": "1.0.0",
+  "author": "OmniFocus Manager",
+  "description": "Core ofo CLI library — dispatches actions called via omnijs-run URL stub",
+  "libraries": [
+    { "identifier": "ofoCore" }
+  ]
+}
