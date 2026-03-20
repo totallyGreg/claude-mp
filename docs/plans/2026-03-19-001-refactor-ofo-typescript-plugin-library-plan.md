@@ -1,7 +1,7 @@
 ---
 title: "refactor: Migrate ofo CLI to TypeScript plugin library architecture"
 type: refactor
-status: active
+status: completed
 date: 2026-03-19
 origin: 800 Generated/820 Brainstorms/2026-03-19-ofo-typescript-plugin-pipeline-requirements.md
 ---
@@ -195,16 +195,16 @@ CLI polls pasteboard (sentinel pattern), returns result
 
 ## Acceptance Criteria
 
-- [ ] All 7 existing ofo actions work identically (info, complete, create, update, search, list, perspective)
-- [ ] Adding a new action requires editing only TypeScript files
-- [ ] Zero auth prompts after one-time "Automatically run" checkbox approval
-- [ ] `ofo --version` shows version and architecture type
-- [ ] `npm run build` produces both plugin bundle and CLI in one command
-- [ ] `validate-plugin.sh` passes on built plugin bundle
-- [ ] Skillsmith evaluation score >= 95 after SKILL.md updates
-- [ ] CONTRIBUTING.md documents full build → deploy → extend workflow
-- [ ] Golden output comparison passes for all 7 actions (JSON structure match)
-- [ ] Plugin-not-found error returns within 2 seconds with actionable message
+- [x] All 7 existing ofo actions work identically (info, complete, create, update, search, list, perspective)
+- [x] Adding a new action requires editing only TypeScript files
+- [x] Zero auth prompts after one-time "Automatically run" checkbox approval
+- [x] `ofo --version` shows version and architecture type
+- [x] `npm run build` produces both plugin bundle and CLI in one command
+- [x] `validate-plugin.sh` passes on built plugin bundle
+- [x] Skillsmith evaluation score >= 95 after SKILL.md updates
+- [x] CONTRIBUTING.md documents full build → deploy → extend workflow
+- [x] Golden output comparison passes for all 7 actions (JSON structure match)
+- [x] Plugin-not-found error returns within 2 seconds with actionable message
 
 ## Dependencies & Risks
 
