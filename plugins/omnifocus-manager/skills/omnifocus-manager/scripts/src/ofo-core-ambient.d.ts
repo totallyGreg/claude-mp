@@ -18,3 +18,21 @@ declare namespace Perspective {
     archivedTopLevelFilterAggregation: any;
   }
 }
+
+// Top-level OmniFocus document for tag hierarchy access
+declare namespace Tag {
+  const enum Status {
+    Active = 0,
+    OnHold = 1,
+    Dropped = 2
+  }
+}
+
+interface Tag {
+  status: Tag.Status;
+  children: Tag[];
+  remainingTasks: Task[];
+  removeTag(tag: Tag): void;
+}
+
+declare const document: { tags: Tag[] };

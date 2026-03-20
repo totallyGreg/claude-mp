@@ -94,7 +94,38 @@ function cmdComplete(args) {
     const id = parseOmniFocusUrl(args[0]);
     runAction('ofo-complete', { id });
 }
+// --- Stdin Helpers ---
+function readStdin() {
+    if (process.stdin.isTTY)
+        return null;
+    try {
+        const data = readFileSync(0, 'utf-8').trim();
+        return data || null;
+    }
+    catch {
+        return null;
+    }
+}
+function parseStdinInput(raw) {
+    // Try JSON first
+    try {
+        return JSON.parse(raw);
+    }
+    catch {
+        // Plain text: first line = name, rest = note
+        const lines = raw.split('\n');
+        const name = lines[0].trim();
+        const note = lines.slice(1).join('\n').trim();
+        if (!name)
+            die('No input received from stdin');
+        const result = { name };
+        if (note)
+            result.note = note;
+        return result;
+    }
+}
 function cmdCreate(args) {
+    // Parse CLI flags
     let name = '', project = '', note = '', due = '', defer_ = '', tags = '', estimate = '';
     let flagged = false;
     let i = 0;
@@ -128,6 +159,60 @@ function cmdCreate(args) {
         }
         i++;
     }
+    // Check for stdin input
+    const stdinData = readStdin();
+    if (stdinData) {
+        const parsed = parseStdinInput(stdinData);
+        // JSON array: batch create
+        if (Array.isArray(parsed)) {
+            // Merge CLI flags into each item
+            const items = parsed.map(item => {
+                const merged = { ...item };
+                if (project && !merged.project)
+                    merged.project = project;
+                if (tags && !merged.tags)
+                    merged.tags = tags.split(',').map(t => t.trim());
+                if (due && !merged.due)
+                    merged.due = due;
+                if (defer_ && !merged.defer)
+                    merged.defer = defer_;
+                if (flagged && !merged.flagged)
+                    merged.flagged = true;
+                if (estimate && !merged.estimate)
+                    merged.estimate = parseInt(estimate, 10);
+                return merged;
+            });
+            runAction('ofo-create-batch', { items });
+            return;
+        }
+        // JSON object or plain text: single task
+        const stdinObj = parsed;
+        // --name overrides stdin name; stdin text becomes note
+        if (name) {
+            if (!stdinObj.note && stdinObj.name) {
+                stdinObj.note = stdinObj.name;
+            }
+            stdinObj.name = name;
+        }
+        // CLI flags override stdin fields
+        if (project)
+            stdinObj.project = project;
+        if (note)
+            stdinObj.note = note;
+        if (due)
+            stdinObj.due = due;
+        if (defer_)
+            stdinObj.defer = defer_;
+        if (flagged)
+            stdinObj.flagged = true;
+        if (estimate)
+            stdinObj.estimate = parseInt(estimate, 10);
+        if (tags)
+            stdinObj.tags = tags.split(',').map(t => t.trim());
+        runAction('ofo-create', stdinObj);
+        return;
+    }
+    // No stdin: require --name
     if (!name)
         die('Usage: ofo create --name "Task name" [--project P] [--tags t1,t2] [--due YYYY-MM-DD]');
     const argObj = { name };
@@ -209,6 +294,49 @@ function cmdPerspective(args) {
         runAction('ofo-perspective', { name: args.join(' ') });
     }
 }
+// --- Tag Commands ---
+const CAPTURE_MAP = {
+    question: 'Question❓',
+    discontent: 'Discontent⁉️',
+    decide: 'Decide😤',
+    routine: 'Routine🔁',
+    evening: 'Evening🕕',
+};
+function cmdTag(args) {
+    if (args.length < 1)
+        die('Usage: ofo tag <id> --add "Tag" --remove "Tag" --capture <shortcut>');
+    const id = parseOmniFocusUrl(args[0]);
+    const addTags = [];
+    const removeTags = [];
+    let i = 1;
+    while (i < args.length) {
+        switch (args[i]) {
+            case '--add':
+                addTags.push(args[++i] || '');
+                break;
+            case '--remove':
+                removeTags.push(args[++i] || '');
+                break;
+            case '--capture': {
+                const shortcut = (args[++i] || '').toLowerCase();
+                const mapped = CAPTURE_MAP[shortcut];
+                if (!mapped)
+                    die(`Unknown capture shortcut: ${shortcut}. Available: ${Object.keys(CAPTURE_MAP).join(', ')}`);
+                addTags.push(mapped);
+                break;
+            }
+            default: die('Unknown option: ' + args[i]);
+        }
+        i++;
+    }
+    if (addTags.length === 0 && removeTags.length === 0) {
+        die('At least one --add, --remove, or --capture flag is required');
+    }
+    runAction('ofo-tag', { id, add: addTags, remove: removeTags });
+}
+function cmdTags() {
+    runAction('ofo-tags', {});
+}
 function cmdHelp() {
     process.stdout.write(`ofo -- OmniFocus CLI via plugin library
 
@@ -217,10 +345,12 @@ Usage: ofo <command> [arguments]
 Commands:
   info <id|url>                     Get task or project details as JSON
   complete <id|url>                 Mark a task as complete
-  create --name "..." [options]     Create a new task
+  create --name "..." [options]     Create a new task (also accepts stdin)
   update <id|url> [options]         Update task properties
   search <query>                    Search tasks by name or note
   list <filter>                     List tasks by filter
+  tag <id|url> [options]            Add/remove tags on a task
+  tags                              List all tags as JSON hierarchy
   perspective <name> [--id ID]      Query a custom perspective
   help                              Show this help
 
@@ -248,6 +378,18 @@ Update options:
   --flagged                 Flag the task
   --note "Note text"        Set task note
   --estimate N              Set estimated minutes
+
+Tag options:
+  --add "TagName"           Add a tag (repeatable)
+  --remove "TagName"        Remove a tag (repeatable)
+  --capture <shortcut>      Add a capture pipeline tag
+    Shortcuts: question, discontent, decide, routine, evening
+
+Stdin support (create):
+  echo "Task name" | ofo create              Plain text: first line = name, rest = note
+  echo '{"name":"X"}' | ofo create           JSON object with task fields
+  echo '[{"name":"A"},...]' | ofo create     JSON array for batch creation
+  Flags (--project, --tags) merge with stdin; --name overrides stdin name
 
 URL handling:
   All commands accept omnifocus:// URLs:
@@ -289,6 +431,12 @@ switch (command) {
         break;
     case 'list':
         cmdList(commandArgs);
+        break;
+    case 'tag':
+        cmdTag(commandArgs);
+        break;
+    case 'tags':
+        cmdTags();
         break;
     case 'perspective':
         cmdPerspective(commandArgs);

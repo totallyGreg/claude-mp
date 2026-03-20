@@ -308,6 +308,88 @@ function ofoPerspective(args: OfoArgs): OfoResult {
   };
 }
 
+// === TAG ===
+
+function ofoTag(args: OfoArgs): OfoResult {
+  const id = args.id as string;
+  const t = Task.byIdentifier(id);
+  if (!t) return { success: false, error: 'Task not found: ' + id };
+
+  const warnings: string[] = [];
+  const addNames = (args.add as string[]) || [];
+  const removeNames = (args.remove as string[]) || [];
+
+  // Check for add+remove conflict
+  for (let i = 0; i < addNames.length; i++) {
+    if (removeNames.indexOf(addNames[i]!) !== -1) {
+      return { success: false, error: 'Cannot add and remove the same tag: ' + addNames[i] };
+    }
+  }
+
+  // Remove first (idempotent)
+  removeNames.forEach(function(tagName: string) {
+    const tag = flattenedTags.byName(tagName);
+    if (tag) t.removeTag(tag);
+  });
+
+  // Then add
+  addNames.forEach(function(tagName: string) {
+    const tag = flattenedTags.byName(tagName);
+    if (tag) {
+      t.addTag(tag);
+    } else {
+      warnings.push("Tag '" + tagName + "' not found, skipped");
+    }
+  });
+
+  const result: OfoResult = {
+    success: true,
+    task: {
+      id: t.id.primaryKey,
+      name: t.name,
+      tags: t.tags.map(function(tag: Tag) { return tag.name; })
+    }
+  };
+  if (warnings.length > 0) result.warnings = warnings;
+  return result;
+}
+
+// === TAGS ===
+
+function ofoTags(_args: OfoArgs): OfoResult {
+  function buildTree(tagList: Tag[]): object[] {
+    const result: object[] = [];
+    tagList.forEach(function(t: Tag) {
+      if (t.status === Tag.Status.Dropped) return;
+      result.push({
+        id: t.id.primaryKey,
+        name: t.name,
+        status: t.status === Tag.Status.Active ? 'active' : 'on-hold',
+        children: t.children.length > 0 ? buildTree(t.children) : [],
+        activeTaskCount: t.remainingTasks.length
+      });
+    });
+    return result;
+  }
+  return { success: true, tags: buildTree(document.tags) };
+}
+
+// === CREATE BATCH ===
+
+function ofoCreateBatch(args: OfoArgs): OfoResult {
+  const items = args.items as OfoArgs[];
+  const results: OfoResult[] = [];
+  items.forEach(function(item: OfoArgs) {
+    try {
+      results.push(ofoCreate(item));
+    } catch (e) {
+      results.push({ success: false, error: String(e) });
+    }
+  });
+  const created = results.filter(function(r: OfoResult) { return r.success; }).length;
+  return { success: true, results: results, created: created, failed: items.length - created };
+}
+
 // === DISPATCH ===
 
 function dispatch(args: OfoArgs): OfoResult {
@@ -319,6 +401,9 @@ function dispatch(args: OfoArgs): OfoResult {
     case 'ofo-search':      return ofoSearch(args);
     case 'ofo-list':        return ofoList(args);
     case 'ofo-perspective': return ofoPerspective(args);
+    case 'ofo-tag':         return ofoTag(args);
+    case 'ofo-tags':        return ofoTags(args);
+    case 'ofo-create-batch': return ofoCreateBatch(args);
     default:
       return { success: false, error: 'Unknown action: ' + args.action };
   }
