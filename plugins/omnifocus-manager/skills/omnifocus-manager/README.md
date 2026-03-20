@@ -29,6 +29,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
 |---------|------|-------|---------|------|------|------|------|------|---------|
+| 8.0.0 | 2026-03-19 | [#111](https://github.com/totallyGreg/claude-mp/issues/111) | Migrate ofo CLI to TypeScript plugin library: ofo-core.ts (7 actions), ofo-cli.ts (arg parsing), installed .omnifocusjs bundle, stable stub script, zero auth prompts after checkbox; CONTRIBUTING.md rewrite | 100 | 90 | 90 | 100 | 100 | 95 |
 | 7.5.0 | 2026-03-19 | [#98](https://github.com/totallyGreg/claude-mp/issues/98), [#101](https://github.com/totallyGreg/claude-mp/issues/101) | Tag query perf: flattenedTasks→tag.tasks() (563x speedup), whose() crash fix; consolidate 7 action scripts into ofo-dispatcher.js, remove ofo setup; add /ofo-tagged command; CONTRIBUTING.md; inbox filter fix | 100 | 90 | 90 | 100 | 100 | 95 |
 | 7.4.3 | 2026-03-15 | — | ofo-work: use `ofo complete` (Omni Automation) not `manage_omnifocus.js complete` (JXA) — fixes -10003 permission error | 83 | 90 | 90 | 100 | - | 91 |
 | 7.4.2 | 2026-03-14 | — | jxa_guide.md: Unicode tag matching, add/remove tag API gotchas; antipattern rule for exact tag name match | 83 | 90 | 90 | 100 | - | 91 |

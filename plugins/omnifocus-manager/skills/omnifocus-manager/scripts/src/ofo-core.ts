@@ -1,46 +1,29 @@
-// ofo-dispatcher.js — Single Omni Automation dispatcher for all ofo commands.
-// Routes on argument.action field. One script = one OmniFocus approval.
-var args = argument;
-var action = args.action;
-var result;
+/// <reference path="../../typescript/omnifocus.d.ts" />
 
-try {
-  switch (action) {
-    case 'ofo-info':
-      result = ofoInfo(args);
-      break;
-    case 'ofo-complete':
-      result = ofoComplete(args);
-      break;
-    case 'ofo-create':
-      result = ofoCreate(args);
-      break;
-    case 'ofo-update':
-      result = ofoUpdate(args);
-      break;
-    case 'ofo-search':
-      result = ofoSearch(args);
-      break;
-    case 'ofo-list':
-      result = ofoList(args);
-      break;
-    case 'ofo-perspective':
-      result = ofoPerspective(args);
-      break;
-    default:
-      result = { success: false, error: 'Unknown action: ' + action };
-  }
-} catch (e) {
-  result = { success: false, error: e.toString() };
+// ofo-core.ts — OmniFocus plugin library core logic.
+// Compiled by tsc, then wrapped in PlugIn.Library IIFE by build script.
+// All functions are plain — no imports/exports. The build script assigns
+// `dispatch` to `lib.dispatch` in the IIFE wrapper.
+
+interface OfoArgs {
+  action: string;
+  [key: string]: unknown;
 }
 
-Pasteboard.general.string = JSON.stringify(result);
+interface OfoResult {
+  success: boolean;
+  [key: string]: unknown;
+}
 
 // === INFO ===
-function ofoInfo(args) {
-  if (args.type === 'project') {
-    var p = Project.byIdentifier(args.id);
-    if (!p) return { success: false, error: 'Project not found: ' + args.id };
+
+function ofoInfo(args: OfoArgs): OfoResult {
+  const id = args.id as string;
+  const type = (args.type as string) || 'task';
+
+  if (type === 'project') {
+    const p = Project.byIdentifier(id);
+    if (!p) return { success: false, error: 'Project not found: ' + id };
     return {
       success: true,
       project: {
@@ -52,17 +35,17 @@ function ofoInfo(args) {
         dueDate: p.dueDate ? p.dueDate.toISOString() : null,
         deferDate: p.deferDate ? p.deferDate.toISOString() : null,
         note: p.note,
-        tags: p.tags.map(function(tag) { return tag.name; }),
+        tags: p.tags.map(function(tag: Tag) { return tag.name; }),
         taskCount: p.flattenedTasks.length,
         sequential: p.sequential,
         parentFolder: p.parentFolder ? p.parentFolder.name : null
       }
     };
-  } else if (args.type === 'tag') {
-    var tag = Tag.byIdentifier(args.id);
-    if (!tag) return { success: false, error: 'Tag not found: ' + args.id };
-    var activeTasks = [];
-    tag.remainingTasks.forEach(function(t) {
+  } else if (type === 'tag') {
+    const tag = Tag.byIdentifier(id);
+    if (!tag) return { success: false, error: 'Tag not found: ' + id };
+    const activeTasks: Task[] = [];
+    tag.remainingTasks.forEach(function(t: Task) {
       if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
       if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
       activeTasks.push(t);
@@ -73,7 +56,7 @@ function ofoInfo(args) {
         id: tag.id.primaryKey,
         name: tag.name,
         activeTaskCount: activeTasks.length,
-        tasks: activeTasks.slice(0, 50).map(function(t) {
+        tasks: activeTasks.slice(0, 50).map(function(t: Task) {
           return {
             id: t.id.primaryKey,
             name: t.name,
@@ -85,8 +68,8 @@ function ofoInfo(args) {
       }
     };
   } else {
-    var t = Task.byIdentifier(args.id);
-    if (!t) return { success: false, error: 'Task not found: ' + args.id };
+    const t = Task.byIdentifier(id);
+    if (!t) return { success: false, error: 'Task not found: ' + id };
     return {
       success: true,
       task: {
@@ -99,7 +82,7 @@ function ofoInfo(args) {
         completionDate: t.completionDate ? t.completionDate.toISOString() : null,
         note: t.note,
         project: t.containingProject ? t.containingProject.name : null,
-        tags: t.tags.map(function(tag) { return tag.name; }),
+        tags: t.tags.map(function(tag: Tag) { return tag.name; }),
         estimatedMinutes: t.estimatedMinutes
       }
     };
@@ -107,29 +90,32 @@ function ofoInfo(args) {
 }
 
 // === COMPLETE ===
-function ofoComplete(args) {
-  var t = Task.byIdentifier(args.id);
-  if (!t) return { success: false, error: 'Task not found: ' + args.id };
+
+function ofoComplete(args: OfoArgs): OfoResult {
+  const id = args.id as string;
+  const t = Task.byIdentifier(id);
+  if (!t) return { success: false, error: 'Task not found: ' + id };
   t.markComplete();
   return { success: true, task: { id: t.id.primaryKey, name: t.name, completed: true } };
 }
 
 // === CREATE ===
-function ofoCreate(args) {
-  var location = inbox.ending;
+
+function ofoCreate(args: OfoArgs): OfoResult {
+  let location = inbox.ending;
   if (args.project) {
-    var proj = flattenedProjects.byName(args.project);
+    const proj = flattenedProjects.byName(args.project as string);
     if (proj) location = proj.task.ending;
   }
-  var t = new Task(args.name, location);
-  if (args.note) t.note = args.note;
+  const t = new Task(args.name as string, location);
+  if (args.note) t.note = args.note as string;
   if (args.flagged) t.flagged = true;
-  if (args.due) t.dueDate = new Date(args.due);
-  if (args.defer) t.deferDate = new Date(args.defer);
-  if (args.estimate) t.estimatedMinutes = args.estimate;
+  if (args.due) t.dueDate = new Date(args.due as string);
+  if (args.defer) t.deferDate = new Date(args.defer as string);
+  if (args.estimate) t.estimatedMinutes = args.estimate as number;
   if (args.tags) {
-    args.tags.forEach(function(tagName) {
-      var tag = flattenedTags.byName(tagName);
+    (args.tags as string[]).forEach(function(tagName: string) {
+      const tag = flattenedTags.byName(tagName);
       if (tag) t.addTag(tag);
     });
   }
@@ -144,19 +130,21 @@ function ofoCreate(args) {
 }
 
 // === UPDATE ===
-function ofoUpdate(args) {
-  var t = Task.byIdentifier(args.id);
-  if (!t) return { success: false, error: 'Task not found: ' + args.id };
-  if (args.name !== undefined) t.name = args.name;
-  if (args.note !== undefined) t.note = args.note;
-  if (args.flagged !== undefined) t.flagged = args.flagged;
-  if (args.due !== undefined) t.dueDate = args.due === null ? null : new Date(args.due);
-  if (args.defer !== undefined) t.deferDate = args.defer === null ? null : new Date(args.defer);
-  if (args.estimate !== undefined) t.estimatedMinutes = args.estimate;
+
+function ofoUpdate(args: OfoArgs): OfoResult {
+  const id = args.id as string;
+  const t = Task.byIdentifier(id);
+  if (!t) return { success: false, error: 'Task not found: ' + id };
+  if (args.name !== undefined) t.name = args.name as string;
+  if (args.note !== undefined) t.note = args.note as string;
+  if (args.flagged !== undefined) t.flagged = args.flagged as boolean;
+  if (args.due !== undefined) t.dueDate = args.due === null ? null : new Date(args.due as string);
+  if (args.defer !== undefined) t.deferDate = args.defer === null ? null : new Date(args.defer as string);
+  if (args.estimate !== undefined) t.estimatedMinutes = args.estimate as number;
   if (args.tags !== undefined) {
     t.clearTags();
-    args.tags.forEach(function(tagName) {
-      var tag = flattenedTags.byName(tagName);
+    (args.tags as string[]).forEach(function(tagName: string) {
+      const tag = flattenedTags.byName(tagName);
       if (tag) t.addTag(tag);
     });
   }
@@ -173,16 +161,17 @@ function ofoUpdate(args) {
 }
 
 // === SEARCH ===
-function ofoSearch(args) {
-  var query = (args.query || '').toLowerCase();
-  var limit = args.limit || 50;
-  var results = [];
-  flattenedTasks.forEach(function(t) {
+
+function ofoSearch(args: OfoArgs): OfoResult {
+  const query = ((args.query as string) || '').toLowerCase();
+  const limit = (args.limit as number) || 50;
+  const results: object[] = [];
+  flattenedTasks.forEach(function(t: Task) {
     if (results.length >= limit) return;
     if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
     if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
-    var nameMatch = t.name.toLowerCase().indexOf(query) !== -1;
-    var noteMatch = t.note && t.note.toLowerCase().indexOf(query) !== -1;
+    const nameMatch = t.name.toLowerCase().indexOf(query) !== -1;
+    const noteMatch = t.note && t.note.toLowerCase().indexOf(query) !== -1;
     if (nameMatch || noteMatch) {
       results.push({
         id: t.id.primaryKey,
@@ -197,15 +186,16 @@ function ofoSearch(args) {
 }
 
 // === LIST ===
-function ofoList(args) {
-  var filter = args.filter || 'inbox';
-  var limit = args.limit || 100;
-  var results = [];
-  var now = new Date();
-  var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  var todayEnd = new Date(todayStart.getTime() + 86400000);
 
-  function taskSummary(t) {
+function ofoList(args: OfoArgs): OfoResult {
+  const filter = (args.filter as string) || 'inbox';
+  const limit = (args.limit as number) || 100;
+  const results: object[] = [];
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayEnd = new Date(todayStart.getTime() + 86400000);
+
+  function taskSummary(t: Task) {
     return {
       id: t.id.primaryKey,
       name: t.name,
@@ -213,36 +203,36 @@ function ofoList(args) {
       dueDate: t.dueDate ? t.dueDate.toISOString() : null,
       deferDate: t.deferDate ? t.deferDate.toISOString() : null,
       flagged: t.flagged,
-      tags: t.tags.map(function(tag) { return tag.name; })
+      tags: t.tags.map(function(tag: Tag) { return tag.name; })
     };
   }
 
   if (filter === 'inbox') {
-    inbox.forEach(function(t) {
+    inbox.forEach(function(t: Task) {
       if (results.length >= limit) return;
       if (t.taskStatus !== Task.Status.Available) return;
       results.push(taskSummary(t));
     });
   } else if (filter === 'flagged') {
-    flattenedTasks.forEach(function(t) {
+    flattenedTasks.forEach(function(t: Task) {
       if (results.length >= limit) return;
       if (t.flagged && t.taskStatus === Task.Status.Available) {
         results.push(taskSummary(t));
       }
     });
   } else if (filter === 'today') {
-    flattenedTasks.forEach(function(t) {
+    flattenedTasks.forEach(function(t: Task) {
       if (results.length >= limit) return;
       if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
       if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
-      var isDueToday = t.dueDate && t.dueDate >= todayStart && t.dueDate < todayEnd;
-      var isFlagged = t.flagged;
+      const isDueToday = t.dueDate && t.dueDate >= todayStart && t.dueDate < todayEnd;
+      const isFlagged = t.flagged;
       if (isDueToday || isFlagged) {
         results.push(taskSummary(t));
       }
     });
   } else if (filter === 'overdue') {
-    flattenedTasks.forEach(function(t) {
+    flattenedTasks.forEach(function(t: Task) {
       if (results.length >= limit) return;
       if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
       if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
@@ -256,32 +246,33 @@ function ofoList(args) {
 }
 
 // === PERSPECTIVE ===
-function ofoPerspective(args) {
-  var name = args.name || null;
-  var id = args.id || null;
-  var limit = args.limit || 100;
 
-  var target = null;
+function ofoPerspective(args: OfoArgs): OfoResult {
+  const name = (args.name as string) || null;
+  const id = (args.id as string) || null;
+  const limit = (args.limit as number) || 100;
+
+  let target: Perspective.Custom | null = null;
   if (id) target = Perspective.Custom.byIdentifier(id);
   else if (name) target = Perspective.Custom.byName(name);
 
   if (!target) return { success: false, error: 'Perspective not found: ' + (name || id) };
 
-  var rules = target.archivedFilterRules;
-  var aggregation = target.archivedTopLevelFilterAggregation;
-  var isStalled = rules.some(function(r) {
+  const rules = target.archivedFilterRules;
+  const aggregation = target.archivedTopLevelFilterAggregation;
+  const isStalled = rules.some(function(r: any) {
     return r.actionHasProjectWithStatus === 'stalled';
   });
 
-  var results = [];
+  const results: object[] = [];
   if (isStalled) {
-    flattenedProjects.forEach(function(p) {
+    flattenedProjects.forEach(function(p: Project) {
       if (results.length >= limit) return;
       if (p.status !== Project.Status.Active) return;
-      var remaining = p.flattenedTasks.filter(function(t) {
+      const remaining = p.flattenedTasks.filter(function(t: Task) {
         return t.taskStatus === Task.Status.Available || t.taskStatus === Task.Status.Blocked;
       });
-      var available = p.flattenedTasks.filter(function(t) {
+      const available = p.flattenedTasks.filter(function(t: Task) {
         return t.taskStatus === Task.Status.Available;
       });
       if (remaining.length > 0 && available.length === 0) {
@@ -293,7 +284,7 @@ function ofoPerspective(args) {
       }
     });
   } else {
-    flattenedTasks.forEach(function(t) {
+    flattenedTasks.forEach(function(t: Task) {
       if (results.length >= limit) return;
       if (t.taskStatus !== Task.Status.Available) return;
       results.push({
@@ -301,7 +292,7 @@ function ofoPerspective(args) {
         project: t.containingProject ? t.containingProject.name : null,
         dueDate: t.dueDate ? t.dueDate.toISOString() : null,
         flagged: t.flagged,
-        tags: t.tags.map(function(tag) { return tag.name; })
+        tags: t.tags.map(function(tag: Tag) { return tag.name; })
       });
     });
   }
@@ -315,4 +306,20 @@ function ofoPerspective(args) {
     count: results.length,
     items: results
   };
+}
+
+// === DISPATCH ===
+
+function dispatch(args: OfoArgs): OfoResult {
+  switch (args.action) {
+    case 'ofo-info':        return ofoInfo(args);
+    case 'ofo-complete':    return ofoComplete(args);
+    case 'ofo-create':      return ofoCreate(args);
+    case 'ofo-update':      return ofoUpdate(args);
+    case 'ofo-search':      return ofoSearch(args);
+    case 'ofo-list':        return ofoList(args);
+    case 'ofo-perspective': return ofoPerspective(args);
+    default:
+      return { success: false, error: 'Unknown action: ' + args.action };
+  }
 }
