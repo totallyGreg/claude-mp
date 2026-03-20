@@ -6,7 +6,7 @@ __pycache__/
 .Python
 *.egg-info/
 dist/
-build/
+/build/
 
 # IDEs
 .vscode/
