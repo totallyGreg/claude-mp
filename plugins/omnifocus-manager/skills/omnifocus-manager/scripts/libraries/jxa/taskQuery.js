@@ -280,47 +280,44 @@
         var includeCompleted = options.includeCompleted || false;
         var childTag = options.childTag || null;
 
-        // Find the tag (and all child tags)
-        var parentTag = doc.flattenedTags.whose({ name: tagName })[0];
-        if (!parentTag) return [];
+        // Find the parent tag (guard against empty whose() results)
+        var tagMatches = doc.flattenedTags.whose({ name: tagName });
+        if (tagMatches.length === 0) return [];
+        var parentTag = tagMatches[0];
 
-        // Collect tag IDs to match against (parent + all children)
-        var matchTagIds = [parentTag.id()];
+        // Collect tasks directly from tag objects (avoids full DB scan)
+        var tagsToQuery = [];
+        if (!childTag) {
+            tagsToQuery.push(parentTag);
+        }
         try {
             var childTags = parentTag.flattenedTags();
             for (var c = 0; c < childTags.length; c++) {
                 if (childTag && childTags[c].name() !== childTag) continue;
-                matchTagIds.push(childTags[c].id());
+                tagsToQuery.push(childTags[c]);
             }
         } catch (e) {
             // No child tags
         }
 
-        // If filtering by child tag and it wasn't found, return empty
-        if (childTag) {
-            var found = false;
-            try {
-                var ct = parentTag.flattenedTags.whose({ name: childTag });
-                if (ct.length > 0) found = true;
-            } catch (e) {}
-            if (!found) return [];
-        }
+        // If filtering by child tag and none matched, return empty
+        if (childTag && tagsToQuery.length === 0) return [];
 
-        // Find all tasks with any of the matching tags
-        var tasks = doc.flattenedTasks();
+        // Collect tasks from each tag, deduplicating by ID
+        var seenIds = {};
         var matchingTasks = [];
+        for (var t = 0; t < tagsToQuery.length; t++) {
+            var tagTasks = tagsToQuery[t].tasks();
+            for (var i = 0; i < tagTasks.length; i++) {
+                var task = tagTasks[i];
+                var taskId = task.id();
+                if (seenIds[taskId]) continue;
+                seenIds[taskId] = true;
 
-        for (var i = 0; i < tasks.length; i++) {
-            var task = tasks[i];
-            if (!includeCompleted && (task.effectivelyCompleted() || task.completed())) continue;
-            if (task.effectivelyDropped()) continue;
+                if (!includeCompleted && (task.effectivelyCompleted() || task.completed())) continue;
+                if (task.effectivelyDropped()) continue;
 
-            var taskTags = task.tags();
-            for (var j = 0; j < taskTags.length; j++) {
-                if (matchTagIds.indexOf(taskTags[j].id()) !== -1) {
-                    matchingTasks.push(task);
-                    break;
-                }
+                matchingTasks.push(task);
             }
         }
 
@@ -337,58 +334,59 @@
      */
     taskQuery.getTasksByTagGrouped = function(doc, tagName, options) {
         options = options || {};
-
-        // Find the tag
-        var parentTag = doc.flattenedTags.whose({ name: tagName })[0];
-        if (!parentTag) return [];
-
-        // Collect tag IDs to match against
-        var matchTagIds = [parentTag.id()];
         var childTag = options.childTag || null;
+
+        // Find the parent tag (guard against empty whose() results)
+        var tagMatches = doc.flattenedTags.whose({ name: tagName });
+        if (tagMatches.length === 0) return [];
+        var parentTag = tagMatches[0];
+
+        // Collect tags to query directly
+        var tagsToQuery = [];
+        if (!childTag) {
+            tagsToQuery.push(parentTag);
+        }
         try {
             var childTags = parentTag.flattenedTags();
             for (var c = 0; c < childTags.length; c++) {
                 if (childTag && childTags[c].name() !== childTag) continue;
-                matchTagIds.push(childTags[c].id());
+                tagsToQuery.push(childTags[c]);
             }
         } catch (e) {}
 
-        // Find all tasks (including completed) with matching tags
-        var tasks = doc.flattenedTasks();
+        // Collect tasks from each tag, deduplicating by ID, grouped by project
+        var seenIds = {};
         var projectMap = {};
 
-        for (var i = 0; i < tasks.length; i++) {
-            var task = tasks[i];
-            if (task.dropped()) continue;
+        for (var t = 0; t < tagsToQuery.length; t++) {
+            var tagTasks = tagsToQuery[t].tasks();
+            for (var i = 0; i < tagTasks.length; i++) {
+                var task = tagTasks[i];
+                var taskId = task.id();
+                if (seenIds[taskId]) continue;
+                seenIds[taskId] = true;
 
-            var taskTags = task.tags();
-            var hasTag = false;
-            for (var j = 0; j < taskTags.length; j++) {
-                if (matchTagIds.indexOf(taskTags[j].id()) !== -1) {
-                    hasTag = true;
-                    break;
+                if (task.dropped()) continue;
+
+                var project = task.containingProject();
+                var projectName = project ? project.name() : 'No Project';
+                var projectId = project ? project.id() : 'none';
+
+                if (!projectMap[projectId]) {
+                    projectMap[projectId] = {
+                        id: projectId,
+                        name: projectName,
+                        tasks: [],
+                        completedCount: 0,
+                        totalCount: 0
+                    };
                 }
-            }
-            if (!hasTag) continue;
 
-            var project = task.containingProject();
-            var projectName = project ? project.name() : 'No Project';
-            var projectId = project ? project.id() : 'none';
-
-            if (!projectMap[projectId]) {
-                projectMap[projectId] = {
-                    id: projectId,
-                    name: projectName,
-                    tasks: [],
-                    completedCount: 0,
-                    totalCount: 0
-                };
-            }
-
-            projectMap[projectId].tasks.push(this.formatTaskInfo(task));
-            projectMap[projectId].totalCount++;
-            if (task.completed()) {
-                projectMap[projectId].completedCount++;
+                projectMap[projectId].tasks.push(this.formatTaskInfo(task));
+                projectMap[projectId].totalCount++;
+                if (task.completed()) {
+                    projectMap[projectId].completedCount++;
+                }
             }
         }
 
