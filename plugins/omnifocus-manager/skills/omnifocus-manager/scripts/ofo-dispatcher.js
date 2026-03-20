@@ -220,7 +220,7 @@ function ofoList(args) {
   if (filter === 'inbox') {
     inbox.forEach(function(t) {
       if (results.length >= limit) return;
-      if (t.effectivelyCompleted || t.effectivelyDropped) return;
+      if (t.taskStatus !== Task.Status.Available) return;
       results.push(taskSummary(t));
     });
   } else if (filter === 'flagged') {
