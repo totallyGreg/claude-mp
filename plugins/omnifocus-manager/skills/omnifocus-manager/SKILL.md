@@ -5,7 +5,7 @@ description: |
 
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 metadata:
-  version: 8.0.0
+  version: 8.1.0
   author: totally-tools
   license: MIT
 compatibility:
@@ -92,6 +92,11 @@ scripts/ofo list inbox                       # List inbox tasks
 scripts/ofo list today                       # Flagged + due today
 scripts/ofo list overdue                     # Past due date
 scripts/ofo list flagged                     # All flagged active tasks
+scripts/ofo tag <id> --add "Tag" --remove "Other"  # Granular tag manipulation
+scripts/ofo tag <id> --capture question      # Capture pipeline shortcut
+scripts/ofo tags                             # Full tag hierarchy as JSON
+echo "Buy milk" | scripts/ofo create         # Stdin: first line = name
+echo '{"name":"X","project":"P"}' | scripts/ofo create  # Stdin: JSON
 ```
 
 **Prerequisites:** OmniFocus running + external scripts enabled. First command triggers a one-time approval dialog.
@@ -206,4 +211,4 @@ See `references/troubleshooting.md` for permission issues, common errors, and de
 
 ---
 
-**Current version:** 8.0.0 — See README.md for version history.
+**Current version:** 8.1.0 — See README.md for version history.
