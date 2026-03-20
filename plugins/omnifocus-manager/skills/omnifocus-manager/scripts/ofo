@@ -11,13 +11,12 @@
 #   search <query>             Search tasks by name/note
 #   list <filter>              List tasks (inbox|flagged|today|overdue)
 #   perspective <name>         Query a custom perspective by name
-#   setup                      Trigger approval for all action scripts
 #   help                       Show this help
 
 set -euo pipefail
 
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ACTIONS_DIR="${SCRIPTS_DIR}/omni-actions"
+DISPATCHER="${SCRIPTS_DIR}/ofo-dispatcher.js"
 
 # --- Helpers ---
 
@@ -56,14 +55,16 @@ detect_type_from_url() {
 run_action() {
   local action="$1"
   local arg_json="$2"
-  local script_file="${ACTIONS_DIR}/${action}.js"
 
-  if [[ ! -f "$script_file" ]]; then
-    die "Unknown action: ${action}"
+  if [[ ! -f "$DISPATCHER" ]]; then
+    die "Dispatcher not found: ${DISPATCHER}"
   fi
 
+  # Inject action into arg JSON so the dispatcher can route
+  arg_json=$(echo "$arg_json" | python3 -c "import json,sys; d=json.load(sys.stdin); d['action']='$action'; print(json.dumps(d))")
+
   local script
-  script=$(<"$script_file")
+  script=$(<"$DISPATCHER")
 
   local encoded_script encoded_arg
   encoded_script=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.stdin.read()))" <<< "$script")
@@ -237,39 +238,6 @@ print(json.dumps(args))
   run_action "ofo-perspective" "$arg_json"
 }
 
-cmd_setup() {
-  echo "OmniFocus CLI Setup"
-  echo "==================="
-  echo "This will send each action script to OmniFocus for approval."
-  echo "You'll need to click 'Run Script' for each one (7 total)."
-  echo ""
-
-  local actions=("ofo-info" "ofo-complete" "ofo-create" "ofo-update" "ofo-search" "ofo-list" "ofo-perspective")
-  local test_args=(
-    '{"id":"__setup__","type":"task"}'
-    '{"id":"__setup__"}'
-    '{"name":"__ofo_setup_test__"}'
-    '{"id":"__setup__"}'
-    '{"query":"__setup__"}'
-    '{"filter":"inbox"}'
-    '{"name":"__setup__"}'
-  )
-
-  for i in "${!actions[@]}"; do
-    local action="${actions[$i]}"
-    local arg="${test_args[$i]}"
-    echo "[$((i+1))/${#actions[@]}] Sending ${action}..."
-    run_action "$action" "$arg" >/dev/null 2>&1 || true
-    echo "  Approved (or already approved)."
-    sleep 1
-  done
-
-  echo ""
-  echo "Setup complete. All action scripts have been sent for approval."
-  echo "Note: The setup test may have created a task named '__ofo_setup_test__'."
-  echo "You can delete it manually if needed."
-}
-
 cmd_help() {
   cat <<'HELP'
 ofo -- OmniFocus CLI via Omni Automation script URLs
@@ -284,7 +252,6 @@ Commands:
   search <query>                    Search tasks by name or note
   list <filter>                     List tasks by filter
   perspective <name> [--id ID]      Query a custom perspective
-  setup                             Trigger approval for all action scripts
   help                              Show this help
 
 Filters for 'list':
@@ -320,7 +287,7 @@ URL handling:
 Prerequisites:
   - OmniFocus must be running
   - External scripts must be enabled in OmniFocus Automation settings
-  - Run 'ofo setup' once to approve all action scripts
+  - First command triggers a one-time approval dialog
 HELP
 }
 
@@ -336,7 +303,6 @@ case "${1:-help}" in
   search)   shift; cmd_search "$@" ;;
   list)        shift; cmd_list "$@" ;;
   perspective) shift; cmd_perspective "$@" ;;
-  setup)       cmd_setup ;;
   help|--help|-h) cmd_help ;;
   *) die "Unknown command: $1. Run 'ofo help' for usage." ;;
 esac

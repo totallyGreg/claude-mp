@@ -94,7 +94,7 @@ scripts/ofo list overdue                     # Past due date
 scripts/ofo list flagged                     # All flagged active tasks
 ```
 
-**Prerequisites:** OmniFocus running + external scripts enabled. Run `scripts/ofo setup` once to approve all action scripts.
+**Prerequisites:** OmniFocus running + external scripts enabled. First command triggers a one-time approval dialog.
 
 ### 1. Query OmniFocus Data (JXA — for advanced queries not covered by ofo)
 
