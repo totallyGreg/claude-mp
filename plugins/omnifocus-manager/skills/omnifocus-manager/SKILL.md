@@ -93,7 +93,7 @@ scripts/ofo update <id> --name "New name" --flagged
 scripts/ofo update <id> --note-append "text"         # Append text to existing note
 scripts/ofo search "meeting"                 # Search by name/note
 scripts/ofo list inbox                       # List inbox tasks
-scripts/ofo list today                       # Flagged + due today
+scripts/ofo list today                       # Flagged + due today + planned today
 scripts/ofo list overdue                     # Past due date
 scripts/ofo list flagged                     # All flagged active tasks
 scripts/ofo list due-soon [N]               # Tasks due within N days (default 7)
@@ -107,7 +107,7 @@ scripts/ofo perspective-configure --name "View" --rules '[...]'  # Set perspecti
 scripts/ofo completed-today                  # Today's completions categorized by tag (JSON)
 scripts/ofo completed-today --markdown       # Same, formatted for Obsidian append
 scripts/ofo dump                             # Snapshot JSON: tasks (500 cap), projects, perspectives
-scripts/ofo stats                            # Counts: inbox/flagged/overdue/projects/tasks
+scripts/ofo stats                            # Counts: inbox/flagged/overdue/projects/tasks/reviewOverdue/plannedToday/withEstimate
 ```
 
 **Prerequisites:** OmniFocus running + external scripts enabled. First command triggers a one-time approval dialog.
@@ -249,4 +249,4 @@ See `references/troubleshooting.md` for permission issues, common errors, and de
 
 ---
 
-**Current version:** 9.2.1 — See README.md for version history.
+**Current version:** 9.3.0 — See README.md for version history.

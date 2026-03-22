@@ -4,12 +4,14 @@
 interface Task {
   effectivelyCompleted: boolean;
   effectivelyDropped: boolean;
+  plannedDate: Date | null;  // OF4 only; throws on unmigrated databases
   clearTags(): void;
   markComplete(date?: Date | null): Task;
 }
 
 interface Project {
   modified: Date | null;
+  plannedDate: Date | null;  // OF4 only; throws on unmigrated databases
 }
 
 declare namespace Perspective {

@@ -41,8 +41,11 @@
     // Energy/effort patterns
     const ENERGY_PATTERNS = ["high", "medium", "low", "quick", "deep", "focus", "brain-dead"];
 
-    // Time-based patterns
-    const TIME_PATTERNS = ["morning", "afternoon", "evening", "weekend", "weekday", "15min", "30min", "1hr"];
+    // Time-based patterns (split into duration vs scheduling-context)
+    const DURATION_PATTERNS = ["15min", "30min", "1hr", "2hr"];
+    const SCHEDULING_CONTEXT_PATTERNS = ["morning", "afternoon", "evening", "weekend", "weekday"];
+    // Combined for backward compat — used by inferTagCategories for time[] category
+    const TIME_PATTERNS = [...DURATION_PATTERNS, ...SCHEDULING_CONTEXT_PATTERNS];
 
     // Folder type patterns
     const ARCHIVE_PATTERNS = ["archive", "archived", "completed", "done", "old", "past", "finished"];
@@ -407,6 +410,8 @@
             status: [],
             energy: [],
             time: [],
+            duration: [],
+            schedulingContext: [],
             areas: [],
             uncategorized: []
         };
@@ -442,10 +447,14 @@
                 category = "energy";
                 meaning = "energy or focus level";
             }
-            // Check time patterns
+            // Check time patterns (populate time[] for backward compat + split arrays)
             else if (TIME_PATTERNS.some(p => name.includes(p))) {
                 category = "time";
-                meaning = "time of day or duration";
+                if (DURATION_PATTERNS.some(p => name.includes(p))) {
+                    meaning = "task duration estimate";
+                } else {
+                    meaning = "scheduling context (time of day/week)";
+                }
             }
             // Check if it looks like an area (top-level, multiple tasks)
             else if (tag.depth === 0 && tag.taskCount > 10) {
@@ -453,12 +462,21 @@
                 meaning = "area of responsibility";
             }
 
-            categories[category].push({
+            const tagEntry = {
                 tag: tag.name,
                 usage: tag.taskCount,
                 meaning: meaning,
                 hasChildren: tag.hasChildren
-            });
+            };
+            categories[category].push(tagEntry);
+            // Populate split arrays for time category tags
+            if (category === "time") {
+                if (DURATION_PATTERNS.some(p => name.includes(p))) {
+                    categories.duration.push(tagEntry);
+                } else {
+                    categories.schedulingContext.push(tagEntry);
+                }
+            }
         });
 
         return categories;
