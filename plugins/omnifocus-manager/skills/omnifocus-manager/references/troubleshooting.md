@@ -437,6 +437,41 @@ If all else fails, reset permissions:
 | "Database file not found" | Wrong database path | Check OmniFocus version, verify path |
 | "Invalid date format" | Non-ISO date | Use YYYY-MM-DD format |
 | "execution error" | Various JXA issues | Check Console.app for details |
+| "Unknown action: ofo-X" after OmniFocus restart | Stale iCloud plugin copy (OmniFocus loads iCloud first, Containers second) | Run `npm run deploy`, restart OmniFocus |
+| Command works before restart, fails after | OmniFocus reloaded the iCloud copy instead of the Containers copy | `find ~/Library -name "ofoCore.js"` to locate all copies; redeploy |
+
+## Perspective Troubleshooting
+
+### Listing all perspectives
+
+Use this ordered fallback chain — stop as soon as you get a result:
+
+1. **`scripts/ofo perspective-list`** — preferred; returns JSON array of all perspective names
+2. **`scripts/ofo perspective-rules`** — returns all custom perspectives with resolved filter rules
+3. **Omni Automation URL scheme** — `Perspective.all.map(p => p.name)` written to `Pasteboard.general.string`, read via `pbpaste`
+
+Do NOT fall back to `doc.perspectives()` (JXA), AppleScript, or `gtd-queries.js --action perspective-inventory` — these are unreliable for perspective enumeration.
+
+### Reading filter rules
+
+- **`scripts/ofo perspective-rules "Name"`** — returns `archivedFilterRules` with folder/tag IDs resolved to `[Name](omnifocus:///folder/id)` markdown links
+- `perspective-config.js` requires the Omni Automation **plugin runtime** — running it via plain `osascript -l JavaScript` will fail with `Can't find variable: Perspective`
+
+### Perspective structure (Flexible vs Organized)
+
+The Flexible/Organized setting and grouping options are **not exposed in `archivedFilterRules`**. Configure via OmniFocus UI only: Perspectives → Edit → Structure.
+- **Flexible** — flat list, good for broad "what's next" scanning
+- **Organized** — grouped/sorted view, good for categorical review (e.g. group by Project)
+
+### Task missing from perspective
+
+If an expected task doesn't appear:
+1. Run `scripts/ofo perspective-rules "Name"` to read the actual filter rules
+2. Run `scripts/ofo info <task-id>` to check the task's availability, project, tags, and defer date
+3. Check each rule: availability status, folder membership (`actionWithinFocus`), tag membership, project status
+4. Note: `actionAvailability: available` includes overdue tasks; a task tagged with a non-financial tag can still match via folder focus
+
+---
 
 ## Still Having Issues?
 

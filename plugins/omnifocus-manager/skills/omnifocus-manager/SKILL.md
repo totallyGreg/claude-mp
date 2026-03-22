@@ -55,7 +55,7 @@ bash scripts/validate-plugin.sh <generated-plugin-path>
 ```
 ✅ Plugin generated: <path>
 ✅ Validation: PASSED → Ready for installation
-cp -r <path> ~/Library/Application\ Scripts/com.omnigroup.OmniFocus3/Plug-Ins/
+cp -r <path> ~/Library/Mobile\ Documents/iCloud~com~omnigroup~OmniFocus/Documents/Plug-Ins/
 ```
 
 See `references/code_generation_validation.md` for TypeScript validation details and anti-pattern checklist.
@@ -186,6 +186,12 @@ For quick daily review, use Attache in OmniFocus; for deep system analysis, use 
 After installing Attache, you can remove: AITaskAnalyzer, CompletedTasksSummary, Overview, TodaysTasks.
 
 See `references/foundation_models_integration.md` for Foundation Models API details.
+
+---
+
+## Plugin Deploy Targets (ofo-core)
+
+OmniFocus 4 loads plugins from iCloud Drive first (authoritative), then Containers. `npm run deploy` writes to both. **Always restart OmniFocus after deploy** — a command that works before restart but fails after means the stale iCloud copy was loaded instead. See `references/troubleshooting.md` for diagnostic steps.
 
 ---
 
