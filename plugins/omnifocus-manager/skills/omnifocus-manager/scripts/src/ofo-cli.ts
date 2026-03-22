@@ -11,6 +11,7 @@ import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import type { OfoAction } from './ofo-types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -58,7 +59,7 @@ function pbpaste(): string {
   return execSync('pbpaste', { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] });
 }
 
-function runAction(action: string, args: Record<string, unknown>): void {
+function runAction(action: OfoAction, args: Record<string, unknown>): void {
   const stubPath = join(__dirname, 'ofo-stub.js');
   let stub: string;
   try {
@@ -272,6 +273,11 @@ function cmdPerspective(args: string[]): void {
   } else {
     runAction('ofo-perspective', { name: args.join(' ') });
   }
+}
+
+function cmdPerspectiveRules(args: string[]): void {
+  const name = args.join(' ') || null;
+  runAction('ofo-perspective-rules', name ? { name } : {});
 }
 
 // --- Tag Commands ---
@@ -490,6 +496,14 @@ function cmdTags(): void {
   runAction('ofo-tags', {});
 }
 
+function cmdDump(): void {
+  runAction('ofo-dump', {});
+}
+
+function cmdStats(): void {
+  runAction('ofo-stats', {});
+}
+
 function cmdHelp(): void {
   process.stdout.write(`ofo -- OmniFocus CLI via plugin library
 
@@ -507,6 +521,8 @@ Commands:
   perspective <name> [--id ID]      Query a custom perspective
   perspective-configure [options]   Set filter rules on a perspective
   completed-today [--markdown]      Today's completions categorized by tag
+  dump                              Full database snapshot (active tasks, projects, perspectives) as JSON
+  stats                             Fast counts: inbox, flagged, overdue, projects, total active tasks
   help                              Show this help
 
 Filters for 'list':
@@ -596,7 +612,10 @@ switch (command) {
   case 'tags':                  cmdTags(); break;
   case 'perspective':           cmdPerspective(commandArgs); break;
   case 'perspective-configure': cmdPerspectiveConfigure(commandArgs); break;
+  case 'perspective-rules':     cmdPerspectiveRules(commandArgs); break;
   case 'completed-today':       cmdCompletedToday(commandArgs); break;
+  case 'dump':                  cmdDump(); break;
+  case 'stats':                 cmdStats(); break;
   case 'help':
   case '--help':
   case '-h':          cmdHelp(); break;

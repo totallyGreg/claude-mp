@@ -40,6 +40,20 @@ echo "$CORE_JS" >> "${BUNDLE_DIR}/Resources/ofoCore.js"
 
 cat >> "${BUNDLE_DIR}/Resources/ofoCore.js" << 'IIFE_FOOTER'
 
+  lib.getTask = getTask;
+  lib.completeTask = completeTask;
+  lib.createTask = createTask;
+  lib.updateTask = updateTask;
+  lib.searchTasks = searchTasks;
+  lib.listTasks = listTasks;
+  lib.getPerspective = getPerspective;
+  lib.configurePerspective = configurePerspective;
+  lib.tagTask = tagTask;
+  lib.getTags = getTags;
+  lib.createBatch = createBatch;
+  lib.getPerspectiveRules = getPerspectiveRules;
+  lib.dumpDatabase = dumpDatabase;
+  lib.getStats = getStats;
   lib.dispatch = dispatch;
   return lib;
 })();

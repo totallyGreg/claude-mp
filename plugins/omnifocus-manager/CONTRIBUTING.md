@@ -25,9 +25,11 @@ CLI polls pasteboard, outputs JSON to stdout
 ```
 
 **Source files** (TypeScript, in `scripts/src/`):
-- `ofo-core.ts` — All action handlers (info, complete, create, create-batch, update, search, list, tag, tags, perspective, perspective-configure)
+- `ofo-core.ts` — 14 named action handlers exposed as library functions (`getTask`, `searchTasks`, `listTasks`, `completeTask`, `createTask`, `updateTask`, `tagTask`, `getTags`, `getPerspective`, `configurePerspective`, `getPerspectiveRules`, `createBatch`, `dumpDatabase`, `getStats`) plus thin `dispatch()` router for backward compat
+- `ofo-types.ts` — Shared `OfoAction` union + `OfoArgs`/`OfoResult` interfaces (CLI only)
 - `ofo-cli.ts` — Argument parsing, URL construction, pasteboard polling
 - `ofo-stub.js` — Stable script sent via URL (approved once, never changes)
+- `ofo-core-ambient.d.ts` — Ambient type declarations for the plugin build (mirrors `ofo-types.ts`)
 - `manifest.json` — Plugin bundle manifest
 
 **Build outputs** (in `scripts/build/`):
@@ -41,13 +43,43 @@ CLI polls pasteboard, outputs JSON to stdout
 
 ## Adding a New ofo Action
 
-1. Add a handler function to `scripts/src/ofo-core.ts`
-2. Add a case to the `dispatch()` switch
-3. Add argument parsing in `scripts/src/ofo-cli.ts`
-4. Run `npm run build` (compiles TypeScript + deploys plugin)
-5. Test: `./ofo <new-action> <args>`
+1. Add the action name to `OfoAction` union in **both** `scripts/src/ofo-types.ts` (CLI) and `scripts/src/ofo-core-ambient.d.ts` (plugin) — they must be kept in sync
+2. Add the handler function to `scripts/src/ofo-core.ts` (named function, not inside dispatch)
+3. Add the named export to `build-plugin.sh` IIFE footer: `lib.<name> = <functionName>;`
+4. Add a case to `dispatch()` calling the named function
+5. Add argument parsing in `scripts/src/ofo-cli.ts`
+6. Run `npm run build && npm run deploy` — **deploy writes to BOTH iCloud and Containers paths**; restart OmniFocus after
+7. Test: `./ofo <new-action> <args>`
 
 That's it — one language, one build command.
+
+## Writing a New Feature Plugin (e.g., an AI plugin using ofoCore)
+
+Feature plugins load ofoCore as a cross-plugin library to access OmniFocus data without reimplementing it.
+
+```javascript
+// In your plugin action file
+const action = new PlugIn.Action(async function(selection, sender) {
+    // 1. Null-guard — REQUIRED before any ofoCore call
+    const corePlugin = PlugIn.find("com.totally-tools.ofo-core");
+    if (!corePlugin) {
+        new Alert("ofo-core required", "Install ofo-core.omnifocusjs first.").show();
+        return;
+    }
+    const ofoCore = corePlugin.library("ofoCore");
+
+    // 2. Call named functions directly (no magic strings)
+    const stats = ofoCore.getStats();       // { inbox, flagged, overdue, activeProjects, activeTasks }
+    const tasks = ofoCore.listTasks({ filter: 'today' });   // array of normalized task objects
+    const dump  = ofoCore.dumpDatabase();   // full snapshot (capped at 500 tasks)
+});
+```
+
+**Rules:**
+- Always null-guard before `corePlugin.library(...)` — `PlugIn.find()` returns null if ofo-core is not installed
+- Wrap ofoCore calls in try/catch — named functions don't have dispatch-level error handling
+- All 14 named functions work on both Mac and iPhone (validated 2026-03-22)
+- `dumpDatabase()` is capped at 500 tasks; check `result.warnings` for truncation
 
 ## Build Commands
 

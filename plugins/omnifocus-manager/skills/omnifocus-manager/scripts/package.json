@@ -9,7 +9,7 @@
     "build:generator": "tsc",
     "build:plugin": "bash build-plugin.sh",
     "build:cli": "tsc --project src/tsconfig.cli.json && cp src/ofo-stub.js build/ofo-stub.js",
-    "deploy": "rm -rf \"$HOME/Library/Containers/com.omnigroup.OmniFocus4/Data/Library/Application Support/Plug-Ins/ofo-core.omnifocusjs\" && cp -r build/ofo-core.omnifocusjs \"$HOME/Library/Containers/com.omnigroup.OmniFocus4/Data/Library/Application Support/Plug-Ins/ofo-core.omnifocusjs\"",
+    "deploy": "rm -rf \"$HOME/Library/Mobile Documents/iCloud~com~omnigroup~OmniFocus/Documents/Plug-Ins/ofo-core.omnifocusjs\" && cp -r build/ofo-core.omnifocusjs \"$HOME/Library/Mobile Documents/iCloud~com~omnigroup~OmniFocus/Documents/Plug-Ins/ofo-core.omnifocusjs\" && rm -rf \"$HOME/Library/Containers/com.omnigroup.OmniFocus4/Data/Library/Application Support/Plug-Ins/ofo-core.omnifocusjs\" && cp -r build/ofo-core.omnifocusjs \"$HOME/Library/Containers/com.omnigroup.OmniFocus4/Data/Library/Application Support/Plug-Ins/ofo-core.omnifocusjs\"",
     "watch": "tsc --watch",
     "generate": "node generate_plugin.js"
   },
@@ -23,7 +23,7 @@
   "author": "OmniFocus Manager Skill",
   "license": "MIT",
   "dependencies": {
-    "typescript": "^5.3.3"
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
     "@types/node": "^20.10.6"
