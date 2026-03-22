@@ -437,8 +437,7 @@ If all else fails, reset permissions:
 | "Database file not found" | Wrong database path | Check OmniFocus version, verify path |
 | "Invalid date format" | Non-ISO date | Use YYYY-MM-DD format |
 | "execution error" | Various JXA issues | Check Console.app for details |
-| "Unknown action: ofo-X" after OmniFocus restart | Stale iCloud plugin copy (OmniFocus loads iCloud first, Containers second) | Run `npm run deploy`, restart OmniFocus |
-| Command works before restart, fails after | OmniFocus reloaded the iCloud copy instead of the Containers copy | `find ~/Library -name "ofoCore.js"` to locate all copies; redeploy |
+| "Unknown action: ofo-X" | Plugin not installed or outdated | Run `npm run deploy` (opens bundle in OmniFocus for install/update) |
 
 ## Perspective Troubleshooting
 

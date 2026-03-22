@@ -86,23 +86,24 @@ const action = new PlugIn.Action(async function(selection, sender) {
 ```bash
 cd plugins/omnifocus-manager/skills/omnifocus-manager/scripts/
 
-npm run build          # Build plugin + CLI + deploy to OmniFocus
+npm run build          # Build plugin + CLI
 npm run build:plugin   # Build plugin bundle only
 npm run build:cli      # Build CLI only
-npm run deploy         # Copy plugin bundle to OmniFocus Plug-Ins directory
+npm run deploy         # Open plugin in OmniFocus (prompts for install location, reloads automatically)
 npm run build:generator # Build the plugin generator (generate_plugin.ts)
 ```
 
 ## First-Run Setup
 
-1. `npm run build` — Compiles and deploys the plugin
-2. Run any `ofo` command — OmniFocus shows an approval dialog
-3. Check **"Automatically run this script when sent by this or any other unknown application"**
-4. All subsequent commands run with zero prompts
+1. `npm run build` — Compiles TypeScript
+2. `npm run deploy` — Opens the plugin bundle; OmniFocus prompts for install location
+3. Run any `ofo` command — OmniFocus shows an approval dialog
+4. Check **"Automatically run this script when sent by this or any other unknown application"**
+5. All subsequent commands run with zero prompts
 
 ## Plugin Reload
 
-When you rebuild and redeploy the plugin (`npm run build`), OmniFocus picks up changes automatically — no restart required. If changes aren't reflected, restart OmniFocus.
+After rebuilding, run `npm run deploy` — OmniFocus opens the updated bundle and reloads it automatically.
 
 ## Key Patterns
 
