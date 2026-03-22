@@ -224,13 +224,16 @@ Do not deploy them as-is without reconciling with ofoCore first.
 
 **Goal:** Determine fate of the existing but undeployed library files.
 
-- [ ] Audit each file in `scripts/libraries/omni/` against ofoCore's new named exports:
-  - `taskMetrics.js` — compare to `listTasks`/`getStats`; keep if it adds age/clarity metrics not in ofoCore; otherwise archive
-  - `exportUtils.js` — `toClipboard`, `toJSON`, `toCSV`, `toMarkdown` — no overlap with ofoCore; good candidate for promotion to ofoCore or as a standalone helper plugin
-  - `patterns.js` — high-level MCP-style patterns (queryAndAnalyzeWithAI, batchUpdate); keep as standalone, not ofoCore
-  - `insightPatterns.js`, `templateEngine.js`, `treeBuilder.js`, `completedTasksFormatter.js` — audit individually
-- [ ] For files kept: document in SKILL.md under "Library Ecosystem"
-- [ ] For files archived: move to `references/archived/` with a note
+- [x] Audit each file in `scripts/libraries/omni/` against ofoCore's new named exports — all 7 kept (none superseded):
+  - `taskMetrics.js` — partial overlap with `listTasks`; unique: `getUpcomingTasks(days)`, `getTasksByTag`, `getTasksByProject`, richer `normalizeTask`
+  - `exportUtils.js` — JSON/CSV/Markdown/HTML export; no ofoCore overlap
+  - `patterns.js` — MCP-ready orchestration; depends on taskMetrics + exportUtils + insightPatterns
+  - `insightPatterns.js` — `detectStalledProjects`, `generateInsights`; richer than `getStats()`
+  - `completedTasksFormatter.js` — formats completed-task arrays as grouped Markdown inside plugin actions
+  - `templateEngine.js` — template loading, variable substitution, bulk creation from templates
+  - `treeBuilder.js` — 1103 lines; database/window tree structures; Markdown/JSON/OPML export; OF4 tree navigation
+- [x] Documented in `references/library_ecosystem.md` (full audit with ofoCore overlap notes)
+- [x] No files archived — all have unique capabilities not covered by ofoCore named exports
 
 **Key files:**
 - `scripts/libraries/omni/*.js` (audit, keep/archive)
