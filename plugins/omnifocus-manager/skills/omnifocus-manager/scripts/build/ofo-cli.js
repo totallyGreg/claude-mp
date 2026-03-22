@@ -510,6 +510,12 @@ function cmdCompletedToday(args) {
 function cmdTags() {
     runAction('ofo-tags', {});
 }
+function cmdDump() {
+    runAction('ofo-dump', {});
+}
+function cmdStats() {
+    runAction('ofo-stats', {});
+}
 function cmdHelp() {
     process.stdout.write(`ofo -- OmniFocus CLI via plugin library
 
@@ -527,6 +533,8 @@ Commands:
   perspective <name> [--id ID]      Query a custom perspective
   perspective-configure [options]   Set filter rules on a perspective
   completed-today [--markdown]      Today's completions categorized by tag
+  dump                              Full database snapshot (active tasks, projects, perspectives) as JSON
+  stats                             Fast counts: inbox, flagged, overdue, projects, total active tasks
   help                              Show this help
 
 Filters for 'list':
@@ -636,6 +644,12 @@ switch (command) {
         break;
     case 'completed-today':
         cmdCompletedToday(commandArgs);
+        break;
+    case 'dump':
+        cmdDump();
+        break;
+    case 'stats':
+        cmdStats();
         break;
     case 'help':
     case '--help':

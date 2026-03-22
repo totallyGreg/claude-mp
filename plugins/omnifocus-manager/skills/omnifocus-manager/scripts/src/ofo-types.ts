@@ -20,7 +20,9 @@ export type OfoAction =
   | 'ofo-tags'
   | 'ofo-perspective'
   | 'ofo-perspective-configure'
-  | 'ofo-perspective-rules';
+  | 'ofo-perspective-rules'
+  | 'ofo-dump'
+  | 'ofo-stats';
 
 export interface OfoArgs {
   action: OfoAction;

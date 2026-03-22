@@ -3,14 +3,16 @@
 // ofo-core.ts — OmniFocus plugin library core logic.
 // Compiled by tsc, then wrapped in PlugIn.Library IIFE by build script.
 // All functions are plain — no imports/exports. The build script assigns
-// `dispatch` to `lib.dispatch` in the IIFE wrapper.
+// all named functions (getTask, completeTask, createTask, ...) and
+// `dispatch` to `lib.*` in the IIFE wrapper, making them accessible to
+// other plugins via: PlugIn.find("com.totally-tools.ofo-core").library("ofoCore").getTask(args)
 //
 // OfoAction, OfoArgs, OfoResult are declared as ambient types in
 // ofo-core-ambient.d.ts (included via tsconfig.plugin.json).
 
 // === INFO ===
 
-function ofoInfo(args: OfoArgs): OfoResult {
+function getTask(args: OfoArgs): OfoResult {
   const id = args.id as string;
   const type = (args.type as string) || 'task';
 
@@ -84,7 +86,7 @@ function ofoInfo(args: OfoArgs): OfoResult {
 
 // === COMPLETE ===
 
-function ofoComplete(args: OfoArgs): OfoResult {
+function completeTask(args: OfoArgs): OfoResult {
   const id = args.id as string;
   const t = Task.byIdentifier(id);
   if (!t) return { success: false, error: 'Task not found: ' + id };
@@ -94,7 +96,7 @@ function ofoComplete(args: OfoArgs): OfoResult {
 
 // === CREATE ===
 
-function ofoCreate(args: OfoArgs): OfoResult {
+function createTask(args: OfoArgs): OfoResult {
   let location = inbox.ending;
   if (args.project) {
     const proj = flattenedProjects.byName(args.project as string);
@@ -124,7 +126,7 @@ function ofoCreate(args: OfoArgs): OfoResult {
 
 // === UPDATE ===
 
-function ofoUpdate(args: OfoArgs): OfoResult {
+function updateTask(args: OfoArgs): OfoResult {
   const id = args.id as string;
   const t = Task.byIdentifier(id);
   if (!t) return { success: false, error: 'Task not found: ' + id };
@@ -155,7 +157,7 @@ function ofoUpdate(args: OfoArgs): OfoResult {
 
 // === SEARCH ===
 
-function ofoSearch(args: OfoArgs): OfoResult {
+function searchTasks(args: OfoArgs): OfoResult {
   const query = ((args.query as string) || '').toLowerCase();
   const limit = (args.limit as number) || 50;
   const results: object[] = [];
@@ -180,7 +182,7 @@ function ofoSearch(args: OfoArgs): OfoResult {
 
 // === LIST ===
 
-function ofoList(args: OfoArgs): OfoResult {
+function listTasks(args: OfoArgs): OfoResult {
   const filter = (args.filter as string) || 'inbox';
   const limit = (args.limit as number) || 100;
   const results: object[] = [];
@@ -240,7 +242,7 @@ function ofoList(args: OfoArgs): OfoResult {
 
 // === PERSPECTIVE ===
 
-function ofoPerspective(args: OfoArgs): OfoResult {
+function getPerspective(args: OfoArgs): OfoResult {
   const name = (args.name as string) || null;
   const id = (args.id as string) || null;
   const limit = (args.limit as number) || 100;
@@ -325,7 +327,7 @@ function ofoPerspective(args: OfoArgs): OfoResult {
 
 // === PERSPECTIVE CONFIGURE ===
 
-function ofoPerspectiveConfigure(args: OfoArgs): OfoResult {
+function configurePerspective(args: OfoArgs): OfoResult {
   const name = (args.name as string) || null;
   const id = (args.id as string) || null;
 
@@ -356,7 +358,7 @@ function ofoPerspectiveConfigure(args: OfoArgs): OfoResult {
 
 // === TAG ===
 
-function ofoTag(args: OfoArgs): OfoResult {
+function tagTask(args: OfoArgs): OfoResult {
   const id = args.id as string;
   const t = Task.byIdentifier(id);
   if (!t) return { success: false, error: 'Task not found: ' + id };
@@ -402,7 +404,7 @@ function ofoTag(args: OfoArgs): OfoResult {
 
 // === TAGS ===
 
-function ofoTags(_args: OfoArgs): OfoResult {
+function getTags(_args: OfoArgs): OfoResult {
   function buildTree(tagList: Tag[]): object[] {
     const result: object[] = [];
     tagList.forEach(function(t: Tag) {
@@ -422,12 +424,12 @@ function ofoTags(_args: OfoArgs): OfoResult {
 
 // === CREATE BATCH ===
 
-function ofoCreateBatch(args: OfoArgs): OfoResult {
+function createBatch(args: OfoArgs): OfoResult {
   const items = args.items as OfoArgs[];
   const results: OfoResult[] = [];
   items.forEach(function(item: OfoArgs) {
     try {
-      results.push(ofoCreate(item));
+      results.push(createTask(item));
     } catch (e) {
       results.push({ success: false, error: String(e) });
     }
@@ -465,7 +467,7 @@ function resolveIds(obj: any): any {
   return obj;
 }
 
-function ofoPerspectiveRules(args: OfoArgs): OfoResult {
+function getPerspectiveRules(args: OfoArgs): OfoResult {
   const name = (args.name as string) || null;
 
   const perspectives: Perspective.Custom[] = name
@@ -484,22 +486,116 @@ function ofoPerspectiveRules(args: OfoArgs): OfoResult {
   return { success: true, rules: result };
 }
 
+// === DUMP ===
+
+function dumpDatabase(_args: OfoArgs): OfoResult {
+  const MAX_ITEMS = 500;
+
+  const activeTasks: object[] = [];
+  flattenedTasks.forEach(function(t: Task) {
+    if (activeTasks.length >= MAX_ITEMS) return;
+    if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
+    if (t.effectivelyCompleted || t.effectivelyDropped) return;
+    activeTasks.push({
+      id: t.id.primaryKey,
+      name: t.name,
+      project: t.containingProject ? t.containingProject.name : null,
+      flagged: t.flagged,
+      dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+      deferDate: t.deferDate ? t.deferDate.toISOString() : null,
+      tags: t.tags.map(function(tag: Tag) { return tag.name; }),
+      estimatedMinutes: t.estimatedMinutes
+    });
+  });
+
+  const activeProjects: object[] = [];
+  flattenedProjects.forEach(function(p: Project) {
+    if (p.status !== Project.Status.Active) return;
+    activeProjects.push({
+      id: p.id.primaryKey,
+      name: p.name,
+      folder: p.parentFolder ? p.parentFolder.name : null,
+      flagged: p.flagged,
+      dueDate: p.dueDate ? p.dueDate.toISOString() : null,
+      taskCount: p.flattenedTasks.length
+    });
+  });
+
+  const perspectiveNames: string[] = Perspective.Custom.all.map(function(p: Perspective.Custom) {
+    return p.name;
+  });
+
+  const warnings: string[] = [];
+  if (activeTasks.length >= MAX_ITEMS) warnings.push('Task list truncated at ' + MAX_ITEMS + ' items');
+
+  const result: OfoResult = {
+    success: true,
+    taskCount: activeTasks.length,
+    projectCount: activeProjects.length,
+    tasks: activeTasks,
+    projects: activeProjects,
+    perspectives: perspectiveNames
+  };
+  if (warnings.length > 0) result.warnings = warnings;
+  return result;
+}
+
+// === STATS ===
+
+function getStats(_args: OfoArgs): OfoResult {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  let inbox_count = 0;
+  let flagged = 0;
+  let overdue = 0;
+  let totalActive = 0;
+
+  inbox.forEach(function(t: Task) {
+    if (t.taskStatus === Task.Status.Available) inbox_count++;
+  });
+
+  flattenedTasks.forEach(function(t: Task) {
+    if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
+    if (t.effectivelyCompleted || t.effectivelyDropped) return;
+    totalActive++;
+    if (t.flagged && t.taskStatus === Task.Status.Available) flagged++;
+    if (t.dueDate && t.dueDate < todayStart) overdue++;
+  });
+
+  let projectCount = 0;
+  flattenedProjects.forEach(function(p: Project) {
+    if (p.status === Project.Status.Active) projectCount++;
+  });
+
+  return {
+    success: true,
+    inbox: inbox_count,
+    flagged: flagged,
+    overdue: overdue,
+    activeProjects: projectCount,
+    activeTasks: totalActive
+  };
+}
+
 // === DISPATCH ===
 
 function dispatch(args: OfoArgs): OfoResult {
   switch (args.action) {
-    case 'ofo-info':        return ofoInfo(args);
-    case 'ofo-complete':    return ofoComplete(args);
-    case 'ofo-create':      return ofoCreate(args);
-    case 'ofo-update':      return ofoUpdate(args);
-    case 'ofo-search':      return ofoSearch(args);
-    case 'ofo-list':        return ofoList(args);
-    case 'ofo-perspective': return ofoPerspective(args);
-    case 'ofo-perspective-configure': return ofoPerspectiveConfigure(args);
-    case 'ofo-perspective-rules':     return ofoPerspectiveRules(args);
-    case 'ofo-tag':         return ofoTag(args);
-    case 'ofo-tags':        return ofoTags(args);
-    case 'ofo-create-batch': return ofoCreateBatch(args);
+    case 'ofo-info':        return getTask(args);
+    case 'ofo-complete':    return completeTask(args);
+    case 'ofo-create':      return createTask(args);
+    case 'ofo-update':      return updateTask(args);
+    case 'ofo-search':      return searchTasks(args);
+    case 'ofo-list':        return listTasks(args);
+    case 'ofo-perspective': return getPerspective(args);
+    case 'ofo-perspective-configure': return configurePerspective(args);
+    case 'ofo-perspective-rules':     return getPerspectiveRules(args);
+    case 'ofo-tag':         return tagTask(args);
+    case 'ofo-tags':        return getTags(args);
+    case 'ofo-create-batch': return createBatch(args);
+    case 'ofo-dump':        return dumpDatabase(args);
+    case 'ofo-stats':       return getStats(args);
     default: {
       // Exhaustiveness check: TypeScript will error here if a new OfoAction
       // is added to the union in ofo-types.ts / ofo-core-ambient.d.ts but

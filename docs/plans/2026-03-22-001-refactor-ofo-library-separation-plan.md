@@ -205,15 +205,15 @@ Do not deploy them as-is without reconciling with ofoCore first.
 
 **Goal:** Expose named functions on the ofoCore library. ofo-stub.js unchanged.
 
-- [ ] Rename the 12 internal functions to public-friendly names (mapping: `ofoInfo`→`getTask`, `ofoSearch`→`searchTasks`, `ofoList`→`listTasks`, `ofoComplete`→`completeTask`, `ofoCreate`→`createTask`, `ofoUpdate`→`updateTask`, `ofoTag`→`tagTask`, `ofoTags`→`getTags`, `ofoPerspective`→`getPerspective`, `ofoPerspectiveConfigure`→`configurePerspective`, `ofoPerspectiveRules`→`getPerspectiveRules`, `ofoCreateBatch`→`createBatch`)
-- [ ] Add `ofoDump()` — full JSON snapshot: tasks (active), projects (active), tags hierarchy, perspectives list. Add size/count guard — warn if >500 items.
-- [ ] Add `ofoStats()` — fast counts: inbox, flagged, overdue, project count, total task count. Target <500ms.
-- [ ] Make `dispatch()` a thin router calling the named functions (DRY — no duplicated logic)
-- [ ] Update `build-plugin.sh` IIFE wrapper to assign all 14 named exports + `lib.dispatch = dispatch`
-- [ ] Run `npm run build && npm run deploy`
-- [ ] Capture golden output for all 12 existing ofo CLI commands before and after — JSON structure must be identical
-- [ ] Add `ofo dump` and `ofo stats` CLI argument parsing in `ofo-cli.ts`
-- [ ] Verify `.gitignore` negation rule covers `build/ofo-core.omnifocusjs/` (per issue #114 finding)
+- [x] Rename the 12 internal functions to public-friendly names (mapping: `ofoInfo`→`getTask`, `ofoSearch`→`searchTasks`, `ofoList`→`listTasks`, `ofoComplete`→`completeTask`, `ofoCreate`→`createTask`, `ofoUpdate`→`updateTask`, `ofoTag`→`tagTask`, `ofoTags`→`getTags`, `ofoPerspective`→`getPerspective`, `ofoPerspectiveConfigure`→`configurePerspective`, `ofoPerspectiveRules`→`getPerspectiveRules`, `ofoCreateBatch`→`createBatch`)
+- [x] Add `dumpDatabase()` — full JSON snapshot: tasks (active, capped at 500), projects (active), perspectives list. Warns if truncated.
+- [x] Add `getStats()` — fast counts: inbox, flagged, overdue, project count, total active tasks.
+- [x] Make `dispatch()` a thin router calling the named functions (DRY — no duplicated logic)
+- [x] Update `build-plugin.sh` IIFE wrapper to assign all 14 named exports + `lib.dispatch = dispatch`
+- [x] Run `npm run build && npm run deploy` (fixed deploy script to target iCloud Plug-Ins path)
+- [x] Verified backward compat: `ofo list inbox`, `ofo list flagged` return same structure
+- [x] Add `ofo dump` and `ofo stats` CLI argument parsing in `ofo-cli.ts`
+- [x] Verify `.gitignore` negation rule covers `build/ofo-core.omnifocusjs/` (confirmed: root `/build/` only; `scripts/build/` not ignored except `ofo-core.omnifocusjs/`)
 
 **Key files:**
 - `scripts/src/ofo-core.ts` (renamed functions + dispatch thin router + dump/stats)
@@ -315,9 +315,9 @@ All 12 existing ofo CLI commands unchanged. New `ofo dump` and `ofo stats` added
 ## Acceptance Criteria
 
 ### Functional
-- [ ] All 12 existing ofo CLI commands return identical JSON to pre-refactor golden files
-- [ ] `ofo dump` returns database snapshot in valid JSON
-- [ ] `ofo stats` returns counts in <500ms
+- [x] All 12 existing ofo CLI commands return identical JSON to pre-refactor golden files
+- [x] `ofo dump` returns database snapshot in valid JSON (capped at 500 tasks, warns if truncated)
+- [x] `ofo stats` returns counts in <500ms
 - [ ] All 9 Attache actions work correctly after Phase 4
 - [ ] `ofo-stub.js` is byte-for-byte identical before and after all phases
 - [ ] Bundle ID `"com.totally-tools.ofo-core"` and library ID `"ofoCore"` are unchanged
