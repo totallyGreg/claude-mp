@@ -10,8 +10,8 @@ INTERMEDIATE_DIR="${BUILD_DIR}/intermediate"
 
 echo "Building ofo-core plugin..."
 
-# 1. Clean previous build
-rm -rf "${BUILD_DIR}"
+# 1. Clean previous plugin build (preserve CLI output)
+rm -rf "${BUNDLE_DIR}" "${INTERMEDIATE_DIR}"
 mkdir -p "${BUNDLE_DIR}/Resources/en.lproj" "${INTERMEDIATE_DIR}"
 
 # 2. Compile TypeScript to intermediate JS

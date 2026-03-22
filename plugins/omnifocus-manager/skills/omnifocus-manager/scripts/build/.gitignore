@@ -1,0 +1,4 @@
+# Build output — all generated, never track
+*
+# Except this file
+!.gitignore

@@ -5,6 +5,7 @@
   "main": "generate_plugin.js",
   "type": "module",
   "scripts": {
+    "clean": "rm -rf build/ofo-core.omnifocusjs build/ofo-cli.js build/ofo-types.js build/ofo-stub.js build/intermediate",
     "build": "npm run build:plugin && npm run build:cli",
     "build:generator": "tsc",
     "build:plugin": "bash build-plugin.sh",

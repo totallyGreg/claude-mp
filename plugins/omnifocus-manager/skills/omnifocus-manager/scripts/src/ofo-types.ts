@@ -1,11 +1,11 @@
 /**
- * ofo-types.ts — Shared type contract for the ofo CLI ↔ ofoCore plugin interface.
+ * ofo-types.ts — Single source of truth for the ofo CLI ↔ ofoCore plugin type contract.
  *
- * Importable by ofo-cli.ts (Node.js/ESM compilation).
+ * Consumed by:
+ *   - ofo-cli.ts via `import type { OfoAction } from './ofo-types.js'`
+ *   - ofo-core-ambient.d.ts via `type OfoAction = import('./ofo-types.js').OfoAction`
  *
- * IMPORTANT: Keep in sync with the ambient declarations at the bottom of
- * ofo-core-ambient.d.ts, which provide the same types for the plugin
- * compilation (tsconfig.plugin.json) where imports are not available.
+ * When adding a new action, update this file — both consumers pick it up automatically.
  */
 
 export type OfoAction =

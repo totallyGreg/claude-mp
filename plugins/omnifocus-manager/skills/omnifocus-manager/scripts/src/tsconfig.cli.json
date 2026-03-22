@@ -16,6 +16,6 @@
     "declaration": false,
     "sourceMap": false
   },
-  "include": ["ofo-cli.ts", "ofo-types.ts"],
+  "include": ["ofo-cli.ts"],
   "exclude": ["node_modules"]
 }

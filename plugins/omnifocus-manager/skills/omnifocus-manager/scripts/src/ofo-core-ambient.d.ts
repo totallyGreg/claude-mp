@@ -41,32 +41,11 @@ interface Tag {
 declare const tags: Tag[];
 
 // --- Shared ofo action contract ---
-// IMPORTANT: Keep in sync with the exports in ofo-types.ts, which provides
-// the same types for ofo-cli.ts (ESM module compilation).
+// Single source of truth: ofo-types.ts (used by ofo-cli.ts via ESM import).
+// This file re-declares the same types as ambient for the plugin compilation
+// (tsconfig.plugin.json) where ESM imports are not available.
+// When adding a new action, update ofo-types.ts first, then mirror here.
 
-type OfoAction =
-  | 'ofo-info'
-  | 'ofo-complete'
-  | 'ofo-create'
-  | 'ofo-create-batch'
-  | 'ofo-update'
-  | 'ofo-search'
-  | 'ofo-list'
-  | 'ofo-tag'
-  | 'ofo-tags'
-  | 'ofo-perspective'
-  | 'ofo-perspective-configure'
-  | 'ofo-perspective-rules'
-  | 'ofo-dump'
-  | 'ofo-stats';
-
-interface OfoArgs {
-  action: OfoAction;
-  [key: string]: unknown;
-}
-
-interface OfoResult {
-  success: boolean;
-  error?: string;
-  [key: string]: unknown;
-}
+type OfoAction = import('./ofo-types.js').OfoAction;
+type OfoArgs = import('./ofo-types.js').OfoArgs;
+type OfoResult = import('./ofo-types.js').OfoResult;
