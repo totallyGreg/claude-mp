@@ -12,7 +12,7 @@ description: >
   Curates and evolves existing vault content through pattern detection, migration workflows,
   metadata intelligence, consolidation, discovery, visualization, and programmatic manipulation.
 metadata:
-  version: "1.6.0"
+  version: "1.7.0"
   plugin: "pkm-plugin"
   stage: "3"
 license: MIT
@@ -60,11 +60,14 @@ obsidian search query="Docker" format=json   # find matching notes/folders
 
 ## Obsidian CLI Integration
 
-Use obsidian-cli for property, search, structure, and tag operations.
+Delegate by capability: `obsidian-cli` (operations), `obsidian-markdown` (content), `obsidian-bases` (`.base` files), `json-canvas` (`.canvas` files).
 
-**See:** `references/cli-patterns.md` for command reference and safety rules.
+**To update note content** — `obsidian file` is read-only (silent failure); use `create overwrite`:
+```bash
+obsidian create path="folder/note.md" overwrite content="..." silent
+```
 
-**Fallback:** If CLI unavailable (Obsidian not running), use Grep/Glob/Read.
+**See:** `references/cli-patterns.md` for vault-specific bugs. **Fallback:** Grep/Glob/Read on `/Users/totally/Notes/` when Obsidian is not running.
 
 ## Migration Workflows
 

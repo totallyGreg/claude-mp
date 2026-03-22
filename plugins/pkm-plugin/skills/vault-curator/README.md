@@ -16,7 +16,7 @@ metadata intelligence, consolidation, discovery, visualization, and programmatic
 
 ## Current Metrics
 
-*Last evaluated: 2026-03-20*
+*Last evaluated: 2026-03-22*
 
 | Metric | Score | Interpretation |
 |--------|-------|----------------|
@@ -33,6 +33,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Changes | Overall | Conc | Comp | Spec | Prog | Desc |
 |---------|------|---------|---------|------|------|------|------|------|
+| 1.7.0 | 2026-03-22 | Delegate CLI ops to marketplace skills; promote `create overwrite` write pattern inline; strip generic commands from cli-patterns.md to gotchas-only | 98 | 90 | 100 | 100 | 100 | 97 |
 | 1.6.0 | 2026-03-20 | Add read/append/insertion CLI patterns to references; add license; move scripts table to reference; add available-scripts.md | 97 | 98 | 90 | 100 | 100 | 100 |
 | 1.5.3 | 2026-03-16 | Fix: document `obsidian file` is read-only; warn content/overwrite silently ignored (#103) | 90 | 78 | 88 | 90 | 100 | 100 |
 | 1.5.2 | 2026-03-14 | Fix: document create+move pattern; warn folder= in create is unreliable | 78 | 88 | 90 | 100 | 90 | — |
