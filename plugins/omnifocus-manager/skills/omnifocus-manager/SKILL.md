@@ -29,7 +29,7 @@ Keywords in request → Classification:
 - "build JXA script", "write a script" → JXA COMPOSITION (compose from taskQuery.js/taskMutation.js, validate with validate-jxa-patterns.js)
 - "automate this", "recurring task" → CHANNEL SELECTION (see references/channel_selection.md)
 - "improve script", "fix script" → SCRIPT MODIFICATION (read existing, modify, validate)
-- "show me", "what tasks", "analyze" → QUERY/EXECUTION (use manage_omnifocus.js, STOP)
+- "show me", "what tasks", "analyze" → QUERY/EXECUTION (use ofo CLI or gtd-queries.js, STOP)
 ```
 
 ### STEP 2: SELECT FORMAT
@@ -87,11 +87,13 @@ scripts/ofo info <id-or-omnifocus-url>       # Task/project details
 scripts/ofo complete <id-or-omnifocus-url>   # Mark task complete
 scripts/ofo create --name "Task" --project "Work" --due 2026-12-31
 scripts/ofo update <id> --name "New name" --flagged
+scripts/ofo update <id> --note-append "text"         # Append text to existing note
 scripts/ofo search "meeting"                 # Search by name/note
 scripts/ofo list inbox                       # List inbox tasks
 scripts/ofo list today                       # Flagged + due today
 scripts/ofo list overdue                     # Past due date
 scripts/ofo list flagged                     # All flagged active tasks
+scripts/ofo list due-soon [N]               # Tasks due within N days (default 7)
 scripts/ofo tag <id> --add "Tag" --remove "Other"  # Granular tag manipulation
 scripts/ofo tag <id> --capture question      # Capture pipeline shortcut
 scripts/ofo tags                             # Full tag hierarchy as JSON
@@ -123,8 +125,8 @@ osascript -l JavaScript scripts/gtd-queries.js --action analyze-projects --thres
 osascript -l JavaScript scripts/gtd-queries.js --action folder-structure
 ```
 
-**Legacy task/project commands** via `scripts/manage_omnifocus.js` (prefer ofo CLI):
-`today`, `due-soon`, `search`, `create`, `project-info`, `project-update`, `batch-update`, `bulk-create`. See `references/jxa_guide.md` for full usage.
+**Legacy task/project commands** via `scripts/manage_omnifocus.js` (prefer ofo CLI — manage_omnifocus.js retained only for `bulk-create` which creates structured projects with action groups):
+`bulk-create`. See `references/jxa_guide.md` for usage. All other commands now covered by ofo CLI.
 
 ### 2. Manage Perspectives
 
@@ -146,7 +148,6 @@ scripts/ofo perspective-configure --name "My View" --aggregation any
 
 # JXA (plain osascript — limited perspective support)
 osascript -l JavaScript scripts/gtd-queries.js --action perspective-inventory
-# ⚠️ perspective-config.js requires the Omni Automation plugin runtime — do NOT run via plain osascript
 # ⚠️ perspective-inventory output is the authoritative name list — stop after receiving it, do not fall back further
 ```
 
@@ -244,4 +245,4 @@ See `references/troubleshooting.md` for permission issues, common errors, and de
 
 ---
 
-**Current version:** 8.1.0 — See README.md for version history.
+**Current version:** 9.1.0 — See README.md for version history.

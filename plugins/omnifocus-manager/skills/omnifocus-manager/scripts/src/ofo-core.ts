@@ -132,6 +132,11 @@ function updateTask(args: OfoArgs): OfoResult {
   if (!t) return { success: false, error: 'Task not found: ' + id };
   if (args.name !== undefined) t.name = args.name as string;
   if (args.note !== undefined) t.note = args.note as string;
+  if (args.noteAppend !== undefined) {
+    const existing = t.note || '';
+    const sep = existing.length > 0 ? '\n' : '';
+    t.note = existing + sep + (args.noteAppend as string);
+  }
   if (args.flagged !== undefined) t.flagged = args.flagged as boolean;
   if (args.due !== undefined) t.dueDate = args.due === null ? null : new Date(args.due as string);
   if (args.defer !== undefined) t.deferDate = args.defer === null ? null : new Date(args.defer as string);
@@ -232,6 +237,17 @@ function listTasks(args: OfoArgs): OfoResult {
       if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
       if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
       if (t.dueDate && t.dueDate < todayStart) {
+        results.push(taskSummary(t));
+      }
+    });
+  } else if (filter === 'due-soon') {
+    const days = (args.days as number) || 7;
+    const cutoff = new Date(todayStart.getTime() + days * 86400000);
+    flattenedTasks.forEach(function(t: Task) {
+      if (results.length >= limit) return;
+      if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
+      if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
+      if (t.dueDate && t.dueDate >= todayStart && t.dueDate < cutoff) {
         results.push(taskSummary(t));
       }
     });

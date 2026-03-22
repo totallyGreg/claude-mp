@@ -246,6 +246,9 @@ function cmdUpdate(args) {
             case '--note':
                 argObj.note = args[++i] || '';
                 break;
+            case '--note-append':
+                argObj.noteAppend = args[++i] || '';
+                break;
             case '--due': {
                 const val = args[++i] || '';
                 argObj.due = val === 'clear' ? null : val;
@@ -279,10 +282,18 @@ function cmdSearch(args) {
 }
 function cmdList(args) {
     const filter = args[0] || 'inbox';
-    if (!['inbox', 'flagged', 'today', 'overdue'].includes(filter)) {
-        die('Unknown filter: ' + filter + '. Use: inbox, flagged, today, overdue');
+    if (!['inbox', 'flagged', 'today', 'overdue', 'due-soon'].includes(filter)) {
+        die('Unknown filter: ' + filter + '. Use: inbox, flagged, today, overdue, due-soon [N]');
     }
-    runAction('ofo-list', { filter });
+    if (filter === 'due-soon') {
+        const days = args[1] ? parseInt(args[1], 10) : 7;
+        if (isNaN(days) || days < 1)
+            die('due-soon requires a positive number of days (e.g. ofo list due-soon 3)');
+        runAction('ofo-list', { filter, days });
+    }
+    else {
+        runAction('ofo-list', { filter });
+    }
 }
 function cmdPerspective(args) {
     if (args.length < 1)

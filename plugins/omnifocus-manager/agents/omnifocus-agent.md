@@ -75,8 +75,9 @@ Load: `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/SKILL.md`
 - **Pillar 4 — Plugins + FM:** Plugin generation, Apple Intelligence integration
 
 **Scripts:** `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/`
-- `manage_omnifocus.js` — task CRUD: create, complete, flag, due-soon, overdue, today, flagged; project inspection: project-info, project-update; batch operations: batch-update, create --parent-id
+- `ofo` — primary CLI for task/project CRUD: info, create, update, complete, search, list, tag, tags, stats, dump, perspective-*, completed-today
 - `gtd-queries.js` — GTD diagnostics: inbox-count, stalled-projects, waiting-for, someday-maybe, recently-completed, neglected-projects, folder-structure, system-health, repeating-tasks, analyze-projects, tagged-tasks
+- `manage_omnifocus.js` — legacy JXA; retained only for `bulk-create` (structured projects with action groups) and `project-info`/`project-update` (hierarchical subtask data not yet in ofo)
 
 ## Intent Classification
 
@@ -88,11 +89,11 @@ Classify each user request and route accordingly:
 | "Explain the weekly review process" | gtd-coach | — (methodology) |
 | "What are horizons of focus?" | gtd-coach | — (methodology) |
 | "How should I organize my projects?" | gtd-coach | — (methodology) |
-| "Show overdue tasks" | omnifocus-manager | `manage_omnifocus.js overdue` |
-| "What's due this week?" | omnifocus-manager | `manage_omnifocus.js due-soon --days 7` |
-| "Show flagged tasks" | omnifocus-manager | `manage_omnifocus.js flagged` |
-| "Create a task" | omnifocus-manager | `manage_omnifocus.js create` |
-| "Search for tasks tagged @work" | omnifocus-manager | `manage_omnifocus.js search` |
+| "Show overdue tasks" | omnifocus-manager | `ofo list overdue` |
+| "What's due this week?" | omnifocus-manager | `ofo list due-soon 7` |
+| "Show flagged tasks" | omnifocus-manager | `ofo list flagged` |
+| "Create a task" | omnifocus-manager | `ofo create --name "Task"` |
+| "Search for tasks tagged @work" | omnifocus-manager | `ofo search "@work"` |
 | "How many items in my inbox?" | omnifocus-manager | `gtd-queries.js --action inbox-count` |
 | "Which projects are stalled?" | omnifocus-manager | `gtd-queries.js --action stalled-projects` |
 | "What's in my Waiting For?" | omnifocus-manager | `gtd-queries.js --action waiting-for` |

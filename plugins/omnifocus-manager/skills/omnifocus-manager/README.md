@@ -29,6 +29,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
 |---------|------|-------|---------|------|------|------|------|------|---------|
+| 9.1.0 | 2026-03-22 | [#121](https://github.com/totallyGreg/claude-mp/issues/121) | Script consolidation: delete 4 orphan scripts; ofo list due-soon + update --note-append; fix dead refs in ofo-expound/ofo-plan; update agent routing table + jxa_guide + gtd_guide + CONTRIBUTING.md to ofo CLI | 98 | 90 | 100 | 100 | 100 | 97 |
 | 9.0.0 | 2026-03-21 | [#119](https://github.com/totallyGreg/claude-mp/issues/119) | ofoCore named exports (14 functions); shared OfoAction types; ofo dump/stats commands; deploy to iCloud+Containers; CONTRIBUTING.md null-guard pattern; library_ecosystem.md; Attache v1.1.0 | 98 | 90 | 100 | 100 | 100 | 97 |
 | 8.4.0 | 2026-03-21 | - | Add ofo perspective-list and perspective-rules commands (with folder/tag ID resolution); document Flexible vs Organized structure; add perspective troubleshooting section; fix perspective-config.js runtime warning | 98 | 90 | 100 | 100 | 100 | 97 |
 | 8.3.0 | 2026-03-21 | - | ofo perspective-rules: TypeScript ofo-core action resolving actionWithinFocus/actionHasAnyOfTags IDs to named markdown links | 98 | 90 | 100 | 100 | 100 | 97 |
