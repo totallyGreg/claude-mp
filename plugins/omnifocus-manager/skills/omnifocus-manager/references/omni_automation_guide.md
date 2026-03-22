@@ -349,7 +349,7 @@ See `CONTRIBUTING.md` → "Writing a New Feature Plugin" for the complete patter
 - `PlugIn.find("bundle.id")` returns the plugin object on both Mac and iPhone ✓
 - `.library("libName")` loads and returns the library on both platforms ✓
 - Library methods execute with full OmniFocus API access (`flattenedTasks`, etc.) ✓
-- Validated with `ofocore-test.omnifocusjs` calling `ofo-core.omnifocusjs` — all three steps passed on iPhone (2026-03-22)
+- Validated with cross-plugin library loading test calling `ofo-core.omnifocusjs` — all three steps passed on iPhone (2026-03-22)
 
 **Required null-guard pattern** — always guard against the dependency not being installed:
 ```javascript
@@ -569,7 +569,7 @@ function performPlugInAction(pluginID, actionName) {
 }
 
 // Example: call an Attache action
-performPlugInAction("com.totally-tools.attache", "dailyReview");
+performPlugInAction("com.totallytools.omnifocus.attache", "dailyReview");
 ```
 
 ### Handling External Calls in Your Actions
@@ -599,7 +599,7 @@ The `ofo` CLI can invoke installed plugin actions via script URLs:
 
 ```bash
 # Script URL that calls an installed plugin action (approved once)
-SCRIPT='var p = PlugIn.find("com.totally-tools.attache"); if(p){ p.action("dailyReview").perform(); Pasteboard.general.string = JSON.stringify({success: true}); }'
+SCRIPT='var p = PlugIn.find("com.totallytools.omnifocus.attache"); if(p){ p.action("dailyReview").perform(); Pasteboard.general.string = JSON.stringify({success: true}); }'
 ```
 
 This is useful when:

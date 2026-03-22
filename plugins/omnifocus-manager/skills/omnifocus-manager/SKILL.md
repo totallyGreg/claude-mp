@@ -6,7 +6,7 @@ description: |
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 license: MIT
 metadata:
-  version: 9.3.1
+  version: 9.4.0
   author: totally-tools
 compatibility:
   platforms: [macos]
@@ -187,7 +187,7 @@ system discovery with persistent memory, and completed task summaries.
 
 For quick daily review, use Attache in OmniFocus; for deep system analysis, use Claude Code.
 
-After installing Attache, you can remove: AITaskAnalyzer, CompletedTasksSummary, Overview, TodaysTasks.
+Attache consolidates and replaces the legacy AITaskAnalyzer, CompletedTasksSummary, Overview, and TodaysTasks plugins (removed in v9.4.0).
 
 **Post-deploy:** After installing or updating Attache, refresh the System Map so coaching sessions use the latest fields:
 ```bash

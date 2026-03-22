@@ -32,7 +32,7 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 | Plugin | Version | Description |
 |--------|---------|-------------|
 | **confluence-pages** | 1.1.0 | Create, update, move, and delete Confluence pages via REST API |
-| **omnifocus-manager** | 9.3.1 | Interface with OmniFocus to surface insights, create reusable automations and perspectives, and suggest workflow optimizations |
+| **omnifocus-manager** | 9.4.0 | Interface with OmniFocus to surface insights, create reusable automations and perspectives, and suggest workflow optimizations |
 | **pkm-plugin** | 1.8.0 | Personal Knowledge Management expert for Obsidian vaults with dual-skill architecture: vault-architect (create structures) and vault-curator (evolve content) |
 
 ### Security (1 plugin)
