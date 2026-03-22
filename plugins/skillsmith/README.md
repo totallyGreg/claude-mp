@@ -14,12 +14,20 @@ End-to-end skill development with automated quality metrics:
 - Marketplace sync via marketplace-manager
 - Session transcript analysis for skill gap detection
 
-### Commands (6)
-`/ss-evaluate`, `/ss-improve`, `/ss-init`, `/ss-observe`, `/ss-research`, `/ss-validate`
+### Commands (7)
+`/ss-evaluate`, `/ss-improve`, `/ss-init`, `/ss-observe`, `/ss-package`, `/ss-research`, `/ss-validate`
+
+### Hooks
+
+| Hook | Trigger | Purpose |
+|------|---------|---------|
+| `on-skill-edit.sh` | PostToolUse Write\|Edit on `SKILL.md` | Quick skill quality evaluation; score fed back to Claude |
+| `on-script-edit.sh` | PostToolUse Write\|Edit on `scripts/*.py` | Enforces PEP 723 header and bans `click`/`typer` (argparse standard) |
 
 ## Version History
 
 | Version | Changes |
 |---------|---------|
-| 6.4.0 | Current release |
+| 6.5.0 | Add `/ss-package` command for skill.zip packaging; add `on-script-edit.sh` hook to enforce argparse + PEP 723 standard; document argparse standard in `python_uv_guide.md` |
+| 6.4.0 | Previous release |
 | 6.0.0 | Migrated to plugin structure with skill-observer agent |

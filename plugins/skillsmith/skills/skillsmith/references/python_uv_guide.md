@@ -2,6 +2,30 @@
 
 This guide covers best practices for Python scripts in AgentSkills using `uv` and PEP 723 inline metadata.
 
+## CLI Library Standard: argparse
+
+**All skillsmith scripts use `argparse` from the Python standard library.**
+
+- Zero dependency cost — no PEP 723 entry needed for CLI parsing alone
+- Consistent with all existing scripts (`init_skill.py`, `evaluate_skill.py`, `package_skill.py`)
+- Available everywhere Python runs, no install step
+
+**Do not use `click`, `typer`, or other third-party CLI libraries** in skillsmith scripts. A PostToolUse hook will flag violations immediately.
+
+```python
+# CORRECT
+import argparse
+
+parser = argparse.ArgumentParser(description="...")
+parser.add_argument("skill_path", help="Path to skill directory")
+parser.add_argument("--output", "-o", help="Output path")
+args = parser.parse_args()
+
+# WRONG — adds unnecessary dependency
+import click   # banned
+import typer   # banned
+```
+
 ## Why uv for Agent Workflows?
 
 When an agent executes a Python script, `uv` provides critical advantages:

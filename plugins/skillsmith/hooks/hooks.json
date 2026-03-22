@@ -1,5 +1,5 @@
 {
-  "description": "Fire quick skill evaluation when SKILL.md is edited in the repo source",
+  "description": "Skill evaluation on SKILL.md edits; script policy enforcement on scripts/*.py edits",
   "hooks": {
     "PostToolUse": [
       {
@@ -9,6 +9,11 @@
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-skill-edit.sh",
             "timeout": 20
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-script-edit.sh",
+            "timeout": 10
           }
         ]
       }
