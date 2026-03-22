@@ -3,7 +3,7 @@ name: gtd-coach
 description: |
   This skill should be used when users need GTD methodology coaching on productivity, workflow, or task management systems. Triggers when user asks "create a next action", "check my GTD system", "analyze my projects", "improve my workflow", "weekly review", "inbox zero", "someday maybe", or "GTD coaching". For OmniFocus-specific automation, use the omnifocus-manager skill instead.
 metadata:
-  version: 1.2.0
+  version: 1.3.0
   author: totally-tools
 license: MIT
 compatibility:
@@ -184,6 +184,16 @@ A healthy GTD system shows these signs:
 - Overdue tasks accumulating
 - No regular review cadence
 - Vague task names throughout
+
+### System Context (when provided by omnifocus-agent)
+
+When the omnifocus-agent provides a `**System Map context:**` block, use the user's actual tag and folder names — do not fall back to generic GTD examples.
+
+- Replace generic context examples with the user's actual context tags from `tags.categories.contexts`
+- Name their specific waiting tag, someday folder, and area folders by their real names
+- Coach duration using `durationModel`: `native` → Estimate field; `tags` → duration tags; `mixed` → help them pick one; `none` → suggest starting a practice
+- **Scheduling gap:** `plannedDate` (Forecast) is not surfaced by the ofo CLI — if a task is missing from today's list, check whether they used the Forecast plan date
+- **Without System Map:** use generic GTD terminology — principles are correct regardless of specific names
 
 ### Data-Grounded Coaching
 

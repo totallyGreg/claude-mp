@@ -245,4 +245,4 @@ See `references/troubleshooting.md` for permission issues, common errors, and de
 
 ---
 
-**Current version:** 9.1.0 — See README.md for version history.
+**Current version:** 9.2.0 — See README.md for version history.
