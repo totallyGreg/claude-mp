@@ -79,6 +79,50 @@ Load: `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/SKILL.md`
 - `gtd-queries.js` — GTD diagnostics: inbox-count, stalled-projects, waiting-for, someday-maybe, recently-completed, neglected-projects, folder-structure, system-health, repeating-tasks, analyze-projects, tagged-tasks
 - `manage_omnifocus.js` — legacy JXA; retained only for `bulk-create` (structured projects with action groups) and `project-info`/`project-update` (hierarchical subtask data not yet in ofo)
 
+## System Map Context
+
+The Attache plugin stores a cached map of the user's OmniFocus structure in a task note.
+Read it **lazily** — on the first request that benefits from knowing the user's tags/folders
+(any coaching, health, or search session). Skip for simple task CRUD one-offs.
+
+**Retrieve:**
+```bash
+"${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/ofo" search "Attache System Map"
+# → get the task ID from results
+"${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/ofo" info <id>
+# → parse the .note field as JSON
+```
+
+**Extract and hold in context:**
+- `tags.categories.contexts[]` — user's actual context tags (GTD "Next Action" contexts)
+- `tags.categories.people[]` — user's waiting/delegation tags
+- `tags.categories.status[]` — user's someday/maybe and on-hold tags
+- `tags.categories.time[]` — **split before use**: duration tags (`15min`, `30min`, `1hr`) vs. scheduling-context tags (`morning`, `afternoon`, `evening`, `weekend`)
+- `tags.categories.energy[]` — effort tags
+- `structure.topLevelFolders[]` — folder names and inferred types (area/archive/someday/reference)
+- `tasks.dataQuality.percentWithDuration` — derive `durationModel` (see below)
+- `lastWritten` — surface this date if the map appears stale
+
+**Derive `durationModel`:**
+```
+percentWithDuration = tasks.dataQuality.percentWithDuration
+durationModel =
+  "native"  if > 50%      → user sets Estimate field; coach on estimatedMinutes
+  "tags"    if < 20% and duration tags exist → user tags duration; coach on tags
+  "mixed"   if 20–50%     → hybrid; surface both
+  "none"    otherwise     → no duration practice; suggest starting one
+```
+
+**Fallback behavior:**
+- 0 results → continue with generic examples; mention "Run Attache Setup in OmniFocus to personalize future coaching sessions"
+- note is empty or not valid JSON → warn "Attache System Map note could not be parsed — re-run Attache Setup in OmniFocus"; fall back to generic examples
+- multiple results → use first result; warn "Found N matches for 'Attache System Map'"
+- Attache not installed → skip silently, use generic examples
+
+**Known limitations:**
+- System Map tags are not validated against the live tag list — re-run Attache Setup after reorganizing tags
+- `plannedDate` (OmniFocus 4 Forecast scheduling field) is absent from the ofo CLI and System Map — tasks scheduled via the Forecast plan date are invisible to list queries
+
 ## Intent Classification
 
 Classify each user request and route accordingly:
@@ -125,7 +169,8 @@ Classify each user request and route accordingly:
 | "What's due today?" / "Today's tasks" | omnifocus-manager | `/ofo:today` command |
 | "Show my inbox" | omnifocus-manager | `/ofo:inbox` command |
 | "Show overdue tasks" | omnifocus-manager | `/ofo:overdue` command |
-| "How's my system?" / "Quick health check" | omnifocus-manager | `/ofo:health` command |
+| "Quick stats" / "Give me a snapshot" | omnifocus-manager | `ofo stats` (fast: inbox/flagged/overdue/projects counts) |
+| "How's my system?" / "Quick health check" | omnifocus-manager | `ofo stats` first (fast counts), then `/ofo:health` for full diagnostic |
 | "Search for task <name>" | omnifocus-manager | `/ofo:search <term>` command |
 | "Help me do my weekly review" / "Run weekly review" | omnifocus-manager | `/ofo:weekly-review` command |
 | "Publish this plan to OmniFocus" / "Create OmniFocus project from plan" | omnifocus-manager | `/ofo:plan [file]` command |
@@ -147,6 +192,24 @@ For requests requiring both skills:
 2. **Lead with methodology** — start with gtd-coach guidance
 3. **Support with execution** — use omnifocus-manager for queries/automation
 4. **Interleave naturally** — alternate coaching and execution as the workflow progresses
+
+**When System Map is loaded**, prepend a context block before the coaching content.
+Split `tags.categories.time[]` — duration tags and scheduling-context tags must not be mixed:
+
+> **System Map context (from Attache):**
+> - Context tags: [user's actual tags from `tags.categories.contexts`]
+> - Waiting tag: [from `tags.categories.people`]
+> - Someday/on-hold: [from `tags.categories.status` + folder type "someday"]
+> - Duration tags: [duration entries from `tags.categories.time` matching `\d+(min|hr|h|m)`, `quick`, `deep`]
+> - Scheduling context: [time-of-day/week entries from `tags.categories.time` matching `morning`, `afternoon`, `evening`, `weekend`, `weekday`]
+> - Duration model: [durationModel value] — [coaching implication]
+> - Areas: [from `structure.topLevelFolders` where inferredType = "area"]
+> - ⚠️ Gap: `plannedDate` is not surfaced — tasks scheduled via Forecast may not appear in list queries
+>
+> [coaching content follows]
+
+If System Map is not available, proceed with generic GTD terminology — coaching principles
+are correct regardless of the user's specific tag names.
 
 **Example: Weekly Review Flow**
 
@@ -187,9 +250,12 @@ When users request plugin creation, follow the CRITICAL workflow from omnifocus-
 
 - **Load skills on-demand** — only load SKILL.md when routing to that skill
 - **Load references as needed** — read from `${CLAUDE_PLUGIN_ROOT}/skills/<skill>/references/` when deeper detail is required
-- **Run scripts directly** — use full paths: `osascript -l JavaScript ${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/...`
+- **Execution hierarchy** (follow this order):
+  1. **ofo CLI** (preferred for all CRUD and queries): `"${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/ofo" <command>`
+  2. **gtd-queries.js** (JXA diagnostics only): `cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/gtd-queries.js --action <action>`
+  3. **manage_omnifocus.js** (legacy — bulk-create and project hierarchy only): `cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/manage_omnifocus.js bulk-create --json-file <path>`
 - **Respect boundaries** — gtd-coach should never run OmniFocus automation; omnifocus-manager should not coach GTD methodology
-- **Default to omnifocus-manager** — if unclear whether a request is methodology or execution, start with omnifocus-manager (most requests are about doing things)
+- **Default to omnifocus-manager** — if unclear whether a request is methodology or execution, start with omnifocus-manager
 
 ## Bounded Autonomy
 
