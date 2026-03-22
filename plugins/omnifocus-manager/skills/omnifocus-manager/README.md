@@ -16,12 +16,12 @@ Query and manage OmniFocus tasks via Omni Automation script URLs (ofo CLI) and J
 
 | Metric | Score | Interpretation |
 |--------|-------|----------------|
-| Conciseness | 98/100 | Excellent |
+| Conciseness | 83/100 | Good |
 | Complexity | 90/100 | Good |
 | Spec Compliance | 100/100 | Excellent |
 | Progressive Disclosure | 100/100 | Excellent |
 | Description Quality | 100/100 | Excellent |
-| **Overall** | **97/100** | **Excellent** |
+| **Overall** | **94/100** | **Excellent** |
 
 Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
 
@@ -29,6 +29,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
 |---------|------|-------|---------|------|------|------|------|------|---------|
+| 9.2.1 | 2026-03-22 | - | Add plugin version bump rule to generation workflow and conventions | 83 | 90 | 100 | 100 | 100 | 94 |
 | 9.2.0 | 2026-03-22 | [#123](https://github.com/totallyGreg/claude-mp/issues/123) | omnifocus-agent System Map bootstrap: lazy Attache System Map retrieval, TIME_PATTERNS split (duration vs. scheduling-context), durationModel derivation, fix Execution Rules to ofo-first hierarchy, ofo stats fast health check, gtd-coach System Context section (v1.3.0) | 98 | 90 | 100 | 100 | 100 | 97 |
 | 9.1.0 | 2026-03-22 | [#121](https://github.com/totallyGreg/claude-mp/issues/121) | Script consolidation: delete 4 orphan scripts; ofo list due-soon + update --note-append; fix dead refs in ofo-expound/ofo-plan; update agent routing table + jxa_guide + gtd_guide + CONTRIBUTING.md to ofo CLI | 98 | 90 | 100 | 100 | 100 | 97 |
 | 9.0.0 | 2026-03-21 | [#119](https://github.com/totallyGreg/claude-mp/issues/119) | ofoCore named exports (14 functions); shared OfoAction types; ofo dump/stats commands; deploy to iCloud+Containers; CONTRIBUTING.md null-guard pattern; library_ecosystem.md; Attache v1.1.0 | 98 | 90 | 100 | 100 | 100 | 97 |
@@ -60,7 +61,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 ## Active Work
 
-None currently. See GitHub Issues for future work.
+- [#125](https://github.com/totallyGreg/claude-mp/issues/125): Expose native OmniFocus fields for richer GTD coaching (Planning)
 
 ## Known Issues
 

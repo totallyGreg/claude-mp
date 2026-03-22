@@ -51,6 +51,9 @@ node scripts/generate_plugin.js --format <FORMAT> --name "<NAME>"
 bash scripts/validate-plugin.sh <generated-plugin-path>
 ```
 
+### STEP 4.5: BUMP VERSION
+Bump the version in the `.omnifocusjs` manifest — OmniFocus won't reload the plugin without a version change.
+
 ### STEP 5: REPORT
 ```
 ✅ Plugin generated: <path>
@@ -204,6 +207,7 @@ See `references/foundation_models_integration.md` for Foundation Models API deta
 - **Commands use `${CLAUDE_PLUGIN_ROOT}`**: `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/`
 - **No method destructuring**: `taskQuery.getInboxTasks(doc)`, never `const {getInboxTasks} = taskQuery`
 - **Smoke test before version bump**: `bash scripts/test-queries.sh`
+- **Always bump `.omnifocusjs` plugin version** on create/update — without it, OmniFocus won't recognize the plugin as an update
 
 The `ofo` CLI sends stable JavaScript action scripts (in `scripts/omni-actions/`) to OmniFocus via `omnifocus://localhost/omnijs-run` URLs. Each script is approved once; variable data flows through the `&arg=` parameter. Results return via pasteboard (`Pasteboard.general.string` → `pbpaste`).
 
@@ -245,4 +249,4 @@ See `references/troubleshooting.md` for permission issues, common errors, and de
 
 ---
 
-**Current version:** 9.2.0 — See README.md for version history.
+**Current version:** 9.2.1 — See README.md for version history.
