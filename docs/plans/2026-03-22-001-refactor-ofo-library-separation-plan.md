@@ -1,7 +1,7 @@
 ---
 title: "refactor: Separate ofo-library primitives from dispatch and feature plugins"
 type: refactor
-status: active
+status: completed
 date: 2026-03-22
 github_issue: "https://github.com/totallyGreg/claude-mp/issues/119"
 supersedes: "docs/plans/2026-03-19-001-refactor-ofo-typescript-plugin-library-plan.md"
@@ -324,9 +324,9 @@ All 12 existing ofo CLI commands unchanged. New `ofo dump` and `ofo stats` added
 ### Architecture
 - [x] `scripts/typescript/example-plugin.ts` relocated to `references/`
 - [x] `scripts/libraries/omni/` each file audited — all 7 kept (documented in `references/library_ecosystem.md`)
-- [ ] CONTRIBUTING.md documents the null-guard pattern and the "add new action" workflow
-- [ ] Skillsmith eval score ≥ 95
-- [ ] Plugin version 9.0.0 in `plugin.json` and `marketplace.json`
+- [x] CONTRIBUTING.md documents the null-guard pattern and the "add new action" workflow
+- [x] Skillsmith eval score ≥ 95 (97/100 achieved)
+- [x] Plugin version 9.0.0 in `plugin.json` and `marketplace.json`
 
 ## Dependencies & Risks
 

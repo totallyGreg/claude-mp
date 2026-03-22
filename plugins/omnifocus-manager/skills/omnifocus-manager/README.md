@@ -12,7 +12,7 @@ Query and manage OmniFocus tasks via Omni Automation script URLs (ofo CLI) and J
 
 ## Current Metrics
 
-*Last evaluated: 2026-03-20*
+*Last evaluated: 2026-03-21*
 
 | Metric | Score | Interpretation |
 |--------|-------|----------------|
@@ -29,6 +29,9 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
 |---------|------|-------|---------|------|------|------|------|------|---------|
+| 9.0.0 | 2026-03-21 | [#119](https://github.com/totallyGreg/claude-mp/issues/119) | ofoCore named exports (14 functions); shared OfoAction types; ofo dump/stats commands; deploy to iCloud+Containers; CONTRIBUTING.md null-guard pattern; library_ecosystem.md; Attache v1.1.0 | 98 | 90 | 100 | 100 | 100 | 97 |
+| 8.4.0 | 2026-03-21 | - | Add ofo perspective-list and perspective-rules commands (with folder/tag ID resolution); document Flexible vs Organized structure; add perspective troubleshooting section; fix perspective-config.js runtime warning | 98 | 90 | 100 | 100 | 100 | 97 |
+| 8.3.0 | 2026-03-21 | - | ofo perspective-rules: TypeScript ofo-core action resolving actionWithinFocus/actionHasAnyOfTags IDs to named markdown links | 98 | 90 | 100 | 100 | 100 | 97 |
 | 8.2.0 | 2026-03-20 | — | Add perspective-configure action, completed-today CLI command (perspectives-over-scripts pattern); fix license frontmatter placement | 98 | 90 | 100 | 100 | 100 | 97 |
 | 8.1.0 | 2026-03-19 | [#116](https://github.com/totallyGreg/claude-mp/pull/116) | ofo CLI: tag command with capture shortcuts, tags hierarchy, create-batch; fix flattenedTags global | 100 | 90 | 90 | 100 | 100 | 95 |
 | 8.0.0 | 2026-03-19 | [#111](https://github.com/totallyGreg/claude-mp/issues/111) | Migrate ofo CLI to TypeScript plugin library: ofo-core.ts (7 actions), ofo-cli.ts (arg parsing), installed .omnifocusjs bundle, stable stub script, zero auth prompts after checkbox; CONTRIBUTING.md rewrite | 100 | 90 | 90 | 100 | 100 | 95 |

@@ -6,7 +6,7 @@ description: |
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 license: MIT
 metadata:
-  version: 8.4.0
+  version: 9.0.0
   author: totally-tools
 compatibility:
   platforms: [macos]
@@ -101,8 +101,8 @@ scripts/ofo perspective-rules "Name"         # Single perspective filter rules (
 scripts/ofo perspective-configure --name "View" --rules '[...]'  # Set perspective filter rules
 scripts/ofo completed-today                  # Today's completions categorized by tag (JSON)
 scripts/ofo completed-today --markdown       # Same, formatted for Obsidian append
-echo "Buy milk" | scripts/ofo create         # Stdin: first line = name
-echo '{"name":"X","project":"P"}' | scripts/ofo create  # Stdin: JSON
+scripts/ofo dump                             # Snapshot JSON: tasks (500 cap), projects, perspectives
+scripts/ofo stats                            # Counts: inbox/flagged/overdue/projects/tasks
 ```
 
 **Prerequisites:** OmniFocus running + external scripts enabled. First command triggers a one-time approval dialog.
