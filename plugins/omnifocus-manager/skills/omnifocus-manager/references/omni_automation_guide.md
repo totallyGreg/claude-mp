@@ -315,6 +315,41 @@ Libraries allow you to reuse code across different actions within a plugin.
 - No API calls (Preferences, flattenedTasks, Alert, etc.) at IIFE top level — they disables all actions silently
 - All real work goes inside `lib.method` function bodies
 
+### Cross-Plugin Library Loading (validated Mac + iPhone, 2026-03-22)
+
+A plugin action can load a library from a **different installed plugin** using `PlugIn.find()`. This is the mechanism that allows feature plugins (Attache, future plugins) to use `ofoCore` as a shared data access layer.
+
+```javascript
+const action = new PlugIn.Action(async function(selection, sender) {
+    // Load ofoCore from the separately installed ofo-core plugin
+    const corePlugin = PlugIn.find("com.totally-tools.ofo-core");
+    if (!corePlugin) {
+        new Alert("Missing dependency", "ofo-core.omnifocusjs must be installed.").show();
+        return;
+    }
+    const ofoCore = corePlugin.library("ofoCore");
+    const result = ofoCore.dispatch({ action: "ofo-list", filter: "flagged" });
+});
+```
+
+**Confirmed behaviours:**
+- `PlugIn.find("bundle.id")` returns the plugin object on both Mac and iPhone ✓
+- `.library("libName")` loads and returns the library on both platforms ✓
+- Library methods execute with full OmniFocus API access (`flattenedTasks`, etc.) ✓
+- Validated with `ofocore-test.omnifocusjs` calling `ofo-core.omnifocusjs` — all three steps passed on iPhone (2026-03-22)
+
+**Required null-guard pattern** — always guard against the dependency not being installed:
+```javascript
+const corePlugin = PlugIn.find("com.totally-tools.ofo-core");
+if (!corePlugin) {
+    new Alert("ofo-core required", "Install ofo-core.omnifocusjs to use this plugin.").show();
+    return;
+}
+const ofoCore = corePlugin.library("ofoCore");
+```
+
+**This pattern is the foundation for the #119 refactor** — `ofoCore` named function exports enable any installed plugin to use the shared data layer without reimplementing OmniFocus data access.
+
 ---
 
 ## 7. Advanced Plugin Patterns
