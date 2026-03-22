@@ -22,13 +22,13 @@ This reference maps GTD concepts to OmniFocus implementation. For pure GTD metho
 | GTD Phase | OmniFocus Command |
 |-----------|-------------------|
 | **Capture** | `open "omnifocus:///add?name=Item&autosave=true"` |
-| **Capture (detailed)** | `osascript -l JavaScript scripts/manage_omnifocus.js create --name "Item"` |
-| **Clarify (review inbox)** | `osascript -l JavaScript scripts/manage_omnifocus.js list --filter active` |
-| **Organize (assign project)** | `osascript -l JavaScript scripts/manage_omnifocus.js update --name "Task" --project "Project"` |
-| **Reflect (daily)** | `osascript -l JavaScript scripts/manage_omnifocus.js today` |
-| **Reflect (weekly)** | `osascript -l JavaScript scripts/manage_omnifocus.js due-soon --days 7` |
-| **Engage (by context)** | `osascript -l JavaScript scripts/manage_omnifocus.js search --query "@office"` |
-| **Engage (flagged)** | `osascript -l JavaScript scripts/manage_omnifocus.js flagged` |
+| **Capture (detailed)** | `ofo create --name "Item"` |
+| **Clarify (review inbox)** | `ofo list inbox` |
+| **Organize (assign project)** | `ofo update <id> --project "Project"` |
+| **Reflect (daily)** | `ofo list today` |
+| **Reflect (weekly)** | `ofo list due-soon 7` |
+| **Engage (by context)** | `ofo search "@office"` |
+| **Engage (flagged)** | `ofo list flagged` |
 
 ## Key Perspectives for GTD
 

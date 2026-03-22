@@ -199,24 +199,31 @@ const tagsToRemove = task.tags().filter(t => t.name().toLowerCase().includes('so
 tagsToRemove.forEach(t => of.remove(t, { from: task.tags }));
 ```
 
-## 5. Command-Line Interface (`manage_omnifocus.js`)
+## 5. Command-Line Interface
 
-This skill includes a ready-to-use CLI script for common operations.
+### ofo CLI (preferred)
+
+The `ofo` CLI uses Omni Automation script URLs and is the preferred tool for task CRUD. No CWD requirement.
+
+**Execution**: `scripts/ofo <command> [options]`
+
+Common commands:
+*   `ofo list today` / `ofo list flagged` / `ofo list overdue` / `ofo list due-soon [N]`
+*   `ofo create --name "Task" --project "Work" --due 2026-12-31 --flagged`
+*   `ofo update <id> --name "New name" --flagged --note-append "text"`
+*   `ofo complete <id>`
+*   `ofo search "keyword"`
+*   `ofo info <id>`
+
+### manage_omnifocus.js (legacy — retained for bulk-create and project hierarchy)
+
+**Retained for:** `bulk-create` (structured projects with action groups) and `project-info`/`project-update` (hierarchical subtask data). All other commands are superseded by ofo CLI.
 
 **Execution**: `osascript -l JavaScript scripts/manage_omnifocus.js <command> [options]`
 
-### Query Commands
-*   `today`: Show tasks due or deferred to today.
-*   `due-soon --days 7`: Show tasks due in the next N days.
-*   `flagged`: Show all flagged tasks.
-*   `search --query "meeting"`: Search tasks by a keyword.
-
-### Management Commands
-*   `create --name "My new task"`: Create a new task.
-    *   Accepts flags like `--project`, `--tags`, `--due`, `--note`, `--flagged`.
-*   `update --name "Old name" --new-name "New name"`: Update a task's properties.
-*   `complete --name "Task to complete"`: Mark a task as complete.
-*   `info --name "Task name"`: Get detailed JSON for a specific task.
+*   `bulk-create --json-file <path>`: Create a project with phased action groups from JSON.
+*   `project-info --id <id>`: Get full project hierarchy including subtasks.
+*   `project-update --id <id> --review-interval 1month --sequential`: Update project metadata.
 
 **Example:**
 ```bash

@@ -2,6 +2,30 @@
 
 ## Architecture
 
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ofoCore library                               │
+│            (build/ofo-core.omnifocusjs — installed in OF)        │
+│  Named exports: getTask, searchTasks, listTasks, completeTask,   │
+│  createTask, updateTask, tagTask, getTags, getPerspective,        │
+│  configurePerspective, getPerspectiveRules, createBatch,          │
+│  dumpDatabase, getStats + dispatch() (backward compat)           │
+└──────────┬──────────────────────────────────────────────────────┘
+           │ PlugIn.find("com.totally-tools.ofo-core").library("ofoCore")
+     ┌─────┴─────────────────────┐
+     │                           │
+┌────▼──────────────────┐  ┌────▼────────────────────────────────┐
+│  ofo-stub.js (stable) │  │  Feature Plugins                     │
+│  calls dispatch(args) │  │  (Attache, future FM/AI plugins)     │
+└────┬──────────────────┘  │  Load ofoCore via PlugIn.find()      │
+     │                     │  Add FM inference, OmniFocus UI       │
+┌────▼──────────────────┐  │  Works on Mac + iPhone automatically  │
+│  ofo-cli.ts           │  └─────────────────────────────────────┘
+│  Claude Code skills   │
+│  and commands         │
+└───────────────────────┘
+```
+
 The omnifocus-manager plugin uses two execution contexts:
 
 ### 1. ofo CLI → TypeScript Plugin Library

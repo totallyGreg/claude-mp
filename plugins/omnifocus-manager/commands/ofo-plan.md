@@ -123,7 +123,7 @@ EOF
 
 If "Both" was selected, update the OmniFocus project note with the issue URL:
 ```bash
-cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager" && osascript -l JavaScript scripts/manage_omnifocus.js project-update --id "<project-id>" --note-append "Issue: <issue-url>"
+"${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/ofo" update "<project-id>" --note-append "Issue: <issue-url>"
 ```
 
 ## Step 7: Report Results

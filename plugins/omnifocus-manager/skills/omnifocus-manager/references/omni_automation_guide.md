@@ -321,16 +321,29 @@ A plugin action can load a library from a **different installed plugin** using `
 
 ```javascript
 const action = new PlugIn.Action(async function(selection, sender) {
-    // Load ofoCore from the separately installed ofo-core plugin
+    // 1. Null-guard — REQUIRED before any ofoCore call
     const corePlugin = PlugIn.find("com.totally-tools.ofo-core");
     if (!corePlugin) {
         new Alert("Missing dependency", "ofo-core.omnifocusjs must be installed.").show();
         return;
     }
     const ofoCore = corePlugin.library("ofoCore");
-    const result = ofoCore.dispatch({ action: "ofo-list", filter: "flagged" });
+
+    // 2. Use named functions directly (no magic strings needed)
+    const stats  = ofoCore.getStats();                         // fast counts
+    const tasks  = ofoCore.listTasks({ filter: 'flagged' });   // normalized task objects
+    const search = ofoCore.searchTasks({ query: 'meeting' });
+    const dump   = ofoCore.dumpDatabase();                     // full snapshot (capped 500 tasks)
+
+    // dispatch() still works for backward compat, but prefer named functions:
+    // const result = ofoCore.dispatch({ action: "ofo-list", filter: "flagged" });
 });
 ```
+
+**Available named functions** (all validated Mac + iPhone, 2026-03-22):
+`getTask`, `searchTasks`, `listTasks`, `completeTask`, `createTask`, `updateTask`, `tagTask`, `getTags`, `getPerspective`, `configurePerspective`, `getPerspectiveRules`, `createBatch`, `dumpDatabase`, `getStats`
+
+See `CONTRIBUTING.md` → "Writing a New Feature Plugin" for the complete pattern including error handling.
 
 **Confirmed behaviours:**
 - `PlugIn.find("bundle.id")` returns the plugin object on both Mac and iPhone ✓
@@ -346,9 +359,13 @@ if (!corePlugin) {
     return;
 }
 const ofoCore = corePlugin.library("ofoCore");
+// Wrap calls in try/catch — named functions don't have dispatch-level error wrapping
+try {
+    const tasks = ofoCore.listTasks({ filter: 'today' });
+} catch (e) {
+    new Alert("Error", String(e)).show();
+}
 ```
-
-**This pattern is the foundation for the #119 refactor** — `ofoCore` named function exports enable any installed plugin to use the shared data layer without reimplementing OmniFocus data access.
 
 ---
 
