@@ -1,7 +1,7 @@
 ---
 title: "feat: Full GTD-informed Attache audit + superseded asset cleanup"
 type: feat
-status: active
+status: completed
 date: 2026-03-22
 github_issue: "#127"
 related_plans:
