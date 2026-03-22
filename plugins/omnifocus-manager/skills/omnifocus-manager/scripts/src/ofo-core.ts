@@ -4,16 +4,9 @@
 // Compiled by tsc, then wrapped in PlugIn.Library IIFE by build script.
 // All functions are plain — no imports/exports. The build script assigns
 // `dispatch` to `lib.dispatch` in the IIFE wrapper.
-
-interface OfoArgs {
-  action: string;
-  [key: string]: unknown;
-}
-
-interface OfoResult {
-  success: boolean;
-  [key: string]: unknown;
-}
+//
+// OfoAction, OfoArgs, OfoResult are declared as ambient types in
+// ofo-core-ambient.d.ts (included via tsconfig.plugin.json).
 
 // === INFO ===
 
@@ -443,6 +436,54 @@ function ofoCreateBatch(args: OfoArgs): OfoResult {
   return { success: true, results: results, created: created, failed: items.length - created };
 }
 
+// === PERSPECTIVE RULES ===
+
+function resolveIds(obj: any): any {
+  if (Array.isArray(obj)) return obj.map(resolveIds);
+  if (obj && typeof obj === 'object') {
+    const out: any = {};
+    for (const k of Object.keys(obj)) {
+      if (k === 'actionWithinFocus') {
+        out[k] = (obj[k] as string[]).map(function(id: string) {
+          const f = Folder.byIdentifier(id);
+          if (f) return '[' + f.name + '](omnifocus:///folder/' + id + ')';
+          const p = Project.byIdentifier(id);
+          if (p) return '[' + p.name + '](omnifocus:///task/' + id + ')';
+          return id;
+        });
+      } else if (k === 'actionHasAnyOfTags' || k === 'actionHasAllOfTags') {
+        out[k] = (obj[k] as string[]).map(function(id: string) {
+          const t = Tag.byIdentifier(id);
+          return t ? '[' + t.name + '](omnifocus:///tag/' + id + ')' : id;
+        });
+      } else {
+        out[k] = resolveIds(obj[k]);
+      }
+    }
+    return out;
+  }
+  return obj;
+}
+
+function ofoPerspectiveRules(args: OfoArgs): OfoResult {
+  const name = (args.name as string) || null;
+
+  const perspectives: Perspective.Custom[] = name
+    ? (function() { const p = Perspective.Custom.byName(name); return p ? [p] : []; })()
+    : Perspective.Custom.all;
+
+  if (name && perspectives.length === 0) {
+    return { success: false, error: 'Perspective not found: ' + name };
+  }
+
+  const result: Record<string, any> = {};
+  perspectives.forEach(function(p: Perspective.Custom) {
+    result[p.name] = resolveIds((p as any).archivedFilterRules);
+  });
+
+  return { success: true, rules: result };
+}
+
 // === DISPATCH ===
 
 function dispatch(args: OfoArgs): OfoResult {
@@ -455,10 +496,16 @@ function dispatch(args: OfoArgs): OfoResult {
     case 'ofo-list':        return ofoList(args);
     case 'ofo-perspective': return ofoPerspective(args);
     case 'ofo-perspective-configure': return ofoPerspectiveConfigure(args);
+    case 'ofo-perspective-rules':     return ofoPerspectiveRules(args);
     case 'ofo-tag':         return ofoTag(args);
     case 'ofo-tags':        return ofoTags(args);
     case 'ofo-create-batch': return ofoCreateBatch(args);
-    default:
-      return { success: false, error: 'Unknown action: ' + args.action };
+    default: {
+      // Exhaustiveness check: TypeScript will error here if a new OfoAction
+      // is added to the union in ofo-types.ts / ofo-core-ambient.d.ts but
+      // not handled in this switch.
+      const _exhaustive: never = args.action;
+      return { success: false, error: 'Unknown action: ' + (_exhaustive as string) };
+    }
   }
 }

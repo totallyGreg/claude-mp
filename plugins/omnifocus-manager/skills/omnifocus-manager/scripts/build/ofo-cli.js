@@ -294,6 +294,10 @@ function cmdPerspective(args) {
         runAction('ofo-perspective', { name: args.join(' ') });
     }
 }
+function cmdPerspectiveRules(args) {
+    const name = args.join(' ') || null;
+    runAction('ofo-perspective-rules', name ? { name } : {});
+}
 // --- Tag Commands ---
 const CAPTURE_MAP = {
     question: 'Question❓',
@@ -626,6 +630,9 @@ switch (command) {
         break;
     case 'perspective-configure':
         cmdPerspectiveConfigure(commandArgs);
+        break;
+    case 'perspective-rules':
+        cmdPerspectiveRules(commandArgs);
         break;
     case 'completed-today':
         cmdCompletedToday(commandArgs);

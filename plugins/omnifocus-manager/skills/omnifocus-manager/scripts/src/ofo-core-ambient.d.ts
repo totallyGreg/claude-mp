@@ -37,3 +37,32 @@ interface Tag {
 
 // Top-level tag hierarchy (from Database global)
 declare const tags: Tag[];
+
+// --- Shared ofo action contract ---
+// IMPORTANT: Keep in sync with the exports in ofo-types.ts, which provides
+// the same types for ofo-cli.ts (ESM module compilation).
+
+type OfoAction =
+  | 'ofo-info'
+  | 'ofo-complete'
+  | 'ofo-create'
+  | 'ofo-create-batch'
+  | 'ofo-update'
+  | 'ofo-search'
+  | 'ofo-list'
+  | 'ofo-tag'
+  | 'ofo-tags'
+  | 'ofo-perspective'
+  | 'ofo-perspective-configure'
+  | 'ofo-perspective-rules';
+
+interface OfoArgs {
+  action: OfoAction;
+  [key: string]: unknown;
+}
+
+interface OfoResult {
+  success: boolean;
+  error?: string;
+  [key: string]: unknown;
+}

@@ -185,13 +185,13 @@ Do not deploy them as-is without reconciling with ofoCore first.
 
 **Goal:** Establish the type contract before touching implementations.
 
-- [ ] Create `scripts/src/ofo-types.ts` — `OfoAction` union + `OfoArgs` + `OfoResult` + parameter interfaces (importable by CLI only)
-- [ ] Append ambient versions of the same types to `scripts/src/ofo-core-ambient.d.ts` with a comment: `// Keep in sync with ofo-types.ts`
-- [ ] Update `scripts/src/tsconfig.cli.json` to include `ofo-types.ts` in the CLI compilation
-- [ ] Update `ofo-cli.ts` to `import type { OfoAction, OfoArgs, OfoResult } from './ofo-types'` — remove any duplicate local definitions
-- [ ] Update `ofo-core.ts` to use the ambient `OfoAction` type in the dispatch switch — add exhaustiveness check via `satisfies` or `never` default case
-- [ ] Run `npm run build` — verify zero TypeScript errors
-- [ ] Relocate `scripts/typescript/example-plugin.ts` → `references/example-plugin.ts` and add link in SKILL.md references section
+- [x] Create `scripts/src/ofo-types.ts` — `OfoAction` union + `OfoArgs` + `OfoResult` + parameter interfaces (importable by CLI only)
+- [x] Append ambient versions of the same types to `scripts/src/ofo-core-ambient.d.ts` with a comment: `// Keep in sync with ofo-types.ts`
+- [x] Update `scripts/src/tsconfig.cli.json` to include `ofo-types.ts` in the CLI compilation
+- [x] Update `ofo-cli.ts` to `import type { OfoAction, OfoArgs, OfoResult } from './ofo-types'` — remove any duplicate local definitions
+- [x] Update `ofo-core.ts` to use the ambient `OfoAction` type in the dispatch switch — add exhaustiveness check via `satisfies` or `never` default case
+- [x] Run `npm run build` — verify zero TypeScript errors
+- [x] Relocate `scripts/typescript/example-plugin.ts` → `references/example-plugin.ts` and add link in SKILL.md references section
 
 **Key files:**
 - `scripts/src/ofo-types.ts` (new)
@@ -323,12 +323,12 @@ All 12 existing ofo CLI commands unchanged. New `ofo dump` and `ofo stats` added
 - [ ] Bundle ID `"com.totally-tools.ofo-core"` and library ID `"ofoCore"` are unchanged
 
 ### Type Safety (#117)
-- [ ] `OfoAction` union exists in both `ofo-types.ts` (CLI) and `ofo-core-ambient.d.ts` (plugin) — kept in sync
-- [ ] Adding a new action string not in `OfoAction` union produces TypeScript error in CLI
-- [ ] `npm run build` produces zero TypeScript errors
+- [x] `OfoAction` union exists in both `ofo-types.ts` (CLI) and `ofo-core-ambient.d.ts` (plugin) — kept in sync
+- [x] Adding a new action string not in `OfoAction` union produces TypeScript error in CLI
+- [x] `npm run build` produces zero TypeScript errors
 
 ### Architecture
-- [ ] `scripts/typescript/example-plugin.ts` relocated to `references/`
+- [x] `scripts/typescript/example-plugin.ts` relocated to `references/`
 - [ ] `scripts/libraries/omni/` each file audited — kept or archived, documented in SKILL.md
 - [ ] CONTRIBUTING.md documents the null-guard pattern and the "add new action" workflow
 - [ ] Skillsmith eval score ≥ 95

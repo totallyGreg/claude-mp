@@ -6,7 +6,7 @@ description: |
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 license: MIT
 metadata:
-  version: 8.3.0
+  version: 8.4.0
   author: totally-tools
 compatibility:
   platforms: [macos]
@@ -95,6 +95,9 @@ scripts/ofo list flagged                     # All flagged active tasks
 scripts/ofo tag <id> --add "Tag" --remove "Other"  # Granular tag manipulation
 scripts/ofo tag <id> --capture question      # Capture pipeline shortcut
 scripts/ofo tags                             # Full tag hierarchy as JSON
+scripts/ofo perspective-list                 # All perspective names
+scripts/ofo perspective-rules                # All custom perspectives with resolved filter rules
+scripts/ofo perspective-rules "Name"         # Single perspective filter rules (IDs → named links)
 scripts/ofo perspective-configure --name "View" --rules '[...]'  # Set perspective filter rules
 scripts/ofo completed-today                  # Today's completions categorized by tag (JSON)
 scripts/ofo completed-today --markdown       # Same, formatted for Obsidian append
@@ -129,18 +132,29 @@ osascript -l JavaScript scripts/gtd-queries.js --action folder-structure
 
 ```bash
 # ofo CLI (preferred)
-scripts/ofo perspective "Completed Today"           # Query perspective contents
-scripts/ofo perspective-configure --name "Completed Today" --rules '[{"actionAvailability":"completed"},{"actionDateField":"completed","actionDateIsToday":true}]'
+scripts/ofo perspective-list                        # List all perspective names (built-in + custom)
+scripts/ofo perspective "Completed Today"           # Query perspective contents (tasks matching rules)
+scripts/ofo perspective-rules                       # All custom perspectives + archivedFilterRules (folder/tag IDs resolved to named links)
+scripts/ofo perspective-rules "Dashboard"           # Single perspective rules
+scripts/ofo perspective-configure --name "View" --rules '[...]'   # Write filter rules
 scripts/ofo perspective-configure --name "My View" --aggregation any
 
-# JXA (legacy, for perspective inventory)
+# Omni Automation URL scheme (when ofo unavailable)
+# Perspective.all → all perspectives (built-in + custom); Perspective.Custom.all → custom only
+# Returns: array of perspective objects with .name, .archivedFilterRules, .id.primaryKey
+# Use Folder.byIdentifier(id) and Tag.byIdentifier(id) to resolve IDs in filter rules
+
+# JXA (plain osascript — limited perspective support)
 osascript -l JavaScript scripts/gtd-queries.js --action perspective-inventory
-osascript -l JavaScript scripts/perspective-config.js --action show --name "Next Actions"
-osascript -l JavaScript scripts/perspective-config.js --action apply-template --name "Next Actions" --template next-actions
-osascript -l JavaScript scripts/perspective-config.js --action list-templates
+# ⚠️ perspective-config.js requires the Omni Automation plugin runtime — do NOT run via plain osascript
+# ⚠️ perspective-inventory output is the authoritative name list — stop after receiving it, do not fall back further
 ```
 
-Note: Perspectives must be created manually in OmniFocus Pro — the API has no constructor. Filter rules use tag IDs, not names.
+**Perspective structure (Flexible vs Organized):** Set via OmniFocus UI (Perspectives → Edit → Structure). Not yet exposed in the `archivedFilterRules` API.
+- **Flexible** — flat list; best for "what's next" scanning across many projects (e.g. Dashboard)
+- **Organized** — grouped + sorted view; best for categorical review (e.g. Money Check grouped by Project)
+
+Note: Perspectives must be created manually in OmniFocus Pro — the API has no constructor. Filter rules use tag/folder IDs, not names — use `ofo perspective-rules` to read with resolved links.
 
 See `references/perspective_templates.md` for 8 canonical GTD perspective JSON configs.
 See `references/perspective_creation.md` for the guided configuration workflow.
@@ -213,6 +227,7 @@ See `references/jxa_guide.md` for complete JXA reference and `loadLibrary` imple
 - [omnifocus_api.md](references/omnifocus_api.md) - Full API specification
 - [Omni Automation API Mapping](references/omni_automation_api_mapping.md) - JXA vs script URL API differences
 - [Foundation Models Integration](references/foundation_models_integration.md) - Apple Intelligence (macOS 26+)
+- [Example Plugin](references/example-plugin.ts) - Annotated TypeScript plugin template for new plugin development
 - [Database Schema](references/database_schema.md), [Shared Classes](references/omni_automation_shared.md), [Insight Patterns](references/insight_patterns.md), [Workflows](references/workflows.md), [Troubleshooting](references/troubleshooting.md)
 
 ---
