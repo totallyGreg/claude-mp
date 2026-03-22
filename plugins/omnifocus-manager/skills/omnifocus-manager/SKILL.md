@@ -189,6 +189,18 @@ For quick daily review, use Attache in OmniFocus; for deep system analysis, use 
 
 After installing Attache, you can remove: AITaskAnalyzer, CompletedTasksSummary, Overview, TodaysTasks.
 
+**Post-deploy:** After installing or updating Attache, refresh the System Map so coaching sessions use the latest fields:
+```bash
+open assets/Attache.omnifocusjs                    # install/update plugin
+# Restart OmniFocus to reload plugin libraries (install dialog updates files but libraries stay cached)
+osascript -e 'tell application "OmniFocus" to quit' && sleep 3 && open -a OmniFocus
+sleep 8                                            # wait for OmniFocus to start and load plugins
+scripts/ofo search "Attache System Map"            # get task ID
+# Then trigger discovery via omnijs-run:
+SCRIPT='var p=PlugIn.find("com.totallytools.omnifocus.attache");var lib=p.library("systemDiscovery");var map=lib.discoverSystem({depth:"full"});var t=flattenedTasks.filter(function(t){return t.name==="Attache System Map"});if(t.length>0){t[0].note=JSON.stringify(map);Pasteboard.general.string="System Map updated v"+map.attacheVersion}else{Pasteboard.general.string="Task not found"}'
+open "omnifocus://localhost/omnijs-run?script=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.stdin.read().strip()))" <<< "$SCRIPT")"
+```
+
 See `references/foundation_models_integration.md` for Foundation Models API details.
 
 ---
