@@ -1,7 +1,7 @@
 ---
 title: "feat(ofo): expose native OmniFocus fields for richer GTD coaching"
 type: feat
-status: active
+status: completed
 date: 2026-03-22
 github_issue: "https://github.com/totallyGreg/claude-mp/issues/125"
 ---

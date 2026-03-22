@@ -191,8 +191,8 @@ When the omnifocus-agent provides a `**System Map context:**` block, use the use
 
 - Replace generic context examples with the user's actual context tags from `tags.categories.contexts`
 - Name their specific waiting tag, someday folder, and area folders by their real names
-- Coach duration using `durationModel`: `native` → Estimate field; `tags` → duration tags; `mixed` → help them pick one; `none` → suggest starting a practice
-- **Scheduling gap:** `plannedDate` (Forecast) is not surfaced by the ofo CLI — if a task is missing from today's list, check whether they used the Forecast plan date
+- Coach duration using `durationModel`: `native` → check `ofo info` `estimatedMinutes` field (primary signal); `tags` → duration tags; `mixed` → help them converge on native estimates; `none` → suggest starting a practice
+- Coach on `plannedDate` vs `dueDate` distinction: planned = soft intent (Forecast scheduling), due = hard deadline. If overdue list is inflated, suggest converting soft deadlines to planned dates.
 - **Without System Map:** use generic GTD terminology — principles are correct regardless of specific names
 
 ### Data-Grounded Coaching

@@ -19,6 +19,8 @@ function getTask(args: OfoArgs): OfoResult {
   if (type === 'project') {
     const p = Project.byIdentifier(id);
     if (!p) return { success: false, error: 'Project not found: ' + id };
+    let projPlannedDate: string | null = null;
+    try { projPlannedDate = p.plannedDate ? p.plannedDate.toISOString() : null; } catch (_) {}
     return {
       success: true,
       project: {
@@ -29,11 +31,19 @@ function getTask(args: OfoArgs): OfoResult {
         flagged: p.flagged,
         dueDate: p.dueDate ? p.dueDate.toISOString() : null,
         deferDate: p.deferDate ? p.deferDate.toISOString() : null,
+        plannedDate: projPlannedDate,
+        estimatedMinutes: p.estimatedMinutes,
         note: p.note,
         tags: p.tags.map(function(tag: Tag) { return tag.name; }),
         taskCount: p.flattenedTasks.length,
         sequential: p.sequential,
-        parentFolder: p.parentFolder ? p.parentFolder.name : null
+        parentFolder: p.parentFolder ? p.parentFolder.name : null,
+        reviewInterval: p.reviewInterval ? {
+          steps: p.reviewInterval.steps,
+          unit: String(p.reviewInterval.unit)
+        } : null,
+        nextReviewDate: p.nextReviewDate ? p.nextReviewDate.toISOString() : null,
+        lastReviewDate: p.lastReviewDate ? p.lastReviewDate.toISOString() : null
       }
     };
   } else if (type === 'tag') {
@@ -65,6 +75,8 @@ function getTask(args: OfoArgs): OfoResult {
   } else {
     const t = Task.byIdentifier(id);
     if (!t) return { success: false, error: 'Task not found: ' + id };
+    let taskPlannedDate: string | null = null;
+    try { taskPlannedDate = t.plannedDate ? t.plannedDate.toISOString() : null; } catch (_) {}
     return {
       success: true,
       task: {
@@ -75,10 +87,15 @@ function getTask(args: OfoArgs): OfoResult {
         dueDate: t.dueDate ? t.dueDate.toISOString() : null,
         deferDate: t.deferDate ? t.deferDate.toISOString() : null,
         completionDate: t.completionDate ? t.completionDate.toISOString() : null,
+        plannedDate: taskPlannedDate,
         note: t.note,
         project: t.containingProject ? t.containingProject.name : null,
         tags: t.tags.map(function(tag: Tag) { return tag.name; }),
-        estimatedMinutes: t.estimatedMinutes
+        estimatedMinutes: t.estimatedMinutes,
+        repetitionRule: t.repetitionRule ? {
+          ruleString: t.repetitionRule.ruleString,
+          method: String(t.repetitionRule.method)
+        } : null
       }
     };
   }
@@ -108,18 +125,24 @@ function createTask(args: OfoArgs): OfoResult {
   if (args.due) t.dueDate = new Date(args.due as string);
   if (args.defer) t.deferDate = new Date(args.defer as string);
   if (args.estimate) t.estimatedMinutes = args.estimate as number;
+  if (args.plannedDate !== undefined) {
+    try { t.plannedDate = args.plannedDate === null ? null : new Date(args.plannedDate as string); } catch (_) {}
+  }
   if (args.tags) {
     (args.tags as string[]).forEach(function(tagName: string) {
       const tag = flattenedTags.byName(tagName);
       if (tag) t.addTag(tag);
     });
   }
+  let createPlannedDate: string | null = null;
+  try { createPlannedDate = t.plannedDate ? t.plannedDate.toISOString() : null; } catch (_) {}
   return {
     success: true,
     task: {
       id: t.id.primaryKey,
       name: t.name,
-      project: t.containingProject ? t.containingProject.name : 'Inbox'
+      project: t.containingProject ? t.containingProject.name : 'Inbox',
+      plannedDate: createPlannedDate
     }
   };
 }
@@ -141,6 +164,9 @@ function updateTask(args: OfoArgs): OfoResult {
   if (args.due !== undefined) t.dueDate = args.due === null ? null : new Date(args.due as string);
   if (args.defer !== undefined) t.deferDate = args.defer === null ? null : new Date(args.defer as string);
   if (args.estimate !== undefined) t.estimatedMinutes = args.estimate as number;
+  if (args.plannedDate !== undefined) {
+    try { t.plannedDate = args.plannedDate === null ? null : new Date(args.plannedDate as string); } catch (_) {}
+  }
   if (args.tags !== undefined) {
     t.clearTags();
     (args.tags as string[]).forEach(function(tagName: string) {
@@ -148,6 +174,8 @@ function updateTask(args: OfoArgs): OfoResult {
       if (tag) t.addTag(tag);
     });
   }
+  let updatePlannedDate: string | null = null;
+  try { updatePlannedDate = t.plannedDate ? t.plannedDate.toISOString() : null; } catch (_) {}
   return {
     success: true,
     task: {
@@ -155,7 +183,8 @@ function updateTask(args: OfoArgs): OfoResult {
       name: t.name,
       flagged: t.flagged,
       dueDate: t.dueDate ? t.dueDate.toISOString() : null,
-      deferDate: t.deferDate ? t.deferDate.toISOString() : null
+      deferDate: t.deferDate ? t.deferDate.toISOString() : null,
+      plannedDate: updatePlannedDate
     }
   };
 }
@@ -203,6 +232,7 @@ function listTasks(args: OfoArgs): OfoResult {
       dueDate: t.dueDate ? t.dueDate.toISOString() : null,
       deferDate: t.deferDate ? t.deferDate.toISOString() : null,
       flagged: t.flagged,
+      estimatedMinutes: t.estimatedMinutes,
       tags: t.tags.map(function(tag: Tag) { return tag.name; })
     };
   }
@@ -227,7 +257,9 @@ function listTasks(args: OfoArgs): OfoResult {
       if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
       const isDueToday = t.dueDate && t.dueDate >= todayStart && t.dueDate < todayEnd;
       const isFlagged = t.flagged;
-      if (isDueToday || isFlagged) {
+      let isPlannedToday = false;
+      try { isPlannedToday = !!(t.plannedDate && t.plannedDate >= todayStart && t.plannedDate < todayEnd); } catch (_) {}
+      if (isDueToday || isFlagged || isPlannedToday) {
         results.push(taskSummary(t));
       }
     });
@@ -562,10 +594,13 @@ function getStats(_args: OfoArgs): OfoResult {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+  const todayEnd = new Date(todayStart.getTime() + 86400000);
   let inbox_count = 0;
   let flagged = 0;
   let overdue = 0;
   let totalActive = 0;
+  let withEstimate = 0;
+  let plannedToday = 0;
 
   inbox.forEach(function(t: Task) {
     if (t.taskStatus === Task.Status.Available) inbox_count++;
@@ -577,11 +612,18 @@ function getStats(_args: OfoArgs): OfoResult {
     totalActive++;
     if (t.flagged && t.taskStatus === Task.Status.Available) flagged++;
     if (t.dueDate && t.dueDate < todayStart) overdue++;
+    if (t.estimatedMinutes != null && t.estimatedMinutes > 0) withEstimate++;
+    try {
+      if (t.plannedDate && t.plannedDate >= todayStart && t.plannedDate < todayEnd) plannedToday++;
+    } catch (_) {}
   });
 
   let projectCount = 0;
+  let reviewOverdue = 0;
   flattenedProjects.forEach(function(p: Project) {
-    if (p.status === Project.Status.Active) projectCount++;
+    if (p.status !== Project.Status.Active) return;
+    projectCount++;
+    if (p.nextReviewDate && p.nextReviewDate < todayStart) reviewOverdue++;
   });
 
   return {
@@ -590,7 +632,10 @@ function getStats(_args: OfoArgs): OfoResult {
     flagged: flagged,
     overdue: overdue,
     activeProjects: projectCount,
-    activeTasks: totalActive
+    activeTasks: totalActive,
+    reviewOverdue: reviewOverdue,
+    plannedToday: plannedToday,
+    withEstimate: withEstimate
   };
 }
 

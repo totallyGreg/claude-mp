@@ -1,6 +1,6 @@
 {
   "name": "omnifocus-manager",
-  "version": "9.2.1",
+  "version": "9.3.0",
   "description": "Query and manage OmniFocus tasks via Omni Automation script URLs (ofo CLI) and JXA, with GTD methodology coaching.",
   "author": {
     "name": "J. Greg Williams",

@@ -126,7 +126,7 @@ function parseStdinInput(raw) {
 }
 function cmdCreate(args) {
     // Parse CLI flags
-    let name = '', project = '', note = '', due = '', defer_ = '', tags = '', estimate = '';
+    let name = '', project = '', note = '', due = '', defer_ = '', tags = '', estimate = '', plannedDate = '';
     let flagged = false;
     let i = 0;
     while (i < args.length) {
@@ -155,6 +155,9 @@ function cmdCreate(args) {
             case '--estimate':
                 estimate = args[++i] || '';
                 break;
+            case '--planned-date':
+                plannedDate = args[++i] || '';
+                break;
             default: die('Unknown option: ' + args[i]);
         }
         i++;
@@ -180,6 +183,8 @@ function cmdCreate(args) {
                     merged.flagged = true;
                 if (estimate && !merged.estimate)
                     merged.estimate = parseInt(estimate, 10);
+                if (plannedDate && !merged.plannedDate)
+                    merged.plannedDate = plannedDate;
                 return merged;
             });
             runAction('ofo-create-batch', { items });
@@ -207,6 +212,8 @@ function cmdCreate(args) {
             stdinObj.flagged = true;
         if (estimate)
             stdinObj.estimate = parseInt(estimate, 10);
+        if (plannedDate)
+            stdinObj.plannedDate = plannedDate;
         if (tags)
             stdinObj.tags = tags.split(',').map(t => t.trim());
         runAction('ofo-create', stdinObj);
@@ -226,6 +233,8 @@ function cmdCreate(args) {
         argObj.defer = defer_;
     if (estimate)
         argObj.estimate = parseInt(estimate, 10);
+    if (plannedDate)
+        argObj.plannedDate = plannedDate;
     if (flagged)
         argObj.flagged = true;
     if (tags)
@@ -268,6 +277,11 @@ function cmdUpdate(args) {
             case '--estimate':
                 argObj.estimate = parseInt(args[++i] || '0', 10);
                 break;
+            case '--planned-date': {
+                const val = args[++i] || '';
+                argObj.plannedDate = val === 'clear' ? null : val;
+                break;
+            }
             default: die('Unknown option: ' + args[i]);
         }
         i++;
@@ -545,13 +559,13 @@ Commands:
   perspective-configure [options]   Set filter rules on a perspective
   completed-today [--markdown]      Today's completions categorized by tag
   dump                              Full database snapshot (active tasks, projects, perspectives) as JSON
-  stats                             Fast counts: inbox, flagged, overdue, projects, total active tasks
+  stats                             Counts: inbox, flagged, overdue, projects, tasks, reviewOverdue, plannedToday, withEstimate
   help                              Show this help
 
 Filters for 'list':
   inbox       Inbox tasks
   flagged     Flagged active tasks
-  today       Due today or flagged
+  today       Due today, flagged, or planned today
   overdue     Past due date
 
 Create options:
@@ -563,6 +577,7 @@ Create options:
   --note "Note text"        Task note
   --flagged                 Flag the task
   --estimate N              Estimated minutes
+  --planned-date YYYY-MM-DD Planned date (Forecast scheduling)
 
 Update options:
   --name "New name"         Change task name
@@ -572,6 +587,7 @@ Update options:
   --flagged                 Flag the task
   --note "Note text"        Set task note
   --estimate N              Set estimated minutes
+  --planned-date YYYY-MM-DD|clear  Set or clear planned date
 
 Tag options:
   --add "TagName"           Add a tag (repeatable)

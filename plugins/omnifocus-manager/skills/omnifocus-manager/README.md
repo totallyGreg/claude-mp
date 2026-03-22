@@ -29,6 +29,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
 |---------|------|-------|---------|------|------|------|------|------|---------|
+| 9.3.0 | 2026-03-22 | [#125](https://github.com/totallyGreg/claude-mp/issues/125) | Expose native OmniFocus fields: plannedDate, repetitionRule, reviewInterval, estimatedMinutes in list views, enriched stats, systemDiscovery tag split, Attache v1.2.0 | 83 | 90 | 100 | 100 | 100 | 94 |
 | 9.2.1 | 2026-03-22 | - | Add plugin version bump rule to generation workflow and conventions | 83 | 90 | 100 | 100 | 100 | 94 |
 | 9.2.0 | 2026-03-22 | [#123](https://github.com/totallyGreg/claude-mp/issues/123) | omnifocus-agent System Map bootstrap: lazy Attache System Map retrieval, TIME_PATTERNS split (duration vs. scheduling-context), durationModel derivation, fix Execution Rules to ofo-first hierarchy, ofo stats fast health check, gtd-coach System Context section (v1.3.0) | 98 | 90 | 100 | 100 | 100 | 97 |
 | 9.1.0 | 2026-03-22 | [#121](https://github.com/totallyGreg/claude-mp/issues/121) | Script consolidation: delete 4 orphan scripts; ofo list due-soon + update --note-append; fix dead refs in ofo-expound/ofo-plan; update agent routing table + jxa_guide + gtd_guide + CONTRIBUTING.md to ofo CLI | 98 | 90 | 100 | 100 | 100 | 97 |
@@ -61,7 +62,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 ## Active Work
 
-- [#125](https://github.com/totallyGreg/claude-mp/issues/125): Expose native OmniFocus fields for richer GTD coaching (Planning)
+None currently. See GitHub Issues for future work.
 
 ## Known Issues
 

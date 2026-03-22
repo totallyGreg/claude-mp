@@ -97,7 +97,9 @@ Read it **lazily** — on the first request that benefits from knowing the user'
 - `tags.categories.contexts[]` — user's actual context tags (GTD "Next Action" contexts)
 - `tags.categories.people[]` — user's waiting/delegation tags
 - `tags.categories.status[]` — user's someday/maybe and on-hold tags
-- `tags.categories.time[]` — **split before use**: duration tags (`15min`, `30min`, `1hr`) vs. scheduling-context tags (`morning`, `afternoon`, `evening`, `weekend`)
+- `tags.categories.duration[]` — duration/effort tags (`15min`, `30min`, `1hr`, etc.)
+- `tags.categories.schedulingContext[]` — time-of-day/week tags (`morning`, `afternoon`, `evening`, `weekend`, `weekday`)
+- `tags.categories.time[]` — **backward compat only** (combined duration + schedulingContext; prefer the split arrays above)
 - `tags.categories.energy[]` — effort tags
 - `structure.topLevelFolders[]` — folder names and inferred types (area/archive/someday/reference)
 - `tasks.dataQuality.percentWithDuration` — derive `durationModel` (see below)
@@ -121,7 +123,6 @@ durationModel =
 
 **Known limitations:**
 - System Map tags are not validated against the live tag list — re-run Attache Setup after reorganizing tags
-- `plannedDate` (OmniFocus 4 Forecast scheduling field) is absent from the ofo CLI and System Map — tasks scheduled via the Forecast plan date are invisible to list queries
 
 ## Intent Classification
 
@@ -169,8 +170,8 @@ Classify each user request and route accordingly:
 | "What's due today?" / "Today's tasks" | omnifocus-manager | `/ofo:today` command |
 | "Show my inbox" | omnifocus-manager | `/ofo:inbox` command |
 | "Show overdue tasks" | omnifocus-manager | `/ofo:overdue` command |
-| "Quick stats" / "Give me a snapshot" | omnifocus-manager | `ofo stats` (fast: inbox/flagged/overdue/projects counts) |
-| "How's my system?" / "Quick health check" | omnifocus-manager | `ofo stats` first (fast counts), then `/ofo:health` for full diagnostic |
+| "Quick stats" / "Give me a snapshot" | omnifocus-manager | `ofo stats` (fast: inbox/flagged/overdue/projects/reviewOverdue/plannedToday/withEstimate) |
+| "How's my system?" / "Quick health check" | omnifocus-manager | `ofo stats` first (fast counts + review/estimate health), then `/ofo:health` for full diagnostic |
 | "Search for task <name>" | omnifocus-manager | `/ofo:search <term>` command |
 | "Help me do my weekly review" / "Run weekly review" | omnifocus-manager | `/ofo:weekly-review` command |
 | "Publish this plan to OmniFocus" / "Create OmniFocus project from plan" | omnifocus-manager | `/ofo:plan [file]` command |
@@ -193,18 +194,16 @@ For requests requiring both skills:
 3. **Support with execution** — use omnifocus-manager for queries/automation
 4. **Interleave naturally** — alternate coaching and execution as the workflow progresses
 
-**When System Map is loaded**, prepend a context block before the coaching content.
-Split `tags.categories.time[]` — duration tags and scheduling-context tags must not be mixed:
+**When System Map is loaded**, prepend a context block before the coaching content:
 
 > **System Map context (from Attache):**
 > - Context tags: [user's actual tags from `tags.categories.contexts`]
 > - Waiting tag: [from `tags.categories.people`]
 > - Someday/on-hold: [from `tags.categories.status` + folder type "someday"]
-> - Duration tags: [duration entries from `tags.categories.time` matching `\d+(min|hr|h|m)`, `quick`, `deep`]
-> - Scheduling context: [time-of-day/week entries from `tags.categories.time` matching `morning`, `afternoon`, `evening`, `weekend`, `weekday`]
+> - Duration tags: [from `tags.categories.duration`]
+> - Scheduling context: [from `tags.categories.schedulingContext`]
 > - Duration model: [durationModel value] — [coaching implication]
 > - Areas: [from `structure.topLevelFolders` where inferredType = "area"]
-> - ⚠️ Gap: `plannedDate` is not surfaced — tasks scheduled via Forecast may not appear in list queries
 >
 > [coaching content follows]
 
