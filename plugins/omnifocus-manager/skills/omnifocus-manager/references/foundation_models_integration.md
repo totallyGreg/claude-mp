@@ -297,9 +297,9 @@ The practical context limit is not publicly documented. Observed behavior:
 
 ## References
 
-- `assets/AITaskAnalyzer.omnifocusjs/Resources/foundationModelsUtils.js` — availability utility library
-- `assets/AITaskAnalyzer.omnifocusjs/Resources/analyzeTasksWithAI.js` — Schema.fromJSON() example
-- `assets/AITaskAnalyzer.omnifocusjs/Resources/dailyReview.js` — GenerationOptions, anyOf enum usage
-- `assets/AITaskAnalyzer.omnifocusjs/Resources/weeklyReview.js` — per-call session pattern
+- `assets/Attache.omnifocusjs/Resources/foundationModelsUtils.js` — availability utility library
+- `assets/Attache.omnifocusjs/Resources/analyzeTasksWithAI.js` — Schema.fromJSON() example
+- `assets/Attache.omnifocusjs/Resources/dailyReview.js` — GenerationOptions, anyOf enum usage
+- `assets/Attache.omnifocusjs/Resources/weeklyReview.js` — per-call session pattern
 - `references/omni_automation_shared.md` — Alert, Form, Pasteboard, PlugIn.Library API
 - [omni-automation.com/shared/alm.html](https://www.omni-automation.com/shared/alm.html) — canonical LanguageModel API docs

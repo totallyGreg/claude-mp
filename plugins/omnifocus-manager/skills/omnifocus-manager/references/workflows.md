@@ -26,7 +26,7 @@ osascript -l JavaScript scripts/manage_omnifocus.js today
 ```
 
 **Approach 2: Omni Automation (Cross-platform)**
-- Install and run the Today's Tasks plug-in from `assets/TodaysTasks.omnifocusjs`
+- Use Attache's daily review action (includes today's tasks, deferred items, and inbox count)
 - Or use the Omni Automation console with the script from `references/omnifocus_automation.md`
 
 **Follow-up:** If today's list is empty, check flagged tasks:

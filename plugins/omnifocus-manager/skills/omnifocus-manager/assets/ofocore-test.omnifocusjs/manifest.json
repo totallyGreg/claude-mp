@@ -1,9 +1,0 @@
-{
-  "identifier": "com.totally-tools.ofocore-test",
-  "version": "1.0.0",
-  "author": "OmniFocus Manager",
-  "description": "Phase 0 verification: confirms cross-plugin library loading works on iOS",
-  "actions": [
-    { "identifier": "testLibraryLoad" }
-  ]
-}

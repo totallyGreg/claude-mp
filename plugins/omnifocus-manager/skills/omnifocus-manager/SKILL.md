@@ -187,7 +187,7 @@ system discovery with persistent memory, and completed task summaries.
 
 For quick daily review, use Attache in OmniFocus; for deep system analysis, use Claude Code.
 
-After installing Attache, you can remove: AITaskAnalyzer, CompletedTasksSummary, Overview, TodaysTasks.
+Attache consolidates and replaces the legacy AITaskAnalyzer, CompletedTasksSummary, Overview, and TodaysTasks plugins (removed in v9.4.0).
 
 **Post-deploy:** After installing or updating Attache, refresh the System Map so coaching sessions use the latest fields:
 ```bash
