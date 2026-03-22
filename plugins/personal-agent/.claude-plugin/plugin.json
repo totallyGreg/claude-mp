@@ -1,0 +1,11 @@
+{
+  "name": "personal-agent",
+  "version": "0.1.0",
+  "description": "Personal orchestration agent with dynamic capability discovery across installed plugins",
+  "author": {
+    "name": "J. Greg Williams",
+    "email": "283704+totallyGreg@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "keywords": ["personal-agent", "orchestration", "discovery"]
+}
