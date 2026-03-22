@@ -3,7 +3,7 @@ name: skillsmith
 description: This skill should be used when users ask to "create a skill", "validate a skill for quality", "evaluate skill improvements", "improve my skill", "update my skill", "fix skill", "iterate on skill", "optimize skill", "skill quality", "skill performance", "skill isn't working", "analyze skill metrics", "init a new skill", "check skill compliance", or "sync skill to marketplace". Provides comprehensive skill development with automated validation, metrics tracking, and improvement workflows.
 metadata:
   author: J. Greg Williams
-  version: "6.5.0"
+  version: "6.5.1"
 compatibility: Requires python3 and uv for script execution and validation
 license: Complete terms in LICENSE.txt
 ---
