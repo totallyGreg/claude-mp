@@ -10,6 +10,7 @@ description: >-
   Triggers on "sync versions", "validate plugin", "add to marketplace",
   "check marketplace", "update marketplace", "create plugin", "configure
   marketplace hook", or "fix version mismatch".
+license: MIT
 metadata:
   conciseness: 100
   complexity: 90
@@ -17,9 +18,8 @@ metadata:
   progressive: 100
   overall: 95
   last_evaluated: 2026-03-11
-  version: "2.7.0"
+  version: "2.8.0"
   author: J. Greg Williams
-  license: MIT
 compatibility: Requires git repository with .claude-plugin/marketplace.json
 
 ---
@@ -86,6 +86,11 @@ uv run scripts/add_to_marketplace.py validate
 # JSON output for CI/CD
 uv run scripts/add_to_marketplace.py validate --format json
 ```
+
+Validation checks include:
+- Declared skills exist on disk with valid SKILL.md
+- **Skills present on disk but missing from the `skills` array** (undeclared skill detection)
+- Version format compliance, duplicate plugin names, required fields
 
 ## Git Integration
 

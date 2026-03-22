@@ -19,6 +19,12 @@ import json
 import sys
 from pathlib import Path
 
+try:
+    import yaml  # noqa: F401 — dependency provided by uv (see /// script block above)
+except ImportError:
+    print("Error: missing dependencies. Run this script via: uv run add_to_marketplace.py", file=sys.stderr)
+    sys.exit(1)
+
 from utils import get_repo_root, print_verbose_info, validate_repo_structure
 
 
@@ -609,6 +615,30 @@ def validate_marketplace(marketplace_path, repo_root, output_format='text'):
                         'value': plugin['author']['email'],
                         'message': f"Invalid email format: {plugin['author']['email']}"
                     })
+
+            # Check for skills on disk not declared in marketplace
+            declared_skill_dirs = set()
+            if 'skills' in plugin and isinstance(plugin['skills'], list):
+                for skill_path in plugin['skills']:
+                    skill_path_clean = skill_path.lstrip('./')
+                    resolved = source_dir / skill_path_clean if skill_path_clean else source_dir
+                    declared_skill_dirs.add(resolved.resolve())
+
+            skills_subdir = source_dir / 'skills'
+            if skills_subdir.exists() and skills_subdir.is_dir():
+                for candidate in sorted(skills_subdir.iterdir()):
+                    if candidate.is_dir() and (candidate / 'SKILL.md').exists():
+                        if candidate.resolve() not in declared_skill_dirs:
+                            issues.append({
+                                'type': 'warning',
+                                'category': 'undeclared_skill',
+                                'field': f'{plugin_prefix}.skills',
+                                'value': str(candidate.relative_to(repo_root)),
+                                'message': (
+                                    f"Skill '{candidate.name}' exists in {skills_subdir.relative_to(repo_root)} "
+                                    f"but is not declared in marketplace.json skills array for plugin '{plugin.get('name', 'unnamed')}'"
+                                )
+                            })
 
     # Determine if valid
     errors = [i for i in issues if i['type'] == 'error']
