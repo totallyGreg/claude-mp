@@ -16,6 +16,6 @@
     "declaration": false,
     "sourceMap": false
   },
-  "include": ["ofo-cli.ts"],
+  "include": ["ofo-cli.ts", "ofo-contract.d.ts"],
   "exclude": ["node_modules"]
 }
