@@ -43,7 +43,7 @@
 			if (task.dropped) continue;
 
 			// Active task buckets
-			if (task.containingProject === null) {
+			if (task.inInbox && task.taskStatus === Task.Status.Available) {
 				result.inbox.push(lib.normalizeTask(task));
 			}
 			if (task.flagged) {
