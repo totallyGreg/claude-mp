@@ -3,7 +3,7 @@ name: gtd-coach
 description: |
   This skill should be used when users need GTD methodology coaching on productivity, workflow, or task management systems. Triggers when user asks "create a next action", "check my GTD system", "analyze my projects", "improve my workflow", "weekly review", "inbox zero", "someday maybe", or "GTD coaching". For OmniFocus-specific automation, use the omnifocus-manager skill instead.
 metadata:
-  version: 1.3.0
+  version: 1.4.0
   author: totally-tools
 license: MIT
 compatibility:
@@ -164,6 +164,52 @@ GTD organizes commitments at six levels:
 | **5: Purpose** | Life purpose and principles | Why you do what you do |
 
 Higher horizons inform lower ones. Review Ground daily, Projects weekly, and higher horizons monthly/quarterly.
+
+---
+
+### Repeating Tasks & Ticklers
+
+Repeating tasks in GTD serve two distinct purposes. Understanding which purpose a task serves determines how to configure it and what to do when it goes overdue.
+
+#### Purpose 1: Routines (Do the thing)
+
+Tasks where the recurrence IS the work: exercise, reviews, maintenance.
+
+**Schedule types:**
+- **Regularly** (fixed schedule) — next occurrence anchored to calendar. Use for: weekly reviews, monthly financial checks, daily standups.
+- **From Completion** — next occurrence relative to when you finish. Use for: habits where the interval matters more than the day (e.g., "every 3 days" not "every Monday").
+
+**Catch Up Automatically:**
+- **ON** — when you resolve a stale routine, the system skips all missed dates and schedules the next future occurrence. Best for most routines — you don't need to "make up" 38 missed push-up sessions.
+- **OFF** — resolving creates the next occurrence at the very next scheduled date (may still be in the past). Requires one-by-one resolution to reach the present. Use only when catching up matters (e.g., medication logs).
+
+**Fixing a stale routine with Catch Up OFF:** Toggle Catch Up ON in the task's repeat rule editor. OmniFocus will prompt with "Skip" (catch up to the next future date) or "Drop All" (remove the task entirely). Select **Skip** to reset the routine while preserving the recurrence. This is the correct recovery workflow — Catch Up cannot be toggled via the API.
+
+#### Purpose 2: Ticklers (Remember to check)
+
+Recurring reminders to review progress on long-running work. The task itself is lightweight — the real work lives elsewhere (a project, a document, a codebase).
+
+**Common tickler patterns:**
+- **Prefix convention** — name tasks with a consistent prefix (e.g., "Review:", "Check:", "Progress:") so they're identifiable as ticklers, not deliverables.
+- **Tag-based** — apply a dedicated tag (e.g., "Tickler") to recurring check-in tasks. Filter by tag in perspectives.
+- **Perspective-based** — create a perspective that surfaces repeating tasks in specific folders or with specific tags. The perspective IS the tickler mechanism.
+
+**Cadence guidelines:**
+- Active projects: weekly tickler
+- Background/hobby projects: biweekly or monthly
+- Dormant projects: drop the tickler, move project to Someday/Maybe
+
+#### Overdue Signal Interpretation
+
+A repeating task going overdue is a signal — but what it means depends on duration and purpose:
+
+| Overdue Duration | Routine Task | Tickler Task |
+|-----------------|--------------|--------------|
+| 1-3 days | Normal slip — do it or drop this occurrence | Check in soon |
+| 1-2 weeks | Habit struggling — review cadence | Project may be stalled |
+| 1+ month | Cadence is wrong or task is irrelevant | Project is likely dormant — drop tickler, review project status |
+
+**Key principle:** Dropping a stale occurrence is not failure — it's system maintenance. Complete means "I did this." Drop means "I'm skipping this one and moving forward." Use drop for honest bookkeeping.
 
 ---
 

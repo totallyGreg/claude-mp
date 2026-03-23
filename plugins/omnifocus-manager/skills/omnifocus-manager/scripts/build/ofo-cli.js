@@ -94,6 +94,17 @@ function cmdComplete(args) {
     const id = parseOmniFocusUrl(args[0]);
     runAction('ofo-complete', { id });
 }
+function cmdDrop(args) {
+    if (args.length < 1)
+        die('Usage: ofo drop <id|omnifocus-url> [--all]');
+    const id = parseOmniFocusUrl(args[0]);
+    let allOccurrences = false;
+    for (let i = 1; i < args.length; i++) {
+        if (args[i] === '--all')
+            allOccurrences = true;
+    }
+    runAction('ofo-drop', { id, allOccurrences });
+}
 // --- Stdin Helpers ---
 function readStdin() {
     if (process.stdin.isTTY)
@@ -557,6 +568,9 @@ function cmdStalled(args) {
     }
     runAction('ofo-stalled', { days });
 }
+function cmdHealth() {
+    runAction('ofo-health', {});
+}
 function cmdHelp() {
     process.stdout.write(`ofo -- OmniFocus CLI via plugin library
 
@@ -565,6 +579,7 @@ Usage: ofo <command> [arguments]
 Commands:
   info <id|url>                     Get task or project details as JSON
   complete <id|url>                 Mark a task as complete
+  drop <id|url> [--all]            Drop single occurrence (--all stops repeating)
   create --name "..." [options]     Create a new task (also accepts stdin)
   update <id|url> [options]         Update task properties
   search <query>                    Search tasks by name or note
@@ -578,6 +593,7 @@ Commands:
   stats                             Counts: inbox, flagged, overdue, projects, tasks, reviewOverdue, plannedToday, withEstimate
   clarity [--limit N]               Tasks with lowest clarity score (no estimate/tags/project); default limit 10
   stalled [--days N]                Active projects with no available next action or not modified in N days (default 14)
+  health                            System health: inbox, overdue (with Catch Up metadata), flagged — single call
   help                              Show this help
 
 Filters for 'list':
@@ -660,6 +676,9 @@ switch (command) {
     case 'complete':
         cmdComplete(commandArgs);
         break;
+    case 'drop':
+        cmdDrop(commandArgs);
+        break;
     case 'create':
         cmdCreate(commandArgs);
         break;
@@ -701,6 +720,9 @@ switch (command) {
         break;
     case 'stalled':
         cmdStalled(commandArgs);
+        break;
+    case 'health':
+        cmdHealth();
         break;
     case 'help':
     case '--help':

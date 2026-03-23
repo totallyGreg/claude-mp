@@ -21,7 +21,7 @@ Query and manage OmniFocus tasks via Omni Automation script URLs (ofo CLI) and J
 | Spec Compliance | 100/100 | Excellent |
 | Progressive Disclosure | 100/100 | Excellent |
 | Description Quality | 100/100 | Excellent |
-| **Overall** | **94/100** | **Excellent** |
+| **Overall** | **94/100** | **Good** |
 
 Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
 
@@ -29,6 +29,8 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
 |---------|------|-------|---------|------|------|------|------|------|---------|
+| 10.2.0 | 2026-03-23 | [#138](https://github.com/totallyGreg/claude-mp/issues/138) | Add ofo health single-call command (fixes pasteboard collision), document single-action pattern for slash commands | 83 | 90 | 100 | 100 | 100 | 94 |
+| 10.1.0 | 2026-03-23 | [#138](https://github.com/totallyGreg/claude-mp/issues/138) | Add ofo drop command, enrich OfoTask with repetitionCatchUp/repetitionScheduleType, Catch Up-aware health diagnostics, api_reference Catch Up docs | 83 | 90 | 100 | 100 | 100 | 94 |
 | 10.0.0 | 2026-03-23 | [#136](https://github.com/totallyGreg/claude-mp/issues/136) | Attache Plugin Consolidation: merge ofo-core into Attache (single plugin, one deploy), canonical 16-field normalizeTask with Date objects, all 10 libraries compiled from TypeScript, insightPatterns included, WAITING_PREFIXES unified, delete obsolete files/references | 83 | 90 | 100 | 100 | 100 | 94 |
 | 9.4.1 | 2026-03-23 | [#114](https://github.com/totallyGreg/claude-mp/issues/114) | Fix CLI distribution: track build artifacts in git, update build/.gitignore to ship ofo-cli.js/ofo-stub.js/ofo-types.js to marketplace cache | 83 | 90 | 100 | 100 | 100 | 94 |
 | 9.4.0 | 2026-03-23 | [#111](https://github.com/totallyGreg/claude-mp/issues/111) | TypeScript shared sync: ofo-contract.d.ts, normalizeTask/computeStats, assessClarity/stalledProjects CLI cmds, Attache @ts-check gate (tsconfig.attache.json + omni-attache-ambient.d.ts, 0 errors), fix 10 orphaned SKILL.md refs, update code_generation_validation.md build pipeline | 83 | 90 | 100 | 100 | 100 | 94 |

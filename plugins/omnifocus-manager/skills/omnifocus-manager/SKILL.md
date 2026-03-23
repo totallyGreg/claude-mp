@@ -6,7 +6,7 @@ description: |
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 license: MIT
 metadata:
-  version: 10.0.0
+  version: 10.2.0
   author: totally-tools
 compatibility:
   platforms: [macos]
@@ -97,6 +97,9 @@ The `ofo` CLI executes Omni Automation scripts directly inside OmniFocus via scr
 ```bash
 scripts/ofo info <id-or-omnifocus-url>       # Task/project details
 scripts/ofo complete <id-or-omnifocus-url>   # Mark task complete
+scripts/ofo drop <id-or-omnifocus-url>       # Drop single occurrence (recurrence continues)
+scripts/ofo drop <id-or-omnifocus-url> --all # Drop all occurrences (stops repeating)
+scripts/ofo health                           # System health: inbox, overdue, flagged (single call)
 scripts/ofo create --name "Task" --project "Work" --due 2026-12-31
 scripts/ofo update <id> --name "New name" --flagged
 scripts/ofo update <id> --note-append "text"         # Append text to existing note
@@ -223,10 +226,8 @@ See `references/foundation_models_integration.md` for Foundation Models API deta
 ## Script Conventions
 
 - **Prefer ofo CLI** for task CRUD: `scripts/ofo <command>` (uses Omni Automation script URLs, no CWD dependency)
-- **CWD must be skill root** (`skills/omnifocus-manager/`) when running JXA scripts (legacy)
-- **Skill-root-relative paths**: `loadLibrary('scripts/libraries/jxa/taskQuery.js')`
+- **Single-action pattern for slash commands**: When a command template needs multiple data sources, expose a single ofo action (e.g., `ofo health`) rather than chaining multiple `ofo list` calls. Multiple sequential pasteboard writes cause data collisions. One call = one pasteboard round-trip = reliable results.
 - **Commands use `${CLAUDE_PLUGIN_ROOT}`**: `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/scripts/`
-- **No method destructuring**: `taskQuery.getInboxTasks(doc)`, never `const {getInboxTasks} = taskQuery`
 - **Smoke test before version bump**: `bash scripts/test-queries.sh`
 - **Always bump `.omnifocusjs` plugin version** on create/update — without it, OmniFocus won't recognize the plugin as an update
 
@@ -270,4 +271,4 @@ See `references/troubleshooting.md` for permission issues, common errors, and de
 
 ---
 
-**Current version:** 9.4.1 — See README.md for version history.
+**Current version:** 10.2.0 — See README.md for version history.
