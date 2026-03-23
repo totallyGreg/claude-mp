@@ -14,7 +14,7 @@ Skillsmith is the default companion for skill development and improvement workfl
 
 ## Current Metrics
 
-*Last evaluated: 2026-03-19*
+*Last evaluated: 2026-03-22*
 
 | Metric | Score | Interpretation |
 |--------|-------|----------------|
@@ -31,6 +31,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
 |---------|------|-------|---------|------|------|------|------|------|---------|
+| 6.6.0 | 2026-03-22 | [#96](https://github.com/totallyGreg/claude-mp/issues/96), [#115](https://github.com/totallyGreg/claude-mp/issues/115), [#81](https://github.com/totallyGreg/claude-mp/issues/81), [#82](https://github.com/totallyGreg/claude-mp/issues/82), [#108](https://github.com/totallyGreg/claude-mp/issues/108), [#110](https://github.com/totallyGreg/claude-mp/issues/110) | Qualitative conciseness checks; context-aware ss-observe with --hint; orphan regex fix; IMPROVEMENT_PLAN.md migration; frontmatter auto-patch; commit-gate doc | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.4.0 | 2026-03-19 | [#104](https://github.com/totallyGreg/claude-mp/issues/104) | Phase 6: self-application — all metrics 100/100; closes v6 improvement arc | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.3.0 | 2026-03-19 | - | Phase 5: skill-observer agent + analyze_transcript.py + /ss-observe command | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.2.0 | 2026-03-19 | - | Phase 4: PostToolUse hook on SKILL.md edits; /ss-improve unified improvement loop command | 100 | 100 | 100 | 100 | 100 | 100 |
