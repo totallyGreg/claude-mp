@@ -53,10 +53,13 @@ bash scripts/validate-plugin.sh <generated-plugin-path>
 
 ### STEP 4.5: BUMP VERSION + STRINGS
 1. Bump the version in the `.omnifocusjs` manifest — OmniFocus won't reload the plugin without a version change.
-2. For **bundle plugins** (multiple actions): ensure `Resources/en.lproj/manifest.strings` has a `"<identifier>.label"` entry for every action. The `label` field in `manifest.json` is ignored by OmniFocus for menu display — the strings file is the only source of truth for Automation Menu labels.
+2. For **bundle plugins** (multiple actions): each action needs its own `Resources/en.lproj/<identifier>.strings` file. The `label` field in `manifest.json` alone is insufficient — OmniFocus falls back to the camelCase identifier without the strings file.
    ```
-   "com.your.bundle.id" = "Plugin Name";
-   "actionIdentifier.label" = "Display Label";
+   // Resources/en.lproj/myAction.strings
+   "label" = "My Action Label";
+   "shortLabel" = "My Action Label";
+   "mediumLabel" = "My Action Label";
+   "longLabel" = "My Action Label";
    ```
    See `references/omni_automation_guide.md` → Quick Diagnostic for details.
 
