@@ -697,6 +697,91 @@ def calculate_basic_metrics(skill_path):
     }
 
 
+_LEGACY_MARKERS = [
+    re.compile(r'\blegacy\b', re.IGNORECASE),
+    re.compile(r'\bdeprecated\b', re.IGNORECASE),
+    re.compile(r'prefer .+? instead', re.IGNORECASE),
+    re.compile(r'use .+? instead', re.IGNORECASE),
+    re.compile(r'\bold approach\b', re.IGNORECASE),
+]
+
+_REFERENCE_POINTER = re.compile(
+    r'(?:[Ss]ee|[Ff]ull guide in|[Cc]omplete guide in)\s+`?references/',
+)
+
+
+def check_qualitative_conciseness(skill_path: 'Path', skill_content: str) -> list[str]:
+    """
+    Detect qualitative conciseness issues not caught by line/token counts.
+
+    Returns a list of warning strings (informational — no score change).
+
+    Three detectors:
+    1. Legacy/deprecated blocks — collapsed consecutive matched lines into one warning
+    2. Inline content (5+ lines) immediately before a "See references/" pointer
+    3. Headings in reference files that also appear verbatim in SKILL.md
+    """
+    warnings: list[str] = []
+    lines = skill_content.splitlines()
+
+    # ── Detector 1: Legacy/deprecated blocks ────────────────────────────────
+    legacy_blocks: list[tuple[int, int]] = []  # (start_line, end_line) 1-indexed
+    block_start: int | None = None
+    for i, line in enumerate(lines, 1):
+        is_match = any(pat.search(line) for pat in _LEGACY_MARKERS)
+        if is_match:
+            if block_start is None:
+                block_start = i
+        else:
+            if block_start is not None:
+                legacy_blocks.append((block_start, i - 1))
+                block_start = None
+    if block_start is not None:
+        legacy_blocks.append((block_start, len(lines)))
+
+    for start, end in legacy_blocks:
+        size = end - start + 1
+        snippet = lines[start - 1][:60].strip()
+        warnings.append(
+            f'⚠ Qualitative: legacy/deprecated block (~{size} line(s), line {start}): '
+            f'"{snippet}" — consider collapsing to a single reference link'
+        )
+
+    # ── Detector 2: Inline content before "See references/" pointer ─────────
+    for i, line in enumerate(lines):
+        if _REFERENCE_POINTER.search(line):
+            # Count non-empty lines in the 8 lines before this one
+            preceding = [l for l in lines[max(0, i - 8):i] if l.strip()]
+            if len(preceding) >= 5:
+                ref_match = re.search(r'references/\S+', line)
+                ref_name = ref_match.group(0).rstrip('`).') if ref_match else 'references/'
+                warnings.append(
+                    f'⚠ Qualitative: inline block before "{ref_name}" pointer '
+                    f'(~{len(preceding)} lines, around line {i + 1}) — '
+                    f'offload to references/ or remove inline content'
+                )
+
+    # ── Detector 3: Reference heading duplication ────────────────────────────
+    refs_dir = Path(skill_path) / 'references'
+    if refs_dir.exists():
+        heading_pat = re.compile(r'^#{2,3}\s+(.+)', re.MULTILINE)
+        for ref_file in refs_dir.glob('*.md'):
+            try:
+                ref_text = ref_file.read_text()
+            except Exception:
+                continue
+            for heading_match in heading_pat.finditer(ref_text):
+                heading = heading_match.group(1).strip()
+                # Only flag headings with ≥3 words (avoids generic "Overview", "Usage", etc.)
+                if len(heading.split()) >= 3 and heading in skill_content:
+                    warnings.append(
+                        f'⚠ Qualitative: heading "{heading}" from {ref_file.name} '
+                        f'appears duplicated in SKILL.md — remove inline copy'
+                    )
+
+    return warnings
+
+
 def calculate_conciseness_score(basic_metrics):
     """Calculate conciseness score (0-100) with tiered scoring and reference offloading bonus"""
     lines = basic_metrics['skill_md_lines']
@@ -1927,6 +2012,7 @@ def calculate_all_metrics(skill_path):
     basic = calculate_basic_metrics(skill_path)
     conciseness = calculate_conciseness_score(basic)
     complexity = calculate_complexity_score(skill_path, body)
+    conciseness['qualitative_warnings'] = check_qualitative_conciseness(skill_path, body)
     spec_compliance = calculate_spec_compliance_score(frontmatter_dict, basic)
     # Warn if legacy IMPROVEMENT_PLAN.md exists without README.md
     if (skill_path / 'IMPROVEMENT_PLAN.md').exists() and not (skill_path / 'README.md').exists():
@@ -2181,6 +2267,13 @@ def print_explain_output(evaluation):
             improvements.append((delta, f"Reduce SKILL.md length/tokens → +{delta} overall"))
     else:
         print("  ✓ Nothing to improve — already at 100")
+
+    qual_warnings = conc.get('qualitative_warnings', [])
+    if qual_warnings:
+        print()
+        print("  Qualitative findings (informational — not scored):")
+        for w in qual_warnings:
+            print(f"    {w}")
     print()
 
     # ── COMPLEXITY ───────────────────────────────────────────────────────────

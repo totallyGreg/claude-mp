@@ -92,3 +92,11 @@ Return a markdown report:
 ### Recommended Improvements
 1. ...
 ```
+
+## Limitations
+
+**Plugin cache reads may be blocked in background/auto permission mode.**
+
+When invoked as an Agent tool call, reads under `~/.claude/plugins/cache/` are blocked by path-level permissions — preventing the agent from mapping gaps to installed plugin source files.
+
+**Workaround:** Use `/ss-observe` instead of invoking this agent directly. It runs `analyze_transcript.py` as a subprocess with full filesystem access, supports both session-ID and natural-language hint input, and can be triggered automatically by hooks.

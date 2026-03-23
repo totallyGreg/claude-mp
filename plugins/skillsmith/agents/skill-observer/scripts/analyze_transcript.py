@@ -11,14 +11,20 @@ tool calls by active skill, resolves skill name → source SKILL.md via marketpl
 and reports structural gaps (tool patterns not covered by the skill's SKILL.md).
 
 Usage:
-    uv run analyze_transcript.py --session <session-id-or-path> [--skill <name>] [--format json|markdown]
+    uv run analyze_transcript.py [--session <session-id-or-path>] [--skill <name>] [--hint <text>] [--format json|markdown]
 
 Examples:
     # Analyze by session ID (searches ~/.claude/projects/)
     uv run analyze_transcript.py --session 6c22a82a-be4e-4256-8641-99d1d0b78969
 
-    # Analyze by path
-    uv run analyze_transcript.py --session ~/.claude/projects/my-project/abc123.jsonl
+    # Analyze the most recent session (no --session needed)
+    uv run analyze_transcript.py
+
+    # Focus analysis on a specific observation
+    uv run analyze_transcript.py --hint "skill didn't remind me to run eval before committing"
+
+    # Combine session ID with a hint
+    uv run analyze_transcript.py --session abc123 --hint "missed the version bump step"
 
     # Filter to a specific skill
     uv run analyze_transcript.py --session abc123 --skill skillsmith
@@ -372,6 +378,7 @@ def analyze(
     skill_filter: str | None,
     repo_root: Path,
     marketplace: dict,
+    hint: str | None = None,
 ) -> dict:
     """Run full transcript analysis. Returns structured result dict."""
     messages = parse_session(session_path)
@@ -385,6 +392,7 @@ def analyze(
             'session_id': session_id,
             'session_path': str(session_path),
             'status': 'no_skills_detected',
+            'hint': hint or '',
             'message': 'No Skill tool calls found in this session. Skills must be invoked via the Skill tool to be tracked.',
             'skills': [],
             'gaps': [],
@@ -398,6 +406,7 @@ def analyze(
                 'session_id': session_id,
                 'session_path': str(session_path),
                 'status': 'skill_not_found',
+                'hint': hint or '',
                 'message': f'Skill "{skill_filter}" was not invoked in this session.',
                 'skills': [],
                 'gaps': [],
@@ -457,15 +466,29 @@ def analyze(
                 'source_path': None,
             })
 
+    gaps_sorted = sorted(all_gaps, key=lambda g: g.get('count', 0), reverse=True)
+
+    # If a hint is provided, bubble hint-relevant gaps to the top
+    if hint:
+        hint_lower = hint.lower()
+        hint_words = set(hint_lower.split())
+
+        def hint_score(gap: dict) -> int:
+            text = (gap.get('description', '') + ' ' + gap.get('suggestion', '')).lower()
+            return sum(1 for w in hint_words if len(w) > 3 and w in text)
+
+        gaps_sorted = sorted(gaps_sorted, key=hint_score, reverse=True)
+
     return {
         'session_id': session_id,
         'session_path': str(session_path),
         'status': 'ok',
         'message': '',
+        'hint': hint or '',
         'total_messages': len(messages),
         'total_tool_calls': len(all_tool_calls),
         'skills': skills_report,
-        'gaps': sorted(all_gaps, key=lambda g: g.get('count', 0), reverse=True),
+        'gaps': gaps_sorted,
     }
 
 
@@ -477,6 +500,11 @@ def format_markdown(result: dict) -> str:
     lines = []
     lines.append(f"## Skill Observer Report — {result['session_id']}")
     lines.append('')
+
+    if result.get('hint'):
+        lines.append(f"> **Observation:** {result['hint']}")
+        lines.append('> Gaps are sorted by relevance to this observation.')
+        lines.append('')
 
     if result['status'] != 'ok':
         lines.append(f"**Status:** {result['message']}")
@@ -546,6 +574,7 @@ def main():
     args = sys.argv[1:]
     session_arg = None
     skill_filter = None
+    hint = None
     output_format = 'markdown'
 
     i = 0
@@ -556,6 +585,9 @@ def main():
         elif args[i] == '--skill' and i + 1 < len(args):
             skill_filter = args[i + 1]
             i += 2
+        elif args[i] == '--hint' and i + 1 < len(args):
+            hint = args[i + 1]
+            i += 2
         elif args[i] == '--format' and i + 1 < len(args):
             output_format = args[i + 1]
             i += 2
@@ -565,17 +597,20 @@ def main():
         else:
             i += 1
 
-    if not session_arg:
-        print('Error: --session <id|path> is required', file=sys.stderr)
-        print('Usage: uv run analyze_transcript.py --session <id|path> [--skill <name>]', file=sys.stderr)
-        sys.exit(1)
-
-    # Find session file
-    session_path = find_session_file(session_arg)
-    if not session_path:
-        print(f'Error: session not found: {session_arg}', file=sys.stderr)
-        print('Search locations: ~/.claude/projects/**/<session-id>.jsonl', file=sys.stderr)
-        sys.exit(1)
+    # Resolve session: use provided ID, or default to most recent project session
+    if session_arg:
+        session_path = find_session_file(session_arg)
+        if not session_path:
+            print(f'Error: session not found: {session_arg}', file=sys.stderr)
+            print('Search locations: ~/.claude/projects/**/<session-id>.jsonl', file=sys.stderr)
+            sys.exit(1)
+    else:
+        recent = list_recent_sessions(limit=1)
+        if not recent:
+            print('Error: no session files found. Pass --session <id|path> explicitly.', file=sys.stderr)
+            sys.exit(1)
+        session_path = recent[0]
+        print(f'No --session given; defaulting to most recent: {session_path.name}', file=sys.stderr)
 
     # Find repo root and marketplace.json
     # Walk up from the script's location to find marketplace.json
@@ -599,7 +634,7 @@ def main():
         marketplace = load_marketplace(marketplace_path)
 
     # Run analysis
-    result = analyze(session_path, skill_filter, repo_root, marketplace)
+    result = analyze(session_path, skill_filter, repo_root, marketplace, hint=hint)
 
     if output_format == 'json':
         print(json.dumps(result, indent=2, default=str))
