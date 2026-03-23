@@ -36,7 +36,6 @@
 
     // Person/waiting detection patterns
     const PERSON_PATTERNS = ["waiting", "delegated", "pending", "from:", "to:"];
-    const WAITING_PREFIXES = ["waiting", "delegated", "pending", "w:"];
 
     // Status tag patterns
     const STATUS_PATTERNS = ["hold", "someday", "maybe", "review", "later", "paused"];
@@ -65,6 +64,7 @@
      */
     lib.discoverSystem = function(options = {}) {
         const depth = options.depth || "quick";
+        const waitingPatterns = options.waitingPatterns || ["waiting", "delegated", "pending", "w:"];
 
         // Phase 1: Collect raw data
         const rawData = {
@@ -77,7 +77,7 @@
         // Phase 2: Infer patterns (rule-based)
         const inferences = {
             folderTypes: this.inferFolderTypes(rawData.folders),
-            tagCategories: this.inferTagCategories(rawData.tags),
+            tagCategories: this.inferTagCategories(rawData.tags, waitingPatterns),
             conventions: this.detectConventions(rawData)
         };
 
@@ -406,7 +406,7 @@
      * @param {Array} tagData - Collected tag data
      * @returns {Object} Categorized tags
      */
-    lib.inferTagCategories = function(tagData) {
+    lib.inferTagCategories = function(tagData, waitingPatterns) {
         const categories = {
             contexts: [],
             people: [],
@@ -436,7 +436,7 @@
             }
             // Check waiting/person patterns
             else if (PERSON_PATTERNS.some(p => name.includes(p)) ||
-                     WAITING_PREFIXES.some(p => name.startsWith(p))) {
+                     waitingPatterns.some(p => name.startsWith(p))) {
                 category = "people";
                 meaning = "delegated or waiting for";
             }

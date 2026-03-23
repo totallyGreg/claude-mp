@@ -23,6 +23,7 @@
     const fmUtils = this.plugIn.library('foundationModelsUtils')
     const discovery = this.plugIn.library('systemDiscovery')
     const exportUtils = this.plugIn.library('exportUtils')
+    const metrics = this.plugIn.library('taskMetrics')
 
     // Check if AI is available (optional enhancement)
     const aiAvailable = fmUtils.isAvailable()
@@ -74,7 +75,7 @@
       const output = formResult.values['output']
 
       // Run discovery
-      let systemMap = discovery.discoverSystem({ depth: depth })
+      let systemMap = discovery.discoverSystem({ depth: depth, waitingPatterns: metrics.WAITING_PATTERNS })
 
       // Enhance with AI if requested and available
       if (useAI && aiAvailable) {

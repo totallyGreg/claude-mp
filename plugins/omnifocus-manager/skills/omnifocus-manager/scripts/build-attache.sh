@@ -65,8 +65,8 @@ IIFE_FOOTER
 echo "  Copying Attache libraries..."
 ATTACHE_LIBS=(
   taskMetrics exportUtils foundationModelsUtils folderParser
-  projectParser taskParser hierarchicalBatcher systemDiscovery
-  preferencesManager
+  projectParser taskParser hierarchicalBatcher insightPatterns
+  systemDiscovery preferencesManager
 )
 for lib in "${ATTACHE_LIBS[@]}"; do
   cp "${ASSETS_DIR}/Resources/${lib}.js" "${BUNDLE_DIR}/Resources/${lib}.js"

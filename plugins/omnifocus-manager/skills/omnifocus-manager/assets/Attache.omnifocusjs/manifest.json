@@ -51,6 +51,7 @@
     {"identifier": "projectParser"},
     {"identifier": "taskParser"},
     {"identifier": "hierarchicalBatcher"},
+    {"identifier": "insightPatterns"},
     {"identifier": "systemDiscovery"},
     {"identifier": "preferencesManager"}
   ]

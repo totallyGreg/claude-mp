@@ -18,8 +18,8 @@
  * OfoTask is declared in ofo-contract.d.ts (ambient, no import needed here).
  */
 function normalizeTask(t: Task): OfoTask {
-  let plannedDate: string | null = null;
-  try { plannedDate = t.plannedDate ? t.plannedDate.toISOString() : null; } catch (_) {}
+  let plannedDate: Date | null = null;
+  try { plannedDate = t.plannedDate || null; } catch (_) {}
   return {
     id: t.id.primaryKey,
     name: t.name,
@@ -27,13 +27,16 @@ function normalizeTask(t: Task): OfoTask {
     tags: t.tags.map(function(tag: Tag) { return tag.name; }),
     flagged: t.flagged,
     completed: t.completed,
-    dueDate: t.dueDate ? t.dueDate.toISOString() : null,
-    deferDate: t.deferDate ? t.deferDate.toISOString() : null,
+    dueDate: t.dueDate || null,
+    deferDate: t.deferDate || null,
+    plannedDate: plannedDate,
+    completionDate: t.completionDate || null,
     estimatedMinutes: t.estimatedMinutes || null,
     note: t.note || null,
-    plannedDate: plannedDate,
-    completionDate: t.completionDate ? t.completionDate.toISOString() : null,
+    added: t.added || null,
+    modified: t.modified || null,
     repetitionRule: t.repetitionRule ? t.repetitionRule.ruleString : null,
+    taskStatus: String(t.taskStatus),
   };
 }
 
