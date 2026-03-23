@@ -22,19 +22,9 @@
       "image": "wand.and.stars"
     },
     {
-      "identifier": "analyzeProjects",
-      "label": "Attache: Analyze Projects",
-      "image": "chart.bar.doc.horizontal"
-    },
-    {
       "identifier": "analyzeHierarchy",
       "label": "Attache: Analyze Hierarchy",
       "image": "chart.bar.xaxis"
-    },
-    {
-      "identifier": "analyzeTasksWithAI",
-      "label": "Attache: Analyze Tasks",
-      "image": "brain.head.profile"
     },
     {
       "identifier": "completedSummary",
