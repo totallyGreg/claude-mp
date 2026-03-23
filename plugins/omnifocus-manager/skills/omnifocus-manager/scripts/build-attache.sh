@@ -40,6 +40,7 @@ echo "$CORE_JS" >> "${BUNDLE_DIR}/Resources/ofoCore.js"
 
 cat >> "${BUNDLE_DIR}/Resources/ofoCore.js" << 'IIFE_FOOTER'
 
+  lib.normalizeTask = normalizeTask;
   lib.getTask = getTask;
   lib.completeTask = completeTask;
   lib.createTask = createTask;
@@ -90,9 +91,9 @@ for act in "${ATTACHE_ACTIONS[@]}"; do
   cp "${ASSETS_DIR}/Resources/${act}.js" "${BUNDLE_DIR}/Resources/${act}.js"
 done
 
-# 6. Copy manifest and localization
+# 6. Copy manifest and localization (manifest.strings + per-action .strings)
 cp "${ASSETS_DIR}/manifest.json" "${BUNDLE_DIR}/manifest.json"
-cp "${ASSETS_DIR}/Resources/en.lproj/manifest.strings" "${BUNDLE_DIR}/Resources/en.lproj/manifest.strings"
+cp "${ASSETS_DIR}/Resources/en.lproj/"*.strings "${BUNDLE_DIR}/Resources/en.lproj/"
 
 # 7. Copy stub script
 cp "${SRC_DIR}/ofo-stub.js" "${BUILD_DIR}/ofo-stub.js"
@@ -100,13 +101,13 @@ cp "${SRC_DIR}/ofo-stub.js" "${BUILD_DIR}/ofo-stub.js"
 # 8. Assert every IIFE-exported function exists in the compiled ofoCore
 echo "  Verifying ofoCore IIFE exports..."
 BUILT_JS="${BUNDLE_DIR}/Resources/ofoCore.js"
-for fn in getTask completeTask createTask updateTask searchTasks listTasks \
+for fn in normalizeTask getTask completeTask createTask updateTask searchTasks listTasks \
           getPerspective configurePerspective tagTask getTags createBatch \
           getPerspectiveRules dumpDatabase getStats assessClarity stalledProjects dispatch; do
   grep -q "^function ${fn}(" "${BUILT_JS}" || \
     { echo "ERROR: '${fn}' missing from compiled ofoCore.js — update IIFE footer or fix rename"; exit 1; }
 done
-echo "  ofoCore IIFE exports OK (17 functions)"
+echo "  ofoCore IIFE exports OK (18 functions)"
 
 # 9. Verify all Attache libraries have PlugIn.Library IIFE structure
 echo "  Verifying Attache library IIFE structure..."

@@ -75,6 +75,22 @@ const insights = aggregateInsights(results, folderParser);
 
 Validated 2026-03-23: `analyzeHierarchy.js` `aggregateInsights()` crashed with TypeError until the `folderParser` parameter pattern was applied.
 
+### 4b. Verify Localization Strings (Bundle Plugins) ✅
+- [ ] `Resources/en.lproj/manifest.strings` contains `"bundle.id" = "Plugin Name";` — sets plugin submenu name
+- [ ] Each action has its own `Resources/en.lproj/<identifier>.strings` file — without this, OmniFocus shows the raw identifier (e.g., `analyzeSelected`) instead of the label
+- [ ] Each action `.strings` file contains at minimum: `"label"`, `"shortLabel"`, `"mediumLabel"`, `"longLabel"`, `"paletteLabel"` keys
+- [ ] The `.strings` filename matches the action `identifier` in `manifest.json` exactly
+- [ ] `manifest.json` `label` field alone is **insufficient** — the `.strings` file is required for menu display
+
+```
+// Resources/en.lproj/myAction.strings
+"label" = "My Action";
+"shortLabel" = "My Action";
+"mediumLabel" = "My Action";
+"longLabel" = "Plugin Name: My Action";
+"paletteLabel" = "My Action";
+```
+
 ### 5. Verify LanguageModel Schema (If Applicable) ✅
 - [ ] Using LanguageModel.Schema.fromJSON() factory (NOT constructor)
 - [ ] Using OmniFocus schema format (NOT JSON Schema format)
