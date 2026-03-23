@@ -66,7 +66,23 @@ echo '"com.totally-tools.ofo-core" = "OFO Core";' > "${BUNDLE_DIR}/Resources/en.
 # 5. Copy stub script
 cp "${SRC_DIR}/ofo-stub.js" "${BUILD_DIR}/ofo-stub.js"
 
-# 6. Clean intermediate files
+# 6. Assert every IIFE-exported function exists in the compiled source
+echo "  Verifying IIFE exports..."
+BUILT_JS="${BUNDLE_DIR}/Resources/ofoCore.js"
+for fn in getTask completeTask createTask updateTask searchTasks listTasks \
+          getPerspective configurePerspective tagTask getTags createBatch \
+          getPerspectiveRules dumpDatabase getStats dispatch; do
+  grep -q "^function ${fn}(" "${BUILT_JS}" || \
+    { echo "ERROR: '${fn}' missing from compiled ofoCore.js — update IIFE footer or fix rename"; exit 1; }
+done
+echo "  IIFE exports OK"
+
+# 7. Regenerate ofo-core-ambient.d.ts from ofo-types.ts
+echo "  Regenerating ofo-core-ambient.d.ts..."
+node "${SCRIPTS_DIR}/generate-ambient.js"
+echo "  ofo-core-ambient.d.ts regenerated"
+
+# 8. Clean intermediate files
 rm -rf "${INTERMEDIATE_DIR}"
 
 echo "  Plugin bundle: ${BUNDLE_DIR}"
