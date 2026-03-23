@@ -1,4 +1,6 @@
-# Build output — all generated, never track
-*
-# Except this file
-!.gitignore
+# OmniFocus plugin bundle — deployed separately via `npm run deploy`
+ofo-core.omnifocusjs/
+intermediate/
+
+# Track ofo CLI files — required for marketplace distribution
+# (ofo-cli.js, ofo-types.js, ofo-stub.js)

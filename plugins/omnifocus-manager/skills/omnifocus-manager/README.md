@@ -29,6 +29,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
 |---------|------|-------|---------|------|------|------|------|------|---------|
+| 9.4.1 | 2026-03-23 | [#114](https://github.com/totallyGreg/claude-mp/issues/114) | Fix CLI distribution: track build artifacts in git, update build/.gitignore to ship ofo-cli.js/ofo-stub.js/ofo-types.js to marketplace cache | 83 | 90 | 100 | 100 | 100 | 94 |
 | 9.4.0 | 2026-03-23 | [#111](https://github.com/totallyGreg/claude-mp/issues/111) | TypeScript shared sync: ofo-contract.d.ts, normalizeTask/computeStats, assessClarity/stalledProjects CLI cmds, Attache @ts-check gate (tsconfig.attache.json + omni-attache-ambient.d.ts, 0 errors), fix 10 orphaned SKILL.md refs, update code_generation_validation.md build pipeline | 83 | 90 | 100 | 100 | 100 | 94 |
 | 9.3.1 | 2026-03-22 | - | Version-stamp System Map, post-deploy refresh instructions, Attache v1.3.0, build process cleanup | 83 | 90 | 100 | 100 | 100 | 94 |
 | 9.3.0 | 2026-03-22 | [#125](https://github.com/totallyGreg/claude-mp/issues/125) | Expose native OmniFocus fields: plannedDate, repetitionRule, reviewInterval, estimatedMinutes in list views, enriched stats, systemDiscovery tag split, Attache v1.2.0 | 83 | 90 | 100 | 100 | 100 | 94 |
