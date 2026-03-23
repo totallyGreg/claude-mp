@@ -228,7 +228,7 @@
                     Pasteboard.general.string = report;
 
                     const alert = new Alert(
-                        "Analysis Complete",
+                        "Attache: Project Health",
                         "Markdown report copied to clipboard!"
                     );
                     alert.addOption("OK");
@@ -236,7 +236,7 @@
                 }
             } else {
                 // Display in alert
-                const alert = new Alert("Hierarchical Analysis", report);
+                const alert = new Alert("Attache: Project Health", report);
                 alert.addOption("Copy to Clipboard");
                 alert.addOption("Done");
 

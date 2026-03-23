@@ -12,6 +12,11 @@
  */
 
 ;(() => {
+  function section(title) {
+    const pad = '─'.repeat(Math.max(0, 44 - title.length - 4));
+    return `── ${title} ${pad}`;
+  }
+
   const action = new PlugIn.Action(async function (selection, sender) {
     // Load foundationModelsUtils library first
     const fmUtils = this.plugIn.library('foundationModelsUtils')
@@ -181,9 +186,9 @@ Be specific and practical in your suggestions.`
     results.forEach((result, index) => {
       const { task, analysis } = result
 
-      if (index > 0) message += '\n\n' + '='.repeat(40) + '\n\n'
+      if (index > 0) message += '\n\n' + '─'.repeat(44) + '\n\n'
 
-      message += `TASK: ${task.name}\n\n`
+      message += `${section(task.name)}\n\n`
 
       // Clarity score
       message += `Clarity Score: ${analysis.clarity}/10\n`
@@ -203,7 +208,7 @@ Be specific and practical in your suggestions.`
       if (analysis.suggestedTags && analysis.suggestedTags.length > 0) {
         message += `\nSuggested Tags:\n`
         analysis.suggestedTags.forEach((tag) => {
-          message += `  • ${tag}\n`
+          message += `  · ${tag}\n`
         })
       }
 
@@ -211,7 +216,7 @@ Be specific and practical in your suggestions.`
       if (analysis.improvements && analysis.improvements.length > 0) {
         message += `\nImprovements:\n`
         analysis.improvements.forEach((improvement) => {
-          message += `  • ${improvement}\n`
+          message += `  · ${improvement}\n`
         })
       }
 
@@ -219,13 +224,13 @@ Be specific and practical in your suggestions.`
       if (analysis.missingInfo && analysis.missingInfo.length > 0) {
         message += `\nMissing Information:\n`
         analysis.missingInfo.forEach((info) => {
-          message += `  • ${info}\n`
+          message += `  · ${info}\n`
         })
       }
     })
 
     // Show results
-    const alert = new Alert('AI Task Analysis', message)
+    const alert = new Alert('Attache: Clarify Tasks', message)
     alert.addOption('Copy to Clipboard')
     alert.addOption('Done')
 

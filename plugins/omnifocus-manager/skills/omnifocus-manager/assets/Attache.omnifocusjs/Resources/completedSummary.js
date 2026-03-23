@@ -9,6 +9,11 @@
  */
 
 (() => {
+    function section(title) {
+        const pad = '─'.repeat(Math.max(0, 44 - title.length - 4));
+        return `── ${title} ${pad}`;
+    }
+
     const action = new PlugIn.Action(async function(selection, sender) {
         try {
             const metrics = this.plugIn.library("taskMetrics");
@@ -83,15 +88,15 @@
 
             projectNames.forEach(proj => {
                 const projectTasks = byProject[proj];
-                message += `${proj} (${projectTasks.length}):\n`;
+                message += `${section(`${proj} (${projectTasks.length})`)}\n`;
                 projectTasks.forEach(t => {
                     const time = t.completionTime ? `${t.completionTime} - ` : "";
-                    message += `  - ${time}${t.name}\n`;
+                    message += `  · ${time}${t.name}\n`;
                 });
                 message += "\n";
             });
 
-            const alert = new Alert("Attache: Completed Summary", message);
+            const alert = new Alert("Attache: Wins Report", message);
             alert.addOption("Copy to Clipboard");
             alert.addOption("Done");
             const choice = await alert.show();

@@ -20,6 +20,11 @@
  */
 
 (() => {
+    function section(title) {
+        const pad = '─'.repeat(Math.max(0, 44 - title.length - 4));
+        return `── ${title} ${pad}`;
+    }
+
     // Concurrency guard — scoped to IIFE closure so it persists across perform() calls
     let _reviewInProgress = false;
 
@@ -131,12 +136,12 @@
                     })
                 );
 
-                step1Message = `INBOX: ${inboxTasks.length} items (oldest: ${oldestDays}d ago)\n\n`;
+                step1Message = `${section("Inbox")} ${inboxTasks.length} items (oldest: ${oldestDays}d ago)\n\n`;
                 if (coaching) {
                     step1Message += `Strategy: ${coaching.strategy || ""}\n`;
                     const tips = Array.isArray(coaching.tips) ? coaching.tips : [];
                     if (tips.length > 0) {
-                        step1Message += tips.map(t => `- ${t}`).join('\n');
+                        step1Message += tips.map(t => `  · ${t}`).join('\n');
                     }
                 } else {
                     step1Message += "Process each item: do (2 min), delegate, defer, or drop.";
@@ -183,9 +188,9 @@
                     })
                 );
 
-                step2Message = `STALLED PROJECTS: ${stalledProjects.length}\n\n`;
+                step2Message = `${section("Stalled Projects")} ${stalledProjects.length}\n\n`;
                 step2Message += stalledProjects.slice(0, 10).map(p =>
-                    `- ${p.name}${p.folder ? ` (${p.folder})` : ""} — ${p.reason}`
+                    `  · ${p.name}${p.folder ? ` (${p.folder})` : ""} — ${p.reason}`
                 ).join('\n');
 
                 if (coaching) {
@@ -193,10 +198,10 @@
                     const suggestions = Array.isArray(coaching.suggestions) ? coaching.suggestions : [];
                     suggestions.forEach(s => {
                         const actionLabel = {
-                            "add-next-action": "> Add next action",
-                            "put-on-hold": "> Put on hold",
-                            "drop": "> Drop"
-                        }[s.action] || "> Review";
+                            "add-next-action": "→ Add next action",
+                            "put-on-hold": "→ Put on hold",
+                            "drop": "→ Drop"
+                        }[s.action] || "→ Review";
                         step2Message += `\n${s.project}: ${actionLabel}`;
                         if (s.nextAction) step2Message += ` — "${s.nextAction}"`;
                     });
@@ -246,18 +251,18 @@
                     })
                 );
 
-                step3Message = `WAITING FOR: ${waitingTasks.length} items\n\n`;
-                step3Message += waitingNames.map(n => `- ${n}`).join('\n');
+                step3Message = `${section("Waiting For")} ${waitingTasks.length} items\n\n`;
+                step3Message += waitingNames.map(n => `  · ${n}`).join('\n');
 
                 if (coaching) {
                     step3Message += `\n\n${coaching.overview || ""}\n`;
                     const actions = Array.isArray(coaching.actions) ? coaching.actions : [];
                     actions.forEach(a => {
                         const label = {
-                            "follow-up": "> Follow up",
-                            "keep-waiting": "> Keep waiting",
-                            "drop": "> Drop"
-                        }[a.recommendation] || "> Review";
+                            "follow-up": "→ Follow up",
+                            "keep-waiting": "→ Keep waiting",
+                            "drop": "→ Drop"
+                        }[a.recommendation] || "→ Review";
                         step3Message += `\n${a.item}: ${label}`;
                     });
                 }
@@ -304,18 +309,18 @@
                     })
                 );
 
-                step4Message = `SOMEDAY/MAYBE: ${onHoldProjects.length} neglected projects\n\n`;
-                step4Message += onHoldNames.map(n => `- ${n}`).join('\n');
+                step4Message = `${section("Someday / Maybe")} ${onHoldProjects.length} neglected projects\n\n`;
+                step4Message += onHoldNames.map(n => `  · ${n}`).join('\n');
 
                 if (coaching) {
                     step4Message += `\n\n${coaching.overview || ""}\n`;
                     const decisions = Array.isArray(coaching.decisions) ? coaching.decisions : [];
                     decisions.forEach(d => {
                         const label = {
-                            "activate": "> Activate",
-                            "keep-on-hold": "> Keep",
-                            "archive": "> Archive"
-                        }[d.recommendation] || "> Review";
+                            "activate": "→ Activate",
+                            "keep-on-hold": "→ Keep",
+                            "archive": "→ Archive"
+                        }[d.recommendation] || "→ Review";
                         step4Message += `\n${d.project}: ${label}`;
                     });
                 }
@@ -354,9 +359,9 @@
                     })
                 );
 
-                step5Message = `COMPLETED THIS WEEK: ${completedTasks.length} tasks\n\n`;
+                step5Message = `${section("Completed This Week")} ${completedTasks.length} tasks\n\n`;
                 Object.entries(byProject).slice(0, 6).forEach(([proj, tasks]) => {
-                    step5Message += `- ${proj}: ${tasks.length} task${tasks.length !== 1 ? 's' : ''}\n`;
+                    step5Message += `  · ${proj}: ${tasks.length} task${tasks.length !== 1 ? 's' : ''}\n`;
                 });
 
                 if (coaching) {
@@ -411,20 +416,20 @@
 
                 step6Message = "";
                 if (overdueTasks.length > 0) {
-                    step6Message += `OVERDUE: ${overdueTasks.length} tasks\n`;
+                    step6Message += `${section("Overdue")} ${overdueTasks.length} tasks\n`;
                     overdueTasks.slice(0, 5).forEach(t => {
                         const days = Math.floor((new Date() - new Date(t.dueDate)) / (1000 * 60 * 60 * 24));
-                        step6Message += `  - ${t.name} [${t.project || "Inbox"}] — ${days}d\n`;
+                        step6Message += `  · ${t.name} [${t.project || "Inbox"}] — ${days}d\n`;
                     });
-                    if (overdueTasks.length > 5) step6Message += `  ... and ${overdueTasks.length - 5} more\n`;
+                    if (overdueTasks.length > 5) step6Message += `  ··· and ${overdueTasks.length - 5} more\n`;
                     step6Message += "\n";
                 }
 
-                step6Message += `DUE NEXT 7 DAYS: ${upcomingTasks.length} tasks\n`;
+                step6Message += `${section("Due Next 7 Days")} ${upcomingTasks.length} tasks\n`;
                 upcomingTasks.slice(0, 5).forEach(t => {
-                    step6Message += `  - ${t.name}\n`;
+                    step6Message += `  · ${t.name}\n`;
                 });
-                if (upcomingTasks.length > 5) step6Message += `  ... and ${upcomingTasks.length - 5} more\n`;
+                if (upcomingTasks.length > 5) step6Message += `  ··· and ${upcomingTasks.length - 5} more\n`;
 
                 if (coaching) {
                     if (coaching.overdueAdvice) step6Message += `\n${coaching.overdueAdvice}\n`;
@@ -454,24 +459,24 @@
                 })
             );
 
-            let step7Message = `REVIEW SUMMARY:\n`;
-            step7Message += `  - Inbox: ${reviewSummary.inboxCount} items\n`;
-            step7Message += `  - Stalled projects: ${reviewSummary.stalledCount}\n`;
-            step7Message += `  - Waiting for: ${reviewSummary.waitingForCount}\n`;
-            step7Message += `  - Someday/Maybe neglected: ${reviewSummary.onHoldCount}\n`;
-            step7Message += `  - Completed this week: ${reviewSummary.completedThisWeek}\n`;
-            step7Message += `  - Overdue: ${reviewSummary.overdueCount}\n`;
-            step7Message += `  - Due next 7 days: ${reviewSummary.upcomingCount}\n\n`;
+            let step7Message = `${section("Review Summary")}\n`;
+            step7Message += `  · Inbox: ${reviewSummary.inboxCount} items\n`;
+            step7Message += `  · Stalled projects: ${reviewSummary.stalledCount}\n`;
+            step7Message += `  · Waiting for: ${reviewSummary.waitingForCount}\n`;
+            step7Message += `  · Someday/Maybe neglected: ${reviewSummary.onHoldCount}\n`;
+            step7Message += `  · Completed this week: ${reviewSummary.completedThisWeek}\n`;
+            step7Message += `  · Overdue: ${reviewSummary.overdueCount}\n`;
+            step7Message += `  · Due next 7 days: ${reviewSummary.upcomingCount}\n\n`;
 
             if (coaching7) {
                 const priorities = Array.isArray(coaching7.weeklyPriorities) ? coaching7.weeklyPriorities : [];
                 if (priorities.length > 0) {
-                    step7Message += `TOP PRIORITIES THIS WEEK:\n`;
+                    step7Message += `${section("Top Priorities This Week")}\n`;
                     priorities.forEach((p, i) => step7Message += `${i + 1}. ${p}\n`);
                     step7Message += "\n";
                 }
                 if (coaching7.systemHealthScore) {
-                    step7Message += `SYSTEM HEALTH: ${coaching7.systemHealthScore}\n\n`;
+                    step7Message += `${section("System Health")}\n${coaching7.systemHealthScore}\n\n`;
                 }
                 if (coaching7.keyInsight) {
                     step7Message += `${coaching7.keyInsight}`;
@@ -482,7 +487,7 @@
                 step7Message += `\n\nTip: Run Attache: System Setup to cache your system map for richer reviews.`;
             }
 
-            const finalAlert = new Alert("Attache: Weekly Review Complete", step7Message);
+            const finalAlert = new Alert("Attache: Weekly Review", step7Message);
             finalAlert.addOption("Copy Summary");
             finalAlert.addOption("Done");
             const finalChoice = await finalAlert.show();

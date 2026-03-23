@@ -12,6 +12,11 @@
  */
 
 (() => {
+    function section(title) {
+        const pad = '─'.repeat(Math.max(0, 44 - title.length - 4));
+        return `── ${title} ${pad}`;
+    }
+
     const action = new PlugIn.Action(async function(selection, sender) {
         const fmUtils = this.plugIn.library("foundationModelsUtils");
 
@@ -155,16 +160,16 @@ Using GTD principles, provide:
                 md += `## ${healthIcon} Status\n${review.workloadNote || ""}\n\n`;
 
                 if (review.completedCelebration) {
-                    message += `WINS TODAY:\n${review.completedCelebration}\n\n`;
+                    message += `${section("Wins Today")}\n${review.completedCelebration}\n\n`;
                     md += `## Wins Today\n${review.completedCelebration}\n\n`;
                 }
 
-                message += `TOP NEXT ACTIONS:\n`;
+                message += `${section("Top Next Actions")}\n`;
                 md += `## Top Next Actions\n`;
                 const actions = Array.isArray(review.topNextActions) ? review.topNextActions : [];
                 if (actions.length > 0) {
                     actions.forEach((a, i) => {
-                        message += `${i + 1}. ${a.task}\n   > ${a.reason}\n`;
+                        message += `${i + 1}. ${a.task}\n   → ${a.reason}\n`;
                         md += `${i + 1}. **${a.task}** — ${a.reason}\n`;
                     });
                 } else {
@@ -173,7 +178,7 @@ Using GTD principles, provide:
                 }
 
                 if (overdueTasks.length > 0 && review.overdueAdvice) {
-                    message += `\nOVERDUE TRIAGE:\n${review.overdueAdvice}\n`;
+                    message += `\n${section("Overdue Triage")}\n${review.overdueAdvice}\n`;
                     md += `\n## Overdue Triage\n${review.overdueAdvice}\n`;
                 }
             }
@@ -181,21 +186,20 @@ Using GTD principles, provide:
             // Newly available deferred items (absorbed from TodaysTasks)
             if (deferredTasks.length > 0) {
                 const deferredLabel = `${deferredTasks.length} deferred item${deferredTasks.length !== 1 ? 's' : ''} now actionable`;
-                message += `\nNEWLY AVAILABLE: ${deferredLabel}\n`;
+                message += `\n${section("Newly Available")} ${deferredLabel}\n`;
                 md += `\n## Newly Available (${deferredTasks.length})\n`;
                 deferredTasks.slice(0, 5).forEach(t => {
-                    message += `  - ${t.name} [${t.project || "Inbox"}]\n`;
+                    message += `  · ${t.name} [${t.project || "Inbox"}]\n`;
                     md += `- ${t.name} \`[${t.project || "Inbox"}]\`\n`;
                 });
                 if (deferredTasks.length > 5) {
-                    message += `  ... and ${deferredTasks.length - 5} more\n`;
+                    message += `  ··· and ${deferredTasks.length - 5} more\n`;
                     md += `- _…and ${deferredTasks.length - 5} more_\n`;
                 }
             }
 
-            // System orientation stats (absorbed from Overview)
-            const statsLine = `${completedTasks.length} done | ${todayTasks.length} today | ${overdueTasks.length} overdue | ${flaggedTasks.length} flagged | ${inboxTasks.length} inbox`;
-            message += `\nSTATS: ${statsLine}`;
+            // System orientation stats
+            message += `\n${'─'.repeat(44)}\n✅ ${completedTasks.length} done · 📋 ${todayTasks.length} today · ⚠️ ${overdueTasks.length} overdue · 🚩 ${flaggedTasks.length} flagged · 📥 ${inboxTasks.length} inbox`;
             md += `\n---\n✅ ${completedTasks.length} done · 📋 ${todayTasks.length} today · ⚠️ ${overdueTasks.length} overdue · 🚩 ${flaggedTasks.length} flagged · 📥 ${inboxTasks.length} inbox`;
 
             if (!hasCachedPrefs) {
