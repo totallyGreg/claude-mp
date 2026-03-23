@@ -113,7 +113,7 @@
 
             // Show summary
             const summary = discovery.generateSummary(systemMap);
-            const alert = new Alert("System Setup Complete",
+            const alert = new Alert("Attache: Setup",
                 summary + "\n\nSystem map cached for future use."
             );
             alert.addOption("Copy to Clipboard");

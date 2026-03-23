@@ -206,7 +206,7 @@
             }
 
             // Step 5: Aggregate Insights
-            const aggregatedInsights = aggregateInsights(results, parsedData, depthLevel);
+            const aggregatedInsights = aggregateInsights(results, parsedData, depthLevel, folderParser);
 
             // Step 6: Generate Report
             const folderNameForReport = selectedFolder === "__ALL_FOLDERS__" ? "All Folders" : selectedFolder.name;
@@ -228,7 +228,7 @@
                     Pasteboard.general.string = report;
 
                     const alert = new Alert(
-                        "Analysis Complete",
+                        "Attache: Project Health",
                         "Markdown report copied to clipboard!"
                     );
                     alert.addOption("OK");
@@ -236,7 +236,7 @@
                 }
             } else {
                 // Display in alert
-                const alert = new Alert("Hierarchical Analysis", report);
+                const alert = new Alert("Attache: Project Health", report);
                 alert.addOption("Copy to Clipboard");
                 alert.addOption("Done");
 
@@ -257,7 +257,7 @@
     /**
      * Aggregate insights from all batch results
      */
-    function aggregateInsights(results, parsedData, depthLevel) {
+    function aggregateInsights(results, parsedData, depthLevel, folderParser) {
         const insights = {
             timestamp: new Date().toISOString(),
             depthLevel: depthLevel,
@@ -268,7 +268,7 @@
 
         // Calculate totals
         if (parsedData.folders) {
-            const metrics = this.plugIn.library("folderParser").aggregateMetrics(parsedData.folders);
+            const metrics = folderParser.aggregateMetrics(parsedData.folders);
             insights.totalFolders = metrics.totalFolders;
             insights.totalProjects = metrics.totalProjects;
             insights.totalTasks = metrics.totalTasks;
