@@ -6,7 +6,7 @@ description: |
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 license: MIT
 metadata:
-  version: 9.4.1
+  version: 10.0.0
   author: totally-tools
 compatibility:
   platforms: [macos]
@@ -214,9 +214,9 @@ See `references/foundation_models_integration.md` for Foundation Models API deta
 
 ---
 
-## Plugin Install (ofo-core)
+## Plugin Install (Attache)
 
-`npm run deploy` runs `open build/ofo-core.omnifocusjs` — OmniFocus prompts for install location and reloads automatically. No hardcoded paths, no stale-copy risk.
+`npm run deploy` runs `open build/Attache.omnifocusjs` — OmniFocus prompts for install location and reloads automatically. The consolidated Attache plugin contains ofoCore (CLI dispatch), all analytics libraries, and all AI action scripts in a single bundle.
 
 ---
 

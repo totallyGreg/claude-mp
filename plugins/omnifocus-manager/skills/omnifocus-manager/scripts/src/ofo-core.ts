@@ -5,7 +5,7 @@
 // All functions are plain — no imports/exports. The build script assigns
 // all named functions (getTask, completeTask, createTask, ...) and
 // `dispatch` to `lib.*` in the IIFE wrapper, making them accessible to
-// other plugins via: PlugIn.find("com.totally-tools.ofo-core").library("ofoCore").getTask(args)
+// the Attache plugin via: PlugIn.find("com.totallytools.omnifocus.attache").library("ofoCore").getTask(args)
 //
 // OfoAction, OfoArgs, OfoResult are declared as ambient types in
 // ofo-core-ambient.d.ts (included via tsconfig.plugin.json).

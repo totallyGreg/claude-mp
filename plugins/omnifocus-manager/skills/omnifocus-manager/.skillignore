@@ -37,6 +37,7 @@ scripts/tsconfig*.json
 # Build intermediates and OmniFocus plugin bundle (deployed separately via npm run deploy)
 scripts/build/intermediate/
 scripts/build/ofo-core.omnifocusjs/
+scripts/build/Attache.omnifocusjs/
 
 # Test and validation scripts
 scripts/test-*.js

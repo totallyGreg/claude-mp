@@ -1,79 +1,99 @@
-# Library Ecosystem (`scripts/libraries/omni/`)
+# Library Ecosystem (Attache Plugin)
 
-Undeployed `PlugIn.Library` files available for use inside OmniFocus feature plugins alongside ofoCore. Load via `this.plugIn.library("name")` after declaring in `manifest.json` libraries array.
+All libraries are compiled from TypeScript sources in `scripts/src/attache/*.ts` and bundled into `Attache.omnifocusjs`. Load via `this.plugIn.library("name")` inside action scripts.
+
+## Architecture
+
+```
+Attache.omnifocusjs (com.totallytools.omnifocus.attache)
+├── Core Layer
+│   ├── ofoCore       ← CRUD, dispatch, normalizeTask, computeStats
+│   ├── taskMetrics   ← single-pass collector, WAITING_PATTERNS
+│   └── exportUtils   ← format conversion, clipboard/file export
+├── Analytics Layer
+│   ├── taskParser         ← task clarity scoring
+│   ├── projectParser      ← stalled project detection
+│   ├── folderParser       ← folder hierarchy analysis
+│   ├── insightPatterns    ← pattern detection, GTD insights
+│   ├── hierarchicalBatcher ← batch task creation
+│   ├── systemDiscovery    ← GTD system pattern detection
+│   └── preferencesManager ← device-scoped preferences
+├── AI Layer
+│   └── foundationModelsUtils ← Apple Intelligence wrapper
+└── Actions (JS)
+    └── dailyReview, weeklyReview, analyzeSelected, etc.
+```
+
+## Library Cross-Reference Pattern
+
+Libraries are self-contained IIFEs — they **cannot** load other libraries. Only action scripts can call `this.plugIn.library()`. When a library needs another library's function, the action passes it as a parameter:
+
+```javascript
+const action = new PlugIn.Action(async function(selection, sender) {
+    const core = this.plugIn.library("ofoCore");
+    const metrics = this.plugIn.library("taskMetrics");
+    const all = metrics.collectAllMetrics(core);  // metrics calls core.normalizeTask()
+});
+```
 
 ## Libraries
 
-### `taskMetrics`
-Data collection: `collectAllMetrics`, `getTodayTasks`, `getOverdueTasks`, `getUpcomingTasks(days)`, `getTasksByTag(name)`, `getTasksByProject(name)`, `getSummaryStats`, `normalizeTask`, `WAITING_PATTERNS`.
+### `ofoCore` (TypeScript — `scripts/src/ofo-core.ts`)
+CLI dispatch layer. 17 named exports: `getTask`, `completeTask`, `createTask`, `updateTask`, `searchTasks`, `listTasks`, `getPerspective`, `configurePerspective`, `tagTask`, `getTags`, `createBatch`, `getPerspectiveRules`, `dumpDatabase`, `getStats`, `assessClarity`, `stalledProjects`, `dispatch`.
 
-**Single-pass collector:** `collectAllMetrics()` buckets inbox/today/overdue/flagged/completedToday/deferredToday in one `flattenedTasks` pass — 4–5x faster than calling individual methods on large databases. Prefer it over multiple calls when multiple categories are needed.
+Canonical `normalizeTask()` returns 16-field `OfoTask` with Date objects (JSON.stringify auto-converts for CLI).
 
-**Canonical waiting-for patterns:** `lib.WAITING_PATTERNS = ["waiting", "delegated", "pending", "w:"]` is exported as a constant. Any action or library that detects waiting-for items must reference this — do not hardcode local arrays. `systemDiscovery.js` uses `WAITING_PREFIXES` aligned to this list.
+### `taskMetrics` (TypeScript — `scripts/src/attache/taskMetrics.ts`)
+Data collection. Functions accept `core` parameter for `normalizeTask` delegation.
+- `collectAllMetrics(core)` — single-pass bucket: inbox/today/overdue/flagged/completedToday/deferredToday
+- `getTodayTasks(core)`, `getOverdueTasks(core)`, `getFlaggedTasks(core)` — filtered queries
+- `getCompletedToday()`, `getCompletedThisWeek()`, `getCompletedThisMonth()` — completed task queries
+- `getOnHoldProjects()` — stale on-hold projects
+- `WAITING_PATTERNS` — canonical `["waiting", "delegated", "pending", "w:"]`
 
-```javascript
-const metrics = this.plugIn.library("taskMetrics");
-const all = metrics.collectAllMetrics(); // { inbox: [], today: [], overdue: [], ... }
-
-function isWaitingFor(task) {
-    const names = task.tags.map(t => t.name.toLowerCase());
-    return names.some(n => metrics.WAITING_PATTERNS.some(p => n.includes(p)));
-}
-```
-
-**ofoCore overlap:** basic filters (`today`, `overdue`, `flagged`) are covered by `ofoCore.listTasks({filter})`. Unique to taskMetrics: `collectAllMetrics` single-pass, `getUpcomingTasks(days)`, `getTasksByTag`, `getTasksByProject`, richer `normalizeTask` (includes `added`, `modified`, `taskStatus`, estimate aggregation), `WAITING_PATTERNS` constant. Prefer ofoCore for basic queries; use taskMetrics when you need upcoming-N-days, tag/project-scoped lists, or the canonical waiting-for patterns.
-
-### `exportUtils`
+### `exportUtils` (TypeScript — `scripts/src/attache/exportUtils.ts`)
 Export data to multiple formats and destinations.
 - `toClipboard(data, {format})` — copy JSON/CSV/Markdown/HTML to clipboard
 - `toFile(data, {format, path})` — write to file
-- No ofoCore overlap — ofoCore returns structured JSON; exportUtils handles formatting and delivery.
 
-### `insightPatterns`
-Pattern detection and analysis on top of raw OmniFocus data.
+### `insightPatterns` (TypeScript — `scripts/src/attache/insightPatterns.ts`)
+Pattern detection and analysis.
 - `detectStalledProjects(doc)` — projects with no available next actions
-- `detectOverloaded(doc)` — projects/tags with excessive task accumulation
-- `generateInsights(doc)` — combined insight report with cause and recommendation fields
+- `detectOverloaded(doc)` — excessive task accumulation
+- `generateInsights(doc)` — combined insight report
 
-Richer than `ofoCore.getStats()` which returns counts only. No ofoCore overlap.
+### `taskParser` (TypeScript — `scripts/src/attache/taskParser.ts`)
+Enhanced task parsing with clarity assessment and GTD metrics.
 
-### `patterns`
-MCP-ready high-level orchestration patterns.
-- `queryAndExport({query, export})` — query tasks then export in one call
-- `queryAndAnalyzeWithAI({query, prompt})` — query + AI analysis
-- `batchUpdate({filter, updates})` — batch mutations
+### `projectParser` (TypeScript — `scripts/src/attache/projectParser.ts`)
+Project parsing with metrics and GTD health indicators.
 
-Depends on taskMetrics + exportUtils + insightPatterns. All four must be deployed together. Designed for direct use in OmniFocus plugin actions or future MCP server tool definitions.
+### `folderParser` (TypeScript — `scripts/src/attache/folderParser.ts`)
+Folder hierarchy analysis with recursive subfolder parsing.
 
-### `completedTasksFormatter`
-Formats completed-task arrays as grouped Markdown (grouped by project).
-- `formatAsMarkdown(tasks)` → formatted string with date header and project sections
+### `hierarchicalBatcher` (TypeScript — `scripts/src/attache/hierarchicalBatcher.ts`)
+Hierarchical batch operations for large data processing within Foundation Model context windows.
 
-Takes task objects as input (does not query OmniFocus directly). Intended for use inside plugin actions that already have the task array (e.g. from `ofoCore.listTasks` or Attache's daily review). Different from the CLI's `ofo completed-today --markdown` which handles query + format in one step.
+### `systemDiscovery` (TypeScript — `scripts/src/attache/systemDiscovery.ts`)
+GTD system pattern detection. 1189 lines — most complex library.
+- `discoverSystem({depth, waitingPatterns})` — rule-based + optional AI system discovery
+- `calculateGTDHealth(rawData)` — 5-phase GTD health scoring
+- `toMarkdown(systemMap)` / `toJSON(systemMap)` — formatted output
 
-### `templateEngine`
-Template-driven bulk task creation.
-- `loadTemplates(path)` — load template definitions from JSON file
-- `fillTemplate(template, vars)` — substitute `{{VAR}}` placeholders
-- `createFromTemplate(doc, templateName, vars)` — create tasks/projects from a named template
+### `preferencesManager` (TypeScript — `scripts/src/attache/preferencesManager.ts`)
+Device-scoped preferences using OmniFocus Preferences API.
 
-ofoCore's `createBatch` handles raw array creation; templateEngine adds the template management layer above it.
+### `foundationModelsUtils` (TypeScript — `scripts/src/attache/foundationModelsUtils.ts`)
+Apple Intelligence wrapper for Foundation Models on-device inference.
+- `isAvailable()` — check LanguageModel API availability
+- `createSession(systemPrompt)` — create FM session
+- `showUnavailableAlert()` — standard error alert
 
-### `treeBuilder`
-Build and export tree structures from OmniFocus hierarchies (1103 lines).
-- `buildTreeFromDatabase({includeMetrics})` — folder/project/task tree from database
-- `buildTreeFromWindow(window, type)` — tree from OF4 window content or sidebar
-- `exportToMarkdown(tree)`, `exportToJSON(tree)`, `exportToOPML(tree)` — format conversion
-- `revealNodes(window, ids)` — programmatic tree navigation (OF4)
+## Build Pipeline
 
-No ofoCore overlap. Highest-complexity library; only needed when hierarchical structure or OPML export is required.
+```bash
+npm run build        # Compiles ofoCore + 10 libraries + copies 7 actions → Attache.omnifocusjs
+npm run deploy       # open build/Attache.omnifocusjs
+```
 
-## Deployment Notes
-
-These libraries are not deployed as part of the standard ofo-core plugin. To use them in a feature plugin:
-
-1. Copy desired library files into the plugin bundle's `Resources/` directory
-2. Declare in `manifest.json` under `"libraries"`: `["ofoCore", "taskMetrics", ...]`
-3. Load in action scripts: `const metrics = this.plugIn.library("taskMetrics");`
-
-For plugins that load ofoCore, prefer `ofoCore.listTasks` for basic queries and fall back to taskMetrics only for the unique functions listed above.
+All libraries are compiled from TypeScript via `tsconfig.attache-libs.json`. The build script validates IIFE structure for every compiled library.

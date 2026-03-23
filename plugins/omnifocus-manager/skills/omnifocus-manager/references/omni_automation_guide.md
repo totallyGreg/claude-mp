@@ -329,51 +329,35 @@ Libraries allow you to reuse code across different actions within a plugin.
 - No API calls (Preferences, flattenedTasks, Alert, etc.) at IIFE top level — they disables all actions silently
 - All real work goes inside `lib.method` function bodies
 
-### Cross-Plugin Library Loading (validated Mac + iPhone, 2026-03-22)
+### Library Loading Within the Consolidated Plugin
 
-A plugin action can load a library from a **different installed plugin** using `PlugIn.find()`. This is the mechanism that allows feature plugins (Attache, future plugins) to use `ofoCore` as a shared data access layer.
+All libraries live within `Attache.omnifocusjs` (`com.totallytools.omnifocus.attache`). Action scripts load libraries via `this.plugIn.library()`:
 
 ```javascript
 const action = new PlugIn.Action(async function(selection, sender) {
-    // 1. Null-guard — REQUIRED before any ofoCore call
-    const corePlugin = PlugIn.find("com.totally-tools.ofo-core");
-    if (!corePlugin) {
-        new Alert("Missing dependency", "ofo-core.omnifocusjs must be installed.").show();
-        return;
-    }
-    const ofoCore = corePlugin.library("ofoCore");
+    const core = this.plugIn.library("ofoCore");
+    const metrics = this.plugIn.library("taskMetrics");
 
-    // 2. Use named functions directly (no magic strings needed)
-    const stats  = ofoCore.getStats();                         // fast counts
-    const tasks  = ofoCore.listTasks({ filter: 'flagged' });   // normalized task objects
-    const search = ofoCore.searchTasks({ query: 'meeting' });
-    const dump   = ofoCore.dumpDatabase();                     // full snapshot (capped 500 tasks)
-
-    // dispatch() still works for backward compat, but prefer named functions:
-    // const result = ofoCore.dispatch({ action: "ofo-list", filter: "flagged" });
+    // Libraries receive dependencies as parameters (IIFE constraint)
+    const all = metrics.collectAllMetrics(core);  // metrics uses core.normalizeTask()
+    const stats = core.getStats();
+    const tasks = core.listTasks({ filter: 'flagged' });
 });
 ```
 
-**Available named functions** (all validated Mac + iPhone, 2026-03-22):
-`getTask`, `searchTasks`, `listTasks`, `completeTask`, `createTask`, `updateTask`, `tagTask`, `getTags`, `getPerspective`, `configurePerspective`, `getPerspectiveRules`, `createBatch`, `dumpDatabase`, `getStats`
+**Available ofoCore named functions** (17 total):
+`getTask`, `searchTasks`, `listTasks`, `completeTask`, `createTask`, `updateTask`, `tagTask`, `getTags`, `getPerspective`, `configurePerspective`, `getPerspectiveRules`, `createBatch`, `dumpDatabase`, `getStats`, `assessClarity`, `stalledProjects`, `dispatch`
 
-See `CONTRIBUTING.md` → "Writing a New Feature Plugin" for the complete pattern including error handling.
+**Library cross-reference constraint:** Libraries are self-contained IIFEs and **cannot** call `this.plugIn.library()`. When a library function needs another library (e.g., taskMetrics needs core.normalizeTask), the calling action passes the dependency as a parameter.
 
-**Confirmed behaviours:**
-- `PlugIn.find("bundle.id")` returns the plugin object on both Mac and iPhone ✓
-- `.library("libName")` loads and returns the library on both platforms ✓
-- Library methods execute with full OmniFocus API access (`flattenedTasks`, etc.) ✓
-- Validated with cross-plugin library loading test calling `ofo-core.omnifocusjs` — all three steps passed on iPhone (2026-03-22)
-
-**Required null-guard pattern** — always guard against the dependency not being installed:
+**External plugins** can still load ofoCore from the Attache plugin via `PlugIn.find()`:
 ```javascript
-const corePlugin = PlugIn.find("com.totally-tools.ofo-core");
-if (!corePlugin) {
-    new Alert("ofo-core required", "Install ofo-core.omnifocusjs to use this plugin.").show();
+const attache = PlugIn.find("com.totallytools.omnifocus.attache");
+if (!attache) {
+    new Alert("Attache required", "Install Attache.omnifocusjs first.").show();
     return;
 }
-const ofoCore = corePlugin.library("ofoCore");
-// Wrap calls in try/catch — named functions don't have dispatch-level error wrapping
+const ofoCore = attache.library("ofoCore");
 try {
     const tasks = ofoCore.listTasks({ filter: 'today' });
 } catch (e) {
