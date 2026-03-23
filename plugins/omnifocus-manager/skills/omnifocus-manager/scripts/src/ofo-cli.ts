@@ -546,6 +546,10 @@ function cmdStalled(args: string[]): void {
   runAction('ofo-stalled', { days });
 }
 
+function cmdHealth(): void {
+  runAction('ofo-health', {});
+}
+
 function cmdHelp(): void {
   process.stdout.write(`ofo -- OmniFocus CLI via plugin library
 
@@ -568,6 +572,7 @@ Commands:
   stats                             Counts: inbox, flagged, overdue, projects, tasks, reviewOverdue, plannedToday, withEstimate
   clarity [--limit N]               Tasks with lowest clarity score (no estimate/tags/project); default limit 10
   stalled [--days N]                Active projects with no available next action or not modified in N days (default 14)
+  health                            System health: inbox, overdue (with Catch Up metadata), flagged — single call
   help                              Show this help
 
 Filters for 'list':
@@ -666,6 +671,7 @@ switch (command) {
   case 'stats':                 cmdStats(); break;
   case 'clarity':               cmdClarity(commandArgs); break;
   case 'stalled':               cmdStalled(commandArgs); break;
+  case 'health':                cmdHealth(); break;
   case 'help':
   case '--help':
   case '-h':          cmdHelp(); break;

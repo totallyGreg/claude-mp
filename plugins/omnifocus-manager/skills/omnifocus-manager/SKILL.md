@@ -99,6 +99,7 @@ scripts/ofo info <id-or-omnifocus-url>       # Task/project details
 scripts/ofo complete <id-or-omnifocus-url>   # Mark task complete
 scripts/ofo drop <id-or-omnifocus-url>       # Drop single occurrence (recurrence continues)
 scripts/ofo drop <id-or-omnifocus-url> --all # Drop all occurrences (stops repeating)
+scripts/ofo health                           # System health: inbox, overdue, flagged (single call)
 scripts/ofo create --name "Task" --project "Work" --due 2026-12-31
 scripts/ofo update <id> --name "New name" --flagged
 scripts/ofo update <id> --note-append "text"         # Append text to existing note

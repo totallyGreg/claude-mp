@@ -26,7 +26,8 @@ export type OfoAction =
   | 'ofo-stats'
   | 'ofo-clarity'
   | 'ofo-stalled'
-  | 'ofo-drop';
+  | 'ofo-drop'
+  | 'ofo-health';
 
 export interface OfoArgs {
   action: OfoAction;

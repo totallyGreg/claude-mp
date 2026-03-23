@@ -58,6 +58,7 @@ cat >> "${BUNDLE_DIR}/Resources/ofoCore.js" << 'IIFE_FOOTER'
   lib.getStats = getStats;
   lib.assessClarity = assessClarity;
   lib.stalledProjects = stalledProjects;
+  lib.getHealth = getHealth;
   lib.dispatch = dispatch;
   return lib;
 })();
@@ -104,11 +105,11 @@ echo "  Verifying ofoCore IIFE exports..."
 BUILT_JS="${BUNDLE_DIR}/Resources/ofoCore.js"
 for fn in normalizeTask getTask completeTask dropTask createTask updateTask searchTasks listTasks \
           getPerspective configurePerspective tagTask getTags createBatch \
-          getPerspectiveRules dumpDatabase getStats assessClarity stalledProjects dispatch; do
+          getPerspectiveRules dumpDatabase getStats assessClarity stalledProjects getHealth dispatch; do
   grep -q "^function ${fn}(" "${BUILT_JS}" || \
     { echo "ERROR: '${fn}' missing from compiled ofoCore.js — update IIFE footer or fix rename"; exit 1; }
 done
-echo "  ofoCore IIFE exports OK (19 functions)"
+echo "  ofoCore IIFE exports OK (20 functions)"
 
 # 9. Verify all Attache libraries have PlugIn.Library IIFE structure
 echo "  Verifying Attache library IIFE structure..."

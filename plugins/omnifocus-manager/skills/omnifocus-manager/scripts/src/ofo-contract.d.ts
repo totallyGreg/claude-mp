@@ -27,7 +27,8 @@ declare type OfoAction =
   | 'ofo-stats'
   | 'ofo-clarity'
   | 'ofo-stalled'
-  | 'ofo-drop';
+  | 'ofo-drop'
+  | 'ofo-health';
 
 declare interface OfoArgs {
   action: OfoAction;

@@ -746,6 +746,42 @@ function stalledProjects(args: OfoArgs): OfoResult {
   return { success: true, projects: stalled };
 }
 
+// === HEALTH ===
+
+function getHealth(args: OfoArgs): OfoResult {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // Inbox: available tasks in inbox
+  const inboxTasks: object[] = [];
+  inbox.forEach(function(t: Task) {
+    if (t.taskStatus === Task.Status.Available) inboxTasks.push(normalizeTask(t));
+  });
+
+  // Overdue: past due date, not completed/dropped
+  const overdueTasks: object[] = [];
+  // Flagged: available + flagged, not completed/dropped
+  const flaggedTasks: object[] = [];
+
+  flattenedTasks.forEach(function(t: Task) {
+    if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
+    if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
+    if (t.dueDate && t.dueDate < todayStart) {
+      overdueTasks.push(normalizeTask(t));
+    }
+    if (t.flagged && t.taskStatus === Task.Status.Available) {
+      flaggedTasks.push(normalizeTask(t));
+    }
+  });
+
+  return {
+    success: true,
+    inbox: { count: inboxTasks.length, tasks: inboxTasks },
+    overdue: { count: overdueTasks.length, tasks: overdueTasks },
+    flagged: { count: flaggedTasks.length, tasks: flaggedTasks },
+  };
+}
+
 // === DISPATCH ===
 
 function dispatch(args: OfoArgs): OfoResult {
@@ -767,6 +803,7 @@ function dispatch(args: OfoArgs): OfoResult {
     case 'ofo-stats':       return getStats(args);
     case 'ofo-clarity':     return assessClarity(args);
     case 'ofo-stalled':     return stalledProjects(args);
+    case 'ofo-health':      return getHealth(args);
     default: {
       // Exhaustiveness check: TypeScript will error here if a new OfoAction
       // is added to the union in ofo-types.ts / ofo-core-ambient.d.ts but
