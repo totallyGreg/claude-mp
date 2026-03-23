@@ -107,8 +107,8 @@
             const session = fmUtils.createSession(GTD_COACH);
 
             // == Step 1: Get Clear (Inbox) ==
-            // Use `inbox` global (top-level inbox items only) — flattenedTasks includes sub-tasks of inbox items
-            const inboxTasks = inbox.filter(t => !t.completed && !t.dropped);
+            // Mirror ofoCore stats: count Available inbox tasks only (matches what OF shows in the inbox view)
+            const inboxTasks = inbox.filter(t => t.taskStatus === Task.Status.Available);
 
             reviewSummary.inboxCount = inboxTasks.length;
 

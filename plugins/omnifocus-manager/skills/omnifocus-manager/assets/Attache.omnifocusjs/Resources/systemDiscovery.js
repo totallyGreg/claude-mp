@@ -23,7 +23,7 @@
     var lib = new PlugIn.Library(new Version("1.0"));
 
     // Keep in sync with manifest.json version
-    const ATTACHE_VERSION = "1.4.3";
+    const ATTACHE_VERSION = "1.4.4";
 
     // ==================== Pattern Constants ====================
 
