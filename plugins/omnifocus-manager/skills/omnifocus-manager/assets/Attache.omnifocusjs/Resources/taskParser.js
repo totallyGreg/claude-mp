@@ -189,7 +189,7 @@
         // Days since task was created
         let daysOld = 0;
         if (task.added) {
-            daysOld = Math.floor((today - task.added) / (1000 * 60 * 60 * 24));
+            daysOld = Math.floor((+today - +task.added) / (1000 * 60 * 60 * 24));
         }
 
         // Days overdue
@@ -201,7 +201,7 @@
             dueDate.setHours(0, 0, 0, 0);
 
             if (dueDate < today) {
-                daysOverdue = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+                daysOverdue = Math.floor((+today - +dueDate) / (1000 * 60 * 60 * 24));
                 isOverdue = true;
             }
         }

@@ -32,6 +32,7 @@
       const form = new Form()
 
       // Discovery depth
+      // @ts-ignore — 6th arg (nullOptionTitle) is optional at runtime
       const depthField = new Form.Field.Option(
         'depth',
         'Discovery Depth',
@@ -50,6 +51,7 @@
       form.addField(aiField)
 
       // Output format
+      // @ts-ignore — 6th arg (nullOptionTitle) is optional at runtime
       const outputField = new Form.Field.Option(
         'output',
         'Output Format',

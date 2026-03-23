@@ -19,6 +19,7 @@
 
             // Period selection form
             const form = new Form();
+            // @ts-ignore — 6th arg (nullOptionTitle) is optional at runtime
             const periodField = new Form.Field.Option(
                 "period", "Time Period",
                 ["today", "week", "month"],

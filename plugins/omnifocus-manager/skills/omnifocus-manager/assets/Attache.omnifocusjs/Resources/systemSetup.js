@@ -46,6 +46,7 @@
             // Configuration form
             const form = new Form();
 
+            // @ts-ignore — 6th arg (nullOptionTitle) is optional at runtime
             const depthField = new Form.Field.Option(
                 "depth", "Discovery Depth",
                 ["quick", "full"],

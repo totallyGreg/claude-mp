@@ -22,6 +22,7 @@
 	 * @param {boolean} options.pretty - Pretty print JSON (default: true)
 	 * @returns {boolean} Success status
 	 */
+	// @ts-ignore — JSDoc infers strict shape from sub-params; {} is valid at runtime
 	lib.toClipboard = function(data, options = {}) {
 		try {
 			const format = options.format || 'json';
@@ -58,6 +59,7 @@
 	 * @param {boolean} options.pretty - Pretty print JSON
 	 * @returns {Promise<boolean>} Success status
 	 */
+	// @ts-ignore — JSDoc infers strict shape from sub-params; {} is valid at runtime
 	lib.toFile = async function(data, options = {}) {
 		try {
 			const format = options.format || 'json';
@@ -180,6 +182,7 @@
 	 * @param {string} options.title - Document title
 	 * @returns {string} Markdown string
 	 */
+	// @ts-ignore — JSDoc infers strict shape from sub-params; {} is valid at runtime
 	lib.toMarkdown = function(data, options = {}) {
 		let md = "";
 

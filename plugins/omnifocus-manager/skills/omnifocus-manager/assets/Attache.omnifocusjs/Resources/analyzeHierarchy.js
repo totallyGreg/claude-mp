@@ -44,6 +44,7 @@
             const configForm = new Form();
 
             // Depth Level Selection
+            // @ts-ignore — 6th arg (nullOptionTitle) is optional at runtime
             const depthField = new Form.Field.Option(
                 "depthLevel",
                 "Analysis Depth",
@@ -66,6 +67,7 @@
             const folderOptions = [ALL_FOLDERS_MARKER, ...allFoldersOption.map(f => f.folder)];
             const folderNames = ["All Folders", ...allFoldersOption.map(f => f.name)];
 
+            // @ts-ignore — 6th arg (nullOptionTitle) is optional at runtime
             const folderField = new Form.Field.Option(
                 "selectedFolder",
                 "Starting Folder",
