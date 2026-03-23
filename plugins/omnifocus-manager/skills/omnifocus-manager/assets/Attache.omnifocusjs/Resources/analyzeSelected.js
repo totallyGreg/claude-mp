@@ -74,7 +74,7 @@
             {
               name: 'suggestedTags',
               description: '2-3 relevant tags based on task content',
-              schema: { arrayOf: { constant: 'tag' } },
+              schema: { arrayOf: { type: 'string' } },
             },
             {
               name: 'priority',
@@ -88,13 +88,13 @@
             {
               name: 'improvements',
               description: 'Specific suggestions for improving the task',
-              schema: { arrayOf: { constant: 'improvement' } },
+              schema: { arrayOf: { type: 'string' } },
             },
             {
               name: 'missingInfo',
               description: 'Information that would help complete this task',
               isOptional: true,
-              schema: { arrayOf: { constant: 'info' } },
+              schema: { arrayOf: { type: 'string' } },
             },
           ],
         })

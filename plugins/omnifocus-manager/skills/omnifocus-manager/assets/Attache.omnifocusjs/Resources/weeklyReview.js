@@ -131,7 +131,7 @@
                         name: "inbox-schema",
                         properties: [
                             {name: "strategy", description: "How to approach processing this inbox"},
-                            {name: "tips", schema: {arrayOf: {constant: "tip"}, maximumElements: 3}}
+                            {name: "tips", schema: {arrayOf: {type: "string"}, maximumElements: 3}}
                         ]
                     })
                 );
@@ -449,7 +449,7 @@
                         {
                             name: "weeklyPriorities",
                             schema: {
-                                arrayOf: {constant: "priority"},
+                                arrayOf: {type: "string"},
                                 maximumElements: 3
                             }
                         },
