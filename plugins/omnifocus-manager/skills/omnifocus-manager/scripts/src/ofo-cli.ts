@@ -109,6 +109,16 @@ function cmdComplete(args: string[]): void {
   runAction('ofo-complete', { id });
 }
 
+function cmdDrop(args: string[]): void {
+  if (args.length < 1) die('Usage: ofo drop <id|omnifocus-url> [--all]');
+  const id = parseOmniFocusUrl(args[0]!);
+  let allOccurrences = false;
+  for (let i = 1; i < args.length; i++) {
+    if (args[i] === '--all') allOccurrences = true;
+  }
+  runAction('ofo-drop', { id, allOccurrences });
+}
+
 // --- Stdin Helpers ---
 
 function readStdin(): string | null {
@@ -544,6 +554,7 @@ Usage: ofo <command> [arguments]
 Commands:
   info <id|url>                     Get task or project details as JSON
   complete <id|url>                 Mark a task as complete
+  drop <id|url> [--all]            Drop single occurrence (--all stops repeating)
   create --name "..." [options]     Create a new task (also accepts stdin)
   update <id|url> [options]         Update task properties
   search <query>                    Search tasks by name or note
@@ -640,6 +651,7 @@ if (command !== 'help' && command !== '--help' && command !== '-h') {
 switch (command) {
   case 'info':        cmdInfo(commandArgs); break;
   case 'complete':    cmdComplete(commandArgs); break;
+  case 'drop':        cmdDrop(commandArgs); break;
   case 'create':      cmdCreate(commandArgs); break;
   case 'update':      cmdUpdate(commandArgs); break;
   case 'search':      cmdSearch(commandArgs); break;

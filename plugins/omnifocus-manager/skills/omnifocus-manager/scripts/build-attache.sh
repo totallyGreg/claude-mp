@@ -43,6 +43,7 @@ cat >> "${BUNDLE_DIR}/Resources/ofoCore.js" << 'IIFE_FOOTER'
   lib.normalizeTask = normalizeTask;
   lib.getTask = getTask;
   lib.completeTask = completeTask;
+  lib.dropTask = dropTask;
   lib.createTask = createTask;
   lib.updateTask = updateTask;
   lib.searchTasks = searchTasks;
@@ -101,13 +102,13 @@ cp "${SRC_DIR}/ofo-stub.js" "${BUILD_DIR}/ofo-stub.js"
 # 8. Assert every IIFE-exported function exists in the compiled ofoCore
 echo "  Verifying ofoCore IIFE exports..."
 BUILT_JS="${BUNDLE_DIR}/Resources/ofoCore.js"
-for fn in normalizeTask getTask completeTask createTask updateTask searchTasks listTasks \
+for fn in normalizeTask getTask completeTask dropTask createTask updateTask searchTasks listTasks \
           getPerspective configurePerspective tagTask getTags createBatch \
           getPerspectiveRules dumpDatabase getStats assessClarity stalledProjects dispatch; do
   grep -q "^function ${fn}(" "${BUILT_JS}" || \
     { echo "ERROR: '${fn}' missing from compiled ofoCore.js — update IIFE footer or fix rename"; exit 1; }
 done
-echo "  ofoCore IIFE exports OK (18 functions)"
+echo "  ofoCore IIFE exports OK (19 functions)"
 
 # 9. Verify all Attache libraries have PlugIn.Library IIFE structure
 echo "  Verifying Attache library IIFE structure..."

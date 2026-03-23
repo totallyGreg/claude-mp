@@ -27,4 +27,13 @@ Then flag any counts that need attention:
 - Stalled > 3 → "Several stalled projects need attention"
 - Waiting aging > 20 → "Many aging Waiting items — review and drop or follow up"
 
-If all counts are healthy, say: "System looks healthy. ✓"
+When presenting overdue tasks, check `repetitionRule` field to identify repeating tasks:
+- If `repetitionRule` is not null → task is repeating. Group separately as **Stale Routines**.
+- For each stale routine, check `repetitionCatchUp` and `repetitionScheduleType`:
+  - `repetitionCatchUp` is true → "Drop to reset (auto-catches up): `ofo drop <id>`"
+  - `repetitionScheduleType` is "FromCompletion" → "Was this done? Complete if yes (`ofo complete <id>`), drop if skipped (`ofo drop <id>`)"
+  - `repetitionScheduleType` is "Regularly" + >7 days overdue → "Long overdue — drop to move forward: `ofo drop <id>`"
+  - `repetitionScheduleType` is "Regularly" + <=7 days overdue → "Recently missed — complete if done, drop if skipped"
+- Non-repeating overdue tasks: handle as before
+
+If all counts are healthy, say: "System looks healthy."

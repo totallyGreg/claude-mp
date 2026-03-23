@@ -20,6 +20,16 @@
 function normalizeTask(t: Task): OfoTask {
   let plannedDate: Date | null = null;
   try { plannedDate = t.plannedDate || null; } catch (_) {}
+  let catchUp: boolean | null = null;
+  let schedType: string | null = null;
+  if (t.repetitionRule) {
+    try { catchUp = t.repetitionRule.catchUpAutomatically; } catch (_) {}
+    try {
+      var st = String(t.repetitionRule.scheduleType);
+      var m = st.match(/:\s*(\w+)\]$/);
+      schedType = m ? m[1] : st;
+    } catch (_) {}
+  }
   return {
     id: t.id.primaryKey,
     name: t.name,
@@ -36,6 +46,8 @@ function normalizeTask(t: Task): OfoTask {
     added: t.added || null,
     modified: t.modified || null,
     repetitionRule: t.repetitionRule ? t.repetitionRule.ruleString : null,
+    repetitionCatchUp: catchUp,
+    repetitionScheduleType: schedType,
     taskStatus: String(t.taskStatus),
   };
 }
@@ -165,6 +177,20 @@ function completeTask(args: OfoArgs): OfoResult {
   if (!t) return { success: false, error: 'Task not found: ' + id };
   t.markComplete();
   return { success: true, task: { id: t.id.primaryKey, name: t.name, completed: true } };
+}
+
+// === DROP ===
+
+function dropTask(args: OfoArgs): OfoResult {
+  const id = args.id as string;
+  const allOccurrences = args.allOccurrences as boolean || false;
+  const t = Task.byIdentifier(id);
+  if (!t) return { success: false, error: 'Task not found: ' + id };
+  if (allOccurrences && !t.repetitionRule) {
+    return { success: false, error: 'Task is not repeating; use without --all to drop it.' };
+  }
+  t.drop(allOccurrences);
+  return { success: true, task: { id: t.id.primaryKey, name: t.name, dropped: true } };
 }
 
 // === CREATE ===
@@ -726,6 +752,7 @@ function dispatch(args: OfoArgs): OfoResult {
   switch (args.action) {
     case 'ofo-info':        return getTask(args);
     case 'ofo-complete':    return completeTask(args);
+    case 'ofo-drop':        return dropTask(args);
     case 'ofo-create':      return createTask(args);
     case 'ofo-update':      return updateTask(args);
     case 'ofo-search':      return searchTasks(args);

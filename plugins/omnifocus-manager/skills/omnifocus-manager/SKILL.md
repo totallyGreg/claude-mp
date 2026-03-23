@@ -6,7 +6,7 @@ description: |
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 license: MIT
 metadata:
-  version: 10.0.0
+  version: 10.1.0
   author: totally-tools
 compatibility:
   platforms: [macos]
@@ -97,6 +97,8 @@ The `ofo` CLI executes Omni Automation scripts directly inside OmniFocus via scr
 ```bash
 scripts/ofo info <id-or-omnifocus-url>       # Task/project details
 scripts/ofo complete <id-or-omnifocus-url>   # Mark task complete
+scripts/ofo drop <id-or-omnifocus-url>       # Drop single occurrence (recurrence continues)
+scripts/ofo drop <id-or-omnifocus-url> --all # Drop all occurrences (stops repeating)
 scripts/ofo create --name "Task" --project "Work" --due 2026-12-31
 scripts/ofo update <id> --name "New name" --flagged
 scripts/ofo update <id> --note-append "text"         # Append text to existing note
@@ -270,4 +272,4 @@ See `references/troubleshooting.md` for permission issues, common errors, and de
 
 ---
 
-**Current version:** 9.4.1 — See README.md for version history.
+**Current version:** 10.1.0 — See README.md for version history.

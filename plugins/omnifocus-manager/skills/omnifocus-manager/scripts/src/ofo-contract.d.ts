@@ -26,7 +26,8 @@ declare type OfoAction =
   | 'ofo-dump'
   | 'ofo-stats'
   | 'ofo-clarity'
-  | 'ofo-stalled';
+  | 'ofo-stalled'
+  | 'ofo-drop';
 
 declare interface OfoArgs {
   action: OfoAction;
@@ -55,6 +56,8 @@ declare interface OfoTask {
   added: Date | null;
   modified: Date | null;
   repetitionRule: string | null;
+  repetitionCatchUp: boolean | null;
+  repetitionScheduleType: string | null;
   taskStatus: string;
 }
 

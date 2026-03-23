@@ -174,6 +174,29 @@ if (rule) {
     var schedule = rule.repetitionSchedule;        // schedule type
     var catchUp = rule.catchUpAutomatically;       // boolean
 }
+
+// Omni Automation: RepetitionRule properties (read-only, OF4+)
+var rule = task.repetitionRule;  // no parens in Omni Automation
+if (rule) {
+    var ruleString = rule.ruleString;                    // ICS recurrence: "FREQ=WEEKLY"
+    var scheduleType = rule.scheduleType;                // Regularly | FromCompletion | None
+    var catchUp = rule.catchUpAutomatically;             // true = skip past dates on resolve
+    var anchor = rule.anchorDateKey;                     // DeferDate | DueDate
+    var nextDate = rule.firstDateAfterDate(new Date());  // Next occurrence after given date
+}
+
+// Task.RepetitionScheduleType enum
+Task.RepetitionScheduleType.Regularly       // Fixed schedule (e.g., every Monday)
+Task.RepetitionScheduleType.FromCompletion  // Relative to completion date
+Task.RepetitionScheduleType.None            // No repeat
+
+// Catch Up Automatically behavior:
+// ON (true):  resolve once → skips all missed dates → next occurrence is in the future
+// OFF (false): resolve once → next date is the very next scheduled date (may still be past)
+
+// Dropping a single occurrence (keeps recurrence):
+task.drop(false);   // Drop this occurrence only; recurrence generates next
+task.drop(true);    // Drop ALL future occurrences (stops repeating)
 ```
 
 **Sequential/Parallel:**
