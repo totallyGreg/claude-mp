@@ -183,6 +183,8 @@ Tasks where the recurrence IS the work: exercise, reviews, maintenance.
 - **ON** — when you resolve a stale routine, the system skips all missed dates and schedules the next future occurrence. Best for most routines — you don't need to "make up" 38 missed push-up sessions.
 - **OFF** — resolving creates the next occurrence at the very next scheduled date (may still be in the past). Requires one-by-one resolution to reach the present. Use only when catching up matters (e.g., medication logs).
 
+**Fixing a stale routine with Catch Up OFF:** Toggle Catch Up ON in the task's repeat rule editor. OmniFocus will prompt with "Skip" (catch up to the next future date) or "Drop All" (remove the task entirely). Select **Skip** to reset the routine while preserving the recurrence. This is the correct recovery workflow — Catch Up cannot be toggled via the API.
+
 #### Purpose 2: Ticklers (Remember to check)
 
 Recurring reminders to review progress on long-running work. The task itself is lightweight — the real work lives elsewhere (a project, a document, a codebase).

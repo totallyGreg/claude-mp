@@ -31,8 +31,8 @@ When presenting overdue tasks, check `repetitionRule` field to identify repeatin
 - If `repetitionRule` is not null → task is repeating. Group separately as **Stale Routines**.
 - For each stale routine, check `repetitionCatchUp` and `repetitionScheduleType`:
   - `repetitionCatchUp` is true → "Drop to reset (auto-catches up): `ofo drop <id>`"
-  - `repetitionScheduleType` is "FromCompletion" → "Was this done? Complete if yes (`ofo complete <id>`), drop if skipped (`ofo drop <id>`)"
-  - `repetitionScheduleType` is "Regularly" + >7 days overdue → "Long overdue — drop to move forward: `ofo drop <id>`"
+  - `repetitionCatchUp` is false + >7 days overdue → "Toggle Catch Up ON in OmniFocus UI, then select Skip to reset"
+  - `repetitionScheduleType` is "FromCompletion" + <=7 days → "Was this done? Complete if yes (`ofo complete <id>`), drop if skipped (`ofo drop <id>`)"
   - `repetitionScheduleType` is "Regularly" + <=7 days overdue → "Recently missed — complete if done, drop if skipped"
 - Non-repeating overdue tasks: handle as before
 
