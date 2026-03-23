@@ -17,6 +17,7 @@
         const discovery = this.plugIn.library("systemDiscovery");
         const prefsManager = this.plugIn.library("preferencesManager");
         const fmUtils = this.plugIn.library("foundationModelsUtils");
+        const metrics = this.plugIn.library("taskMetrics");
 
         try {
             // Migration advisory: check for absorbed plugins on first run
@@ -96,7 +97,7 @@
             }
 
             // Run discovery
-            let systemMap = discovery.discoverSystem({ depth: depth });
+            let systemMap = discovery.discoverSystem({ depth: depth, waitingPatterns: metrics.WAITING_PATTERNS });
 
             // AI enhancement if requested and available
             if (useAI && fmUtils.isAvailable()) {

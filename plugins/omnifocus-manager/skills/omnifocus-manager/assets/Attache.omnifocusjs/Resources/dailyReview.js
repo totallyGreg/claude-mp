@@ -27,10 +27,11 @@
         try {
             const prefsManager = this.plugIn.library("preferencesManager");
             const hasCachedPrefs = prefsManager.hasPreferences();
+            const core = this.plugIn.library("ofoCore");
             const metrics = this.plugIn.library("taskMetrics");
 
             // Single-pass collection for all metrics
-            const all = metrics.collectAllMetrics();
+            const all = metrics.collectAllMetrics(core);
 
             const completedTasks = all.completedToday;
             const todayTasks = all.today;

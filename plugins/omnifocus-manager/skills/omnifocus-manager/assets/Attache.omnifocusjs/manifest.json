@@ -1,6 +1,6 @@
 {
   "identifier": "com.totallytools.omnifocus.attache",
-  "version": "1.4.5",
+  "version": "2.0.0",
   "defaultLocale": "en",
   "author": "totally-tools",
   "description": "Attache — your quiet diplomatic aide for GTD in OmniFocus. AI-powered daily and weekly reviews, project analysis, system discovery with persistent memory. Requires macOS 26+ for Apple Intelligence features.",
@@ -43,6 +43,7 @@
     }
   ],
   "libraries": [
+    {"identifier": "ofoCore"},
     {"identifier": "taskMetrics"},
     {"identifier": "exportUtils"},
     {"identifier": "foundationModelsUtils"},
@@ -50,6 +51,7 @@
     {"identifier": "projectParser"},
     {"identifier": "taskParser"},
     {"identifier": "hierarchicalBatcher"},
+    {"identifier": "insightPatterns"},
     {"identifier": "systemDiscovery"},
     {"identifier": "preferencesManager"}
   ]

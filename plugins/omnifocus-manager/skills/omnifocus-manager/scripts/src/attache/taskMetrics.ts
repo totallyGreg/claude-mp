@@ -5,26 +5,41 @@
  * Includes single-pass collector for performance on large databases.
  *
  * Usage in plugin actions:
+ *   const core = this.plugIn.library("ofoCore");
  *   const metrics = this.plugIn.library("taskMetrics");
- *   const all = metrics.collectAllMetrics();
+ *   const all = metrics.collectAllMetrics(core);
  */
 
-(() => {
-	var lib = new PlugIn.Library(new Version("4.0"));
+interface OfoCoreDep {
+	normalizeTask(task: Task): OfoTask;
+}
 
-	/**
-	 * Single-pass metrics collector — buckets all categories simultaneously.
-	 * On a 5,000-task database this is 4-5x faster than calling individual methods.
-	 *
-	 * @returns {Object} { inbox, today, overdue, flagged, completedToday, deferredToday }
-	 */
-	lib.collectAllMetrics = function() {
+interface CompletedTask {
+	name: string;
+	project: string | null;
+	completionDate: Date | null;
+	completionTime: string | null;
+}
+
+interface MetricsBuckets {
+	inbox: OfoTask[];
+	today: OfoTask[];
+	overdue: OfoTask[];
+	flagged: OfoTask[];
+	completedToday: CompletedTask[];
+	deferredToday: OfoTask[];
+}
+
+(() => {
+	var lib = new PlugIn.Library(new Version("5.0"));
+
+	lib.collectAllMetrics = function(core: OfoCoreDep): MetricsBuckets {
 		const today = new Date();
 		today.setHours(0, 0, 0, 0);
 		const tomorrow = new Date(today);
 		tomorrow.setDate(tomorrow.getDate() + 1);
 
-		const result = {
+		const result: MetricsBuckets = {
 			inbox: [],
 			today: [],
 			overdue: [],
@@ -42,25 +57,23 @@
 			}
 			if (task.dropped) continue;
 
-			// Active task buckets
 			if (task.inInbox && task.taskStatus === Task.Status.Available) {
-				result.inbox.push(lib.normalizeTask(task));
+				result.inbox.push(core.normalizeTask(task));
 			}
 			if (task.flagged) {
-				result.flagged.push(lib.normalizeTask(task));
+				result.flagged.push(core.normalizeTask(task));
 			}
 			if (task.dueDate) {
 				if (task.dueDate < today) {
-					result.overdue.push(lib.normalizeTask(task));
+					result.overdue.push(core.normalizeTask(task));
 				} else if (task.dueDate < tomorrow) {
-					result.today.push(lib.normalizeTask(task));
+					result.today.push(core.normalizeTask(task));
 				}
 			}
 			if (task.deferDate && task.deferDate >= today && task.deferDate < tomorrow) {
-				result.deferredToday.push(lib.normalizeTask(task));
-				// Also add to today if not already there via dueDate
+				result.deferredToday.push(core.normalizeTask(task));
 				if (!task.dueDate || task.dueDate < today || task.dueDate >= tomorrow) {
-					result.today.push(lib.normalizeTask(task));
+					result.today.push(core.normalizeTask(task));
 				}
 			}
 		}
@@ -68,88 +81,55 @@
 		return result;
 	};
 
-	lib.getTodayTasks = function() {
-		const tasks = flattenedTasks;
-
+	lib.getTodayTasks = function(core: OfoCoreDep): OfoTask[] {
 		const today = new Date();
 		today.setHours(0, 0, 0, 0);
 		const tomorrow = new Date(today);
 		tomorrow.setDate(tomorrow.getDate() + 1);
 
-		const todayTasks = tasks.filter(task => {
+		const todayTasks = flattenedTasks.filter((task: Task) => {
 			if (task.completed || task.dropped) return false;
-
 			const due = task.dueDate;
 			const defer = task.deferDate;
-
-			const isDueToday = due && due >= today && due < tomorrow;
-			const isDeferredToday = defer && defer >= today && defer < tomorrow;
-
-			return isDueToday || isDeferredToday;
+			return (due && due >= today && due < tomorrow) ||
+			       (defer && defer >= today && defer < tomorrow);
 		});
 
-		return todayTasks.map(lib.normalizeTask.bind(lib));
+		return todayTasks.map((t: Task) => core.normalizeTask(t));
 	};
 
-	lib.getOverdueTasks = function() {
-		const tasks = flattenedTasks;
-
+	lib.getOverdueTasks = function(core: OfoCoreDep): OfoTask[] {
 		const today = new Date();
 		today.setHours(0, 0, 0, 0);
 
-		const overdueTasks = tasks.filter(task => {
+		const overdueTasks = flattenedTasks.filter((task: Task) => {
 			if (task.completed || task.dropped) return false;
-			const due = task.dueDate;
-			return due && due < today;
+			return task.dueDate && task.dueDate < today;
 		});
 
-		return overdueTasks.map(lib.normalizeTask.bind(lib));
+		return overdueTasks.map((t: Task) => core.normalizeTask(t));
 	};
 
-	lib.getFlaggedTasks = function() {
-		const tasks = flattenedTasks;
-
-		const flaggedTasks = tasks.filter(task => {
-			return task.flagged && !task.completed && !task.dropped;
-		});
-
-		return flaggedTasks.map(lib.normalizeTask.bind(lib));
+	lib.getFlaggedTasks = function(core: OfoCoreDep): OfoTask[] {
+		return flattenedTasks
+			.filter((task: Task) => task.flagged && !task.completed && !task.dropped)
+			.map((t: Task) => core.normalizeTask(t));
 	};
 
-	lib.normalizeTask = function(task) {
-		return {
-			name: task.name,
-			project: task.containingProject ? task.containingProject.name : null,
-			tags: task.tags.map(tag => tag.name),
-			dueDate: task.dueDate,
-			deferDate: task.deferDate,
-			flagged: task.flagged,
-			completed: task.completed,
-			estimatedMinutes: task.estimatedMinutes,
-			note: task.note || "",
-			added: task.added,
-			modified: task.modified
-		};
-	};
-
-	lib.getCompletedToday = function() {
-		const tasks = flattenedTasks;
-
+	lib.getCompletedToday = function(): CompletedTask[] {
 		const today = new Date();
 		today.setHours(0, 0, 0, 0);
 		const tomorrow = new Date(today);
 		tomorrow.setDate(tomorrow.getDate() + 1);
 
-		const completedToday = tasks.filter(task => {
+		return flattenedTasks.filter((task: Task) => {
 			if (!task.completed) return false;
-			const completionDate = task.completionDate;
-			return completionDate && completionDate >= today && completionDate < tomorrow;
-		});
-
-		return completedToday.map(lib.normalizeCompletedTask.bind(lib));
+			const d = task.completionDate;
+			return d && d >= today && d < tomorrow;
+		}).map((t: Task) => lib.normalizeCompletedTask(t));
 	};
 
-	lib.normalizeCompletedTask = function(task) {
+	lib.normalizeCompletedTask = function(task: Task): CompletedTask {
 		return {
 			name: task.name,
 			project: task.containingProject ? task.containingProject.name : null,
@@ -163,42 +143,42 @@
 		};
 	};
 
-	lib.getCompletedThisWeek = function() {
+	lib.getCompletedThisWeek = function(): CompletedTask[] {
 		const today = new Date();
 		today.setHours(23, 59, 59, 999);
 		const weekAgo = new Date();
 		weekAgo.setDate(weekAgo.getDate() - 7);
 		weekAgo.setHours(0, 0, 0, 0);
 
-		return flattenedTasks.filter(task => {
+		return flattenedTasks.filter((task: Task) => {
 			if (!task.completed) return false;
 			const d = task.completionDate;
 			return d && d >= weekAgo && d <= today;
-		}).slice(0, 100).map(lib.normalizeCompletedTask.bind(lib));
+		}).slice(0, 100).map((t: Task) => lib.normalizeCompletedTask(t));
 	};
 
-	lib.getCompletedThisMonth = function() {
+	lib.getCompletedThisMonth = function(): CompletedTask[] {
 		const today = new Date();
 		today.setHours(23, 59, 59, 999);
 		const monthAgo = new Date();
 		monthAgo.setDate(monthAgo.getDate() - 30);
 		monthAgo.setHours(0, 0, 0, 0);
 
-		return flattenedTasks.filter(task => {
+		return flattenedTasks.filter((task: Task) => {
 			if (!task.completed) return false;
 			const d = task.completionDate;
 			return d && d >= monthAgo && d <= today;
-		}).slice(0, 200).map(lib.normalizeCompletedTask.bind(lib));
+		}).slice(0, 200).map((t: Task) => lib.normalizeCompletedTask(t));
 	};
 
-	lib.getOnHoldProjects = function() {
+	lib.getOnHoldProjects = function(): { name: string; lastModified: Date | null }[] {
 		const cutoff = new Date();
 		cutoff.setDate(cutoff.getDate() - 90);
 
-		return flattenedProjects.filter(p => {
+		return flattenedProjects.filter((p: Project) => {
 			return p.status === Project.Status.OnHold &&
 			       (!p.modified || p.modified < cutoff);
-		}).slice(0, 100).map(p => ({
+		}).slice(0, 100).map((p: Project) => ({
 			name: p.name,
 			lastModified: p.modified
 		}));

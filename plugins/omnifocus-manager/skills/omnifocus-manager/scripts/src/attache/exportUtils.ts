@@ -23,7 +23,7 @@
 	 * @returns {boolean} Success status
 	 */
 	// @ts-ignore — JSDoc infers strict shape from sub-params; {} is valid at runtime
-	lib.toClipboard = function(data, options = {}) {
+	lib.toClipboard = function(data, options: any = {}) {
 		try {
 			const format = options.format || 'json';
 			let output;
@@ -60,7 +60,7 @@
 	 * @returns {Promise<boolean>} Success status
 	 */
 	// @ts-ignore — JSDoc infers strict shape from sub-params; {} is valid at runtime
-	lib.toFile = async function(data, options = {}) {
+	lib.toFile = async function(data, options: any = {}) {
 		try {
 			const format = options.format || 'json';
 			let output, extension, mimeType;
@@ -183,7 +183,7 @@
 	 * @returns {string} Markdown string
 	 */
 	// @ts-ignore — JSDoc infers strict shape from sub-params; {} is valid at runtime
-	lib.toMarkdown = function(data, options = {}) {
+	lib.toMarkdown = function(data, options: any = {}) {
 		let md = "";
 
 		// Add title if provided
@@ -258,7 +258,7 @@
 	 * @returns {string} Markdown string
 	 * @private
 	 */
-	lib.formatObjectAsMarkdown = function(obj, options = {}) {
+	lib.formatObjectAsMarkdown = function(obj, options: any = {}) {
 		let md = "";
 
 		for (const [key, value] of Object.entries(obj)) {
@@ -284,7 +284,7 @@
 	 * @param {Object} options - Format options
 	 * @returns {string} HTML string
 	 */
-	lib.toHTML = function(data, options = {}) {
+	lib.toHTML = function(data, options: any = {}) {
 		if (!Array.isArray(data) || data.length === 0) {
 			return "<p>No data</p>";
 		}

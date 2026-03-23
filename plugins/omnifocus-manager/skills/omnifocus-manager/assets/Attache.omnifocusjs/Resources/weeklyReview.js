@@ -90,6 +90,7 @@
         try {
             const prefsManager = this.plugIn.library("preferencesManager");
             const hasCachedPrefs = prefsManager.hasPreferences();
+            const core = this.plugIn.library("ofoCore");
             const metrics = this.plugIn.library("taskMetrics");
             const projectParser = this.plugIn.library("projectParser");
 
@@ -374,7 +375,7 @@
             if (!cont5) { return; }
 
             // == Step 6: Horizon Check (overdue + next 7 days) ==
-            const overdueTasks = metrics.getOverdueTasks();
+            const overdueTasks = metrics.getOverdueTasks(core);
             const upcomingTasks = flattenedTasks.filter(t => {
                 if (t.completed || t.dropped) return false;
                 const due = t.dueDate;

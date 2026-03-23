@@ -26,7 +26,7 @@
         }
 
         // Start with basic task data (similar to taskMetrics.normalizeTask)
-        const parsedTask = {
+        const parsedTask: any = {
             id: task.id.primaryKey,
             name: task.name,
             completed: task.completed,
@@ -189,7 +189,7 @@
         // Days since task was created
         let daysOld = 0;
         if (task.added) {
-            daysOld = Math.floor((+today - +task.added) / (1000 * 60 * 60 * 24));
+            daysOld = Math.floor((+today - +(task.added as any)) / (1000 * 60 * 60 * 24));
         }
 
         // Days overdue
@@ -329,7 +329,7 @@
         });
 
         // Sort issues by frequency
-        const commonIssues = Object.entries(issueCount)
+        const commonIssues = (Object.entries(issueCount) as [string, number][])
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5)  // Top 5 issues
             .map(([issue, count]) => ({

@@ -25,7 +25,7 @@
             throw new Error("Project parameter is required");
         }
 
-        const parsedProject = {
+        const parsedProject: any = {
             id: project.id.primaryKey,
             name: project.name,
             status: project.status.name,  // "active", "on hold", "done", "dropped"

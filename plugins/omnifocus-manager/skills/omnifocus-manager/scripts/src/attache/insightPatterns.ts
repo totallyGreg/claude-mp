@@ -80,7 +80,7 @@
 
             if (agingWaiting.length > 0) {
                 const taskList = agingWaiting.slice(0, 5).map(t => {
-                    const daysSince = Math.floor((new Date() - t.addedDate) / (1000 * 60 * 60 * 24));
+                    const daysSince = Math.floor((+new Date() - +(t.addedDate)) / (1000 * 60 * 60 * 24));
                     return `  • '${t.name}' (${daysSince} days)`;
                 }).join('\n');
 
@@ -118,7 +118,7 @@
 
                 if (overdueTasks.length >= 10) {
                     const oldestOverdue = Math.max(...overdueTasks.map(t =>
-                        Math.floor((now - t.dueDate) / (1000 * 60 * 60 * 24))
+                        Math.floor((+now - +(t.dueDate)) / (1000 * 60 * 60 * 24))
                     ));
 
                     insights.push({
@@ -279,7 +279,7 @@
          * @param {Array<string>} options.patterns - Array of pattern names to run (optional, defaults to all)
          * @returns {Object} Structured insights object with categories and summary
          */
-        lib.generateInsights = function(doc, options = {}) {
+        lib.generateInsights = function(doc, options: any = {}) {
             const allInsights = [];
 
             // Determine which patterns to run

@@ -3,9 +3,9 @@
 // All variable data comes via &arg= parameter.
 var args = argument;
 try {
-  var p = PlugIn.find("com.totally-tools.ofo-core");
+  var p = PlugIn.find("com.totallytools.omnifocus.attache");
   if (!p) {
-    Pasteboard.general.string = JSON.stringify({ success: false, error: "ofo-core plugin not installed. Run: npm run deploy" });
+    Pasteboard.general.string = JSON.stringify({ success: false, error: "Attache plugin not installed. Run: npm run deploy" });
   } else {
     var lib = p.library("ofoCore");
     var result = lib.dispatch(args);

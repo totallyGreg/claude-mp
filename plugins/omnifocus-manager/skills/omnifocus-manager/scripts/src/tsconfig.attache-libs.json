@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    "module": "ES2020",
+    "outDir": "../build/intermediate/attache",
+    "rootDir": "attache",
+    "strict": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "removeComments": false,
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": [
+    "attache/*.ts",
+    "ofo-contract.d.ts",
+    "ofo-core-ambient.d.ts",
+    "omni-attache-ambient.d.ts",
+    "../../typescript/omnifocus.d.ts",
+    "../../typescript/omnifocus-extensions.d.ts"
+  ],
+  "exclude": ["node_modules"]
+}

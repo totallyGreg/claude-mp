@@ -45,13 +45,16 @@ export interface OfoTask {
   tags: string[];
   flagged: boolean;
   completed: boolean;
-  dueDate: string | null;
-  deferDate: string | null;
+  dueDate: Date | null;
+  deferDate: Date | null;
+  plannedDate: Date | null;
+  completionDate: Date | null;
   estimatedMinutes: number | null;
   note: string | null;
-  plannedDate: string | null;
-  completionDate: string | null;
+  added: Date | null;
+  modified: Date | null;
   repetitionRule: string | null;
+  taskStatus: string;
 }
 
 export interface OfoStats {

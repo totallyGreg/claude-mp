@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const BUILT_JS = join(__dirname, 'build/ofo-core.omnifocusjs/Resources/ofoCore.js');
+const BUILT_JS = join(__dirname, 'build/Attache.omnifocusjs/Resources/ofoCore.js');
 
 if (!existsSync(BUILT_JS)) {
   console.error(`ERROR: Built plugin not found at ${BUILT_JS}. Run build-plugin.sh first.`);
@@ -36,9 +36,14 @@ const STUB_TASK = {
   dueDate: null,
   deferDate: null,
   plannedDate: null,
+  completionDate: null,
   estimatedMinutes: 30,
   containingProject: { name: 'Test Project', id: { primaryKey: 'proj-xyz' } },
   tags: [{ name: 'work' }],
+  added: new Date('2026-01-01'),
+  modified: new Date('2026-03-01'),
+  repetitionRule: null,
+  inInbox: false,
 };
 
 globalThis.Task = { Status: { Available: 'available', Completed: 'completed', Dropped: 'dropped', Blocked: 'blocked' }, byIdentifier: (_id) => STUB_TASK };

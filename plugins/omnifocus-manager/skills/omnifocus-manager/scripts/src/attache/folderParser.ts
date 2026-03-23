@@ -27,7 +27,7 @@
             throw new Error("Folder parameter is required");
         }
 
-        const parsedFolder = {
+        const parsedFolder: any = {
             id: folder.id.primaryKey,
             name: folder.name,
             depth: depth

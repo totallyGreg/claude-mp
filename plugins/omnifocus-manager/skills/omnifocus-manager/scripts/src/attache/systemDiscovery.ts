@@ -36,7 +36,6 @@
 
     // Person/waiting detection patterns
     const PERSON_PATTERNS = ["waiting", "delegated", "pending", "from:", "to:"];
-    const WAITING_PREFIXES = ["waiting", "delegated", "pending", "w:"];
 
     // Status tag patterns
     const STATUS_PATTERNS = ["hold", "someday", "maybe", "review", "later", "paused"];
@@ -63,8 +62,9 @@
      * @param {Object} options - { depth: "quick"|"full" }
      * @returns {Object} SystemMap
      */
-    lib.discoverSystem = function(options = {}) {
+    lib.discoverSystem = function(options: any = {}) {
         const depth = options.depth || "quick";
+        const waitingPatterns = options.waitingPatterns || ["waiting", "delegated", "pending", "w:"];
 
         // Phase 1: Collect raw data
         const rawData = {
@@ -77,7 +77,7 @@
         // Phase 2: Infer patterns (rule-based)
         const inferences = {
             folderTypes: this.inferFolderTypes(rawData.folders),
-            tagCategories: this.inferTagCategories(rawData.tags),
+            tagCategories: this.inferTagCategories(rawData.tags, waitingPatterns),
             conventions: this.detectConventions(rawData)
         };
 
@@ -130,7 +130,7 @@
         if (aiInsights.tagInsights && enhanced.tags.categories) {
             aiInsights.tagInsights.forEach(insight => {
                 // Find the tag in any category and add AI insights
-                for (const category of Object.values(enhanced.tags.categories)) {
+                for (const category of Object.values(enhanced.tags.categories) as any[]) {
                     const tag = category.find(t => t.tag === insight.tagName);
                     if (tag) {
                         tag.aiCategory = insight.inferredCategory;
@@ -239,7 +239,7 @@
     lib.collectProjectData = function() {
         const allProjects = flattenedProjects || [];
 
-        const stats = {
+        const stats: any = {
             total: allProjects.length,
             active: 0,
             onHold: 0,
@@ -311,7 +311,7 @@
         const allTasks = flattenedTasks || [];
         const activeTasks = allTasks.filter(t => !t.completed && !t.dropped);
 
-        const stats = {
+        const stats: any = {
             total: allTasks.length,
             active: activeTasks.length,
             completed: allTasks.filter(t => t.completed).length,
@@ -406,7 +406,7 @@
      * @param {Array} tagData - Collected tag data
      * @returns {Object} Categorized tags
      */
-    lib.inferTagCategories = function(tagData) {
+    lib.inferTagCategories = function(tagData, waitingPatterns) {
         const categories = {
             contexts: [],
             people: [],
@@ -436,7 +436,7 @@
             }
             // Check waiting/person patterns
             else if (PERSON_PATTERNS.some(p => name.includes(p)) ||
-                     WAITING_PREFIXES.some(p => name.startsWith(p))) {
+                     waitingPatterns.some(p => name.startsWith(p))) {
                 category = "people";
                 meaning = "delegated or waiting for";
             }
@@ -544,9 +544,9 @@
      * @returns {Object} GTD health assessment
      */
     lib.calculateGTDHealth = function(rawData) {
-        const health = {
+        const health: any = {
             overallScore: 0,
-            phases: {}
+            phases: {} as any
         };
 
         // Phase 1: Capture/Collection
@@ -597,8 +597,8 @@
         let totalWeight = 0;
         let weightedSum = 0;
 
-        for (const [phase, data] of Object.entries(health.phases)) {
-            const weight = weights[phase] || 1;
+        for (const [phase, data] of Object.entries(health.phases) as [string, any][]) {
+            const weight = (weights as any)[phase] || 1;
             weightedSum += data.score * weight;
             totalWeight += weight;
         }
@@ -725,8 +725,8 @@
             }));
 
         // Count tags by category
-        const tagCategoryCounts = {};
-        for (const [category, tags] of Object.entries(inferences.tagCategories)) {
+        const tagCategoryCounts: any = {};
+        for (const [category, tags] of Object.entries(inferences.tagCategories) as [string, any][]) {
             tagCategoryCounts[category] = tags.length;
         }
 
@@ -975,7 +975,7 @@
             .join("\n");
 
         const tagList = [];
-        for (const [category, tags] of Object.entries(systemMap.tags.categories)) {
+        for (const [category, tags] of Object.entries(systemMap.tags.categories) as [string, any][]) {
             tags.slice(0, 5).forEach(t => {
                 tagList.push(`- "${t.tag}" (${t.usage} tasks, rule-based: ${category})`);
             });
@@ -1044,7 +1044,7 @@ Focus on semantic understanding - what do these names MEAN to the user, not just
         lines.push("## GTD Health Analysis");
         lines.push("");
 
-        for (const [phase, data] of Object.entries(systemMap.gtdHealth.phases)) {
+        for (const [phase, data] of Object.entries(systemMap.gtdHealth.phases) as [string, any][]) {
             const phaseName = phase.charAt(0).toUpperCase() + phase.slice(1);
             const emoji = data.score >= 7 ? "✅" : data.score >= 5 ? "⚠️" : "❌";
             lines.push(`### ${emoji} ${phaseName} (${data.score}/10)`);
@@ -1073,7 +1073,7 @@ Focus on semantic understanding - what do these names MEAN to the user, not just
         lines.push(`**Style:** ${systemMap.tags.taxonomyStyle}`);
         lines.push("");
 
-        for (const [category, tags] of Object.entries(systemMap.tags.categories)) {
+        for (const [category, tags] of Object.entries(systemMap.tags.categories) as [string, any][]) {
             if (tags.length > 0) {
                 const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
                 lines.push(`### ${categoryName} (${tags.length})`);
@@ -1172,7 +1172,7 @@ Focus on semantic understanding - what do these names MEAN to the user, not just
         lines.push("");
         lines.push("GTD Phases:");
 
-        for (const [phase, data] of Object.entries(systemMap.gtdHealth.phases)) {
+        for (const [phase, data] of Object.entries(systemMap.gtdHealth.phases) as [string, any][]) {
             const emoji = data.score >= 7 ? "✓" : data.score >= 5 ? "~" : "✗";
             lines.push(`  ${emoji} ${phase}: ${data.score}/10`);
         }
