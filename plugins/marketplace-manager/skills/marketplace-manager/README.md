@@ -1,20 +1,20 @@
 # marketplace-manager
 
+Marketplace Manager solves the problem of keeping `marketplace.json` in sync with the actual state of skills and plugins in a Claude Code repository. Use it when publishing a new skill, bumping a plugin version, validating marketplace structure, or setting up the pre-commit hook that automates sync on every commit. It is distinct from `plugin-dev` (which handles component creation) in that it owns the distribution layer: version syncing, scaffolding, deprecation, and bundling analysis.
+
 ## Capabilities
 
->-
-This skill should be used when managing Claude Code plugin marketplace
-operations including version syncing, skill publishing, and marketplace.json
-maintenance. Supports programmatic invocation by other skills for automated
-version management. Use when adding skills to marketplace, updating skill
-versions, syncing marketplace.json, or managing plugin distributions.
-Triggers on "sync versions", "validate plugin", "add to marketplace",
-"check marketplace", "update marketplace", "create plugin", "configure
-marketplace hook", or "fix version mismatch".
+- Sync plugin versions from SKILL.md or plugin.json frontmatter to marketplace.json automatically or in manual mode
+- Validate marketplace.json structure including undeclared skills, version format, required fields, and duplicate plugin names
+- Add skills to existing plugins or create new plugin entries with correct source-path layout
+- Install and manage a pre-commit hook that auto-syncs marketplace.json and stages updates before every commit
+- Scaffold new plugins and migrate legacy skills using create_plugin.py and migrate_to_plugin.py
+- Deprecate skills from the marketplace with reference scanning, migration guide generation, and dry-run preview
+- Analyze skill bundling affinity scores to recommend logical groupings for distribution
 
 ## Current Metrics
 
-*Last evaluated: 2026-03-21*
+*Last evaluated: 2026-03-22*
 
 | Metric | Score | Interpretation |
 |--------|-------|----------------|
@@ -29,22 +29,35 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 ## Version History
 
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
-|---------|------|-------|---------|------|------|------|------|---------|
-| 2.8.0 | 2026-03-21 | - | Undeclared skill detection in validate; uv guard on add_to_marketplace.py; license field fix | 100 | 90 | 100 | 100 | 98 |
-| 2.5.1 | 2026-03-03 | - | Add trigger phrases to description | 100 | 83 | 90 | 100 | 93 |
-| 2.5.0 | 2026-03-03 | [#25](https://github.com/totallyGreg/claude-mp/issues/25), [#30](https://github.com/totallyGreg/claude-mp/issues/30), [#75](https://github.com/totallyGreg/claude-mp/issues/75), [#78](https://github.com/totallyGreg/claude-mp/issues/78) | plugin-dev docs, two-pass find_repo_root(), plugin.json schema validation, pre-commit hook v5.0.0 with drift/mismatch separation | 100 | 83 | 90 | 100 | 89 |
-| 2.4.0 | 2026-03-03 | [#78](https://github.com/totallyGreg/claude-mp/issues/78) | Detect skill version drift from plugin.json in multi-skill plugins | - | - | - | - | - |
-| 2.3.0 | 2026-02-16 | - | Plugin versioning strategy: plugin.json as version source, detect refactor, hook stages README.md | 100 | 83 | 90 | 100 | 89 |
-| 2.0.0 | 2026-02-03 | - | Standalone plugin migration: Moved to plugins/, added commands, improved SKILL.md conciseness | - | - | - | - | - |
-| 1.5.0 | 2026-01-23 | - | Deprecate skill-planner skill: Removed from marketplace, updated workflow documentation | - | - | - | - | - |
-| 1.4.0 | 2026-01-22 | [#4](https://github.com/totallyGreg/claude-mp/issues/4), [#5](https://github.com/totallyGreg/claude-mp/issues/5) | Core marketplace operations automation: source path fixes, deprecation, bundling, templates | - | - | - | - | 75 |
-| 1.3.0 | 2026-01-07 | - | Critical bug fixes: utils.py dependency, schema compliance, metadata.version parsing | - | - | - | - | - |
-| 1.1.0 | 2025-12-22 | - | Added plugin versioning strategies, validation command, pre-commit hook | - | - | - | - | - |
-| 1.0.0 | 2025-12-21 | - | Initial release | - | - | - | - | - |
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
+|---------|------|-------|---------|------|------|------|------|------|---------|
+| 2.8.0 | 2026-03-21 | - | Undeclared skill detection in validate; uv guard on add_to_marketplace.py; license field fix | 100 | 90 | 100 | 100 | 100 | 98 |
+| 2.5.1 | 2026-03-03 | - | Add trigger phrases to description | 100 | 83 | 90 | 100 | - | 93 |
+| 2.5.0 | 2026-03-03 | [#25](https://github.com/totallyGreg/claude-mp/issues/25), [#30](https://github.com/totallyGreg/claude-mp/issues/30), [#75](https://github.com/totallyGreg/claude-mp/issues/75), [#78](https://github.com/totallyGreg/claude-mp/issues/78) | plugin-dev docs, two-pass find_repo_root(), plugin.json schema validation, pre-commit hook v5.0.0 with drift/mismatch separation | 100 | 83 | 90 | 100 | - | 89 |
+| 2.4.0 | 2026-03-03 | [#78](https://github.com/totallyGreg/claude-mp/issues/78) | Detect skill version drift from plugin.json in multi-skill plugins | - | - | - | - | - | - |
+| 2.3.0 | 2026-02-16 | - | Plugin versioning strategy: plugin.json as version source, detect refactor, hook stages README.md | 100 | 83 | 90 | 100 | - | 89 |
+| 2.0.0 | 2026-02-03 | - | Standalone plugin migration: Moved to plugins/, added commands, improved SKILL.md conciseness | - | - | - | - | - | - |
+| 1.5.0 | 2026-01-23 | - | Deprecate skill-planner skill: Removed from marketplace, updated workflow documentation | - | - | - | - | - | - |
+| 1.4.0 | 2026-01-22 | [#4](https://github.com/totallyGreg/claude-mp/issues/4), [#5](https://github.com/totallyGreg/claude-mp/issues/5) | Core marketplace operations automation: source path fixes, deprecation, bundling, templates | - | - | - | - | - | 75 |
+| 1.3.0 | 2026-01-07 | - | Critical bug fixes: utils.py dependency, schema compliance, metadata.version parsing | - | - | - | - | - | - |
+| 1.1.0 | 2025-12-22 | - | Added plugin versioning strategies, validation command, pre-commit hook | - | - | - | - | - | - |
+| 1.0.0 | 2025-12-21 | - | Initial release | - | - | - | - | - | - |
 
-**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure (0-100 scale)
+**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure, Desc=Description Quality (0-100 scale)
+
+## Active Work
+
+- None.
+
+## Known Issues
+
+- None.
+
+## Archive
+
+- Git history: `git log --grep="marketplace-manager"`
+- Closed issues: https://github.com/totallyGreg/claude-mp/issues?q=label:enhancement+is:closed
 
 ---
 
-*Generated by skillsmith on 2026-03-21. Run `uv run scripts/evaluate_skill.py <path> --update-readme` to refresh.*
+*Run `uv run scripts/evaluate_skill.py <path> --update-readme` to refresh metrics.*

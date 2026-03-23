@@ -1,18 +1,16 @@
 # vault-curator
 
+Vault Curator evolves and curates existing Obsidian vault content through a suite of intelligent workflows. It solves the problem of vault entropy — duplicate notes, inconsistent metadata, orphaned files, and hidden connections — without requiring a full restructure. Use it when you need to detect schema drift, merge duplicates, surface related notes, or generate a visual knowledge map. It is distinct from vault-architect, which handles creating new structures; vault-curator focuses on understanding and improving what already exists.
+
 ## Capabilities
 
->
-This skill should be used when users ask to "analyze vault metadata",
-"check for schema drift", "fix duplicate notes", "update note properties",
-"generate canvas", "improve vault connections", "create discovery view",
-"validate frontmatter consistency", "build knowledge map",
-"check for orphaned notes", or "analyze note relationships".
-Also handles: "find duplicates", "merge notes", "redirect links",
-"suggest properties", "show connections", "extract meeting from log",
-"migrate vault notes", "visualize my notes", or "show me a map".
-Curates and evolves existing vault content through pattern detection, migration workflows,
-metadata intelligence, consolidation, discovery, visualization, and programmatic manipulation.
+- Detect and fix schema drift — scan notes by fileClass, report missing or inconsistent properties, and suggest standardization
+- Find and merge duplicate notes with dry-run previews, conflict resolution, and git checkpoints before execution
+- Redirect vault-wide wikilinks after a merge to keep references accurate
+- Surface related notes and suggest auto-linking based on shared tags, properties, and folder proximity
+- Generate scoped knowledge maps as `.canvas` files with color-coded nodes and wikilink edges
+- Extract meeting information from daily logs or inline entries into structured meeting notes using Templater templates
+- Suggest missing frontmatter properties for a note by analyzing peer notes in the same fileClass or folder
 
 ## Current Metrics
 
@@ -31,19 +29,34 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 ## Version History
 
-| Version | Date | Changes | Overall | Conc | Comp | Spec | Prog | Desc |
-|---------|------|---------|---------|------|------|------|------|------|
-| 1.7.0 | 2026-03-22 | Delegate CLI ops to marketplace skills; promote `create overwrite` write pattern inline; strip generic commands from cli-patterns.md to gotchas-only | 98 | 90 | 100 | 100 | 100 | 97 |
-| 1.6.0 | 2026-03-20 | Add read/append/insertion CLI patterns to references; add license; move scripts table to reference; add available-scripts.md | 97 | 98 | 90 | 100 | 100 | 100 |
-| 1.5.3 | 2026-03-16 | Fix: document `obsidian file` is read-only; warn content/overwrite silently ignored (#103) | 90 | 78 | 88 | 90 | 100 | 100 |
-| 1.5.2 | 2026-03-14 | Fix: document create+move pattern; warn folder= in create is unreliable | 78 | 88 | 90 | 100 | 90 | — |
-| 1.5.1 | 2026-03-05 | Description + conciseness improvement: 11 trigger phrases, CLI moved to ref, planned scripts fixed (#89) | 90 | 78 | 88 | 90 | 100 | 100 |
-| 1.5.0 | 2026-02-16 | Visualization workflows: generate_canvas.py | 85 | 66 | 86 | 90 | 100 | 80 |
-| 1.4.0 | 2026-02-16 | Discovery workflows: find_related.py, progressive discovery views, auto-linking suggestions. SKILL.md + pkm-manager agent updated. Skillsmith eval: 87/100 (conciseness 76, complexity 88, spec 90, progressive 100, description 80) |
-| 1.3.0 | 2026-02-16 | Consolidation workflows: find_similar_notes.py, merge_notes.py, redirect_links.py, consolidation-protocol.md reference. Skillsmith eval: 89/100 |
-| 1.2.0 | 2026-02-15 | Scope selection, metadata workflows (suggest_properties.py, detect_schema_drift.py), SKILL.md restructure, pkm-manager agent CLI integration |
-| 1.0.0 | 2026-02-10 | Initial release with meeting extraction, migration patterns, and pattern detection workflows |
+| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
+|---------|------|-------|---------|------|------|------|------|------|---------|
+| 1.7.0 | 2026-03-22 | - | Delegate CLI ops to marketplace skills; promote `create overwrite` write pattern inline; strip generic commands from cli-patterns.md to gotchas-only | 98 | 90 | 100 | 100 | 100 | 97 |
+| 1.6.0 | 2026-03-20 | - | Add read/append/insertion CLI patterns to references; add license; move scripts table to reference; add available-scripts.md | 97 | 98 | 90 | 100 | 100 | 100 |
+| 1.5.3 | 2026-03-16 | [#103](https://github.com/totallyGreg/claude-mp/issues/103) | Fix: document `obsidian file` is read-only; warn content/overwrite silently ignored | 78 | 88 | 90 | 100 | 100 | 90 |
+| 1.5.2 | 2026-03-14 | - | Fix: document create+move pattern; warn folder= in create is unreliable | 88 | 90 | 100 | 90 | - | 78 |
+| 1.5.1 | 2026-03-05 | [#89](https://github.com/totallyGreg/claude-mp/issues/89) | Description + conciseness improvement: 11 trigger phrases, CLI moved to ref, planned scripts fixed | 78 | 88 | 90 | 100 | 100 | 90 |
+| 1.5.0 | 2026-02-16 | - | Visualization workflows: generate_canvas.py | 66 | 86 | 90 | 100 | 80 | 85 |
+| 1.4.0 | 2026-02-16 | [#46](https://github.com/totallyGreg/claude-mp/issues/46) | Discovery workflows: find_related.py, progressive discovery views, auto-linking suggestions | 76 | 88 | 90 | 100 | 80 | 87 |
+| 1.3.0 | 2026-02-16 | [#45](https://github.com/totallyGreg/claude-mp/issues/45) | Consolidation workflows: find_similar_notes.py, merge_notes.py, redirect_links.py, consolidation-protocol.md | - | - | - | - | - | 89 |
+| 1.2.0 | 2026-02-15 | [#44](https://github.com/totallyGreg/claude-mp/issues/44) | Scope selection, metadata workflows (suggest_properties.py, detect_schema_drift.py), SKILL.md restructure | - | - | - | - | - | - |
+| 1.0.0 | 2026-02-10 | - | Initial release with meeting extraction, migration patterns, and pattern detection workflows | - | - | - | - | - | - |
+
+**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure, Desc=Description Quality (0-100 scale)
+
+## Active Work
+
+- None.
+
+## Known Issues
+
+- None.
+
+## Archive
+
+- Git history: `git log --grep="vault-curator"`
+- Closed issues: https://github.com/totallyGreg/claude-mp/issues?q=label:enhancement+is:closed
 
 ---
 
-*Generated by skillsmith on 2026-03-20. Run `uv run scripts/evaluate_skill.py <path> --update-readme` to refresh.*
+*Run `uv run scripts/evaluate_skill.py <path> --update-readme` to refresh metrics.*

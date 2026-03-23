@@ -1,7 +1,7 @@
 ---
 title: "fix(skillsmith): resolve remaining open issues"
 type: fix
-status: active
+status: completed
 date: 2026-03-22
 ---
 
