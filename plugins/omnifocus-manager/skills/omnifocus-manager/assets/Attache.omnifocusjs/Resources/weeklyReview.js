@@ -21,8 +21,7 @@
 
 (() => {
     function section(title) {
-        const pad = '─'.repeat(Math.max(0, 44 - title.length - 4));
-        return `── ${title} ${pad}`;
+        return `── ${title}`;
     }
 
     // Concurrency guard — scoped to IIFE closure so it persists across perform() calls
@@ -108,9 +107,8 @@
             const session = fmUtils.createSession(GTD_COACH);
 
             // == Step 1: Get Clear (Inbox) ==
-            const inboxTasks = flattenedTasks.filter(
-                t => t.containingProject === null && !t.completed && !t.dropped
-            );
+            // Use `inbox` global (top-level inbox items only) — flattenedTasks includes sub-tasks of inbox items
+            const inboxTasks = inbox.filter(t => !t.completed && !t.dropped);
 
             reviewSummary.inboxCount = inboxTasks.length;
 

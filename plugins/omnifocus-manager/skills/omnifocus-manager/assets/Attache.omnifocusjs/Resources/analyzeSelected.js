@@ -13,8 +13,7 @@
 
 ;(() => {
   function section(title) {
-    const pad = '─'.repeat(Math.max(0, 44 - title.length - 4));
-    return `── ${title} ${pad}`;
+    return `── ${title}`;
   }
 
   const action = new PlugIn.Action(async function (selection, sender) {
