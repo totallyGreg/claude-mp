@@ -17,6 +17,7 @@
   },
   "include": [
     "ofo-core.ts",
+    "ofo-contract.d.ts",
     "ofo-core-ambient.d.ts",
     "../../typescript/omnifocus.d.ts",
     "../../typescript/omnifocus-extensions.d.ts"

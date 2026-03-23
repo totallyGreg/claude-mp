@@ -240,27 +240,27 @@ See `references/jxa_guide.md` for complete JXA reference and `loadLibrary` imple
 
 ### Core Guides
 - **[Official OmniFocus API](https://omni-automation.com/omnifocus/OF-API.html)** - Canonical API reference (verify here when unsure)
-- **[API Reference](references/api_reference.md)** - Local quick lookup tables
-- **[Omni Automation Guide](references/omni_automation_guide.md)** - Plugin development
-- **[JXA Guide](references/jxa_guide.md)** - Command-line automation
-- **[GTD Guide](references/gtd_guide.md)** - GTD-to-OmniFocus mapping
+- `references/api_reference.md` - Local quick lookup tables
+- `references/omni_automation_guide.md` - Plugin development
+- `references/jxa_guide.md` - Command-line automation
+- `references/gtd_guide.md` - GTD-to-OmniFocus mapping
 
 ### Perspectives & Channels
-- **[Perspective Creation](references/perspective_creation.md)** - Guided configuration (v4.2+)
-- **[Perspective Templates](references/perspective_templates.md)** - 8 canonical GTD perspective JSON configs
-- **[Channel Selection](references/channel_selection.md)** - Mac vs iOS routing, library composition, URL security
-- **[URL Scheme Reference](references/omnifocus_url_scheme.md)** - Quick capture and linking
+- `references/perspective_creation.md` - Guided configuration (v4.2+)
+- `references/perspective_templates.md` - 8 canonical GTD perspective JSON configs
+- `references/channel_selection.md` - Mac vs iOS routing, library composition, URL security
+- `references/omnifocus_url_scheme.md` - Quick capture and linking
 
 ### Validation & Best Practices
-- **[Code Generation Validation](references/code_generation_validation.md)** - TypeScript validation rules
-- **[Automation Best Practices](references/automation_best_practices.md)** - Patterns and anti-patterns
+- `references/code_generation_validation.md` - TypeScript validation rules, build pipeline, Attache @ts-check gate
+- `references/automation_best_practices.md` - Patterns and anti-patterns
+- `references/library_ecosystem.md` - Attache plugin libraries: taskMetrics, exportUtils, preferencesManager, and ofoCore overlap guide
 
 ### Technical References
-- [omnifocus_api.md](references/omnifocus_api.md) - Full API specification
-- [Omni Automation API Mapping](references/omni_automation_api_mapping.md) - JXA vs script URL API differences
-- [Foundation Models Integration](references/foundation_models_integration.md) - Apple Intelligence (macOS 26+)
-- [Example Plugin](references/example-plugin.ts) - Annotated TypeScript plugin template for new plugin development
-- [Database Schema](references/database_schema.md), [Shared Classes](references/omni_automation_shared.md), [Insight Patterns](references/insight_patterns.md), [Workflows](references/workflows.md), [Troubleshooting](references/troubleshooting.md)
+- `references/omnifocus_api.md` - Full API specification
+- `references/omni_automation_api_mapping.md` - JXA vs script URL API differences
+- `references/foundation_models_integration.md` - Apple Intelligence (macOS 26+)
+- `references/omni_automation_shared.md`, `references/database_schema.md`, `references/insight_patterns.md`, `references/workflows.md`
 
 ---
 
@@ -270,4 +270,4 @@ See `references/troubleshooting.md` for permission issues, common errors, and de
 
 ---
 
-**Current version:** 9.3.0 — See README.md for version history.
+**Current version:** 9.4.0 — See README.md for version history.

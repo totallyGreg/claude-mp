@@ -231,8 +231,9 @@ window, document.querySelector(), localStorage, fetch()
 // Non-existent OmniFocus APIs
 Document.defaultDocument  // Use globals instead
 Progress                  // Doesn't exist
-FileType.fromExtension()  // Doesn't exist
 ```
+
+> **Note on `FileType.fromExtension()`:** Available in Omni Automation plugin context (used in Attache `exportUtils.js`), but NOT available in JXA/osascript context. See `references/library_ecosystem.md` for Attache library reference.
 
 ### Plugin Structure
 ✅ **DO:**
@@ -609,6 +610,112 @@ node scripts/generate_plugin.js --format solitary --name "My Plugin"
 
 ---
 
-**Generated:** 2026-01-17
-**Version:** 4.1.0
+---
+
+## Attache Plugin @ts-check Gate (v9.4.0+)
+
+All Attache plugin JS libraries (`Resources/*.js`) are now type-checked as part of the build pipeline using a dedicated TypeScript configuration. This catches type errors in the plugin code itself — not just the generated ofo-core output.
+
+### Configuration Files
+
+**`scripts/src/tsconfig.attache.json`** — runs `tsc --noEmit` against all Attache Resources:
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "checkJs": true, "allowJs": true, "noEmit": true,
+    "strict": false, "lib": ["ES2020"], "skipLibCheck": true
+  },
+  "files": [
+    "../../typescript/omnifocus.d.ts",
+    "../../typescript/omnifocus-extensions.d.ts",
+    "ofo-contract.d.ts",
+    "omni-attache-ambient.d.ts"
+  ],
+  "include": ["../../assets/Attache.omnifocusjs/Resources/*.js"]
+}
+```
+
+**`scripts/src/omni-attache-ambient.d.ts`** — runtime patches not covered by the 2021 OmniFocus stubs:
+- Optional args for `Console`, `Alert`, `Form.show/addField`
+- `PlugIn.Library` index signature (`[key: string]: any`)
+- `Project/Task.Status.name: string`
+- Missing properties: `Task.dropped`, `Project.added`, `Project.lastReviewedDate`, `Folder.flattenedTasks`, `Device.name`
+- `FileSaver.show()` with no-arg overload, `FileWrapper.fromString/write`
+- `FileType.fromExtension(ext): TypeIdentifier`
+- `folderNamed(name)` global function
+
+> **`skipLibCheck: true`** is required to avoid conflicts between `ofo-core-ambient.d.ts` and `omnifocus-extensions.d.ts` (both declare a `tags` global with different types).
+
+### Running the Gate
+
+```bash
+cd plugins/omnifocus-manager/skills/omnifocus-manager/scripts/src
+npx tsc -p tsconfig.attache.json
+# Must exit 0 before committing Attache JS changes
+```
+
+### Date Arithmetic Pattern
+
+TypeScript's no-Date-arithmetic rule requires unary `+` when subtracting dates:
+
+```javascript
+// ❌ TypeScript error: Operator '-' cannot be applied to type 'Date'
+const age = new Date() - task.added;
+
+// ✅ Correct: coerce to number first
+const age = +new Date() - +task.added;
+```
+
+### Form.Field.Option 6th Arg
+
+The `nullOptionTitle` (6th constructor arg) is optional at runtime but required in the type stubs. Use `// @ts-ignore` when omitting it:
+
+```javascript
+// @ts-ignore — 6th arg (nullOptionTitle) is optional at runtime
+const depthField = new Form.Field.Option("depth", "Label", values, labels, default);
+```
+
+---
+
+## Build Pipeline: ofo-core (v9.4.0+)
+
+### IIFE Footer Assertion (`build-plugin.sh`)
+
+After compiling `ofo-core.ts → ofoCore.js`, the build script asserts every exported function exists at the top level of the IIFE:
+
+```bash
+for fn in getTask completeTask createTask updateTask searchTasks listTasks \
+          getPerspective configurePerspective tagTask getTags createBatch \
+          getPerspectiveRules dumpDatabase getStats assessClarity stalledProjects dispatch; do
+  grep -q "^function ${fn}(" "${BUILT_JS}" || \
+    { echo "ERROR: '${fn}' missing from IIFE exports"; exit 1; }
+done
+```
+
+When adding a new exported function to `ofo-core.ts`, also add it to:
+1. The `lib.<fn> = <fn>;` block in the IIFE footer (`build-plugin.sh`)
+2. The assertion loop above
+3. The `dispatch` switch in `ofo-core.ts`
+
+### Shape Consistency Verification (`diff-task-shapes.js`)
+
+Verifies that `getTask`, `searchTasks`, and `listTasks` all return identical field sets, preventing client-side field-set drift:
+
+```bash
+cd skills/omnifocus-manager
+osascript -l JavaScript scripts/diff-task-shapes.js
+# Should report: "All query functions return identical field sets"
+```
+
+Run after modifying `normalizeTask()` in `ofo-core.ts`.
+
+### Shared Type Contract (`ofo-contract.d.ts`)
+
+`scripts/src/ofo-contract.d.ts` defines the canonical `OfoTask` interface shared by both CLI (`ofo-cli.ts`) and plugin (`ofo-core.ts`). Serves as the single source of truth for the task shape. Also included in `tsconfig.attache.json` for Attache library type-checking.
+
+---
+
+**Generated:** 2026-01-17 | **Updated:** 2026-03-23
+**Version:** 4.2.0
 **Purpose:** Prevent code generation failures through systematic validation

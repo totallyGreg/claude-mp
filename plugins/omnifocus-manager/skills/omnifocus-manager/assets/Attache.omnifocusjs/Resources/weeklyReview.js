@@ -120,7 +120,7 @@
                     (a.added && b.added && a.added < b.added) ? a : b
                 );
                 const oldestDays = oldest.added
-                    ? Math.floor((new Date() - oldest.added) / (1000 * 60 * 60 * 24))
+                    ? Math.floor((+new Date() - +oldest.added) / (1000 * 60 * 60 * 24))
                     : 0;
 
                 const coaching = await getCoaching(session,
@@ -221,7 +221,7 @@
             } else {
                 const waitingNames = waitingTasks.slice(0, 10).map(t => {
                     const age = t.modified
-                        ? Math.floor((new Date() - t.modified) / (1000 * 60 * 60 * 24))
+                        ? Math.floor((+new Date() - +t.modified) / (1000 * 60 * 60 * 24))
                         : null;
                     return age !== null ? `${t.name} (${age}d)` : t.name;
                 });
@@ -279,7 +279,7 @@
             } else {
                 const onHoldNames = onHoldProjects.slice(0, 8).map(p => {
                     const age = p.lastModified
-                        ? Math.floor((new Date() - p.lastModified) / (1000 * 60 * 60 * 24))
+                        ? Math.floor((+new Date() - +p.lastModified) / (1000 * 60 * 60 * 24))
                         : null;
                     return age ? `${p.name} (${age}d)` : p.name;
                 });
@@ -394,7 +394,7 @@
                 step6Message = "No overdue tasks and no upcoming due dates in the next 7 days.\n\nYour horizon looks clear!";
             } else {
                 const overdueList = overdueTasks.slice(0, 5).map(t => {
-                    const days = Math.floor((new Date() - new Date(t.dueDate)) / (1000 * 60 * 60 * 24));
+                    const days = Math.floor((+new Date() - +new Date(t.dueDate)) / (1000 * 60 * 60 * 24));
                     return `${t.name} (${days}d)`;
                 }).join(', ');
 
@@ -416,7 +416,7 @@
                 if (overdueTasks.length > 0) {
                     step6Message += `${section("Overdue")} ${overdueTasks.length} tasks\n`;
                     overdueTasks.slice(0, 5).forEach(t => {
-                        const days = Math.floor((new Date() - new Date(t.dueDate)) / (1000 * 60 * 60 * 24));
+                        const days = Math.floor((+new Date() - +new Date(t.dueDate)) / (1000 * 60 * 60 * 24));
                         step6Message += `  · ${t.name} [${t.project || "Inbox"}] — ${days}d\n`;
                     });
                     if (overdueTasks.length > 5) step6Message += `  ··· and ${overdueTasks.length - 5} more\n`;

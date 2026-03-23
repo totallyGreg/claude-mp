@@ -102,7 +102,7 @@
 
         // Days since project creation
         const daysActive = project.added
-            ? Math.floor((today - project.added) / (1000 * 60 * 60 * 24))
+            ? Math.floor((+today - +project.added) / (1000 * 60 * 60 * 24))
             : 0;
 
         // Check for overdue accumulation (more than 3 overdue tasks suggests scope creep)
@@ -164,7 +164,7 @@
         let needsReview = false;
 
         if (lastReviewed) {
-            daysSinceReview = Math.floor((today - lastReviewed) / (1000 * 60 * 60 * 24));
+            daysSinceReview = Math.floor((+today - +lastReviewed) / (1000 * 60 * 60 * 24));
             // Projects should be reviewed at least monthly (30 days)
             needsReview = daysSinceReview > 30;
         } else {

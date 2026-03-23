@@ -1,7 +1,7 @@
 ---
 title: "feat: TypeScript Shared Sync — ofo-core and Attache Convergence"
 type: feat
-status: active
+status: completed
 date: 2026-03-22
 parent_issue: 111
 related_plans:

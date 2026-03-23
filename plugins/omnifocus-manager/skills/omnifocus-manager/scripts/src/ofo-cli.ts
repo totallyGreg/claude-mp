@@ -520,6 +520,22 @@ function cmdStats(): void {
   runAction('ofo-stats', {});
 }
 
+function cmdClarity(args: string[]): void {
+  let limit = '10';
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--limit') limit = args[++i] || '10';
+  }
+  runAction('ofo-clarity', { limit });
+}
+
+function cmdStalled(args: string[]): void {
+  let days = '14';
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--days') days = args[++i] || '14';
+  }
+  runAction('ofo-stalled', { days });
+}
+
 function cmdHelp(): void {
   process.stdout.write(`ofo -- OmniFocus CLI via plugin library
 
@@ -539,6 +555,8 @@ Commands:
   completed-today [--markdown]      Today's completions categorized by tag
   dump                              Full database snapshot (active tasks, projects, perspectives) as JSON
   stats                             Counts: inbox, flagged, overdue, projects, tasks, reviewOverdue, plannedToday, withEstimate
+  clarity [--limit N]               Tasks with lowest clarity score (no estimate/tags/project); default limit 10
+  stalled [--days N]                Active projects with no available next action or not modified in N days (default 14)
   help                              Show this help
 
 Filters for 'list':
@@ -634,6 +652,8 @@ switch (command) {
   case 'completed-today':       cmdCompletedToday(commandArgs); break;
   case 'dump':                  cmdDump(); break;
   case 'stats':                 cmdStats(); break;
+  case 'clarity':               cmdClarity(commandArgs); break;
+  case 'stalled':               cmdStalled(commandArgs); break;
   case 'help':
   case '--help':
   case '-h':          cmdHelp(); break;

@@ -49,6 +49,7 @@
      * @returns {Project} The synced preferences project
      */
     function getSyncedProject() {
+        // @ts-ignore — Folder(name) works at runtime; position defaults to root
         const folder = folderNamed(SYNCED_PREFS_NAME) || new Folder(SYNCED_PREFS_NAME);
         return folder.projectNamed(SYNCED_PREFS_NAME) || new Project(SYNCED_PREFS_NAME, folder);
     }

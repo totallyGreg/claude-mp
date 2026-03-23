@@ -56,7 +56,7 @@
 
             const overdueSummary = limitedOverdue.length > 0
                 ? limitedOverdue.map(t => {
-                    const days = Math.floor((new Date() - new Date(t.dueDate)) / (1000 * 60 * 60 * 24));
+                    const days = Math.floor((+new Date() - +new Date(t.dueDate)) / (1000 * 60 * 60 * 24));
                     return `- ${t.name} [${t.project || "Inbox"}] (${days}d overdue)`;
                 }).join('\n')
                 : "(none)";

@@ -1,15 +1,16 @@
 /**
- * ofo-types.ts — ESM re-export wrapper for the ofo CLI ↔ ofoCore type contract.
+ * ofo-contract.d.ts — Pure ambient shared type contract.
  *
- * The canonical declarations live in ofo-contract.d.ts (pure ambient, no imports).
- * This file re-exports them for Node consumers (ofo-cli.ts) that need module imports.
+ * Single source of truth for types shared between ofo-core (plugin) and ofo-cli (CLI).
+ * No import() expressions. No exports. Consumed by:
+ *   - tsconfig.plugin.json (plugin compilation, no ESM)
+ *   - tsconfig.cli.json (CLI compilation, ESM)
+ *   - tsconfig.attache.json (Attache @ts-check, future)
  *
- * When adding a new action:
- *   1. Add to OfoAction in ofo-contract.d.ts (consumed by plugin + @ts-check gate)
- *   2. The re-export here picks it up automatically via the ambient declaration.
+ * ofo-types.ts is a thin ESM re-export wrapper for Node consumers that need module imports.
  */
 
-export type OfoAction =
+declare type OfoAction =
   | 'ofo-info'
   | 'ofo-complete'
   | 'ofo-create'
@@ -27,18 +28,18 @@ export type OfoAction =
   | 'ofo-clarity'
   | 'ofo-stalled';
 
-export interface OfoArgs {
+declare interface OfoArgs {
   action: OfoAction;
   [key: string]: unknown;
 }
 
-export interface OfoResult {
+declare interface OfoResult {
   success: boolean;
   error?: string;
   [key: string]: unknown;
 }
 
-export interface OfoTask {
+declare interface OfoTask {
   id: string;
   name: string;
   project: string | null;
@@ -54,7 +55,7 @@ export interface OfoTask {
   repetitionRule: string | null;
 }
 
-export interface OfoStats {
+declare interface OfoStats {
   inbox: number;
   overdue: number;
   flagged: number;
