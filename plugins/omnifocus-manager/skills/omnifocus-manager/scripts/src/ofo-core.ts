@@ -10,6 +10,81 @@
 // OfoAction, OfoArgs, OfoResult are declared as ambient types in
 // ofo-core-ambient.d.ts (included via tsconfig.plugin.json).
 
+// === SHARED HELPERS ===
+
+/**
+ * normalizeTask — single canonical task shape used by getTask, searchTasks, and listTasks.
+ * Eliminates field-set drift across the three query functions.
+ * OfoTask is declared in ofo-contract.d.ts (ambient, no import needed here).
+ */
+function normalizeTask(t: Task): OfoTask {
+  let plannedDate: string | null = null;
+  try { plannedDate = t.plannedDate ? t.plannedDate.toISOString() : null; } catch (_) {}
+  return {
+    id: t.id.primaryKey,
+    name: t.name,
+    project: t.containingProject ? t.containingProject.name : null,
+    tags: t.tags.map(function(tag: Tag) { return tag.name; }),
+    flagged: t.flagged,
+    completed: t.completed,
+    dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+    deferDate: t.deferDate ? t.deferDate.toISOString() : null,
+    estimatedMinutes: t.estimatedMinutes || null,
+    note: t.note || null,
+    plannedDate: plannedDate,
+    completionDate: t.completionDate ? t.completionDate.toISOString() : null,
+    repetitionRule: t.repetitionRule ? t.repetitionRule.ruleString : null,
+  };
+}
+
+/**
+ * computeStats — single-pass stats over all tasks, mirroring taskMetrics.collectAllMetrics().
+ * Canonical inbox count: inbox.filter(Available) — matches what OmniFocus shows.
+ */
+function computeStats(allTasks: Task[]): OfoStats {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayEnd = new Date(todayStart.getTime() + 86400000);
+
+  let inboxCount = 0;
+  inbox.forEach(function(t: Task) {
+    if (t.taskStatus === Task.Status.Available) inboxCount++;
+  });
+
+  let overdue = 0, flagged = 0, dueToday = 0, totalActive = 0, withEstimate = 0, plannedToday = 0;
+  allTasks.forEach(function(t: Task) {
+    if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
+    if (t.effectivelyCompleted || t.effectivelyDropped) return;
+    totalActive++;
+    if (t.flagged && t.taskStatus === Task.Status.Available) flagged++;
+    if (t.dueDate && t.dueDate < todayStart) overdue++;
+    if (t.dueDate && t.dueDate >= todayStart && t.dueDate < todayEnd) dueToday++;
+    if (t.estimatedMinutes != null && t.estimatedMinutes > 0) withEstimate++;
+    try {
+      if (t.plannedDate && t.plannedDate >= todayStart && t.plannedDate < todayEnd) plannedToday++;
+    } catch (_) {}
+  });
+
+  let activeProjects = 0, reviewOverdue = 0;
+  flattenedProjects.forEach(function(p: Project) {
+    if (p.status !== Project.Status.Active) return;
+    activeProjects++;
+    if (p.nextReviewDate && p.nextReviewDate < todayStart) reviewOverdue++;
+  });
+
+  return {
+    inbox: inboxCount,
+    overdue,
+    flagged,
+    dueToday,
+    activeProjects,
+    activeTasks: totalActive,
+    reviewOverdue,
+    plannedToday,
+    withEstimate,
+  };
+}
+
 // === INFO ===
 
 function getTask(args: OfoArgs): OfoResult {
@@ -75,29 +150,7 @@ function getTask(args: OfoArgs): OfoResult {
   } else {
     const t = Task.byIdentifier(id);
     if (!t) return { success: false, error: 'Task not found: ' + id };
-    let taskPlannedDate: string | null = null;
-    try { taskPlannedDate = t.plannedDate ? t.plannedDate.toISOString() : null; } catch (_) {}
-    return {
-      success: true,
-      task: {
-        id: t.id.primaryKey,
-        name: t.name,
-        completed: t.completed,
-        flagged: t.flagged,
-        dueDate: t.dueDate ? t.dueDate.toISOString() : null,
-        deferDate: t.deferDate ? t.deferDate.toISOString() : null,
-        completionDate: t.completionDate ? t.completionDate.toISOString() : null,
-        plannedDate: taskPlannedDate,
-        note: t.note,
-        project: t.containingProject ? t.containingProject.name : null,
-        tags: t.tags.map(function(tag: Tag) { return tag.name; }),
-        estimatedMinutes: t.estimatedMinutes,
-        repetitionRule: t.repetitionRule ? {
-          ruleString: t.repetitionRule.ruleString,
-          method: String(t.repetitionRule.method)
-        } : null
-      }
-    };
+    return { success: true, task: normalizeTask(t) };
   }
 }
 
@@ -202,13 +255,7 @@ function searchTasks(args: OfoArgs): OfoResult {
     const nameMatch = t.name.toLowerCase().indexOf(query) !== -1;
     const noteMatch = t.note && t.note.toLowerCase().indexOf(query) !== -1;
     if (nameMatch || noteMatch) {
-      results.push({
-        id: t.id.primaryKey,
-        name: t.name,
-        project: t.containingProject ? t.containingProject.name : null,
-        dueDate: t.dueDate ? t.dueDate.toISOString() : null,
-        flagged: t.flagged
-      });
+      results.push(normalizeTask(t));
     }
   });
   return { success: true, count: results.length, tasks: results };
@@ -224,18 +271,7 @@ function listTasks(args: OfoArgs): OfoResult {
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const todayEnd = new Date(todayStart.getTime() + 86400000);
 
-  function taskSummary(t: Task) {
-    return {
-      id: t.id.primaryKey,
-      name: t.name,
-      project: t.containingProject ? t.containingProject.name : null,
-      dueDate: t.dueDate ? t.dueDate.toISOString() : null,
-      deferDate: t.deferDate ? t.deferDate.toISOString() : null,
-      flagged: t.flagged,
-      estimatedMinutes: t.estimatedMinutes,
-      tags: t.tags.map(function(tag: Tag) { return tag.name; })
-    };
-  }
+  const taskSummary = normalizeTask;
 
   if (filter === 'inbox') {
     inbox.forEach(function(t: Task) {
@@ -639,6 +675,48 @@ function getStats(_args: OfoArgs): OfoResult {
   };
 }
 
+// === CLARITY + STALLED (GTD intelligence — Phase 5) ===
+
+function clarityScore(t: Task): number {
+  let score = 100;
+  if (!t.estimatedMinutes) score -= 30;
+  if (t.tags.length === 0) score -= 20;
+  if (t.name.length < 10) score -= 20;
+  if (!t.containingProject) score -= 30;
+  return Math.max(0, score);
+}
+
+function assessClarity(args: OfoArgs): OfoResult {
+  const limit = parseInt((args['limit'] as string) || '10');
+  const tasks = flattenedTasks as Task[];
+  const results = tasks
+    .filter(function(t) { return !t.completed && t.taskStatus === Task.Status.Available; })
+    .map(function(t) {
+      return { id: t.id.primaryKey, name: t.name, score: clarityScore(t) };
+    })
+    .sort(function(a, b) { return a.score - b.score; })
+    .slice(0, limit);
+  return { success: true, tasks: results };
+}
+
+function stalledProjects(args: OfoArgs): OfoResult {
+  const daysSince = parseInt((args['days'] as string) || '14');
+  const cutoff = new Date(Date.now() - daysSince * 86400000);
+  const projects = flattenedProjects as Project[];
+  const stalled = projects
+    .filter(function(p) { return p.status === Project.Status.Active; })
+    .filter(function(p) {
+      const hasNextAction = p.flattenedTasks.some(function(t) {
+        return t.taskStatus === Task.Status.Available;
+      });
+      return !hasNextAction || (p.modified !== null && p.modified < cutoff);
+    })
+    .map(function(p) {
+      return { id: p.id.primaryKey, name: p.name, taskCount: p.flattenedTasks.length };
+    });
+  return { success: true, projects: stalled };
+}
+
 // === DISPATCH ===
 
 function dispatch(args: OfoArgs): OfoResult {
@@ -657,6 +735,8 @@ function dispatch(args: OfoArgs): OfoResult {
     case 'ofo-create-batch': return createBatch(args);
     case 'ofo-dump':        return dumpDatabase(args);
     case 'ofo-stats':       return getStats(args);
+    case 'ofo-clarity':     return assessClarity(args);
+    case 'ofo-stalled':     return stalledProjects(args);
     default: {
       // Exhaustiveness check: TypeScript will error here if a new OfoAction
       // is added to the union in ofo-types.ts / ofo-core-ambient.d.ts but

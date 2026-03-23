@@ -54,6 +54,8 @@ cat >> "${BUNDLE_DIR}/Resources/ofoCore.js" << 'IIFE_FOOTER'
   lib.getPerspectiveRules = getPerspectiveRules;
   lib.dumpDatabase = dumpDatabase;
   lib.getStats = getStats;
+  lib.assessClarity = assessClarity;
+  lib.stalledProjects = stalledProjects;
   lib.dispatch = dispatch;
   return lib;
 })();
@@ -71,7 +73,7 @@ echo "  Verifying IIFE exports..."
 BUILT_JS="${BUNDLE_DIR}/Resources/ofoCore.js"
 for fn in getTask completeTask createTask updateTask searchTasks listTasks \
           getPerspective configurePerspective tagTask getTags createBatch \
-          getPerspectiveRules dumpDatabase getStats dispatch; do
+          getPerspectiveRules dumpDatabase getStats assessClarity stalledProjects dispatch; do
   grep -q "^function ${fn}(" "${BUILT_JS}" || \
     { echo "ERROR: '${fn}' missing from compiled ofoCore.js — update IIFE footer or fix rename"; exit 1; }
 done
