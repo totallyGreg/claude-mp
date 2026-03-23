@@ -230,7 +230,7 @@ Be specific and practical in your suggestions.`
     })
 
     // Show results
-    const alert = new Alert('Attache: Clarify Tasks', message)
+    const alert = new Alert('Clarify Tasks', message)
     alert.addOption('Copy to Clipboard')
     alert.addOption('Done')
 

@@ -203,11 +203,11 @@ Using GTD principles, provide:
             md += `\n---\n✅ ${completedTasks.length} done · 📋 ${todayTasks.length} today · ⚠️ ${overdueTasks.length} overdue · 🚩 ${flaggedTasks.length} flagged · 📥 ${inboxTasks.length} inbox`;
 
             if (!hasCachedPrefs) {
-                message += `\n\nTip: Run Attache: System Setup to cache your system map for richer reviews.`;
-                md += `\n\n> **Tip:** Run Attache: System Setup to cache your system map for richer reviews.`;
+                message += `\n\nTip: Run Attache › Setup to cache your system map for richer reviews.`;
+                md += `\n\n> **Tip:** Run Attache › Setup to cache your system map for richer reviews.`;
             }
 
-            const resultAlert = new Alert("Attache: Daily Review", message);
+            const resultAlert = new Alert("Daily Review", message);
             resultAlert.addOption("Copy to Clipboard");
             resultAlert.addOption("Done");
             const choice = await resultAlert.show();

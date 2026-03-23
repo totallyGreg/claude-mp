@@ -116,7 +116,7 @@
   async function showSummaryAlert(discovery, systemMap) {
     const summary = discovery.generateSummary(systemMap)
 
-    const alert = new Alert('Attache: Map System', summary)
+    const alert = new Alert('Map System', summary)
     alert.addOption('Copy Full Report')
     alert.addOption('Export JSON')
     alert.addOption('Done')

@@ -96,7 +96,7 @@
                 message += "\n";
             });
 
-            const alert = new Alert("Attache: Wins Report", message);
+            const alert = new Alert("Wins Report", message);
             alert.addOption("Copy to Clipboard");
             alert.addOption("Done");
             const choice = await alert.show();

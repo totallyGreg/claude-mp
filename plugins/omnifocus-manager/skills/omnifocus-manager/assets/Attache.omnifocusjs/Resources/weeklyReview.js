@@ -484,10 +484,10 @@
             }
 
             if (!hasCachedPrefs) {
-                step7Message += `\n\nTip: Run Attache: System Setup to cache your system map for richer reviews.`;
+                step7Message += `\n\nTip: Run Attache › Setup to cache your system map for richer reviews.`;
             }
 
-            const finalAlert = new Alert("Attache: Weekly Review", step7Message);
+            const finalAlert = new Alert("Weekly Review", step7Message);
             finalAlert.addOption("Copy Summary");
             finalAlert.addOption("Done");
             const finalChoice = await finalAlert.show();
