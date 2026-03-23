@@ -204,5 +204,7 @@
 		}));
 	};
 
+	lib.WAITING_PATTERNS = ["waiting", "delegated", "pending", "w:"];
+
 	return lib;
 })();

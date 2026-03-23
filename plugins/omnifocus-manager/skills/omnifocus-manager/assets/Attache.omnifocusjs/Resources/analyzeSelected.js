@@ -42,7 +42,10 @@
       }
 
       // AI Analysis - session may be invalid
-      const session = fmUtils.createSession()
+      const session = fmUtils.createSession(
+        "You are a GTD productivity coach. Be concise and direct. Use specific GTD " +
+        "vocabulary: next actions, projects, contexts. Focus on what is actionable right now."
+      )
 
       const results = []
 
@@ -109,7 +112,9 @@ Please analyze:
 Be specific and practical in your suggestions.`
 
         // Get AI analysis
-        const response = await session.respondWithSchema(prompt, schema)
+        const opts = new LanguageModel.GenerationOptions()
+        opts.maximumResponseTokens = 400
+        const response = await session.respondWithSchema(prompt, schema, opts)
         const analysis = JSON.parse(response)
 
         results.push({

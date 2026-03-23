@@ -26,9 +26,6 @@
     const GTD_COACH = "You are a GTD productivity coach. Be concise and direct. Use specific GTD vocabulary. Focus on actionable recommendations.";
     const TOTAL_STEPS = 7;
 
-    // Waiting For detection patterns
-    const WAITING_PATTERNS = ["waiting", "delegated", "pending", "w:"];
-
     /**
      * Call Foundation Models with a shared session.
      * Returns coaching object or null if FM fails.
@@ -55,16 +52,6 @@
         alert.addOption("Stop Review");
         const choice = await alert.show();
         return choice === 0;
-    }
-
-    /**
-     * Check if a task is a "waiting for" item based on tags.
-     */
-    function isWaitingFor(task) {
-        const tagNames = task.tags.map(t => t.name.toLowerCase());
-        return tagNames.some(name =>
-            WAITING_PATTERNS.some(pattern => name.includes(pattern))
-        );
     }
 
     const action = new PlugIn.Action(async function(selection, sender) {
@@ -101,6 +88,14 @@
             const hasCachedPrefs = prefsManager.hasPreferences();
             const metrics = this.plugIn.library("taskMetrics");
             const projectParser = this.plugIn.library("projectParser");
+
+            // Waiting For detection — uses canonical patterns from taskMetrics library
+            function isWaitingFor(task) {
+                const tagNames = task.tags.map(t => t.name.toLowerCase());
+                return tagNames.some(name =>
+                    metrics.WAITING_PATTERNS.some(pattern => name.includes(pattern))
+                );
+            }
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 

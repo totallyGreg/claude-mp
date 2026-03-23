@@ -23,7 +23,7 @@
     var lib = new PlugIn.Library(new Version("1.0"));
 
     // Keep in sync with manifest.json version
-    const ATTACHE_VERSION = "1.3.0";
+    const ATTACHE_VERSION = "1.4.0";
 
     // ==================== Pattern Constants ====================
 
@@ -36,7 +36,7 @@
 
     // Person/waiting detection patterns
     const PERSON_PATTERNS = ["waiting", "delegated", "pending", "from:", "to:"];
-    const WAITING_PREFIXES = ["waiting:", "w:", "delegate:"];
+    const WAITING_PREFIXES = ["waiting", "delegated", "pending", "w:"];
 
     // Status tag patterns
     const STATUS_PATTERNS = ["hold", "someday", "maybe", "review", "later", "paused"];
