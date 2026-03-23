@@ -5,9 +5,23 @@ Undeployed `PlugIn.Library` files available for use inside OmniFocus feature plu
 ## Libraries
 
 ### `taskMetrics`
-Data collection: `getTodayTasks`, `getOverdueTasks`, `getUpcomingTasks(days)`, `getTasksByTag(name)`, `getTasksByProject(name)`, `getSummaryStats`, `normalizeTask`.
+Data collection: `collectAllMetrics`, `getTodayTasks`, `getOverdueTasks`, `getUpcomingTasks(days)`, `getTasksByTag(name)`, `getTasksByProject(name)`, `getSummaryStats`, `normalizeTask`, `WAITING_PATTERNS`.
 
-**ofoCore overlap:** basic filters (`today`, `overdue`, `flagged`) are covered by `ofoCore.listTasks({filter})`. Unique to taskMetrics: `getUpcomingTasks(days)`, `getTasksByTag`, `getTasksByProject`, richer `normalizeTask` (includes `added`, `modified`, `taskStatus`, estimate aggregation). Prefer ofoCore for basic queries; use taskMetrics when you need upcoming-N-days or tag/project-scoped task lists.
+**Single-pass collector:** `collectAllMetrics()` buckets inbox/today/overdue/flagged/completedToday/deferredToday in one `flattenedTasks` pass — 4–5x faster than calling individual methods on large databases. Prefer it over multiple calls when multiple categories are needed.
+
+**Canonical waiting-for patterns:** `lib.WAITING_PATTERNS = ["waiting", "delegated", "pending", "w:"]` is exported as a constant. Any action or library that detects waiting-for items must reference this — do not hardcode local arrays. `systemDiscovery.js` uses `WAITING_PREFIXES` aligned to this list.
+
+```javascript
+const metrics = this.plugIn.library("taskMetrics");
+const all = metrics.collectAllMetrics(); // { inbox: [], today: [], overdue: [], ... }
+
+function isWaitingFor(task) {
+    const names = task.tags.map(t => t.name.toLowerCase());
+    return names.some(n => metrics.WAITING_PATTERNS.some(p => n.includes(p)));
+}
+```
+
+**ofoCore overlap:** basic filters (`today`, `overdue`, `flagged`) are covered by `ofoCore.listTasks({filter})`. Unique to taskMetrics: `collectAllMetrics` single-pass, `getUpcomingTasks(days)`, `getTasksByTag`, `getTasksByProject`, richer `normalizeTask` (includes `added`, `modified`, `taskStatus`, estimate aggregation), `WAITING_PATTERNS` constant. Prefer ofoCore for basic queries; use taskMetrics when you need upcoming-N-days, tag/project-scoped lists, or the canonical waiting-for patterns.
 
 ### `exportUtils`
 Export data to multiple formats and destinations.

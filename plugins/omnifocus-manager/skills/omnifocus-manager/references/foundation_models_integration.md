@@ -64,6 +64,34 @@ const opts = new LanguageModel.GenerationOptions();
 const response = await session.respondWithSchema(prompt, schema, opts);
 ```
 
+### GTD System Prompt (Attache Standard)
+
+All FM actions in Attache pass a GTD coach system prompt to `fmUtils.createSession()`. This ensures consistent GTD vocabulary and tone across all actions. **Always pass this string — never call `createSession()` with no arguments in an Attache action.**
+
+```javascript
+const session = fmUtils.createSession(
+    "You are a GTD productivity coach. Be concise and direct. Use specific GTD " +
+    "vocabulary: next actions, projects, contexts. Focus on what is actionable right now."
+);
+```
+
+### Token Budget Conventions (Attache)
+
+Set explicit `maximumResponseTokens` on every FM call — never leave it unbounded.
+
+| Action | Budget | Rationale |
+|---|---|---|
+| `dailyReview` | 300 | Summary coaching, not analysis |
+| `weeklyReview` | 250 per step | Step-by-step; multiple calls per session |
+| `analyzeSelected` (Clarify Tasks) | 400 per task | Richer per-task analysis |
+| `analyzeHierarchy` (Project Health) | Set per-batch in `hierarchicalBatcher` | Batched; budget per batch |
+
+```javascript
+const opts = new LanguageModel.GenerationOptions();
+opts.maximumResponseTokens = 400;
+const response = await session.respondWithSchema(prompt, schema, opts);
+```
+
 ### Parsing the Response
 
 `respondWithSchema` returns a JSON string. Parse it directly:

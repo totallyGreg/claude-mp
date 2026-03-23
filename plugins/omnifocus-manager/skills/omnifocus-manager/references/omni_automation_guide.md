@@ -15,6 +15,16 @@ Use this before reading anything else.
 → Missing `Resources/en.lproj/manifest.strings`. Create it with:
   `"com.your.bundle.id" = "Your Plugin Name";`
 
+**Action names show as camelCase identifiers (e.g. `analyzeSelected`) instead of labels:**
+→ `manifest.json` `label` fields are NOT used for Automation Menu display.
+→ Action labels must be declared in `Resources/en.lproj/manifest.strings`:
+  ```
+  "analyzeSelected.label" = "Attache: Clarify Tasks";
+  "analyzeHierarchy.label" = "Attache: Project Health";
+  ```
+→ Pattern: `"<identifier>.label" = "<display label>";` — one line per action.
+→ Validated 2026-03-23 against OmniFocus 4 on macOS 26.
+
 **"Preferences objects may only be constructed when loading a plug-in":**
 → `new Preferences()` or `new Preferences(null)` called in library context.
 → Use lazy init with explicit bundle ID (see Storing Preferences).

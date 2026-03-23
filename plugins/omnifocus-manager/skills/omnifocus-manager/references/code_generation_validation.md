@@ -52,6 +52,29 @@
 - [ ] NOT using Document.defaultDocument (use globals instead)
 - [ ] NOT using Node.js or browser APIs
 
+### 4a. Verify `this` Binding in Action IIFEs ✅
+- [ ] `this.plugIn.library()` is only called inside the **action handler body** — the async function passed to `new PlugIn.Action(async function(selection, sender) { ... })`
+- [ ] Standalone helper functions defined outside the action handler **cannot** use `this` — `this` is `undefined` in that context
+- [ ] If a helper function needs a library reference, it must receive it as a **parameter** from the action body
+
+```javascript
+// ❌ WRONG — this is undefined inside standalone function
+function aggregateInsights(results) {
+    const lib = this.plugIn.library("folderParser"); // TypeError at runtime
+}
+
+// ✅ CORRECT — pass library reference as parameter
+function aggregateInsights(results, folderParser) {
+    const metrics = folderParser.aggregateMetrics(results);
+}
+
+// In action body (where this is correctly bound):
+const folderParser = this.plugIn.library("folderParser");
+const insights = aggregateInsights(results, folderParser);
+```
+
+Validated 2026-03-23: `analyzeHierarchy.js` `aggregateInsights()` crashed with TypeError until the `folderParser` parameter pattern was applied.
+
 ### 5. Verify LanguageModel Schema (If Applicable) ✅
 - [ ] Using LanguageModel.Schema.fromJSON() factory (NOT constructor)
 - [ ] Using OmniFocus schema format (NOT JSON Schema format)

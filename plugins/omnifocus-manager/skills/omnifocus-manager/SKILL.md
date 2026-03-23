@@ -51,8 +51,14 @@ node scripts/generate_plugin.js --format <FORMAT> --name "<NAME>"
 bash scripts/validate-plugin.sh <generated-plugin-path>
 ```
 
-### STEP 4.5: BUMP VERSION
-Bump the version in the `.omnifocusjs` manifest — OmniFocus won't reload the plugin without a version change.
+### STEP 4.5: BUMP VERSION + STRINGS
+1. Bump the version in the `.omnifocusjs` manifest — OmniFocus won't reload the plugin without a version change.
+2. For **bundle plugins** (multiple actions): ensure `Resources/en.lproj/manifest.strings` has a `"<identifier>.label"` entry for every action. The `label` field in `manifest.json` is ignored by OmniFocus for menu display — the strings file is the only source of truth for Automation Menu labels.
+   ```
+   "com.your.bundle.id" = "Plugin Name";
+   "actionIdentifier.label" = "Display Label";
+   ```
+   See `references/omni_automation_guide.md` → Quick Diagnostic for details.
 
 ### STEP 5: REPORT
 ```
