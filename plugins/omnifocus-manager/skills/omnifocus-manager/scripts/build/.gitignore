@@ -1,5 +1,6 @@
 # OmniFocus plugin bundle — deployed separately via `npm run deploy`
 ofo-core.omnifocusjs/
+Attache.omnifocusjs/
 intermediate/
 
 # Track ofo CLI files — required for marketplace distribution

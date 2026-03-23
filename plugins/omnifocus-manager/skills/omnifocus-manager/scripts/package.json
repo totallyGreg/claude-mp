@@ -5,12 +5,12 @@
   "main": "generate_plugin.js",
   "type": "module",
   "scripts": {
-    "clean": "rm -rf build/ofo-core.omnifocusjs build/ofo-cli.js build/ofo-types.js build/ofo-stub.js build/intermediate",
+    "clean": "rm -rf build/Attache.omnifocusjs build/ofo-cli.js build/ofo-types.js build/ofo-stub.js build/intermediate",
     "build": "npm run build:plugin && npm run build:cli",
     "build:generator": "tsc",
-    "build:plugin": "bash build-plugin.sh",
+    "build:plugin": "bash build-attache.sh",
     "build:cli": "tsc --project src/tsconfig.cli.json && cp src/ofo-stub.js build/ofo-stub.js",
-    "deploy": "open build/ofo-core.omnifocusjs",
+    "deploy": "open build/Attache.omnifocusjs",
     "watch": "tsc --watch",
     "generate": "node generate_plugin.js"
   },

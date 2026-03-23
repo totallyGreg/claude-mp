@@ -5,20 +5,22 @@
  * Includes single-pass collector for performance on large databases.
  *
  * Usage in plugin actions:
+ *   const core = this.plugIn.library("ofoCore");
  *   const metrics = this.plugIn.library("taskMetrics");
- *   const all = metrics.collectAllMetrics();
+ *   const all = metrics.collectAllMetrics(core);
  */
 
 (() => {
-	var lib = new PlugIn.Library(new Version("4.0"));
+	var lib = new PlugIn.Library(new Version("5.0"));
 
 	/**
 	 * Single-pass metrics collector — buckets all categories simultaneously.
 	 * On a 5,000-task database this is 4-5x faster than calling individual methods.
 	 *
+	 * @param {Object} core - ofoCore library ref (provides normalizeTask)
 	 * @returns {Object} { inbox, today, overdue, flagged, completedToday, deferredToday }
 	 */
-	lib.collectAllMetrics = function() {
+	lib.collectAllMetrics = function(core) {
 		const today = new Date();
 		today.setHours(0, 0, 0, 0);
 		const tomorrow = new Date(today);
@@ -44,23 +46,23 @@
 
 			// Active task buckets
 			if (task.inInbox && task.taskStatus === Task.Status.Available) {
-				result.inbox.push(lib.normalizeTask(task));
+				result.inbox.push(core.normalizeTask(task));
 			}
 			if (task.flagged) {
-				result.flagged.push(lib.normalizeTask(task));
+				result.flagged.push(core.normalizeTask(task));
 			}
 			if (task.dueDate) {
 				if (task.dueDate < today) {
-					result.overdue.push(lib.normalizeTask(task));
+					result.overdue.push(core.normalizeTask(task));
 				} else if (task.dueDate < tomorrow) {
-					result.today.push(lib.normalizeTask(task));
+					result.today.push(core.normalizeTask(task));
 				}
 			}
 			if (task.deferDate && task.deferDate >= today && task.deferDate < tomorrow) {
-				result.deferredToday.push(lib.normalizeTask(task));
+				result.deferredToday.push(core.normalizeTask(task));
 				// Also add to today if not already there via dueDate
 				if (!task.dueDate || task.dueDate < today || task.dueDate >= tomorrow) {
-					result.today.push(lib.normalizeTask(task));
+					result.today.push(core.normalizeTask(task));
 				}
 			}
 		}
@@ -68,7 +70,7 @@
 		return result;
 	};
 
-	lib.getTodayTasks = function() {
+	lib.getTodayTasks = function(core) {
 		const tasks = flattenedTasks;
 
 		const today = new Date();
@@ -88,10 +90,10 @@
 			return isDueToday || isDeferredToday;
 		});
 
-		return todayTasks.map(lib.normalizeTask.bind(lib));
+		return todayTasks.map(t => core.normalizeTask(t));
 	};
 
-	lib.getOverdueTasks = function() {
+	lib.getOverdueTasks = function(core) {
 		const tasks = flattenedTasks;
 
 		const today = new Date();
@@ -103,33 +105,17 @@
 			return due && due < today;
 		});
 
-		return overdueTasks.map(lib.normalizeTask.bind(lib));
+		return overdueTasks.map(t => core.normalizeTask(t));
 	};
 
-	lib.getFlaggedTasks = function() {
+	lib.getFlaggedTasks = function(core) {
 		const tasks = flattenedTasks;
 
 		const flaggedTasks = tasks.filter(task => {
 			return task.flagged && !task.completed && !task.dropped;
 		});
 
-		return flaggedTasks.map(lib.normalizeTask.bind(lib));
-	};
-
-	lib.normalizeTask = function(task) {
-		return {
-			name: task.name,
-			project: task.containingProject ? task.containingProject.name : null,
-			tags: task.tags.map(tag => tag.name),
-			dueDate: task.dueDate,
-			deferDate: task.deferDate,
-			flagged: task.flagged,
-			completed: task.completed,
-			estimatedMinutes: task.estimatedMinutes,
-			note: task.note || "",
-			added: task.added,
-			modified: task.modified
-		};
+		return flaggedTasks.map(t => core.normalizeTask(t));
 	};
 
 	lib.getCompletedToday = function() {
