@@ -94,6 +94,10 @@ uv run scripts/evaluate_skill.py <skill-path> --update-readme
 uv run scripts/evaluate_skill.py <skill-path> --export-table-row --version X.Y.Z
 ```
 
+> **Before committing any skill improvement**, run the full evaluation (no flags) and confirm
+> no score regressed. `--quick` is for fast iteration only — it does not produce the metrics
+> captured in README.md Version History. This is the project-level gate documented in `CLAUDE.md`.
+
 **Improvement routing:**
 - **Quick updates** (<50 lines, single file): Fix directly, PATCH bump
 - **Complex improvements** (multi-file, structural): GitHub Issue + README.md version row

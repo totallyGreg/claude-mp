@@ -1427,21 +1427,20 @@ def validate_reference_catalog(skill_path):
         }
 
     # Check which references are mentioned in SKILL.md
-    orphaned_refs = []
-    for ref in actual_refs:
-        # Look for patterns like:
-        # - `references/filename.md`
-        # - references/filename.md
-        # - `filename.md`
+    def _ref_is_mentioned(content: str, ref: str) -> bool:
         patterns = [
             f'`references/{ref}`',
             f'references/{ref}',
             f'`{ref}`',
         ]
+        if any(p in content for p in patterns):
+            return True
+        # Also match markdown link syntax: [any text](references/filename.md)
+        return bool(re.search(rf'\(references/{re.escape(ref)}\)', content))
 
-        is_mentioned = any(pattern in skill_content for pattern in patterns)
-
-        if not is_mentioned:
+    orphaned_refs = []
+    for ref in actual_refs:
+        if not _ref_is_mentioned(skill_content, ref):
             orphaned_refs.append(ref)
 
     # Build result
@@ -1929,6 +1928,12 @@ def calculate_all_metrics(skill_path):
     conciseness = calculate_conciseness_score(basic)
     complexity = calculate_complexity_score(skill_path, body)
     spec_compliance = calculate_spec_compliance_score(frontmatter_dict, basic)
+    # Warn if legacy IMPROVEMENT_PLAN.md exists without README.md
+    if (skill_path / 'IMPROVEMENT_PLAN.md').exists() and not (skill_path / 'README.md').exists():
+        spec_compliance['warnings'].append(
+            "IMPROVEMENT_PLAN.md found without README.md — "
+            "run /ss-improve to migrate to README.md format"
+        )
     progressive = calculate_progressive_disclosure_score(basic)
     description_quality = validate_description_quality(frontmatter_dict)
     overall = calculate_overall_score(conciseness, complexity, spec_compliance, progressive, description_quality)

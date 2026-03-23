@@ -25,6 +25,22 @@ If the skill directory contains `IMPROVEMENT_PLAN.md` and no `README.md`, migrat
 3. Run `uv run ${CLAUDE_PLUGIN_ROOT}/skills/skillsmith/scripts/evaluate_skill.py $ARGUMENTS --update-readme` to populate Current Metrics
 4. Delete IMPROVEMENT_PLAN.md
 
+## Step 0c: Auto-patch missing recommended frontmatter
+
+Run:
+
+```bash
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/skillsmith/scripts/evaluate_skill.py $ARGUMENTS --explain
+```
+
+If the output identifies missing recommended frontmatter fields (`license`, `compatibility`), patch them automatically before continuing:
+
+1. Apply sensible defaults — do NOT silently apply wrong values:
+   - `license: MIT` — confirm with the user if a different license file exists
+   - `compatibility: claude-code` — if the skill has Python scripts in `scripts/`, append `, Requires uv for Python script execution`
+2. Patch the `SKILL.md` frontmatter using the Edit tool
+3. Note the expected score delta (+3–6 pts per missing field pair) to document in Step 4
+
 ## Step 1: Evaluate current state
 
 ```bash
