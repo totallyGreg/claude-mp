@@ -167,6 +167,101 @@ Auto-sync would leave plugin at v1.5.0 = no update signal!
 
 **Best Practice:** Use single-component plugins whenever possible. Only use multi-component plugins for tightly coupled components that are always used together.
 
+## Single-Plugin vs Multi-Plugin Marketplace Layouts
+
+A marketplace repo can host one plugin or several independent plugins. The layout choice determines how version sources are resolved.
+
+### Single-Plugin Repo (most common)
+
+One plugin owns the entire repo. The `.claude-plugin/plugin.json` at the repo root is the version source.
+
+```
+repo/
+├── .claude-plugin/
+│   ├── plugin.json       ← version source for the single plugin
+│   └── marketplace.json  ← declares one plugin with source: "./"
+└── skills/
+    └── my-skill/
+```
+
+### Multi-Skill Bundle (one plugin, multiple skills)
+
+One plugin bundles several related skills. Still one `plugin.json` — valid, not an anti-pattern.
+
+```
+repo/
+├── plugins/
+│   └── terminal-guru/
+│       ├── .claude-plugin/
+│       │   └── plugin.json   ← version source for terminal-guru
+│       └── skills/
+│           ├── terminal-emulation/
+│           ├── zsh-dev/
+│           └── signals-monitoring/
+└── .claude-plugin/
+    └── marketplace.json  ← declares terminal-guru with source: "./plugins/terminal-guru"
+```
+
+### Multi-Plugin Repo (independent plugins)
+
+Multiple independent plugins share the same repo. **Each plugin must have its own `plugin.json`.**
+
+```
+repo/
+├── .claude-plugin/
+│   └── marketplace.json  ← catalog only — no root plugin.json
+├── plugins/
+│   ├── airs-tme/
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json  ← version source for airs-tme
+│   │   └── skills/
+│   ├── pai-ops/
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json  ← version source for pai-ops
+│   │   └── skills/
+│   └── prisma-airs/
+│       ├── .claude-plugin/
+│       │   └── plugin.json  ← version source for prisma-airs
+│       └── skills/
+```
+
+marketplace.json entries:
+```json
+{
+  "plugins": [
+    {"name": "airs-tme",    "source": "./plugins/airs-tme",    "version": "1.0.0"},
+    {"name": "pai-ops",     "source": "./plugins/pai-ops",     "version": "1.0.0"},
+    {"name": "prisma-airs", "source": "./plugins/prisma-airs", "version": "1.0.0"}
+  ]
+}
+```
+
+### Anti-Pattern: Shared `source: "./"` with Multiple Plugins
+
+**Do not** list multiple independent plugins with `source: "./"`. All three will resolve to the same `.claude-plugin/plugin.json`, so bumping one plugin's version incorrectly triggers version checks for the others.
+
+```json
+// ❌ WRONG — all three resolve to the same plugin.json
+{
+  "plugins": [
+    {"name": "airs-tme",    "source": "./", "version": "1.0.0"},
+    {"name": "pai-ops",     "source": "./", "version": "1.0.0"},
+    {"name": "prisma-airs", "source": "./", "version": "1.0.0"}
+  ]
+}
+```
+
+**Detection:** Run `detect_version_changes.py --check-structure` to identify this pattern in any repo.
+
+### When to Use Each Layout
+
+| Scenario | Layout |
+|----------|--------|
+| One plugin, one skill | Single-plugin root |
+| One plugin, several related skills | Multi-skill bundle |
+| Multiple independent plugins in one repo | Multi-plugin with per-plugin dirs |
+| Unsure | Start with single-plugin; migrate later |
+
 ## Standalone Plugin Architecture
 
 Plugins can be organized as **standalone plugins** in a `plugins/` directory, which provides:

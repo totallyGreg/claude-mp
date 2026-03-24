@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# marketplace-manager pre-commit hook v5.1.0
+# marketplace-manager pre-commit hook v5.2.0
 #
 # Pre-commit hook for marketplace-manager
 # Checks staged files for version bumps and syncs marketplace.json + README.md
@@ -12,7 +12,7 @@
 #   git commit --no-verify
 #
 
-HOOK_VERSION="5.1.0"
+HOOK_VERSION="5.2.0"
 
 # Embedded at install time by install_hook.sh
 # If empty, falls back to repo-local discovery only
@@ -169,6 +169,27 @@ for e in data.get('errors', []):
     fi
 else
     echo -e "${GREEN}✅ All marketplace versions up to date${NC}"
+fi
+
+# Step 3: Check for structural anti-patterns (advisory — never blocks commits)
+echo -e "${BLUE}🔍 Checking marketplace structure...${NC}"
+STRUCTURE_OUTPUT=$(python3 "$DETECT_SCRIPT" --check-structure --ci 2>/dev/null)
+STRUCTURE_EXIT=$?
+
+if [ $STRUCTURE_EXIT -ne 0 ]; then
+    echo -e "${YELLOW}⚠️  Structural anti-patterns detected (advisory — commit will proceed):${NC}"
+    python3 -c "
+import json, sys
+data = json.loads(sys.stdin.read())
+for issue in data.get('structure_issues', []):
+    plugins = ', '.join(issue['plugins'])
+    print(f\"  Plugins sharing a version source: {plugins}\")
+for fix in data.get('suggested_fixes', []):
+    print(f\"  Fix: {fix['suggestion']}\")
+" <<< "$STRUCTURE_OUTPUT" 2>/dev/null
+    echo -e "${YELLOW}   Run: python3 .../detect_version_changes.py --check-structure for details${NC}"
+else
+    echo -e "${GREEN}✅ No structural anti-patterns detected${NC}"
 fi
 
 exit 0
