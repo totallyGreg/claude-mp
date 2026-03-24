@@ -305,17 +305,13 @@ def update_metadata(
 
 
 def validate_semantic_version(version_str):
-    """Validate semantic version format (X.Y.Z).
+    """Validate semantic version format (X.Y.Z with optional pre-release).
 
-    Args:
-        version_str: Version string to validate
-
-    Returns:
-        True if valid, False otherwise
+    Accepts: '1.0.0', '1.0.0-alpha.1', '1.0.0-rc.2'
+    Rejects: 'latest', '1.0', 'v1.0.0'
     """
-    import re
-    pattern = r'^\d+\.\d+\.\d+$'
-    return bool(re.match(pattern, str(version_str)))
+    from utils import validate_semantic_version as _validate
+    return _validate(version_str)
 
 
 def validate_email(email_str):
@@ -334,20 +330,60 @@ def validate_email(email_str):
     return bool(re.match(pattern, email_str))
 
 
+# Plugin name format per plugin-dev manifest-reference.md
+PLUGIN_NAME_PATTERN = r'^[a-z][a-z0-9]*(-[a-z0-9]+)*$'
+
 # Known valid fields for .claude-plugin/plugin.json
+# Aligned with plugin-dev manifest-reference.md + official docs
 PLUGIN_JSON_KNOWN_FIELDS = {
-    'name', 'version', 'description', 'author',
-    'license', 'keywords', 'mcpServers'
+    # Required
+    'name',
+    # Recommended metadata
+    'version', 'description', 'author', 'license', 'keywords',
+    'homepage', 'repository',
+    # Component path overrides (supplement defaults, don't replace)
+    'commands', 'agents', 'hooks',
+    # Server definitions
+    'mcpServers', 'lspServers',
 }
 
-PLUGIN_JSON_REQUIRED_FIELDS = {'name', 'version', 'description'}
+# Only 'name' is required per plugin-dev minimal example
+PLUGIN_JSON_REQUIRED_FIELDS = {'name'}
+
+# marketplace.json root-level required fields per official schema
+MARKETPLACE_REQUIRED_FIELDS = {'name', 'owner', 'plugins'}
+
+# marketplace.json plugin entry required fields per official schema
+PLUGIN_ENTRY_REQUIRED_FIELDS = {'name', 'source'}
+
+# Known valid fields for marketplace.json root level
+MARKETPLACE_KNOWN_ROOT_FIELDS = {
+    '$schema', 'name', 'owner', 'plugins', 'metadata',
+}
+
+# Known valid fields for marketplace.json plugin entries
+# Per official docs: any plugin.json field is valid here, plus marketplace-specific fields
+MARKETPLACE_PLUGIN_KNOWN_FIELDS = {
+    'name', 'source', 'description', 'version', 'author',
+    'homepage', 'repository', 'license', 'keywords',
+    'category', 'tags', 'strict',
+    'commands', 'agents', 'hooks', 'mcpServers', 'lspServers',
+}
 
 
 def validate_plugin_json(plugin_json_path, plugin_name):
     """Validate plugin.json against known schema.
 
+    Aligned with plugin-dev manifest-reference.md:
+    - Only 'name' is required
+    - 'version' and 'description' recommended (warn if missing)
+    - Unknown fields warn, not error (per plugin-validator agent)
+    - 'author' and 'repository' accept string or object
+    - Name format validated per manifest-reference.md regex
+
     Returns list of issue dicts.
     """
+    import re
     issues = []
     try:
         with open(plugin_json_path) as f:
@@ -361,19 +397,6 @@ def validate_plugin_json(plugin_json_path, plugin_name):
         })
         return issues
 
-    # Check for unknown fields
-    unknown = set(data.keys()) - PLUGIN_JSON_KNOWN_FIELDS
-    for field in sorted(unknown):
-        issues.append({
-            'type': 'error',
-            'category': 'plugin_json',
-            'field': f'{plugin_name}/plugin.json.{field}',
-            'message': (
-                f"Unknown field '{field}' in plugin.json "
-                f"— this will cause silent installation failure"
-            )
-        })
-
     # Check required fields
     for field in sorted(PLUGIN_JSON_REQUIRED_FIELDS):
         if field not in data or not data[field]:
@@ -384,11 +407,75 @@ def validate_plugin_json(plugin_json_path, plugin_name):
                 'message': f"Required field '{field}' missing from plugin.json"
             })
 
+    # Name format validation
+    name = data.get('name', '')
+    if name and not re.match(PLUGIN_NAME_PATTERN, name):
+        issues.append({
+            'type': 'error',
+            'category': 'plugin_json',
+            'field': f'{plugin_name}/plugin.json.name',
+            'message': (
+                f"Plugin name '{name}' does not match required format: "
+                f"kebab-case, start with letter, a-z0-9 and hyphens only"
+            )
+        })
+
+    # Recommended fields (warn if missing)
+    for field in ('version', 'description'):
+        if field not in data or not data[field]:
+            issues.append({
+                'type': 'warning',
+                'category': 'plugin_json',
+                'field': f'{plugin_name}/plugin.json.{field}',
+                'message': f"Recommended field '{field}' missing from plugin.json"
+            })
+
+    # Version format validation (if present)
+    if 'version' in data and data['version']:
+        if not validate_semantic_version(data['version']):
+            issues.append({
+                'type': 'warning',
+                'category': 'plugin_json',
+                'field': f'{plugin_name}/plugin.json.version',
+                'message': f"Invalid version format: {data['version']} (expected X.Y.Z or X.Y.Z-prerelease)"
+            })
+
+    # Unknown fields — warn, don't error (per plugin-validator agent)
+    unknown = set(data.keys()) - PLUGIN_JSON_KNOWN_FIELDS
+    for field in sorted(unknown):
+        issues.append({
+            'type': 'warning',
+            'category': 'plugin_json',
+            'field': f'{plugin_name}/plugin.json.{field}',
+            'message': f"Unknown field '{field}' in plugin.json"
+        })
+
+    # Component path overrides validation
+    for path_field in ('commands', 'agents'):
+        if path_field in data:
+            val = data[path_field]
+            paths = [val] if isinstance(val, str) else (val if isinstance(val, list) else [])
+            for p in paths:
+                if isinstance(p, str) and ('..' in p):
+                    issues.append({
+                        'type': 'error',
+                        'category': 'plugin_json',
+                        'field': f'{plugin_name}/plugin.json.{path_field}',
+                        'message': f"Path '{p}' must not contain '..'"
+                    })
+
     return issues
 
 
 def validate_marketplace(marketplace_path, repo_root, output_format='text'):
     """Comprehensively validate marketplace.json structure.
+
+    Aligned with official Anthropic schema:
+    https://code.claude.com/docs/en/plugin-marketplaces#marketplace-schema
+
+    Required root fields: name, owner, plugins
+    Optional metadata: nested under 'metadata' object
+    Plugin entries: only name and source required
 
     Args:
         marketplace_path: Path to marketplace.json
@@ -398,6 +485,9 @@ def validate_marketplace(marketplace_path, repo_root, output_format='text'):
     Returns:
         Tuple of (is_valid, issues)
     """
+    import re
+    from utils import extract_frontmatter_version, discover_plugin_skills
+
     issues = []
 
     # Load marketplace
@@ -411,9 +501,8 @@ def validate_marketplace(marketplace_path, repo_root, output_format='text'):
         })
         return False, issues
 
-    # Validate required fields
-    required_fields = ['name', 'version', 'description', 'owner', 'plugins']
-    for field in required_fields:
+    # Validate required root fields (per official schema)
+    for field in sorted(MARKETPLACE_REQUIRED_FIELDS):
         if field not in marketplace_data or not marketplace_data[field]:
             issues.append({
                 'type': 'error',
@@ -422,33 +511,53 @@ def validate_marketplace(marketplace_path, repo_root, output_format='text'):
                 'message': f"Required field '{field}' is missing or empty"
             })
 
-    # Validate $schema URL
-    expected_schema = "https://anthropic.com/claude-code/marketplace.schema.json"
-    if '$schema' not in marketplace_data:
+    # Check for unknown root fields
+    unknown_root = set(marketplace_data.keys()) - MARKETPLACE_KNOWN_ROOT_FIELDS
+    for field in sorted(unknown_root):
+        # Special handling for legacy fields with migration guidance
+        if field in ('version', 'description'):
+            issues.append({
+                'type': 'warning',
+                'category': 'schema',
+                'field': field,
+                'message': (
+                    f"Field '{field}' should be nested under 'metadata' "
+                    f"(e.g., metadata.{field}) per the official schema"
+                )
+            })
+        else:
+            issues.append({
+                'type': 'warning',
+                'category': 'schema',
+                'field': field,
+                'message': f"Unknown root-level field '{field}'"
+            })
+
+    # Validate marketplace name format
+    mp_name = marketplace_data.get('name', '')
+    if mp_name and not re.match(PLUGIN_NAME_PATTERN, mp_name):
         issues.append({
-            'type': 'warning',
+            'type': 'error',
             'category': 'schema',
-            'field': '$schema',
-            'message': f"Missing $schema field (expected: {expected_schema})"
-        })
-    elif marketplace_data['$schema'] != expected_schema:
-        issues.append({
-            'type': 'warning',
-            'category': 'schema',
-            'field': '$schema',
-            'message': f"Unexpected schema URL: {marketplace_data['$schema']}"
+            'field': 'name',
+            'message': (
+                f"Marketplace name '{mp_name}' must be kebab-case: "
+                f"lowercase letters, numbers, and hyphens only"
+            )
         })
 
-    # Validate marketplace version
-    if 'version' in marketplace_data:
-        if not validate_semantic_version(marketplace_data['version']):
-            issues.append({
-                'type': 'error',
-                'category': 'version',
-                'field': 'version',
-                'value': marketplace_data['version'],
-                'message': f"Invalid semantic version format: {marketplace_data['version']} (expected X.Y.Z)"
-            })
+    # Validate metadata (if present)
+    metadata = marketplace_data.get('metadata', {})
+    if metadata and isinstance(metadata, dict):
+        if 'version' in metadata and metadata['version']:
+            if not validate_semantic_version(str(metadata['version'])):
+                issues.append({
+                    'type': 'warning',
+                    'category': 'version',
+                    'field': 'metadata.version',
+                    'value': metadata['version'],
+                    'message': f"Invalid version format: {metadata['version']}"
+                })
 
     # Validate owner
     if 'owner' in marketplace_data:
@@ -458,7 +567,7 @@ def validate_marketplace(marketplace_path, repo_root, output_format='text'):
                 'type': 'error',
                 'category': 'schema',
                 'field': 'owner',
-                'message': "Owner must be an object with 'name' and optional 'email'"
+                'message': "Owner must be an object with 'name' (required) and 'email' (optional)"
             })
         else:
             if 'name' not in owner or not owner['name']:
@@ -491,9 +600,10 @@ def validate_marketplace(marketplace_path, repo_root, output_format='text'):
 
         for idx, plugin in enumerate(plugins):
             plugin_prefix = f"plugins[{idx}]"
+            p_name = plugin.get('name', '')
 
-            # Check required plugin fields
-            if 'name' not in plugin or not plugin['name']:
+            # Required: name
+            if not p_name:
                 issues.append({
                     'type': 'error',
                     'category': 'schema',
@@ -501,143 +611,160 @@ def validate_marketplace(marketplace_path, repo_root, output_format='text'):
                     'message': f"Plugin at index {idx} missing required 'name' field"
                 })
             else:
-                plugin_name = plugin['name']
-
-                # Check for duplicate names
-                if plugin_name in plugin_names:
+                # Name format validation
+                if not re.match(PLUGIN_NAME_PATTERN, p_name):
+                    issues.append({
+                        'type': 'error',
+                        'category': 'schema',
+                        'field': f'{plugin_prefix}.name',
+                        'message': (
+                            f"Plugin name '{p_name}' must be kebab-case: "
+                            f"lowercase letters, numbers, and hyphens only"
+                        )
+                    })
+                # Duplicate check
+                if p_name in plugin_names:
                     issues.append({
                         'type': 'error',
                         'category': 'duplicate',
                         'field': f'{plugin_prefix}.name',
-                        'value': plugin_name,
-                        'message': f"Duplicate plugin name: {plugin_name}"
+                        'value': p_name,
+                        'message': f"Duplicate plugin name: {p_name}"
                     })
-                plugin_names.add(plugin_name)
+                plugin_names.add(p_name)
 
-            if 'description' not in plugin or not plugin['description']:
+            # Required: source
+            source = plugin.get('source')
+            if not source:
                 issues.append({
                     'type': 'error',
                     'category': 'schema',
-                    'field': f'{plugin_prefix}.description',
-                    'message': f"Plugin '{plugin.get('name', 'unnamed')}' missing required 'description' field"
+                    'field': f'{plugin_prefix}.source',
+                    'message': f"Plugin '{p_name or 'unnamed'}' missing required 'source' field"
                 })
 
-            if 'version' not in plugin or not plugin['version']:
-                issues.append({
-                    'type': 'error',
-                    'category': 'schema',
-                    'field': f'{plugin_prefix}.version',
-                    'message': f"Plugin '{plugin.get('name', 'unnamed')}' missing required 'version' field"
-                })
-            elif not validate_semantic_version(plugin['version']):
-                issues.append({
-                    'type': 'error',
-                    'category': 'version',
-                    'field': f'{plugin_prefix}.version',
-                    'value': plugin['version'],
-                    'message': f"Plugin '{plugin.get('name', 'unnamed')}' has invalid version: {plugin['version']}"
-                })
-
-            # Resolve source directory (needed for both plugin.json and skill validation)
-            source_path = plugin.get('source', './')
-            source_path_clean = source_path.lstrip('./')
-            source_dir = repo_root / source_path_clean if source_path_clean else repo_root
-
-            # Validate plugin.json schema
-            plugin_json_path = source_dir / '.claude-plugin' / 'plugin.json'
-            if plugin_json_path.exists():
-                plugin_name = plugin.get('name', f'plugins[{idx}]')
-                issues.extend(validate_plugin_json(plugin_json_path, plugin_name))
-
-            # Validate skill paths
-            if 'skills' in plugin and isinstance(plugin['skills'], list):
-                for skill_idx, skill_path in enumerate(plugin['skills']):
-                    skill_path_clean = skill_path.lstrip('./')
-                    # Resolve skill path relative to source path
-                    skill_dir = source_dir / skill_path_clean if skill_path_clean else source_dir
-
-                    # Check if path starts with './'
-                    if not skill_path.startswith('./'):
-                        issues.append({
-                            'type': 'warning',
-                            'category': 'format',
-                            'field': f'{plugin_prefix}.skills[{skill_idx}]',
-                            'value': skill_path,
-                            'message': f"Skill path should start with './' (got: {skill_path})"
-                        })
-
-                    # Check if skill directory exists
-                    if not skill_dir.exists():
+            # Validate source (relative paths validated thoroughly; objects accepted)
+            source_dir = None
+            if isinstance(source, str):
+                if not source.startswith('./'):
+                    issues.append({
+                        'type': 'error',
+                        'category': 'schema',
+                        'field': f'{plugin_prefix}.source',
+                        'value': source,
+                        'message': f"Relative source path must start with './' (got: {source})"
+                    })
+                elif '..' in source:
+                    issues.append({
+                        'type': 'error',
+                        'category': 'schema',
+                        'field': f'{plugin_prefix}.source',
+                        'value': source,
+                        'message': f"Source path must not contain '..' (got: {source})"
+                    })
+                else:
+                    source_path_clean = source.lstrip('./')
+                    source_dir = repo_root / source_path_clean if source_path_clean else repo_root
+                    if not source_dir.exists():
                         issues.append({
                             'type': 'error',
                             'category': 'missing_file',
-                            'field': f'{plugin_prefix}.skills[{skill_idx}]',
-                            'value': skill_path,
-                            'message': f"Skill directory not found: {skill_dir}"
+                            'field': f'{plugin_prefix}.source',
+                            'value': source,
+                            'message': f"Source directory not found: {source_dir}"
                         })
-                    else:
-                        skill_md = skill_dir / 'SKILL.md'
-                        if not skill_md.exists():
-                            issues.append({
-                                'type': 'error',
-                                'category': 'missing_file',
-                                'field': f'{plugin_prefix}.skills[{skill_idx}]',
-                                'value': skill_path,
-                                'message': f"SKILL.md not found in: {skill_dir}"
-                            })
-                        else:
-                            # Validate SKILL.md frontmatter
-                            from sync_marketplace_versions import extract_frontmatter_version
-                            version, is_deprecated = extract_frontmatter_version(skill_md)
-                            if not version:
-                                issues.append({
-                                    'type': 'warning',
-                                    'category': 'metadata',
-                                    'field': f'{plugin_prefix}.skills[{skill_idx}]',
-                                    'value': skill_path,
-                                    'message': f"No version found in {skill_path}/SKILL.md frontmatter"
-                                })
-                            elif is_deprecated:
-                                issues.append({
-                                    'type': 'warning',
-                                    'category': 'deprecated',
-                                    'field': f'{plugin_prefix}.skills[{skill_idx}]',
-                                    'value': skill_path,
-                                    'message': f"Skill uses deprecated 'version' field (use 'metadata.version' instead)"
-                                })
+            elif isinstance(source, dict):
+                # Object source types (github, url, git-subdir, npm) — accept without
+                # detailed validation per plan scope boundaries (YAGNI)
+                pass
 
-            # Validate author email if present
-            if 'author' in plugin and isinstance(plugin['author'], dict):
-                if 'email' in plugin['author'] and not validate_email(plugin['author']['email']):
+            # Unknown plugin entry fields — warn, not error
+            if 'skills' in plugin:
+                issues.append({
+                    'type': 'warning',
+                    'category': 'schema',
+                    'field': f'{plugin_prefix}.skills',
+                    'message': (
+                        "The 'skills' field is not part of the official marketplace schema. "
+                        "Skills are defined in the plugin directory and auto-discovered by Claude Code. "
+                        "Remove this field from the plugin entry."
+                    )
+                })
+            unknown_plugin = set(plugin.keys()) - MARKETPLACE_PLUGIN_KNOWN_FIELDS
+            for field in sorted(unknown_plugin):
+                if field == 'skills':
+                    continue  # Already handled above with specific message
+                issues.append({
+                    'type': 'warning',
+                    'category': 'schema',
+                    'field': f'{plugin_prefix}.{field}',
+                    'message': f"Unknown field '{field}' in plugin entry"
+                })
+
+            # Version format validation (if present)
+            if 'version' in plugin and plugin['version']:
+                if not validate_semantic_version(plugin['version']):
                     issues.append({
                         'type': 'warning',
-                        'category': 'format',
-                        'field': f'{plugin_prefix}.author.email',
-                        'value': plugin['author']['email'],
-                        'message': f"Invalid email format: {plugin['author']['email']}"
+                        'category': 'version',
+                        'field': f'{plugin_prefix}.version',
+                        'value': plugin['version'],
+                        'message': f"Invalid version format: {plugin['version']}"
                     })
 
-            # Check for skills on disk not declared in marketplace
-            declared_skill_dirs = set()
-            if 'skills' in plugin and isinstance(plugin['skills'], list):
-                for skill_path in plugin['skills']:
-                    skill_path_clean = skill_path.lstrip('./')
-                    resolved = source_dir / skill_path_clean if skill_path_clean else source_dir
-                    declared_skill_dirs.add(resolved.resolve())
+            # Author validation — accept string or object
+            if 'author' in plugin:
+                author = plugin['author']
+                if isinstance(author, dict):
+                    if 'email' in author and not validate_email(author['email']):
+                        issues.append({
+                            'type': 'warning',
+                            'category': 'format',
+                            'field': f'{plugin_prefix}.author.email',
+                            'value': author['email'],
+                            'message': f"Invalid email format: {author['email']}"
+                        })
+                elif not isinstance(author, str):
+                    issues.append({
+                        'type': 'warning',
+                        'category': 'schema',
+                        'field': f'{plugin_prefix}.author',
+                        'message': "Author must be a string or object"
+                    })
 
-            skills_subdir = source_dir / 'skills'
-            if skills_subdir.exists() and skills_subdir.is_dir():
-                for candidate in sorted(skills_subdir.iterdir()):
-                    if candidate.is_dir() and (candidate / 'SKILL.md').exists():
-                        if candidate.resolve() not in declared_skill_dirs:
+            # Validate plugin.json schema (if source resolves to local dir)
+            if source_dir and source_dir.exists():
+                plugin_json_path = source_dir / '.claude-plugin' / 'plugin.json'
+                if plugin_json_path.exists():
+                    issues.extend(validate_plugin_json(
+                        plugin_json_path, p_name or f'plugins[{idx}]'
+                    ))
+
+                # Validate discovered skills' SKILL.md frontmatter
+                discovered_skills = discover_plugin_skills(source_dir)
+                for skill_path in discovered_skills:
+                    skill_path_clean = skill_path.lstrip('./')
+                    skill_dir = source_dir / skill_path_clean if skill_path_clean else source_dir
+                    skill_md = skill_dir / 'SKILL.md'
+                    if skill_md.exists():
+                        version, is_nonstandard = extract_frontmatter_version(skill_md)
+                        if not version:
                             issues.append({
                                 'type': 'warning',
-                                'category': 'undeclared_skill',
-                                'field': f'{plugin_prefix}.skills',
-                                'value': str(candidate.relative_to(repo_root)),
+                                'category': 'metadata',
+                                'field': f'{plugin_prefix}',
+                                'value': skill_path,
+                                'message': f"No version found in {skill_path}/SKILL.md frontmatter"
+                            })
+                        elif is_nonstandard:
+                            issues.append({
+                                'type': 'warning',
+                                'category': 'nonstandard',
+                                'field': f'{plugin_prefix}',
+                                'value': skill_path,
                                 'message': (
-                                    f"Skill '{candidate.name}' exists in {skills_subdir.relative_to(repo_root)} "
-                                    f"but is not declared in marketplace.json skills array for plugin '{plugin.get('name', 'unnamed')}'"
+                                    f"Skill uses root-level 'version' field (not in AgentSkills spec). "
+                                    f"Use 'metadata.version' instead."
                                 )
                             })
 
