@@ -21,8 +21,8 @@ from pathlib import Path
 
 from utils import (
     get_repo_root, print_verbose_info, validate_repo_structure,
-    extract_frontmatter_version, load_marketplace as _load_marketplace,
-    save_marketplace as _save_marketplace, discover_plugin_skills,
+    extract_frontmatter_version, load_marketplace, save_marketplace,
+    discover_plugin_skills,
 )
 from sync_readme import sync_readme
 
@@ -98,24 +98,6 @@ def get_skill_versions(source_dir, skills):
             if version:
                 versions.append((skill_path_clean or './', version))
     return versions
-
-
-def load_marketplace(marketplace_path):
-    """Load marketplace.json file.
-
-    Wraps utils.load_marketplace with error handling for missing/invalid files.
-    """
-    try:
-        return _load_marketplace(marketplace_path)
-    except json.JSONDecodeError as e:
-        print(f"❌ Invalid JSON in marketplace.json: {e}")
-        return None
-
-
-def save_marketplace(marketplace_path, marketplace_data):
-    """Save marketplace.json — delegates to utils."""
-    _save_marketplace(marketplace_path, marketplace_data)
-    print(f"✅ Updated marketplace: {marketplace_path}")
 
 
 def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):

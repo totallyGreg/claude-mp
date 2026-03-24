@@ -25,34 +25,10 @@ except ImportError:
     print("Error: missing dependencies. Run this script via: uv run add_to_marketplace.py", file=sys.stderr)
     sys.exit(1)
 
-from utils import get_repo_root, print_verbose_info, validate_repo_structure, parse_semver
-
-
-def load_marketplace(marketplace_path):
-    """Load existing marketplace.json or return empty structure."""
-    if marketplace_path.exists():
-        with open(marketplace_path, "r") as f:
-            return json.load(f)
-
-    # Return empty marketplace structure
-    return {
-        "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-        "name": "",
-        "version": "1.0.0",
-        "description": "",
-        "owner": {"name": "", "email": ""},
-        "plugins": [],
-    }
-
-
-def save_marketplace(marketplace_path, marketplace_data):
-    """Save marketplace.json with pretty formatting."""
-    marketplace_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(marketplace_path, "w") as f:
-        json.dump(marketplace_data, f, indent=2)
-
-    print(f"✅ Updated marketplace at: {marketplace_path}")
+from utils import (
+    get_repo_root, print_verbose_info, validate_repo_structure,
+    parse_semver, load_marketplace, save_marketplace, find_plugin,
+)
 
 
 def init_marketplace(marketplace_path, name, owner_name, owner_email, description):
@@ -60,22 +36,16 @@ def init_marketplace(marketplace_path, name, owner_name, owner_email, descriptio
     marketplace_data = {
         "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
         "name": name,
-        "version": "1.0.0",
-        "description": description,
         "owner": {"name": owner_name, "email": owner_email},
+        "metadata": {
+            "version": "1.0.0",
+            "description": description,
+        },
         "plugins": [],
     }
 
     save_marketplace(marketplace_path, marketplace_data)
     print(f"✅ Initialized new marketplace: {name}")
-
-
-def find_plugin(marketplace_data, plugin_name):
-    """Find a plugin by name in the marketplace."""
-    for plugin in marketplace_data.get("plugins", []):
-        if plugin["name"] == plugin_name:
-            return plugin
-    return None
 
 
 def add_skill_to_plugin(marketplace_data, plugin_name, skill_path):
