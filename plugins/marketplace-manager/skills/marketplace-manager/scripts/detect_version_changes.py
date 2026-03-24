@@ -3,6 +3,11 @@
 # dependencies = []
 # ///
 """
+DEPRECATION NOTICE: For CI pipelines, use marketplace_ci.py instead.
+This script is retained for backward compatibility with pre-commit hooks
+(pre-commit.template v5.2.0 references it by name). Future hook template
+v6.0.0 should migrate callers to marketplace_ci.py.
+
 Detect version mismatches between version sources and marketplace.json.
 
 Version source per plugin type:

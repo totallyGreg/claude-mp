@@ -1,0 +1,26 @@
+# .github/workflows/plugin-validation.yml
+# Validates Claude Code plugin structure and version enforcement on PRs.
+# Requires: marketplace_ci.py vendored at scripts/marketplace_ci.py
+
+name: Plugin Validation
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate plugin structure
+        run: python3 scripts/marketplace_ci.py validate --ci
+
+      - name: Check version bumps
+        run: python3 scripts/marketplace_ci.py version-check --mr --ci
+
+      - name: Check structure (advisory)
+        run: python3 scripts/marketplace_ci.py structure-check --ci || true
