@@ -25,7 +25,7 @@ except ImportError:
     print("Error: missing dependencies. Run this script via: uv run add_to_marketplace.py", file=sys.stderr)
     sys.exit(1)
 
-from utils import get_repo_root, print_verbose_info, validate_repo_structure
+from utils import get_repo_root, print_verbose_info, validate_repo_structure, parse_semver
 
 
 def load_marketplace(marketplace_path):
@@ -234,12 +234,13 @@ def validate_skill_exists(skill_path, repo_root):
 
 
 def parse_version(version_str):
-    """Parse semantic version string into (major, minor, patch) tuple."""
-    try:
-        parts = version_str.split(".")
-        return tuple(int(p) for p in parts[:3])
-    except (ValueError, AttributeError):
-        return (1, 0, 0)
+    """Parse semantic version string into (major, minor, patch) tuple.
+
+    DEPRECATED: Use parse_semver() from utils instead. This wrapper exists
+    for backward compatibility with callers that expected (1,0,0) default.
+    New code should use parse_semver() directly (returns (0,0,0) on failure).
+    """
+    return parse_semver(version_str)
 
 
 def increment_version(version_str, part="patch"):

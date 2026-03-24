@@ -30,7 +30,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from utils import find_repo_root
+from utils import find_repo_root, parse_semver
 
 
 # Exclusion patterns - files that don't require version bumps
@@ -354,20 +354,6 @@ def check_structure(repo_root, marketplace_data):
             })
 
     return {'structure_issues': issues, 'suggested_fixes': fixes}
-
-
-# --- Semver helpers ---
-
-def parse_semver(version_str):
-    """Parse a version string into a comparable tuple.
-
-    Returns (major, minor, patch) or (0, 0, 0) on failure.
-    """
-    try:
-        parts = version_str.split('.')
-        return tuple(int(p) for p in parts[:3])
-    except (ValueError, AttributeError):
-        return (0, 0, 0)
 
 
 # --- Default mode: version source vs marketplace.json ---
