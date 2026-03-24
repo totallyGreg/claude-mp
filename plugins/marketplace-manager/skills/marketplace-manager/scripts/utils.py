@@ -238,6 +238,47 @@ def validate_semantic_version(version_str):
 
 
 # ---------------------------------------------------------------------------
+# Plugin skill discovery
+# ---------------------------------------------------------------------------
+
+def discover_plugin_skills(source_dir):
+    """Discover skill paths within a plugin directory.
+
+    Scans for SKILL.md files to find skills. Returns paths relative to
+    source_dir in the same format as the old marketplace.json 'skills' field.
+
+    Discovery logic:
+    1. If source_dir/SKILL.md exists → single-skill plugin, return ['./']
+    2. If source_dir/skills/ exists → scan subdirs for SKILL.md
+    3. Otherwise → empty list
+
+    Args:
+        source_dir: Path to the plugin source directory
+
+    Returns:
+        List of skill paths relative to source_dir (e.g., ['./'] or
+        ['./skills/foo', './skills/bar'])
+    """
+    source_dir = Path(source_dir)
+
+    # Single-skill plugin: SKILL.md at root
+    if (source_dir / 'SKILL.md').exists():
+        return ['./']
+
+    # Multi-skill plugin: scan skills/ subdirectory
+    skills_dir = source_dir / 'skills'
+    if skills_dir.is_dir():
+        found = []
+        for child in sorted(skills_dir.iterdir()):
+            if child.is_dir() and (child / 'SKILL.md').exists():
+                found.append(f'./skills/{child.name}')
+        if found:
+            return found
+
+    return []
+
+
+# ---------------------------------------------------------------------------
 # Frontmatter version extraction
 # ---------------------------------------------------------------------------
 

@@ -22,7 +22,7 @@ from pathlib import Path
 from utils import (
     get_repo_root, print_verbose_info, validate_repo_structure,
     extract_frontmatter_version, load_marketplace as _load_marketplace,
-    save_marketplace as _save_marketplace,
+    save_marketplace as _save_marketplace, discover_plugin_skills,
 )
 from sync_readme import sync_readme
 
@@ -148,16 +148,17 @@ def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
 
     for plugin in plugins:
         plugin_name = plugin.get('name', '(unnamed)')
-        skills = plugin.get('skills', [])
         source = plugin.get('source', './')
 
+        # Resolve source directory
+        source_path_clean = source.lstrip('./') if isinstance(source, str) else ''
+        source_dir = repo_root / source_path_clean if source_path_clean else repo_root
+
+        # Discover skills from plugin directory (skills field removed from schema)
+        skills = discover_plugin_skills(source_dir)
         if not skills:
             print(f"ℹ️  Plugin '{plugin_name}' has no skills, skipping")
             continue
-
-        # Resolve source directory
-        source_path_clean = source.lstrip('./')
-        source_dir = repo_root / source_path_clean if source_path_clean else repo_root
 
         # Get plugin version from the appropriate source
         source_version, source_label, is_deprecated = get_plugin_version(source_dir, skills)

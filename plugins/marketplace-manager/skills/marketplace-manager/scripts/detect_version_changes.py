@@ -30,7 +30,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from utils import find_repo_root, parse_semver
+from utils import find_repo_root, parse_semver, discover_plugin_skills
 
 
 # Exclusion patterns - files that don't require version bumps
@@ -324,11 +324,11 @@ def check_structure(repo_root, marketplace_data):
 
     for plugin in marketplace_data.get('plugins', []):
         source = plugin.get('source', './')
-        skills = plugin.get('skills', [])
 
-        source_path_clean = source.lstrip('./')
+        source_path_clean = source.lstrip('./') if isinstance(source, str) else ''
         source_dir = repo_root / source_path_clean if source_path_clean else repo_root
 
+        skills = discover_plugin_skills(source_dir)
         version_file, _ = get_plugin_version_source(source_dir, skills)
         key = str(version_file) if version_file else str(source_dir)
 
@@ -393,11 +393,11 @@ def detect_version_mismatches(repo_root, marketplace_data):
         plugin_name = plugin.get('name', 'unknown')
         marketplace_version = plugin.get('version', 'unknown')
         source = plugin.get('source', './')
-        skills = plugin.get('skills', [])
 
-        source_path_clean = source.lstrip('./')
+        source_path_clean = source.lstrip('./') if isinstance(source, str) else ''
         source_dir = repo_root / source_path_clean if source_path_clean else repo_root
 
+        skills = discover_plugin_skills(source_dir)
         version_file, source_label = get_plugin_version_source(source_dir, skills)
 
         if version_file is None:
