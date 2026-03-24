@@ -18,7 +18,7 @@ metadata:
   progressive: 100
   overall: 95
   last_evaluated: 2026-03-11
-  version: "2.8.0"
+  version: "2.9.0"
   author: J. Greg Williams
 compatibility: Requires git repository with .claude-plugin/marketplace.json
 
@@ -91,6 +91,28 @@ Validation checks include:
 - Declared skills exist on disk with valid SKILL.md
 - **Skills present on disk but missing from the `skills` array** (undeclared skill detection)
 - Version format compliance, duplicate plugin names, required fields
+
+## Structure Validation
+
+Detect structural anti-patterns in multi-plugin repos before they cause incorrect version enforcement:
+
+```bash
+uv run scripts/detect_version_changes.py --check-structure       # Human-readable
+uv run scripts/detect_version_changes.py --check-structure --ci  # JSON, exit 1 if issues
+```
+
+**Anti-pattern detected:** Multiple plugin entries in `marketplace.json` resolving to the same `plugin.json`. This happens when independent plugins all use `source: "./"` without their own subdirectories.
+
+**CI pipeline usage** (replaces custom `check-version-bump.sh`):
+
+```bash
+uv run scripts/detect_version_changes.py --check-staged --ci     # Version bump check
+uv run scripts/detect_version_changes.py --check-structure --ci  # Structure check
+```
+
+`--ci` flag: always outputs JSON, exits 1 for any detected issue.
+
+See `references/plugin_marketplace_guide.md` → "Single-Plugin vs Multi-Plugin Marketplace Layouts" for canonical layout examples.
 
 ## Git Integration
 

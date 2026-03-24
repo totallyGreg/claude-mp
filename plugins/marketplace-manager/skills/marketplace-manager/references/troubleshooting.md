@@ -83,6 +83,37 @@ This can happen with manual mode:
 - You must manually update the plugin version in marketplace.json
 - See "Multi-Component Plugin Versioning" in main SKILL.md
 
+## Structure Issues
+
+### Pre-commit hook warns about shared version source
+
+You will see a message like:
+```
+⚠️  Structural anti-patterns detected (advisory — commit will proceed):
+  Plugins sharing a version source: airs-tme, pai-ops, prisma-airs
+  Fix: Move each plugin into its own subdirectory...
+```
+
+This means multiple plugin entries in `marketplace.json` resolve to the same `plugin.json`, which causes incorrect version enforcement. The commit is **not blocked** — this is advisory only.
+
+**To fix:**
+1. Create per-plugin subdirectories: `plugins/airs-tme/`, `plugins/pai-ops/`, etc.
+2. Add `.claude-plugin/plugin.json` to each subdirectory
+3. Move skills under each plugin directory
+4. Update `marketplace.json` source paths: `"source": "./plugins/airs-tme"`
+
+**To diagnose:**
+```bash
+uv run detect_version_changes.py --check-structure
+uv run detect_version_changes.py --check-structure --ci  # JSON output
+```
+
+See `plugin_marketplace_guide.md` → "Multi-Plugin Repo" for the canonical layout.
+
+### detect_version_changes.py reports wrong plugin for a version bump
+
+This often indicates the shared-source anti-pattern: multiple plugins resolve to the same `plugin.json`. Run `--check-structure` to confirm.
+
 ## Validation Issues
 
 ### marketplace.json validation fails

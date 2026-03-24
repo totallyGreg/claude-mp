@@ -14,10 +14,13 @@ Also supports checking staged files for version bump requirements.
 Usage:
     python3 detect_version_changes.py [--format json|text]
     python3 detect_version_changes.py --check-staged [--format json|text]
+    python3 detect_version_changes.py --check-structure [--ci]
 
 Modes:
-    Default: Check version source vs marketplace.json mismatches
-    --check-staged: Check if staged files require version bumps
+    Default:          Check version source vs marketplace.json mismatches
+    --check-staged:   Check if staged files require version bumps
+    --check-structure: Detect structural anti-patterns (shared version sources)
+    --ci:             Machine-readable JSON output, exit 1 for any issue
 """
 
 import argparse
@@ -307,6 +310,52 @@ def detect_staged_changes(repo_root):
     }
 
 
+# --- Structure checks ---
+
+def check_structure(repo_root, marketplace_data):
+    """Detect structural anti-patterns in marketplace layout.
+
+    Anti-pattern: multiple distinct plugin entries resolve to the same version file.
+    Valid pattern: a single plugin entry with multiple skills (multi-skill bundle).
+
+    Returns dict with 'structure_issues' list and 'suggested_fixes' list.
+    """
+    source_to_plugins = {}
+
+    for plugin in marketplace_data.get('plugins', []):
+        source = plugin.get('source', './')
+        skills = plugin.get('skills', [])
+
+        source_path_clean = source.lstrip('./')
+        source_dir = repo_root / source_path_clean if source_path_clean else repo_root
+
+        version_file, _ = get_plugin_version_source(source_dir, skills)
+        key = str(version_file) if version_file else str(source_dir)
+
+        source_to_plugins.setdefault(key, []).append(plugin.get('name', 'unknown'))
+
+    issues = []
+    fixes = []
+
+    for version_file_path, plugins in source_to_plugins.items():
+        if len(plugins) > 1:
+            issues.append({
+                'type': 'shared_version_source',
+                'version_file': version_file_path,
+                'plugins': plugins,
+            })
+            fixes.append({
+                'plugins': plugins,
+                'suggestion': (
+                    f"Move each plugin into its own subdirectory (e.g. plugins/<name>/) "
+                    f"with its own .claude-plugin/plugin.json, then update marketplace.json "
+                    f"source paths accordingly."
+                ),
+            })
+
+    return {'structure_issues': issues, 'suggested_fixes': fixes}
+
+
 # --- Semver helpers ---
 
 def parse_semver(version_str):
@@ -476,6 +525,23 @@ def format_staged_text_output(results):
         print("=" * 60 + "\n")
 
 
+def format_structure_text_output(results):
+    """Format structure check results as human-readable text."""
+    issues = results.get('structure_issues', [])
+    fixes = results.get('suggested_fixes', [])
+
+    if not issues:
+        print("✓ No structural anti-patterns detected")
+        return
+
+    print(f"⚠️  Structural issues found: {len(issues)}\n")
+    for issue, fix in zip(issues, fixes):
+        print(f"Shared version source: {issue['version_file']}")
+        print(f"  Plugins sharing this source: {', '.join(issue['plugins'])}")
+        print(f"  Fix: {fix['suggestion']}")
+        print()
+
+
 # --- Main ---
 
 def main():
@@ -484,13 +550,20 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Modes:
-  Default:        Compare version source (plugin.json or SKILL.md) vs marketplace.json
-  --check-staged: Check if staged files require version bumps
+  Default:           Compare version source (plugin.json or SKILL.md) vs marketplace.json
+  --check-staged:    Check if staged files require version bumps
+  --check-structure: Detect structural anti-patterns (shared version sources)
+
+Flags:
+  --ci:              Always output JSON; exit 1 for any issue (for use in CI pipelines)
 
 Examples:
-  %(prog)s                    # Check for mismatches
-  %(prog)s --check-staged     # Check staged files
-  %(prog)s --format json      # JSON output
+  %(prog)s                              # Check for mismatches
+  %(prog)s --check-staged               # Check staged files
+  %(prog)s --check-structure            # Check for structural anti-patterns
+  %(prog)s --check-staged --ci          # CI-mode staged check
+  %(prog)s --check-structure --ci       # CI-mode structure check
+  %(prog)s --format json                # JSON output (default mode)
 """,
     )
 
@@ -501,13 +574,28 @@ Examples:
     )
 
     parser.add_argument(
+        '--check-structure',
+        action='store_true',
+        help='Detect structural anti-patterns (multiple plugins sharing a version source)'
+    )
+
+    parser.add_argument(
+        '--ci',
+        action='store_true',
+        help='CI mode: always output JSON, exit 1 for any issue'
+    )
+
+    parser.add_argument(
         '--format',
         choices=['json', 'text'],
         default='text',
-        help='Output format (default: text)'
+        help='Output format (default: text; overridden to json when --ci is set)'
     )
 
     args = parser.parse_args()
+
+    # --ci forces JSON output
+    output_json = args.ci or args.format == 'json'
 
     try:
         repo_root = find_repo_root()
@@ -518,24 +606,37 @@ Examples:
         if args.check_staged:
             results = detect_staged_changes(repo_root)
 
-            if args.format == 'json':
+            if output_json:
                 print(json.dumps(results, indent=2))
             else:
                 format_staged_text_output(results)
 
             sys.exit(1 if results['missing_bumps'] else 0)
+
+        # Load marketplace.json (needed for both structure check and default mode)
+        marketplace_path = repo_root / '.claude-plugin' / 'marketplace.json'
+        if not marketplace_path.exists():
+            print(f"❌ marketplace.json not found at {marketplace_path}")
+            sys.exit(1)
+
+        with open(marketplace_path) as f:
+            marketplace_data = json.load(f)
+
+        if args.check_structure:
+            results = check_structure(repo_root, marketplace_data)
+
+            if output_json:
+                print(json.dumps(results, indent=2))
+            else:
+                format_structure_text_output(results)
+
+            has_issues = bool(results.get('structure_issues'))
+            sys.exit(1 if has_issues else 0)
+
         else:
-            marketplace_path = repo_root / '.claude-plugin' / 'marketplace.json'
-            if not marketplace_path.exists():
-                print(f"❌ marketplace.json not found at {marketplace_path}")
-                sys.exit(1)
-
-            with open(marketplace_path) as f:
-                marketplace_data = json.load(f)
-
             results = detect_version_mismatches(repo_root, marketplace_data)
 
-            if args.format == 'json':
+            if output_json:
                 print(json.dumps(results, indent=2))
             else:
                 format_text_output(results)
