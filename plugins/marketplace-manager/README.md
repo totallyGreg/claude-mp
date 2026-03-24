@@ -18,7 +18,7 @@ Programmatic marketplace management with git integration:
 
 | Version | Changes |
 |---------|---------|
-| 2.9.0 | Multi-plugin structure detection (`--check-structure`), CI mode (`--ci`), advisory hook warning, docs — eval 97/100 |
+| 2.9.0 | Multi-plugin structure detection (`--check-structure`), CI mode (`--ci`), advisory hook warning, docs |
 | 2.8.0 | Undeclared skill detection in validate; uv guard; license frontmatter fix |
 | 2.7.0 | Add trigger phrases to description |
 | 2.5.0 | plugin-dev docs, two-pass find_repo_root(), plugin.json schema validation, pre-commit hook v5.0.0 |
