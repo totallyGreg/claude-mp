@@ -1,0 +1,32 @@
+# Validates Claude Code plugin structure and version enforcement on MRs.
+# Requires: marketplace_ci.py vendored at scripts/marketplace_ci.py
+
+stages:
+  - validate
+
+validate:plugin:
+  stage: validate
+  image: python:3.12-slim
+  script:
+    - python3 scripts/marketplace_ci.py validate --ci
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+
+version:check:
+  stage: validate
+  image: python:3.12-slim
+  before_script:
+    - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME --depth=1
+  script:
+    - python3 scripts/marketplace_ci.py version-check --mr --ci
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+
+structure:check:
+  stage: validate
+  image: python:3.12-slim
+  script:
+    - python3 scripts/marketplace_ci.py structure-check --ci
+  allow_failure: true
+  rules:
+    - if: $CI_MERGE_REQUEST_IID

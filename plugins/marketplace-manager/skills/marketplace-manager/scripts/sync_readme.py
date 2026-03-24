@@ -19,20 +19,7 @@ import re
 import sys
 from pathlib import Path
 
-from utils import get_repo_root, validate_repo_structure
-
-
-def load_marketplace(marketplace_path):
-    """Load marketplace.json file."""
-    try:
-        with open(marketplace_path, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"❌ Marketplace not found: {marketplace_path}")
-        return None
-    except json.JSONDecodeError as e:
-        print(f"❌ Invalid JSON in marketplace.json: {e}")
-        return None
+from utils import get_repo_root, validate_repo_structure, load_marketplace
 
 
 def group_plugins_by_category(plugins):

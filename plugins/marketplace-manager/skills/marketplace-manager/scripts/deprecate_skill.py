@@ -23,33 +23,16 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-from utils import get_repo_root, print_verbose_info, validate_repo_structure
+from utils import (
+    get_repo_root, print_verbose_info, validate_repo_structure,
+    load_marketplace, save_marketplace,
+)
 
 
-def load_marketplace(marketplace_path):
-    """Load marketplace.json file."""
-    try:
-        with open(marketplace_path, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"❌ Marketplace not found: {marketplace_path}")
-        return None
-    except json.JSONDecodeError as e:
-        print(f"❌ Invalid JSON in marketplace.json: {e}")
-        return None
-
-
-def save_marketplace(marketplace_path, marketplace_data):
-    """Save marketplace.json with pretty formatting."""
-    with open(marketplace_path, 'w') as f:
-        json.dump(marketplace_data, f, indent=2)
-    print(f"✅ Updated marketplace: {marketplace_path}")
-
-
-def find_plugin(marketplace_data, plugin_name):
-    """Find a plugin by name in the marketplace."""
+def find_plugin_with_index(marketplace_data, plugin_name):
+    """Find a plugin by name in the marketplace, returning its index too."""
     for idx, plugin in enumerate(marketplace_data.get('plugins', [])):
-        if plugin['name'] == plugin_name:
+        if plugin.get('name') == plugin_name:
             return plugin, idx
     return None, -1
 
@@ -249,7 +232,7 @@ def deprecate_skill(
         return False
 
     # Find plugin
-    plugin, plugin_idx = find_plugin(marketplace_data, skill_name)
+    plugin, plugin_idx = find_plugin_with_index(marketplace_data, skill_name)
     if not plugin:
         print(f"❌ Plugin '{skill_name}' not found in marketplace")
         print(f"\nAvailable plugins:")

@@ -1,11 +1,13 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "totally-tools",
-  "version": "2.0.0",
-  "description": "Totally Tools - a Playground for Claude extensions including skills, commands, agents, hooks, and MCP servers",
   "owner": {
     "name": "J. Greg Williams",
     "email": "283704+totallyGreg@users.noreply.github.com"
+  },
+  "metadata": {
+    "version": "2.0.0",
+    "description": "Totally Tools - a Playground for Claude extensions including skills, commands, agents, hooks, and MCP servers"
   },
   "plugins": [
     {
@@ -17,12 +19,7 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./plugins/terminal-guru",
-      "skills": [
-        "./skills/terminal-emulation",
-        "./skills/zsh-dev",
-        "./skills/signals-monitoring"
-      ]
+      "source": "./plugins/terminal-guru"
     },
     {
       "name": "helm-chart-developer",
@@ -33,10 +30,7 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./skills/helm-chart-developer",
-      "skills": [
-        "./"
-      ]
+      "source": "./skills/helm-chart-developer"
     },
     {
       "name": "skillsmith",
@@ -47,10 +41,7 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./plugins/skillsmith",
-      "skills": [
-        "./skills/skillsmith"
-      ]
+      "source": "./plugins/skillsmith"
     },
     {
       "name": "swift-dev",
@@ -61,10 +52,7 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./skills/swift-dev",
-      "skills": [
-        "./"
-      ]
+      "source": "./skills/swift-dev"
     },
     {
       "name": "pkm-plugin",
@@ -75,11 +63,7 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./plugins/pkm-plugin",
-      "skills": [
-        "./skills/vault-architect",
-        "./skills/vault-curator"
-      ]
+      "source": "./plugins/pkm-plugin"
     },
     {
       "name": "omnifocus-manager",
@@ -90,25 +74,18 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./plugins/omnifocus-manager",
-      "skills": [
-        "./skills/omnifocus-manager",
-        "./skills/gtd-coach"
-      ]
+      "source": "./plugins/omnifocus-manager"
     },
     {
       "name": "marketplace-manager",
       "description": "Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance",
       "category": "development",
-      "version": "2.9.0",
+      "version": "3.0.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./plugins/marketplace-manager",
-      "skills": [
-        "./skills/marketplace-manager"
-      ]
+      "source": "./plugins/marketplace-manager"
     },
     {
       "name": "ai-risk-mapper",
@@ -119,10 +96,7 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./plugins/ai-risk-mapper",
-      "skills": [
-        "./skills/ai-risk-mapper"
-      ]
+      "source": "./plugins/ai-risk-mapper"
     },
     {
       "name": "gateway-manager",
@@ -133,11 +107,7 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./plugins/gateway-manager",
-      "skills": [
-        "./skills/kgateway",
-        "./skills/agentgateway"
-      ]
+      "source": "./plugins/gateway-manager"
     },
     {
       "name": "confluence-pages",
@@ -148,10 +118,7 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./skills/confluence-pages",
-      "skills": [
-        "./"
-      ]
+      "source": "./skills/confluence-pages"
     }
   ]
 }

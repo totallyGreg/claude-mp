@@ -104,8 +104,8 @@ This means multiple plugin entries in `marketplace.json` resolve to the same `pl
 
 **To diagnose:**
 ```bash
-uv run detect_version_changes.py --check-structure
-uv run detect_version_changes.py --check-structure --ci  # JSON output
+python3 marketplace_ci.py structure-check
+python3 marketplace_ci.py structure-check --ci  # JSON output
 ```
 
 See `plugin_marketplace_guide.md` → "Multi-Plugin Repo" for the canonical layout.

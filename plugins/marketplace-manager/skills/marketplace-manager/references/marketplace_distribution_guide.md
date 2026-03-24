@@ -214,10 +214,13 @@ Checks marketplace.json for:
 | `name` | string | Marketplace name |
 | `owner` | object | Marketplace owner information |
 | `plugins` | array | List of plugins in marketplace |
-| `plugins[].name` | string | Plugin name (for installation) |
-| `plugins[].version` | string | Plugin version (semantic versioning) |
-| `plugins[].source` | string | Path to plugin root (relative to marketplace root) |
-| `plugins[].skills` | array | Paths to skill directories (relative to source) |
+| `plugins[].name` | string | Plugin name (kebab-case, required) |
+| `plugins[].source` | string or object | Where to fetch the plugin (required) |
+| `plugins[].version` | string | Plugin version (semantic versioning, optional) |
+| `plugins[].description` | string | Brief plugin description (optional) |
+| `plugins[].author` | string or object | Plugin author (optional) |
+| `plugins[].category` | string | Plugin category (optional) |
+| `plugins[].keywords` | array | Tags for discovery (optional) |
 
 ### Single-Skill Plugin
 

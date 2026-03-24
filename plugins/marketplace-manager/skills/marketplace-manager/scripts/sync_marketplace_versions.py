@@ -16,70 +16,15 @@ Run this before committing changes to ensure marketplace versions stay in sync.
 
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
 
-from utils import get_repo_root, print_verbose_info, validate_repo_structure
+from utils import (
+    get_repo_root, print_verbose_info, validate_repo_structure,
+    extract_frontmatter_version, load_marketplace, save_marketplace,
+    discover_plugin_skills,
+)
 from sync_readme import sync_readme
-
-
-def extract_frontmatter_version(skill_md_path):
-    """Extract version from SKILL.md YAML frontmatter.
-
-    Priority:
-    1. metadata.version (Agent Skills spec - preferred)
-    2. version (deprecated but supported)
-
-    Args:
-        skill_md_path: Path to SKILL.md file
-
-    Returns:
-        Tuple of (version_string, is_deprecated) or (None, None) if not found
-    """
-    try:
-        with open(skill_md_path, 'r') as f:
-            content = f.read()
-
-        # Match YAML frontmatter (between --- markers)
-        frontmatter_match = re.match(r'^---\s*\n(.*?)\n---', content, re.DOTALL)
-        if not frontmatter_match:
-            return None, None
-
-        frontmatter = frontmatter_match.group(1)
-
-        # Parse frontmatter for both metadata.version and version
-        metadata_version = None
-        version = None
-        in_metadata = False
-
-        for line in frontmatter.split('\n'):
-            stripped = line.strip()
-            is_indented = line.startswith(' ') or line.startswith('\t')
-
-            if stripped.startswith('metadata:'):
-                in_metadata = True
-            elif in_metadata and stripped.startswith('version:'):
-                # metadata.version (preferred)
-                metadata_version = stripped.split(':', 1)[1].strip().strip('"').strip("'")
-                in_metadata = False
-            elif not in_metadata and stripped.startswith('version:'):
-                # deprecated version field
-                version = stripped.split(':', 1)[1].strip().strip('"').strip("'")
-            elif stripped and not is_indented and not stripped.startswith('-'):
-                in_metadata = False
-
-        # Return preferred version
-        if metadata_version:
-            return metadata_version, False
-        elif version:
-            return version, True
-        else:
-            return None, None
-
-    except Exception as e:
-        print(f"⚠️  Warning: Could not read {skill_md_path}: {e}")
-        return None, None
 
 
 def read_plugin_json_version(plugin_json_path):
@@ -155,26 +100,6 @@ def get_skill_versions(source_dir, skills):
     return versions
 
 
-def load_marketplace(marketplace_path):
-    """Load marketplace.json file."""
-    try:
-        with open(marketplace_path, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"❌ Marketplace not found: {marketplace_path}")
-        return None
-    except json.JSONDecodeError as e:
-        print(f"❌ Invalid JSON in marketplace.json: {e}")
-        return None
-
-
-def save_marketplace(marketplace_path, marketplace_data):
-    """Save marketplace.json with pretty formatting."""
-    with open(marketplace_path, 'w') as f:
-        json.dump(marketplace_data, f, indent=2)
-    print(f"✅ Updated marketplace: {marketplace_path}")
-
-
 def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
     """Sync versions from version sources to marketplace.json.
 
@@ -205,16 +130,17 @@ def sync_versions(marketplace_path, repo_root, dry_run=False, mode='auto'):
 
     for plugin in plugins:
         plugin_name = plugin.get('name', '(unnamed)')
-        skills = plugin.get('skills', [])
         source = plugin.get('source', './')
 
+        # Resolve source directory
+        source_path_clean = source.lstrip('./') if isinstance(source, str) else ''
+        source_dir = repo_root / source_path_clean if source_path_clean else repo_root
+
+        # Discover skills from plugin directory (skills field removed from schema)
+        skills = discover_plugin_skills(source_dir)
         if not skills:
             print(f"ℹ️  Plugin '{plugin_name}' has no skills, skipping")
             continue
-
-        # Resolve source directory
-        source_path_clean = source.lstrip('./')
-        source_dir = repo_root / source_path_clean if source_path_clean else repo_root
 
         # Get plugin version from the appropriate source
         source_version, source_label, is_deprecated = get_plugin_version(source_dir, skills)

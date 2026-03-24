@@ -251,7 +251,7 @@ marketplace.json entries:
 }
 ```
 
-**Detection:** Run `detect_version_changes.py --check-structure` to identify this pattern in any repo.
+**Detection:** Run `marketplace_ci.py structure-check` (or legacy `detect_version_changes.py --check-structure`) to identify this pattern in any repo.
 
 ### When to Use Each Layout
 
