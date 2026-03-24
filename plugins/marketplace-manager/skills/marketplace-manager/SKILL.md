@@ -18,7 +18,7 @@ metadata:
   progressive: 100
   overall: 95
   last_evaluated: 2026-03-11
-  version: "2.9.0"
+  version: "3.0.0"
   author: J. Greg Williams
 compatibility: Requires git repository with .claude-plugin/marketplace.json
 
