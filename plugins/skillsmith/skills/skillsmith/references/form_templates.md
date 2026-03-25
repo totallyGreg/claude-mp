@@ -2,6 +2,46 @@
 
 This file contains structured templates for common skill development workflows.
 
+## Use-Case Definition Form
+
+**Complete this before running `/ss-init`.** Define 2-3 concrete use cases to validate the skill is worth building and to generate an accurate description.
+
+For each use case, fill out:
+
+```
+Use Case: [short name]
+Trigger: User says "[exact phrase that should invoke this skill]"
+Steps: 1. [what Claude does first]
+       2. [what Claude does next]
+       3. [what Claude does last]
+Result: [concrete output or outcome the user receives]
+```
+
+**Questions to answer before scaffolding:**
+
+- **Problem without the skill:** What does Claude do (or fail to do) today when this trigger fires?
+- **Required tools/MCP:** Which tools does this skill need (Bash, Read, Write, specific MCP servers)?
+- **Success criteria:** How will you know the skill is working correctly?
+
+**Example (well-formed):**
+
+```
+Use Case: Review a pull request
+Trigger: User says "review this PR" or "review PR #123"
+Steps: 1. Fetch PR diff and changed files
+       2. Analyze for bugs, style issues, and test coverage
+       3. Post structured review comment grouped by severity
+Result: A formatted review comment posted to the PR
+
+Problem without skill: Claude reads the PR but writes an unstructured wall of text
+Required tools: Bash (gh pr diff), Read (source files)
+Success criteria: Review comment has severity grouping and actionable suggestions
+```
+
+Once you have 2-3 use cases filled out, proceed to the Skill Proposal Form below, then run `/ss-init`.
+
+---
+
 ## Skill Proposal Form
 
 Use this template when proposing a new skill for review:

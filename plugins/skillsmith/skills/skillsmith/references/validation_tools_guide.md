@@ -727,6 +727,8 @@ This section maps the official plugin-dev validation checklist to skillsmith's a
 | No duplicate information | [HYBRID] | `update_references.py --detect-duplicates` |
 | References load when needed | [MANUAL] | Requires runtime testing |
 
+For a complete three-area testing methodology (triggering tests with 90% target, functional tests, and performance tests), see `references/testing_guide.md`.
+
 ---
 
 ## Description Quality Score (v5.0.0)
@@ -770,6 +772,24 @@ description: Helps with skills.
 # After (specific)
 description: This skill should be used when users ask to "init a new skill", "check skill compliance", or "sync skill to marketplace".
 ```
+
+### Negative Trigger Coaching (--explain only, unscored)
+
+`--explain` surfaces a coaching item for negative trigger clauses — `"Do NOT use for X (use Y skill instead)"`. This is not scored but prevents overtriggering in multi-skill environments.
+
+- **Present**: affirmed as best practice
+- **Absent**: coaching suggestion emitted in "To improve" section
+
+### Over/Undertrigger Diagnostic Signals (--explain only)
+
+`--explain` also emits two diagnostic signals after trigger-phrase analysis:
+
+| Signal | Condition | Suggestion |
+|--------|-----------|------------|
+| Undertrigger risk | Fewer than 2 trigger phrases, or all phrases ≤ 2 words | Add more specific quoted phrases or expand short phrases with domain nouns |
+| Overtrigger risk | 8 or more trigger phrases | Add a negative trigger clause to narrow scope |
+
+These signals are informational only — they do not affect the Description Quality score.
 
 ### Viewing Description Quality
 

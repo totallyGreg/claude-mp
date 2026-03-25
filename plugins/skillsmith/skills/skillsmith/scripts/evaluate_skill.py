@@ -1089,12 +1089,23 @@ def validate_description_quality(frontmatter_dict):
         issues.append(f"Description exceeds 1024 characters ({len(description)})")
         suggestions.append("Shorten description to comply with AgentSkills spec")
 
+    # Detect negative trigger clause (coaching only, not scored)
+    # Positive signal: description explicitly says when NOT to use the skill
+    _NEGATIVE_TRIGGER_PATTERNS = [
+        'do not use', "don't use", 'not for', 'when not to', 'avoid when',
+        'instead use', 'not intended for', 'not designed for',
+    ]
+    has_negative_trigger = any(
+        p in description.lower() for p in _NEGATIVE_TRIGGER_PATTERNS
+    )
+
     return {
         'score': score,
         'trigger_phrases_found': trigger_phrases_found,
         'has_third_person': has_third_person,
         'is_specific': is_specific,
         'length_ok': length_ok,
+        'has_negative_trigger': has_negative_trigger,
         'issues': issues,
         'suggestions': suggestions
     }
@@ -2414,8 +2425,23 @@ def print_explain_output(evaluation):
         print(f"    Third-person format: {'✓' if desc.get('has_third_person') else '✗'}")
         print(f"    Specific scenarios: {'✓' if desc.get('is_specific') else '✗'}")
         print(f"    Under 1024 chars: {'✓' if desc.get('length_ok') else '✗'}")
+        # Negative trigger coaching (not scored)
+        if desc.get('has_negative_trigger'):
+            print("    Negative trigger clause: ✓ (prevents overtriggering)")
+        else:
+            print("    Negative trigger clause: ✗ (missing — consider adding)")
         for issue in desc.get('issues', []):
             print(f"    ✗ {issue}")
+
+        # Over/undertrigger diagnostic signals
+        num_phrases = len(phrases)
+        phrase_lengths = [len(p.split()) for p in phrases] if phrases else []
+        if num_phrases < 2 or (phrase_lengths and all(n <= 2 for n in phrase_lengths)):
+            print("    ⚠ Undertrigger risk: too few or too narrow trigger phrases")
+            print("      → Add more specific quoted phrases or expand short phrases with domain nouns")
+        elif num_phrases >= 8:
+            print("    ⚠ Overtrigger risk: many trigger phrases may cause broad matching")
+            print("      → Narrow scope with a 'Do NOT use for X (use Y instead)' clause")
         print()
 
         desc_gap = 100 - desc_score
@@ -2429,11 +2455,20 @@ def print_explain_output(evaluation):
                 print("    - Add concrete scenarios rather than vague capability descriptions")
             if not desc.get('length_ok'):
                 print("    - Trim description to under 1024 characters")
+            if not desc.get('has_negative_trigger'):
+                print('    - Add a negative trigger: "Do NOT use for X (use Y skill instead)"')
             delta = int(desc_gap * 0.10)
             if delta > 0:
                 improvements.append((delta, f"Improve description quality → +{delta} overall"))
         else:
-            print("  ✓ Nothing to improve — already at 100")
+            # Still surface negative trigger coaching even at 100
+            if not desc.get('has_negative_trigger'):
+                print("  To improve:")
+                print('    - Add a negative trigger clause: "Do NOT use for X (use Y skill instead)"')
+                print("      (no score impact — prevents overtriggering in multi-skill environments)")
+                print()
+            else:
+                print("  ✓ Nothing to improve — already at 100")
         print()
 
     # ── TOP-3 SUMMARY ─────────────────────────────────────────────────────────

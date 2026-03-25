@@ -1,5 +1,7 @@
 Initialize a new skill from template.
 
+**Before running this command**, complete the Use-Case Definition Form in `references/form_templates.md`. Defining 2-3 concrete use cases first produces a sharper description and avoids rebuilding the skill from scratch after evaluation.
+
 Run the initialization command:
 
 ```bash

@@ -3,7 +3,7 @@ name: skillsmith
 description: This skill should be used when users ask to "create a skill", "validate a skill for quality", "evaluate skill improvements", "improve my skill", "update my skill", "fix skill", "iterate on skill", "optimize skill", "skill quality", "skill performance", "skill isn't working", "analyze skill metrics", "init a new skill", "check skill compliance", or "sync skill to marketplace". Provides comprehensive skill development with automated validation, metrics tracking, and improvement workflows.
 metadata:
   author: J. Greg Williams
-  version: "6.6.0"
+  version: "6.7.0"
 compatibility: Requires python3 and uv for script execution and validation
 license: Complete terms in LICENSE.txt
 ---
@@ -124,3 +124,5 @@ After improvements, invoke **marketplace-manager** to sync `marketplace.json`.
 | `references/readme_template.md` | README.md template and authoring guidance |
 | `references/integration_guide.md` | Integration patterns with marketplace-manager |
 | `references/form_templates.md` | Form templates for structured data collection |
+| `references/skill_patterns.md` | Five proven behavioral patterns for skill architecture |
+| `references/testing_guide.md` | Three-area testing methodology (triggering, functional, performance) |

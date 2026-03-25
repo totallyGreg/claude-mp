@@ -34,6 +34,7 @@ from evaluate_skill import (
     calculate_basic_metrics,
     validate_skill,
     validate_agentskills_spec,
+    validate_description_quality,
 )
 
 
@@ -266,6 +267,55 @@ class TestValidationDeterminism:
 
         assert result1[0] == result2[0], "Validation result should be deterministic"
         assert result1[2] == result2[2], "Version should be deterministic"
+
+
+class TestDescriptionQuality:
+    """Test negative trigger detection and over/undertrigger signals"""
+
+    def test_negative_trigger_detected_when_present(self):
+        """Description with 'Do NOT use for X' should set has_negative_trigger=True"""
+        desc = ('This skill should be used when "reviewing pull requests". '
+                'Do NOT use for general coding questions (use code-review instead).')
+        result = validate_description_quality({'description': desc})
+        assert result['has_negative_trigger'] is True
+
+    def test_negative_trigger_absent_when_missing(self):
+        """Description without any negative trigger clause should set has_negative_trigger=False"""
+        desc = ('This skill should be used when "creating a skill" or "validating a skill". '
+                'Provides skill creation and evaluation workflows.')
+        result = validate_description_quality({'description': desc})
+        assert result['has_negative_trigger'] is False
+
+    def test_negative_trigger_not_confused_with_negation_in_trigger_phrases(self):
+        """Negation words inside trigger phrases (already filtered) should not affect negative trigger detection"""
+        # "never recommend" is about domain behavior, not a "do not use this skill" clause
+        desc = ('This skill should be used when "analyzing recommendations". '
+                'Helps identify when to never recommend certain patterns.')
+        result = validate_description_quality({'description': desc})
+        # "never" appears in domain context, not as a "do not use this skill" instruction
+        assert result['has_negative_trigger'] is False
+
+    def test_alternative_negative_trigger_patterns(self):
+        """Various phrasings of negative trigger clauses should be detected"""
+        patterns = [
+            "not for general coding tasks",
+            "not intended for production deployments",
+            "avoid when working with binary files",
+            "instead use the deploy skill",
+        ]
+        for pattern in patterns:
+            desc = f'This skill should be used when "doing X". {pattern}.'
+            result = validate_description_quality({'description': desc})
+            assert result['has_negative_trigger'] is True, \
+                f"Expected negative trigger detected for: '{pattern}'"
+
+    def test_trigger_phrase_count_returned(self):
+        """trigger_phrases_found reflects only valid (non-negation) trigger phrases"""
+        desc = ('This skill should be used when "create a skill", "validate a skill", '
+                '"improve my skill". Do NOT use for general chat.')
+        result = validate_description_quality({'description': desc})
+        assert len(result['trigger_phrases_found']) == 3
+        assert result['has_negative_trigger'] is True
 
 
 if __name__ == '__main__':
