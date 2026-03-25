@@ -1719,6 +1719,175 @@ def _update_current_metrics_section(content, metrics_content):
     return updated
 
 
+def _find_skill_section_range(content, skill_name):
+    """Find the start and end positions of a ## Skill: <name> section.
+
+    Returns (start, end) tuple where start is the position of the ## heading
+    and end is the position just before the next ## heading or end of file.
+    Returns (None, None) if the section is not found.
+    """
+    pattern = rf'(?m)^## Skill: {re.escape(skill_name)}\s*$'
+    match = re.search(pattern, content)
+    if not match:
+        return None, None
+
+    start = match.start()
+
+    # Find the end: next ## heading (not ###) or end of file
+    rest = content[match.end():]
+    next_h2 = re.search(r'(?m)^## (?!#)', rest)
+    if next_h2:
+        end = match.end() + next_h2.start()
+    else:
+        end = len(content)
+
+    return start, end
+
+
+def _update_skill_metrics_in_plugin_readme(content, skill_name, metrics_content):
+    """Update ### Current Metrics within a ## Skill: <name> section of a plugin README.
+
+    If the ## Skill: section exists, replaces ### Current Metrics within it.
+    If the ## Skill: section does not exist, appends a new one.
+
+    Args:
+        content: Full plugin README.md content
+        skill_name: Skill directory name (e.g., 'zsh-dev')
+        metrics_content: Return value of _generate_metrics_content()
+
+    Returns:
+        Updated content string
+    """
+    start, end = _find_skill_section_range(content, skill_name)
+
+    if start is not None:
+        # Section exists — replace ### Current Metrics within it
+        section = content[start:end]
+        pattern = r'(?ms)^(### Current Metrics)(.*?)(?=\n### |\n## |\Z)'
+        updated_section, n = re.subn(
+            pattern,
+            lambda m: m.group(1) + metrics_content,
+            section
+        )
+        if n == 0:
+            # ### Current Metrics not found — insert after heading line
+            heading_end = section.index('\n') + 1 if '\n' in section else len(section)
+            updated_section = (
+                section[:heading_end] +
+                '\n### Current Metrics' + metrics_content +
+                section[heading_end:]
+            )
+        return content[:start] + updated_section + content[end:]
+
+    # Section does not exist — append new ## Skill: section
+    new_section = (
+        f'\n## Skill: {skill_name}\n'
+        f'\n### Current Metrics{metrics_content}'
+        f'\n### Version History\n\n'
+        f'| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |\n'
+        f'|---------|------|-------|---------|-------|--------|------|-------|-------|-------|\n\n'
+        f'**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, '
+        f'Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)\n'
+    )
+    return content.rstrip() + '\n' + new_section
+
+
+def _extract_metrics_from_skill_readme(skill_readme_path):
+    """Extract Current Metrics and Version History from a skill-level README.md.
+
+    Returns dict with 'metrics_body' and 'history_body' (or None for each).
+    """
+    content = skill_readme_path.read_text(encoding='utf-8')
+    result = {'metrics_body': None, 'history_body': None}
+
+    for heading_name, key in [('## Current Metrics', 'metrics_body'),
+                               ('## Version History', 'history_body')]:
+        pattern = rf'(?m)^{re.escape(heading_name)}\s*\n(.*?)(?=\n## |\n---|\Z)'
+        match = re.search(pattern, content, re.DOTALL)
+        if match:
+            result[key] = match.group(1).strip()
+
+    return result
+
+
+def update_plugin_readme_metrics(skill_path, metrics):
+    """Update the plugin-level README.md with current metrics for a skill.
+
+    Locates the plugin root, finds or creates the ## Skill: <name> section,
+    and updates ### Current Metrics within it. If a skill-level README.md or
+    IMPROVEMENT_PLAN.md exists, offers to migrate it first.
+
+    Args:
+        skill_path: Path to skill directory
+        metrics: dict from calculate_all_metrics()
+
+    Returns:
+        Path to the updated README, or None if skipped
+    """
+    from utils import find_plugin_root, validate_skill_name
+
+    sp = Path(skill_path)
+    skill_name = sp.name
+
+    # Validate skill name
+    is_valid, err = validate_skill_name(skill_name)
+    if not is_valid:
+        print(f"⚠️  Skill name issue: {err}")
+
+    # Find plugin root
+    plugin_root = find_plugin_root(sp)
+    if plugin_root is None:
+        print(f"⚠️  No plugin root found for {sp} — skipping README update")
+        print(f"   (Standalone skills must be in a plugin directory with .claude-plugin/plugin.json)")
+        return None
+
+    plugin_readme = plugin_root / 'README.md'
+    today = datetime.now().strftime('%Y-%m-%d')
+    metrics_content = _generate_metrics_content(metrics, today)
+
+    # Read or create plugin README
+    if plugin_readme.exists():
+        content = plugin_readme.read_text(encoding='utf-8')
+    else:
+        content = f'# {plugin_root.name}\n'
+
+    # Check for skill-level README/IMPROVEMENT_PLAN to migrate
+    skill_readme = sp / 'README.md'
+    skill_ip = sp / 'IMPROVEMENT_PLAN.md'
+    start, _ = _find_skill_section_range(content, skill_name)
+
+    if start is None:
+        # No existing section — check for files to migrate
+        source_file = None
+        if skill_readme.exists():
+            source_file = skill_readme
+        elif skill_ip.exists():
+            source_file = skill_ip
+
+        if source_file is not None:
+            print(f"📋 Found {source_file.name} in {sp.name}/ — migrating to plugin README")
+            extracted = _extract_metrics_from_skill_readme(source_file)
+
+            # Build section from extracted content
+            section_parts = [f'\n## Skill: {skill_name}\n']
+            if extracted['metrics_body']:
+                section_parts.append(f'### Current Metrics\n\n{extracted["metrics_body"]}\n')
+            if extracted['history_body']:
+                section_parts.append(f'### Version History\n\n{extracted["history_body"]}\n')
+
+            content = content.rstrip() + '\n' + '\n'.join(section_parts)
+
+            # Delete the skill-level file
+            source_file.unlink()
+            print(f"   Deleted {source_file}")
+
+    # Now update the metrics (whether section was just created or already existed)
+    content = _update_skill_metrics_in_plugin_readme(content, skill_name, metrics_content)
+
+    plugin_readme.write_text(content, encoding='utf-8')
+    return plugin_readme
+
+
 def generate_skill_readme(skill_path, metrics):
     """
     Generate or update README.md content for a skill.
@@ -2925,15 +3094,15 @@ def main():
                     print()
             sys.exit(0)
 
-        # Update README mode
+        # Update README mode — targets plugin-level README.md
         if update_readme_mode:
             sp = Path(skill_path)
             metrics = calculate_all_metrics(sp)
-            readme_content = generate_skill_readme(sp, metrics)
-            readme_path = sp / 'README.md'
-            readme_path.write_text(readme_content, encoding='utf-8')
-            print(f"✓ README.md written to {readme_path}")
-            print(f"  Overall score: {metrics['overall_score']}/100")
+            readme_path = update_plugin_readme_metrics(sp, metrics)
+            if readme_path:
+                print(f"✓ Plugin README updated: {readme_path}")
+                print(f"  Skill: {sp.name}")
+                print(f"  Overall score: {metrics['overall_score']}/100")
             sys.exit(0)
 
         # Quick validation mode
