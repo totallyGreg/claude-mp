@@ -48,7 +48,9 @@ from pathlib import Path
 PLUGIN_NAME_PATTERN = r'^[a-z][a-z0-9]*(-[a-z0-9]+)*$'
 
 MARKETPLACE_REQUIRED_FIELDS = {'name', 'owner', 'plugins'}
-MARKETPLACE_KNOWN_ROOT_FIELDS = {'$schema', 'name', 'owner', 'plugins', 'metadata'}
+# Per official docs: https://code.claude.com/docs/en/plugin-marketplaces
+# Only name, owner, and plugins are documented. $schema is standard JSON Schema.
+MARKETPLACE_KNOWN_ROOT_FIELDS = {'$schema', 'name', 'owner', 'plugins'}
 
 PLUGIN_ENTRY_REQUIRED_FIELDS = {'name', 'source'}
 MARKETPLACE_PLUGIN_KNOWN_FIELDS = {
@@ -226,7 +228,19 @@ def cmd_validate(repo_root, marketplace_data):
             issues.append({
                 'type': 'warning',
                 'field': field,
-                'message': f"'{field}' should be under 'metadata' per the official schema"
+                'message': (
+                    f"Root-level '{field}' is not part of the official marketplace schema. "
+                    f"Remove this field — for plugins, set '{field}' in each plugin entry instead."
+                )
+            })
+        elif field == 'metadata':
+            issues.append({
+                'type': 'warning',
+                'field': field,
+                'message': (
+                    "Root-level 'metadata' is not part of the official marketplace schema. "
+                    "Remove this field — the official schema uses only name, owner, and plugins."
+                )
             })
         else:
             issues.append({
