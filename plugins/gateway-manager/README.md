@@ -24,9 +24,47 @@ AI/LLM provider routing and traffic policies:
 ### Commands (8)
 `/gw-backend`, `/gw-debug`, `/gw-eval`, `/gw-logs`, `/gw-route`, `/gw-status`, `/gw-upgrade`, `/gw-versions`
 
-## Version History
+## Changelog
 
 | Version | Changes |
 |---------|---------|
 | 3.0.0 | Current release |
 | 1.0.0 | Initial plugin with kgateway and agentgateway skills |
+
+## Skill: agentgateway
+
+### Current Metrics
+
+**Score: 91/100** (Good) — 2026-03-22
+
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 100 | 89 | 80 | 100 | 100 |
+
+### Version History
+
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.0.0 | 2026-02-25 | [#61](https://github.com/totallyGreg/claude-mp/issues/61) | Split from gateway-proxy v2.0.0; agentgateway-focused skill | 98 | 88 | 80 | 100 | - | 91 |
+
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
+
+
+## Skill: kgateway
+
+### Current Metrics
+
+**Score: 91/100** (Good) — 2026-03-22
+
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 98 | 90 | 80 | 100 | 100 |
+
+### Version History
+
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.0.0 | 2026-02-25 | [#61](https://github.com/totallyGreg/claude-mp/issues/61) | Split from gateway-proxy v2.0.0; kgateway-focused skill | 98 | 90 | 80 | 100 | - | 91 |
+
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
+
