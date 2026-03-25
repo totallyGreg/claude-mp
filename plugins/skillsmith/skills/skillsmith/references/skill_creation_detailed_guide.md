@@ -20,6 +20,22 @@ Also, delete any example files and directories not needed for the skill. The ini
 
 **Progressive Disclosure:** Keep SKILL.md lean (<500 lines). See `references/progressive_disclosure_discipline.md` before adding detailed content.
 
+**Description Formula:** Use this three-part formula for every description:
+
+> `[What it does] + [When to use it] + [Key capabilities]`
+
+The evaluator scores descriptions on trigger phrases, third-person format, and specificity — this formula naturally satisfies all three.
+
+Bad examples (from Anthropic's guide):
+- "Helps with projects" — too vague, no trigger phrase
+- "Creates sophisticated multi-page documentation systems" — no trigger, user can't recognize when to invoke it
+- "Implements the Project entity model" — too technical, no user-facing trigger
+
+Good contrast:
+- "This skill should be used when reviewing pull requests. Use when asked to 'review this PR', 'check my code', or 'give feedback on #123'. Reviews diffs for bugs, style issues, and test coverage, then posts a structured comment grouped by severity."
+
+Also include a `Do NOT use for` clause to prevent overtriggering: `"Do NOT use for general code questions (use the code-review skill instead)."`
+
 **Specification Compliance:** Ensure the skill follows AgentSkills specification requirements:
 - Verify frontmatter contains required `name` and `description` fields
 - Confirm `name` follows naming conventions (lowercase, alphanumeric, hyphens only)
@@ -29,6 +45,19 @@ Also, delete any example files and directories not needed for the skill. The ini
 - Maintain one-level-deep reference chains
 
 See `references/agentskills_specification.md` for complete validation requirements.
+
+**Recommended Body Structure:** Use these four sections in order:
+
+1. **Instructions** — overview of what the skill does and when to use it
+2. **Steps** — numbered workflow the skill follows
+3. **Examples** — concrete input/output pairs
+4. **Troubleshooting** — common failures and fixes
+
+Use `## Important` or `## Critical` headers for instructions Claude must not skip.
+
+> Note on scoring: the complexity metric currently penalizes raw section count. Until that fix lands, keep to 3–5 sections with ≥15 lines each rather than 7+ shorter sections to avoid a score penalty. This does not change the recommended structure — just means combining thin sections if you hit the limit.
+
+The six-section spec in `agentskills_specification.md` (Purpose / When to use / Steps / Examples / Edge cases / Resources) is also valid; the four-section format above is optimized for Claude consumption while the spec's format is optimized for compliance auditing. Both are acceptable.
 
 To complete SKILL.md, answer the following questions:
 

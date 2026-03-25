@@ -116,13 +116,21 @@ license: MIT
 
 The Markdown section following frontmatter contains skill instructions with no format restrictions beyond standard Markdown.
 
-**Recommended sections:**
+**Recommended sections (spec-compliant six-section format):**
 1. **Purpose** - What the skill does
 2. **When to use** - Triggering conditions
 3. **Step-by-step instructions** - Procedural workflow
 4. **Input/output examples** - Concrete usage examples
 5. **Edge case handling** - Error conditions and fallbacks
 6. **Resource references** - How to use bundled scripts, references, and assets
+
+**Alternatively, the Anthropic guide's four-section format** (optimized for Claude consumption):
+1. **Instructions** - Overview + when to use
+2. **Steps** - Numbered workflow
+3. **Examples** - Concrete input/output pairs
+4. **Troubleshooting** - Common failures and fixes
+
+Both formats are valid. The six-section format maps more directly to spec compliance checks. The four-section format is more compact and easier for Claude to follow at runtime. See `skill_creation_detailed_guide.md` for guidance on choosing between them.
 
 **Best practices:**
 - Keep SKILL.md under 500 lines (move detailed content to references/)
