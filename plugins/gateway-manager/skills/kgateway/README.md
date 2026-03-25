@@ -13,26 +13,19 @@ kgateway is a CNCF sandbox project implementing the Kubernetes Gateway API with 
 
 ## Current Metrics
 
-*Last evaluated: 2026-03-22*
+**Score: 91/100** (Good) — 2026-03-22
 
-| Metric | Score | Interpretation |
-|--------|-------|----------------|
-| Conciseness | 98/100 | Excellent |
-| Complexity | 90/100 | Good |
-| Spec Compliance | 80/100 | Good |
-| Progressive Disclosure | 100/100 | Excellent |
-| Description Quality | 100/100 | Excellent |
-| **Overall** | **91/100** | **Good** |
-
-Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 98 | 90 | 80 | 100 | 100 |
 
 ## Version History
 
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
-|---------|------|-------|---------|------|------|------|------|------|---------|
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
 | 1.0.0 | 2026-02-25 | [#61](https://github.com/totallyGreg/claude-mp/issues/61) | Split from gateway-proxy v2.0.0; kgateway-focused skill | 98 | 90 | 80 | 100 | - | 91 |
 
-**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure, Desc=Description Quality (0-100 scale)
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
 
 ## Active Work
 

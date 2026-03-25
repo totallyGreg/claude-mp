@@ -11,29 +11,22 @@ Pure GTD methodology coaching skill that provides David Allen's Getting Things D
 
 ## Current Metrics
 
-*Last evaluated: 2026-03-23*
+**Score: 91/100** (Good) — 2026-03-23
 
-| Metric | Score | Interpretation |
-|--------|-------|----------------|
-| Conciseness | 78/100 | Fair |
-| Complexity | 80/100 | Good |
-| Spec Compliance | 100/100 | Excellent |
-| Progressive Disclosure | 100/100 | Excellent |
-| Description Quality | 100/100 | Excellent |
-| **Overall** | **91/100** | **Good** |
-
-Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 78 | 80 | 100 | 100 | 100 |
 
 ## Version History
 
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
-|---------|------|-------|---------|------|------|------|------|------|---------|
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
 | 1.4.0 | 2026-03-23 | [#138](https://github.com/totallyGreg/claude-mp/issues/138) | Add Repeating Tasks & Ticklers section: schedule types, Catch Up Automatically, generic tickler patterns, overdue signal interpretation | 78 | 80 | 100 | 100 | 100 | 91 |
 | 1.1.1 | 2026-03-19 | — | Re-eval: no changes, score improved with evaluator updates | 93 | 90 | 100 | 100 | 100 | 96 |
 | 1.1.0 | 2026-02-28 | #63 | Add Data-Grounded Coaching section with gtd-queries.js command table | 78 | 80 | 80 | 100 | - | 85 |
 | 1.0.0 | 2026-02-28 | #63 | Initial release — pure GTD methodology coaching skill | 78 | 80 | 80 | 100 | - | 81 |
 
-**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure, Desc=Description Quality (0-100 scale)
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
 
 ## Active Work
 

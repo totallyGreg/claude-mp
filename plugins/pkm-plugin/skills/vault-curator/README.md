@@ -14,23 +14,16 @@ Vault Curator evolves and curates existing Obsidian vault content through a suit
 
 ## Current Metrics
 
-*Last evaluated: 2026-03-22*
+**Score: 97/100** (Excellent) — 2026-03-22
 
-| Metric | Score | Interpretation |
-|--------|-------|----------------|
-| Conciseness | 98/100 | Excellent |
-| Complexity | 90/100 | Good |
-| Spec Compliance | 100/100 | Excellent |
-| Progressive Disclosure | 100/100 | Excellent |
-| Description Quality | 100/100 | Excellent |
-| **Overall** | **97/100** | **Excellent** |
-
-Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 98 | 90 | 100 | 100 | 100 |
 
 ## Version History
 
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
-|---------|------|-------|---------|------|------|------|------|------|---------|
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
 | 1.7.0 | 2026-03-22 | - | Delegate CLI ops to marketplace skills; promote `create overwrite` write pattern inline; strip generic commands from cli-patterns.md to gotchas-only | 98 | 90 | 100 | 100 | 100 | 97 |
 | 1.6.0 | 2026-03-20 | - | Add read/append/insertion CLI patterns to references; add license; move scripts table to reference; add available-scripts.md | 97 | 98 | 90 | 100 | 100 | 100 |
 | 1.5.3 | 2026-03-16 | [#103](https://github.com/totallyGreg/claude-mp/issues/103) | Fix: document `obsidian file` is read-only; warn content/overwrite silently ignored | 78 | 88 | 90 | 100 | 100 | 90 |
@@ -42,7 +35,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 | 1.2.0 | 2026-02-15 | [#44](https://github.com/totallyGreg/claude-mp/issues/44) | Scope selection, metadata workflows (suggest_properties.py, detect_schema_drift.py), SKILL.md restructure | - | - | - | - | - | - |
 | 1.0.0 | 2026-02-10 | - | Initial release with meeting extraction, migration patterns, and pattern detection workflows | - | - | - | - | - | - |
 
-**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure, Desc=Description Quality (0-100 scale)
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
 
 ## Active Work
 

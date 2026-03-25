@@ -14,29 +14,22 @@ Vault Architect provides expert guidance for designing and evolving Obsidian-bas
 
 ## Current Metrics
 
-*Last evaluated: 2026-03-22*
+**Score: 92/100** (Good) — 2026-03-22
 
-| Metric | Score | Interpretation |
-|--------|-------|----------------|
-| Conciseness | 98/100 | Excellent |
-| Complexity | 80/100 | Good |
-| Spec Compliance | 90/100 | Good |
-| Progressive Disclosure | 100/100 | Excellent |
-| Description Quality | 100/100 | Excellent |
-| **Overall** | **92/100** | **Good** |
-
-Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 98 | 80 | 90 | 100 | 100 |
 
 ## Version History
 
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
-|---------|------|-------|---------|------|------|------|------|------|---------|
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
 | 1.3.0 | 2026-03-14 | - | Add Workflow Lookup, Capture, and Refinement section: vault discovery via Workflows.base, Workflow fileClass schema, Capture-to-Review pattern reference; add missing `compatibility` field | 83 | 80 | 90 | 100 | 100 | 89 |
 | 1.2.0 | 2026-03-05 | - | SKILL.md restructure: 12 trigger phrases, conciseness fix, structural bug fix (#89) | 83 | 80 | 80 | 100 | 100 | 86 |
 | 1.1.1 | 2026-03-05 | - | Comprehensive QuickAdd 2.12.0 reference, SKILL.md section update | 34 | 88 | 80 | 100 | 100 | 78 |
 | 1.0.0 | 2025-12-15 | - | Initial release with core PKM guidance | - | - | - | - | - | - |
 
-**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure, Desc=Description Quality (0-100 scale)
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
 
 ## Active Work
 

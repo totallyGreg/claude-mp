@@ -1659,9 +1659,21 @@ def _extract_improvement_plan_sections(skill_path):
     }
 
 
+def _interp(score):
+    """Interpret a metric score as a human-readable label."""
+    if score >= 95:
+        return 'Excellent'
+    elif score >= 80:
+        return 'Good'
+    elif score >= 60:
+        return 'Fair'
+    return 'Needs work'
+
+
 def _generate_metrics_content(metrics, today):
     """
-    Generate the body of the ## Current Metrics section (everything after the heading line).
+    Generate the body of the Current Metrics section (everything after the heading line).
+    Compact format: one-line summary + horizontal detail table.
     Starts with \\n\\n and ends with \\n (single newline, no trailing blank line).
     """
     conc = metrics['conciseness']['score']
@@ -1671,31 +1683,13 @@ def _generate_metrics_content(metrics, today):
     desc_q = metrics.get('description_quality', {}).get('score', '-')
     overall = metrics['overall_score']
 
-    def _interp(score):
-        if score >= 95:
-            return 'Excellent'
-        elif score >= 80:
-            return 'Good'
-        elif score >= 60:
-            return 'Fair'
-        return 'Needs work'
-
-    rows = [
-        f'| Conciseness | {conc}/100 | {_interp(conc)} |',
-        f'| Complexity | {comp}/100 | {_interp(comp)} |',
-        f'| Spec Compliance | {spec}/100 | {_interp(spec)} |',
-        f'| Progressive Disclosure | {disc}/100 | {_interp(disc)} |',
-    ]
-    if desc_q != '-':
-        rows.append(f'| Description Quality | {desc_q}/100 | {_interp(int(desc_q))} |')
-    rows.append(f'| **Overall** | **{overall}/100** | **{_interp(overall)}** |')
+    desc_val = str(int(desc_q)) if desc_q != '-' else '-'
 
     return (
-        f'\n\n*Last evaluated: {today}*\n\n'
-        '| Metric | Score | Interpretation |\n'
-        '|--------|-------|----------------|\n'
-        + '\n'.join(rows) + '\n\n'
-        'Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.\n'
+        f'\n\n**Score: {overall}/100** ({_interp(overall)}) — {today}\n\n'
+        '| Concs | Complx | Spec | Progr | Descr |\n'
+        '|-------|--------|------|-------|-------|\n'
+        f'| {conc} | {comp} | {spec} | {disc} | {desc_val} |\n'
     )
 
 
@@ -2850,7 +2844,7 @@ def main():
             desc_str = str(int(desc_q)) if desc_q != '-' else '-'
             overall = int(metrics['overall_score'])
 
-            # Output table row (includes Desc column for README.md Version History)
+            # Output table row for Version History (plugin-level README.md)
             table_row = f"| {version_number} | {today} | {issue_link} | {summary} | {conc} | {comp} | {spec} | {disc} | {desc_str} | {overall} |"
             print(table_row)
             sys.exit(0)

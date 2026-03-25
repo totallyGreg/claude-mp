@@ -12,23 +12,16 @@ Query and manage OmniFocus tasks via Omni Automation script URLs (ofo CLI) and J
 
 ## Current Metrics
 
-*Last evaluated: 2026-03-23*
+**Score: 94/100** (Good) — 2026-03-23
 
-| Metric | Score | Interpretation |
-|--------|-------|----------------|
-| Conciseness | 83/100 | Good |
-| Complexity | 90/100 | Good |
-| Spec Compliance | 100/100 | Excellent |
-| Progressive Disclosure | 100/100 | Excellent |
-| Description Quality | 100/100 | Excellent |
-| **Overall** | **94/100** | **Good** |
-
-Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 83 | 90 | 100 | 100 | 100 |
 
 ## Version History
 
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
-|---------|------|-------|---------|------|------|------|------|------|---------|
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
 | 10.2.0 | 2026-03-23 | [#138](https://github.com/totallyGreg/claude-mp/issues/138) | Add ofo health single-call command (fixes pasteboard collision), document single-action pattern for slash commands | 83 | 90 | 100 | 100 | 100 | 94 |
 | 10.1.0 | 2026-03-23 | [#138](https://github.com/totallyGreg/claude-mp/issues/138) | Add ofo drop command, enrich OfoTask with repetitionCatchUp/repetitionScheduleType, Catch Up-aware health diagnostics, api_reference Catch Up docs | 83 | 90 | 100 | 100 | 100 | 94 |
 | 10.0.0 | 2026-03-23 | [#136](https://github.com/totallyGreg/claude-mp/issues/136) | Attache Plugin Consolidation: merge ofo-core into Attache (single plugin, one deploy), canonical 16-field normalizeTask with Date objects, all 10 libraries compiled from TypeScript, insightPatterns included, WAITING_PREFIXES unified, delete obsolete files/references | 83 | 90 | 100 | 100 | 100 | 94 |
@@ -64,7 +57,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 | 6.1.0 | 2026-03-03 | [#76](https://github.com/totallyGreg/claude-mp/issues/76) | Channel Selection Layer + JXA anti-pattern checker + security hardening | 30 | 59 | 90 | 100 | - | 74 |
 | 6.0.0 | 2026-03-02 | [#73](https://github.com/totallyGreg/claude-mp/issues/73) | /of:plan, /of:work commands + task-sync hook | 55 | 64 | 90 | 100 | - | 80 |
 
-**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure, Desc=Description Quality (0-100 scale)
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
 
 ## Active Work
 

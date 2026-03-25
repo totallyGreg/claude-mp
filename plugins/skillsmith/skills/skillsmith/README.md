@@ -14,23 +14,16 @@ Skillsmith is the default companion for skill development and improvement workfl
 
 ## Current Metrics
 
-*Last evaluated: 2026-03-25*
+**Score: 100/100** (Excellent) — 2026-03-25
 
-| Metric | Score | Interpretation |
-|--------|-------|----------------|
-| Conciseness | 100/100 | Excellent |
-| Complexity | 100/100 | Excellent |
-| Spec Compliance | 100/100 | Excellent |
-| Progressive Disclosure | 100/100 | Excellent |
-| Description Quality | 100/100 | Excellent |
-| **Overall** | **100/100** | **Excellent** |
-
-Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 100 | 100 | 100 | 100 | 100 |
 
 ## Version History
 
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
-|---------|------|-------|---------|------|------|------|------|------|---------|
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
 | 6.7.0 | 2026-03-25 | [#146](https://github.com/totallyGreg/claude-mp/issues/146) | Anthropic guide alignment: use-case definition template, description formula + bad examples, body structure template, 5 skill patterns reference, 3-area testing guide, negative trigger coaching, over/undertrigger --explain signals | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.6.0 | 2026-03-22 | [#96](https://github.com/totallyGreg/claude-mp/issues/96), [#115](https://github.com/totallyGreg/claude-mp/issues/115), [#81](https://github.com/totallyGreg/claude-mp/issues/81), [#82](https://github.com/totallyGreg/claude-mp/issues/82), [#108](https://github.com/totallyGreg/claude-mp/issues/108), [#110](https://github.com/totallyGreg/claude-mp/issues/110) | Qualitative conciseness checks; context-aware ss-observe with --hint; orphan regex fix; IMPROVEMENT_PLAN.md migration; frontmatter auto-patch; commit-gate doc | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.4.0 | 2026-03-19 | [#104](https://github.com/totallyGreg/claude-mp/issues/104) | Phase 6: self-application — all metrics 100/100; closes v6 improvement arc | 100 | 100 | 100 | 100 | 100 | 100 |
@@ -61,7 +54,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 | 1.1.0 | 2025-11-20 | - | Added marketplace version sync automation with pre-commit hook | - | - | - | - | - | - |
 | 1.0.0 | - | - | Initial release | - | - | - | - | - | - |
 
-**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure, Desc=Description Quality (0-100 scale)
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
 
 ## Active Work
 

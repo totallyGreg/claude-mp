@@ -27,26 +27,19 @@ Explain the problem it solves and what makes it distinct from related skills.}
 
 ## Current Metrics
 
-*Last evaluated: YYYY-MM-DD*
+**Score: X/100** (Excellent) — YYYY-MM-DD
 
-| Metric | Score | Interpretation |
-|--------|-------|----------------|
-| Conciseness | X/100 | {Excellent / Good / Fair / Needs work} |
-| Complexity | X/100 | {brief interpretation} |
-| Spec Compliance | X/100 | {brief interpretation} |
-| Progressive Disclosure | X/100 | {brief interpretation} |
-| Description Quality | X/100 | {brief interpretation} |
-| **Overall** | **X/100** | {brief overall} |
-
-Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| X | X | X | X | X |
 
 ## Version History
 
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
-|---------|------|-------|---------|------|------|------|------|------|---------|
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
 | X.Y.Z | YYYY-MM-DD | [#N](url) | {What changed and why} | X | X | X | X | X | X |
 
-**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure, Desc=Description Quality (0-100 scale)
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
 
 ## Active Work
 
@@ -85,12 +78,12 @@ See GitHub Issues for detailed plans and task checklists.
 ### Current Metrics
 - **Auto-managed**: Do not hand-edit this section — run `--update-readme` to refresh
 - **Interpretation guidance**: Excellent (≥95), Good (≥80), Fair (≥60), Needs work (<60)
-- **Metrics authority**: README.md is the sole metrics record; do not write metrics to SKILL.md frontmatter
+- **Metrics authority**: Plugin-level README.md is the sole metrics record; do not write metrics to SKILL.md frontmatter
 
 ### Version History
 - **Newest first**: Most recent version at the top
 - **All columns required**: Use `-` for metrics not available for that version
-- **Desc column**: Description Quality score — available from v5.0.0 onward
+- **Column headers**: Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality, Score=Overall
 - **Summary**: Focus on what changed and why, not implementation details
 
 ### Active Work

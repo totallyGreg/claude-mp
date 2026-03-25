@@ -13,23 +13,16 @@ This skill identifies, analyzes, and mitigates security risks in AI systems usin
 
 ## Current Metrics
 
-*Last evaluated: 2026-03-22*
+**Score: 97/100** (Excellent) — 2026-03-22
 
-| Metric | Score | Interpretation |
-|--------|-------|----------------|
-| Conciseness | 100/100 | Excellent |
-| Complexity | 88/100 | Good |
-| Spec Compliance | 100/100 | Excellent |
-| Progressive Disclosure | 100/100 | Excellent |
-| Description Quality | 100/100 | Excellent |
-| **Overall** | **97/100** | **Excellent** |
-
-Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 100 | 88 | 100 | 100 | 100 |
 
 ## Version History
 
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
-|---------|------|-------|---------|------|------|------|------|------|---------|
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
 | 5.1.0 | 2026-03-05 | [#85](https://github.com/totallyGreg/claude-mp/issues/85) | Sync upstream: bundle 3 YAML enum files + riskmap.schema.json (9+11), fix deprecated persona refs in docs, add deprecation warning in CLI, add commit-hash README | 98 | 88 | 100 | 100 | - | 97 |
 | 5.0.0 | 2026-02-25 | [#56](https://github.com/totallyGreg/claude-mp/issues/56) | Refresh CoSAI upstream data: 8-persona model (ISO 22989), fix lifecycle/impact parsing bugs, add frameworks.yaml, rewrite exploration guide and personas guide | 98 | 88 | 100 | 100 | - | 93 |
 | 4.0.1 | 2026-02-04 | - | Fix: use absolute paths with ${CLAUDE_PLUGIN_ROOT} in SKILL.md | 98 | 88 | 100 | 100 | - | 97 |
@@ -40,7 +33,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 | 1.1.0 | 2026-01-28 | [#2](https://github.com/totallyGreg/claude-mp/issues/2) | Add workflow automation, orchestrator script, bundled schemas, SSL offline fallback | 23 | 70 | ✓ | 100 | - | 71 |
 | 1.0.0 | 2026-01-07 | - | Initial release with CoSAI framework integration, risk analysis, and multi-format reporting | 23 | 65 | ✓ | 100 | - | 67 |
 
-**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure, Desc=Description Quality (0-100 scale)
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
 
 ## Active Work
 
