@@ -23,6 +23,8 @@ compatibility: Requires python3.11+ and uv for script execution. Obsidian CLI 1.
 
 # Vault Curator
 
+Curate and evolve vault content through pattern detection, metadata intelligence, consolidation, discovery, and visualization. Principles: evolve gradually (test on small batches), validate before executing (dry-run first), checkpoint with git before operations, discover existing patterns before suggesting changes.
+
 ## Scope Selection
 
 All intelligence workflows (metadata, consolidation, discovery, visualization) begin with scope selection. Large vaults (7K+ files) require scoped operations.
@@ -52,26 +54,9 @@ obsidian search query="Docker" format=json   # find matching notes/folders
 - **Whole vault** requested: Warn about file count, require explicit confirmation
 - **Obsidian CLI unavailable**: Fall back to `tree` + Glob/Grep for structure discovery
 
-## Core Principles
+**CLI delegation:** `obsidian-cli` (operations), `obsidian-markdown` (content), `obsidian-bases` (`.base` files), `json-canvas` (`.canvas` files). To update note content, use `obsidian create path="..." overwrite content="..." silent` (`obsidian file` is read-only). See `references/cli-patterns.md` for bugs. Fallback: markdown-oxide LSP (if available via Neovim), then Grep/Glob/Read.
 
-1. **Evolution Over Revolution** - Migrate gradually. Test on small batches first.
-2. **Validation Before Execution** - Always dry-run first. Show what would change.
-3. **Rollback Readiness** - Git commit before operations. Enable reverting.
-4. **Pattern Recognition** - Discover existing patterns before suggesting changes.
-5. **Incremental Improvement** - Small, testable changes compound better than large restructuring.
-
-## Obsidian CLI Integration
-
-Delegate by capability: `obsidian-cli` (operations), `obsidian-markdown` (content), `obsidian-bases` (`.base` files), `json-canvas` (`.canvas` files).
-
-**To update note content** — `obsidian file` is read-only (silent failure); use `create overwrite`:
-```bash
-obsidian create path="folder/note.md" overwrite content="..." silent
-```
-
-**See:** `references/cli-patterns.md` for vault-specific bugs. **Fallback:** Grep/Glob/Read on `/Users/totally/Notes/` when Obsidian is not running.
-
-## Migration Workflows
+## Migration & Metadata Workflows
 
 ### Meeting Extraction from Logs
 
@@ -105,8 +90,6 @@ Migrate existing notes to new schemas:
 Common migrations: add scope to meetings, consolidate Dataview to Bases.
 
 **See:** `references/migration-strategies.md` for comprehensive patterns
-
-## Metadata Workflows
 
 ### Property Suggestions
 
@@ -256,8 +239,6 @@ When asked "suggest links", "what should I link", or "improve connections":
    - "Create a Bases view filtering by `fileClass=Meeting` + `scope=[[Project]]` to see all related meetings"
 5. **Present suggestions** with rationale, apply tag/property changes with confirmation
 
-## Visualization Workflows
-
 ### Canvas Map Generation
 
 When asked "show me a map", "generate canvas", "visualize my notes", or "show knowledge map":
@@ -284,7 +265,7 @@ When asked "show me a map", "generate canvas", "visualize my notes", or "show kn
 - `--output <name>` — custom canvas filename
 - `--max-nodes <n>` — adjust the clustering threshold
 
-## Pattern Detection
+### Pattern Detection
 
 - **Orphaned notes**: `obsidian orphans` — files with no incoming links
 - **Note clusters**: `find_related.py --scope` — groups of related notes within a directory
