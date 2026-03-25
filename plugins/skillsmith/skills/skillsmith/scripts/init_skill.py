@@ -335,61 +335,6 @@ Example asset files from other skills:
 Note: This is a text placeholder. Actual assets can be any file type.
 """
 
-README_TEMPLATE = """# {skill_title}
-
-[TODO: 2-4 sentence prose description of what this skill enables and when to use it.
-Written for a developer onboarding to the skill — not a trigger description.]
-
-## Capabilities
-
-- [TODO: Concrete capability 1]
-- [TODO: Concrete capability 2]
-- [TODO: Concrete capability 3]
-
-## Current Metrics
-
-*Last evaluated: {date}*
-
-| Metric | Score | Interpretation |
-|--------|-------|----------------|
-| Conciseness | -/100 | Run evaluate_skill.py to score |
-| Complexity | -/100 | Run evaluate_skill.py to score |
-| Spec Compliance | -/100 | Run evaluate_skill.py to score |
-| Progressive Disclosure | -/100 | Run evaluate_skill.py to score |
-| Description Quality | -/100 | Run evaluate_skill.py to score |
-| **Overall** | **-/100** | Run `--update-readme` after first eval |
-
-Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
-
-## Version History
-
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
-|---------|------|-------|---------|------|------|------|------|------|---------|
-| 1.0.0 | {date} | - | Initial release | - | - | - | - | - | - |
-
-**Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure, Desc=Description Quality (0-100 scale)
-
-## Active Work
-
-No active improvements yet. Create GitHub Issues for planned work.
-
-See GitHub Issues for detailed plans and task checklists.
-
-## Known Issues
-
-None yet. Report issues at https://github.com/totallyGreg/claude-mp/issues
-
-## Archive
-
-- Git history: `git log --grep="{skill_name}"`
-- Closed issues: https://github.com/totallyGreg/claude-mp/issues?q=label:enhancement+is:closed
-- Cross-skill learnings: `docs/lessons/`
-
----
-
-*Run `uv run scripts/evaluate_skill.py <path> --update-readme` after each evaluation to keep metrics current.*
-"""
-
 
 def title_case_skill_name(skill_name):
     """Convert hyphenated skill name to Title Case for display."""
@@ -450,20 +395,9 @@ def init_skill(skill_name, skills_dir, template_type=TEMPLATE_STANDARD):
         print(f"❌ Error creating SKILL.md: {e}")
         return None
 
-    # Create README.md from template (skip for minimal)
-    if template_type != TEMPLATE_MINIMAL:
-        today = datetime.now().strftime("%Y-%m-%d")
-        readme_content = README_TEMPLATE.format(
-            skill_name=skill_name, skill_title=skill_title, date=today
-        )
-
-        readme_path = skill_dir / "README.md"
-        try:
-            readme_path.write_text(readme_content)
-            print("✅ Created README.md")
-        except Exception as e:
-            print(f"❌ Error creating README.md: {e}")
-            return None
+    # NOTE: README.md is no longer generated in skill directories per Anthropic guidance.
+    # Skill metrics are tracked in the plugin-level README.md instead.
+    # Run evaluate_skill.py --update-readme to create/update the plugin README section.
 
     # Create resource directories based on template type
     try:
