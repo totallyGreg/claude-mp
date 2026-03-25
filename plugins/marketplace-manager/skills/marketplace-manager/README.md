@@ -14,16 +14,16 @@ Marketplace Manager solves the problem of keeping `marketplace.json` in sync wit
 
 ## Current Metrics
 
-*Last evaluated: 2026-03-23*
+*Last evaluated: 2026-03-25*
 
 | Metric | Score | Interpretation |
 |--------|-------|----------------|
 | Conciseness | 100/100 | Excellent |
-| Complexity | 87/100 | Good |
+| Complexity | 100/100 | Excellent |
 | Spec Compliance | 100/100 | Excellent |
 | Progressive Disclosure | 100/100 | Excellent |
 | Description Quality | 100/100 | Excellent |
-| **Overall** | **97/100** | **Excellent** |
+| **Overall** | **100/100** | **Excellent** |
 
 Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggestions.
 
@@ -31,6 +31,7 @@ Run `uv run scripts/evaluate_skill.py <path> --explain` for improvement suggesti
 
 | Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Desc | Overall |
 |---------|------|-------|---------|------|------|------|------|------|---------|
+| 3.1.0 | 2026-03-25 | - | Fix validator schema guidance: remove metadata from known fields, correct version/description migration advice, merge SKILL.md sections (10→4 H2s), add negative trigger clause | 100 | 100 | 100 | 100 | 100 | 100 |
 | 2.9.0 | 2026-03-23 | [#139](https://github.com/totallyGreg/claude-mp/issues/139) | Multi-plugin structure detection (`--check-structure`), CI mode (`--ci`), advisory hook warning, docs | 100 | 87 | 100 | 100 | 100 | 97 |
 | 2.8.0 | 2026-03-21 | - | Undeclared skill detection in validate; uv guard on add_to_marketplace.py; license field fix | 100 | 90 | 100 | 100 | 100 | 98 |
 | 2.5.1 | 2026-03-03 | - | Add trigger phrases to description | 100 | 83 | 90 | 100 | - | 93 |

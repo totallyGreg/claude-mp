@@ -327,8 +327,10 @@ MARKETPLACE_REQUIRED_FIELDS = {'name', 'owner', 'plugins'}
 PLUGIN_ENTRY_REQUIRED_FIELDS = {'name', 'source'}
 
 # Known valid fields for marketplace.json root level
+# Per official docs: https://code.claude.com/docs/en/plugin-marketplaces
+# Only name, owner, and plugins are documented. $schema is standard JSON Schema.
 MARKETPLACE_KNOWN_ROOT_FIELDS = {
-    '$schema', 'name', 'owner', 'plugins', 'metadata',
+    '$schema', 'name', 'owner', 'plugins',
 }
 
 # Known valid fields for marketplace.json plugin entries
@@ -491,8 +493,18 @@ def validate_marketplace(marketplace_path, repo_root, output_format='text'):
                 'category': 'schema',
                 'field': field,
                 'message': (
-                    f"Field '{field}' should be nested under 'metadata' "
-                    f"(e.g., metadata.{field}) per the official schema"
+                    f"Root-level '{field}' is not part of the official marketplace schema. "
+                    f"Remove this field — for plugins, set '{field}' in each plugin entry instead."
+                )
+            })
+        elif field == 'metadata':
+            issues.append({
+                'type': 'warning',
+                'category': 'schema',
+                'field': field,
+                'message': (
+                    "Root-level 'metadata' is not part of the official marketplace schema. "
+                    "Remove this field — the official schema uses only name, owner, and plugins."
                 )
             })
         else:
@@ -515,19 +527,6 @@ def validate_marketplace(marketplace_path, repo_root, output_format='text'):
                 f"lowercase letters, numbers, and hyphens only"
             )
         })
-
-    # Validate metadata (if present)
-    metadata = marketplace_data.get('metadata', {})
-    if metadata and isinstance(metadata, dict):
-        if 'version' in metadata and metadata['version']:
-            if not validate_semantic_version(str(metadata['version'])):
-                issues.append({
-                    'type': 'warning',
-                    'category': 'version',
-                    'field': 'metadata.version',
-                    'value': metadata['version'],
-                    'message': f"Invalid version format: {metadata['version']}"
-                })
 
     # Validate owner
     if 'owner' in marketplace_data:
