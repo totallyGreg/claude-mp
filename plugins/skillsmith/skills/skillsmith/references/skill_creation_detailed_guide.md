@@ -126,7 +126,7 @@ For advanced validation options, see `references/validation_tools_guide.md`.
 After validation passes:
 - [ ] Test skill functionality end-to-end
 - [ ] Verify bundled resources work correctly
-- [ ] Update root README.md with skill version and changelog
+- [ ] Update plugin README.md with skill version and changelog
 - [ ] Optionally invoke marketplace-manager to publish skill
 
 ---
@@ -159,7 +159,7 @@ After testing the skill, users may request improvements. Often this happens righ
 ### For Complex Improvements
 
 When improvements are substantial (multi-file changes, architectural decisions, etc.):
-- Use WORKFLOW.md pattern: Create GitHub Issue → Add to README.md → Plan in docs/plans/
+- Use WORKFLOW.md pattern: Create GitHub Issue → Add to plugin README.md → Plan in docs/plans/
 - See `references/improvement_workflow_guide.md` for detailed improvement routing logic
 - Research skill opportunities with `scripts/research_skill.py`
 

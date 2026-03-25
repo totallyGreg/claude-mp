@@ -121,7 +121,7 @@ After improvements, invoke **marketplace-manager** to sync `marketplace.json`.
 | `references/progressive_disclosure_discipline.md` | Avoiding documentation bloat |
 | `references/reference_management_guide.md` | Managing reference files |
 | `references/improvement_plan_best_practices.md` | README.md format, version history documentation |
-| `references/readme_template.md` | README.md template and authoring guidance |
+| `references/plugin_readme_template.md` | Plugin README.md template with skill metrics sections |
 | `references/integration_guide.md` | Integration patterns with marketplace-manager |
 | `references/form_templates.md` | Form templates for structured data collection |
 | `references/skill_patterns.md` | Five proven behavioral patterns for skill architecture |

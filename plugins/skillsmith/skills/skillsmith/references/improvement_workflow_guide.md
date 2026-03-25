@@ -64,7 +64,7 @@ Complex improvements require systematic planning and follow the WORKFLOW.md patt
    - Use `gh issue create` with comprehensive task list
    - Link to any planning docs in `docs/plans/`
    - Add appropriate labels (enhancement, breaking-change, etc.)
-4. Add to skill's README.md table:
+4. Add to plugin's README.md table:
    - Add row to "Planned Improvements" section
    - Link to GitHub Issue (source of truth)
    - Mark status as "Open"
@@ -78,7 +78,7 @@ Complex improvements require systematic planning and follow the WORKFLOW.md patt
    - Check off tasks in GitHub Issue as completed
 7. Skillsmith asks user: "Version bump? MINOR (new feature) or MAJOR (breaking)?"
 8. Updates `metadata.version` based on user selection
-9. Update README.md:
+9. Update plugin README.md:
    - Move from Planned to Completed section
    - Add completion date and summary
 10. Close GitHub Issue when all work is complete
@@ -167,7 +167,7 @@ Increment patch version for fixes and minor updates:
 
 The WORKFLOW.md pattern is used for complex improvements and provides:
 - GitHub Issues as source of truth
-- README.md table for tracking
+- Plugin README.md table for tracking
 - Ephemeral planning docs in `docs/plans/`
 - Task checklists in issues
 - Cross-machine accessibility
@@ -224,7 +224,7 @@ User: "Add an example showing how to use research_skill.py"
 ```
 User: "Simplify the skill creation process to 5 steps instead of 6"
 → Complex: Structure change, > 50 lines, workflow modification
-→ Use WORKFLOW.md pattern (GitHub Issue + README.md + docs/plans/)
+→ Use WORKFLOW.md pattern (GitHub Issue + plugin README.md + docs/plans/)
 → User selects MINOR or MAJOR: 1.0.0 → 2.0.0 (breaking workflow)
 ```
 
@@ -256,7 +256,7 @@ User: "Refactor the validation system to use a plugin architecture"
 
 ### For Complex Improvements
 1. Create GitHub Issue with clear improvement goals and task checklist
-2. Add to README.md table linking to issue
+2. Add to plugin README.md table linking to issue
 3. Create planning doc in docs/plans/ if needed for design work
 4. Check off tasks in GitHub Issue as you complete them
 5. Choose appropriate version bump (MINOR vs MAJOR)
@@ -305,7 +305,7 @@ User: "Handle this quickly - restructure the examples section"
 
 ## Related Skills
 
-- **WORKFLOW.md** - Repository-wide workflow pattern (GitHub Issues + README.md)
+- **WORKFLOW.md** - Repository-wide workflow pattern (GitHub Issues + plugin README.md)
 - **marketplace-manager** - Publishing and version synchronization
 - **research_skill.py** - Deep skill analysis (used for complex improvements)
 - **evaluate_skill.py** - Validation and metrics (used in both workflows)

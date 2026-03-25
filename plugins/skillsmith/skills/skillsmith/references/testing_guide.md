@@ -94,7 +94,7 @@ The automated checks confirm structure only. For behavioral correctness, test th
    - Token overhead = (with skill tokens) − (baseline tokens)
    - Message overhead = (with skill messages) − (baseline messages)
 
-4. **Document in README.md** (optional but recommended for high-volume skills):
+4. **Document in plugin README.md** (optional but recommended for high-volume skills):
    ```
    Performance baseline: ~N additional tokens per invocation, ~M additional messages
    ```
@@ -116,7 +116,7 @@ A conciseness score below 60 usually indicates the skill loads too much content 
 
 ### Acceptance threshold
 
-There is no universal token budget — it depends on the use case. A skill invoked dozens of times per session needs tighter bounds than one invoked once. Document your target in the skill's README.md if performance is a concern.
+There is no universal token budget — it depends on the use case. A skill invoked dozens of times per session needs tighter bounds than one invoked once. Document your target in the plugin's README.md if performance is a concern.
 
 ---
 
