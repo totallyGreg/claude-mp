@@ -78,20 +78,31 @@ The issue checklist is the **source of truth** for work status.
 
 **Target Size**: 100-300 lines total (bounded and scannable)
 
-**Format - Version History with Metrics:**
+**Format - Plugin-Level README.md with Skill Sections:**
+
+Skill metrics and changelog are tracked in the **plugin-level** README.md (`plugins/<plugin-name>/README.md`),
+not in skill directories. Each skill gets a `## Skill: <skill-name>` section.
 
 ```markdown
-# {Skill Name} - Improvement Plan
+# {Plugin Name}
 
-## Version History
+## Skill: skill-name
 
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
-|---------|------|-------|---------|------|------|------|------|---------|
-| 2.0.0 | 2026-01-18 | [#123](link) | TypeScript validation | 67 | 90 | 100 | 100 | 89 |
-| 1.5.0 | 2026-01-10 | [#120](link) | Plugin generation | 72 | 88 | 95 | 100 | 89 |
-| 1.0.0 | 2025-12-01 | - | Initial release | - | - | - | - | - |
+### Current Metrics
+
+| Conc | Comp | Spec | Disc | Overall |
+|------|------|------|------|---------|
+| 67   | 90   | 100  | 100  | 89      |
 
 **Metric Legend:** Conc=Conciseness, Comp=Complexity, Spec=Spec Compliance, Disc=Progressive Disclosure (0-100 scale)
+
+### Changelog
+
+| Version | Date | Issue | Summary | Overall |
+|---------|------|-------|---------|---------|
+| 2.0.0 | 2026-01-18 | [#123](link) | TypeScript validation | 89 |
+| 1.5.0 | 2026-01-10 | [#120](link) | Plugin generation | 89 |
+| 1.0.0 | 2025-12-01 | - | Initial release | - |
 
 ## Active Work
 
@@ -119,9 +130,9 @@ For complete development history:
 
 **Example workflow:**
 1. Create issue #123 with detailed tasks
-2. Add to README.md Active Work section: `- [#123](link): Feature Name (Planning)`
+2. Add to plugin README.md Active Work section: `- [#123](link): Feature Name (Planning)`
 3. Start work: Update to "In Progress"
-4. Complete work: Add row to Version History table with metrics from `evaluate_skill.py --export-table-row`
+4. Complete work: Add row to Changelog table (under `## Skill: <name>`) with metrics from `evaluate_skill.py --export-table-row`
 5. Close issue #123 in GitHub
 
 ### 5. Implementation & Release
@@ -142,8 +153,8 @@ git commit -m "feat(skill-name): Final changes (#123)"
 ```
 
 **Commit 2 - Release** (version bump):
-- Update README.md table (move #123 from Planned → Completed)
-- Add version, date, and key changes to Completed table
+- Update plugin-level README.md (move #123 from Active Work → Changelog)
+- Add version, date, and key changes to Changelog table
 - Bump version in SKILL.md
 - Sync marketplace: run `/mp-sync` or `uv run .../sync_marketplace_versions.py`
 - Close GitHub issue with commit message
@@ -152,7 +163,7 @@ git commit -m "feat(skill-name): Final changes (#123)"
 # Sync marketplace before committing release
 uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py
 
-git add plugins/plugin-name/skills/skill-name/README.md \
+git add plugins/plugin-name/README.md \
         plugins/plugin-name/skills/skill-name/SKILL.md \
         plugins/plugin-name/.claude-plugin/plugin.json \
         .claude-plugin/marketplace.json
@@ -166,7 +177,7 @@ git push origin main
 
 **Post-release:**
 - GitHub automatically closes issue #123
-- README.md now shows historical record in Completed table
+- Plugin README.md now shows historical record in Changelog table
 - Issue remains searchable with full implementation discussion
 
 ### 6. Closing an Issue
@@ -233,11 +244,15 @@ docs/
                   # Can be ephemeral OR permanent depending on value
                   # CRITICAL: Use docs/plans/, NOT ~/.claude/plans/ (outside repo)
   lessons/        # Cross-skill learnings (permanent, post-work retrospectives)
-skills/
-  skill-name/
-    README.md  # Lightweight metrics + release notes (~100-300 lines)
-    SKILL.md            # Metadata and version
-    references/         # Detailed documentation
+plugins/
+  plugin-name/
+    README.md           # Lightweight metrics + release notes (~100-300 lines)
+                        # Contains `## Skill: <skill-name>` sections with
+                        # Changelog and Current Metrics per skill
+    skills/
+      skill-name/
+        SKILL.md        # Metadata and version
+        references/     # Detailed documentation
 ```
 
 **docs/plans/ Purpose:**
@@ -265,8 +280,8 @@ Keep planning documents INSIDE the repository where they are:
 | Active work tracking | GitHub Issues | Source of truth for ALL planning & tracking | Until closed |
 | Pre-work planning | docs/plans/ | Design and research (version controlled in repo) | Ephemeral or permanent |
 | Post-work learnings | docs/lessons/ | Cross-skill retrospectives and patterns | Permanent |
-| Release notes + metrics | README.md | Lightweight version history (~100-300 lines) | Permanent |
-| Detailed docs | skills/*/references/ | Implementation guides and API docs | Permanent |
+| Release notes + metrics | plugins/*/README.md | Lightweight changelog + metrics per skill (~100-300 lines) | Permanent |
+| Detailed docs | plugins/*/skills/*/references/ | Implementation guides and API docs | Permanent |
 
 **Key Principle**: ALL detailed planning happens in GitHub Issues. README.md just reflects issue state with version history and metrics.
 
@@ -344,12 +359,12 @@ uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py \
 uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py \
   plugins/<plugin-name>/skills/<skill-name> --export-table-row
 
-# 4. Update README.md — add version row with metrics from step 3
+# 4. Update plugin README.md — add version row to Changelog (under ## Skill: <name>) with metrics from step 3
 # 5. Bump version in SKILL.md metadata.version (PATCH/MINOR/MAJOR)
 # 6. Bump version in plugin.json to match (always required for plugin-based skills)
 # 7. Sync marketplace versions
 uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py
-# 8. Create release commit including SKILL.md, plugin.json, README.md, marketplace.json
+# 8. Create release commit including SKILL.md, plugin.json, plugin README.md, marketplace.json
 # 9. Push to remote
 git push origin main
 # See "Implementation & Release" section for two-commit strategy details
@@ -379,18 +394,18 @@ These skills catch structural issues (broken routing, missing frontmatter, bad e
 Is it a typo or small fix?
 ├─ Yes → Commit directly to main
 └─ No → Is it complex (multi-file, architectural)?
-    ├─ No → Create GitHub issue, add to README.md Active Work, implement
+    ├─ No → Create GitHub issue, add to plugin README.md Active Work, implement
     │       Run: `uv run scripts/evaluate_skill.py <skill> --quick` periodically
     │       Before release: Run with `--strict` flag
     │
     └─ Yes → Follow full workflow:
             1. Create plan in docs/plans/ (if pre-work research needed)
             2. Create GitHub issue with task checklist (source of truth)
-            3. Add to README.md Active Work section
+            3. Add to plugin README.md Active Work section
             4. Implement with commits referencing issue
             5. Validate with: `uv run scripts/evaluate_skill.py <skill> --quick --strict`
             6. Sync marketplace: `uv run .../sync_marketplace_versions.py`
-            7. Release: Add version row to README.md with metrics
+            7. Release: Add version row to plugin README.md Changelog with metrics
             8. Optional: Document learnings in docs/lessons/ (if cross-skill pattern)
 ```
 
@@ -403,7 +418,7 @@ Is this improvement specific to ONE skill?
 ├─ YES → Create GitHub Issue with label "enhancement"
 │        Title format: "skill-name: Feature description"
 │        Example: "omnifocus-manager: Add TypeScript validation"
-│        Update: skills/skill-name/README.md
+│        Update: plugins/plugin-name/README.md (under `## Skill: skill-name`)
 │
 └─ NO → Does it affect multiple skills OR repo structure?
          ├─ Multiple skills → Consider creating individual issues per skill
@@ -439,7 +454,7 @@ gh issue create --title "omnifocus-manager: Add task filtering" \
 
 # Returns: Created issue #125
 
-# 2. Add to README.md Active Work section
+# 2. Add to plugin README.md Active Work section
 # - [#125](link): Add task filtering (Planning)
 
 # 3. Implement
@@ -447,7 +462,7 @@ git commit -m "feat(omnifocus-manager): Add task filtering (#125)"
 
 # 4. Release with metrics
 # Run: uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager --export-table-row
-# Copy output to README.md Version History table
+# Copy output to plugin README.md Changelog table (under ## Skill: omnifocus-manager)
 # Remove from Active Work section
 git commit -m "chore: Release omnifocus-manager v2.1.0
 
@@ -481,7 +496,7 @@ gh issue create --title "omnifocus-manager: Add TypeScript validation" \
 
 # Returns: Created issue #126
 
-# 4. Add to README.md Active Work section
+# 4. Add to plugin README.md Active Work section
 # - [#126](link): TypeScript validation (Planning)
 
 # 5. Implement with multiple commits
@@ -490,7 +505,7 @@ git commit -m "feat(omnifocus-manager): Validate plugins on execution (#126)"
 
 # 6. Release with metrics
 # Run: uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager --export-table-row
-# Add row to README.md Version History table
+# Add row to plugin README.md Changelog table (under ## Skill: omnifocus-manager)
 # Remove from Active Work section
 git commit -m "chore: Release omnifocus-manager v2.2.0
 
@@ -514,13 +529,15 @@ Closes #126"
 - Feature 2 with details
 ```
 
-**New format** (lightweight release notes with metrics):
+**New format** (plugin-level README.md with skill sections):
 ```markdown
-## Version History
+## Skill: skill-name
 
-| Version | Date | Issue | Summary | Conc | Comp | Spec | Disc | Overall |
-|---------|------|-------|---------|------|------|------|------|---------|
-| 2.0.0 | 2026-01-18 | [#123](link) | Feature Name | 67 | 90 | 100 | 100 | 89 |
+### Changelog
+
+| Version | Date | Issue | Summary | Overall |
+|---------|------|-------|---------|---------|
+| 2.0.0 | 2026-01-18 | [#123](link) | Feature Name | 89 |
 
 ## Active Work
 
@@ -530,8 +547,8 @@ Closes #126"
 **Migration strategy:**
 1. Extract planned improvements from README.md
 2. Create GitHub Issues for each active planned improvement (copy details to issue)
-3. Update README.md to new format:
-   - Version History table for completed work
+3. Update plugin README.md to new format:
+   - Changelog table per skill for completed work
    - Active Work section listing open issues
    - Known Issues section
    - Archive section pointing to git history
@@ -554,9 +571,9 @@ Closes #126"
 
 3. **Bounded README.md Size**
    - Target: 100-300 lines (vs current 2000+ in some skills)
-   - Scannable version history table with metrics
+   - Scannable changelog table with metrics per skill
    - Quick overview of skill evolution
-   - Easy to maintain (just version rows and active issue links)
+   - Easy to maintain (just changelog rows and active issue links)
    - Focuses on "what changed" not "why" (that's in the issue)
 
 4. **Better Collaboration**

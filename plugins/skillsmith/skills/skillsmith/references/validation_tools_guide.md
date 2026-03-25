@@ -24,7 +24,7 @@ Use this table to determine which command to run based on what you want to do:
 | Quick structure check | `uv run scripts/evaluate_skill.py <path> --quick` |
 | Full quality metrics | `uv run scripts/evaluate_skill.py <path>` |
 | Pre-release validation | `uv run scripts/evaluate_skill.py <path> --quick --strict` |
-| Validate IMPROVEMENT_PLAN | `uv run scripts/evaluate_skill.py <path> --quick --check-improvement-plan` |
+| Validate plugin README | `uv run scripts/evaluate_skill.py <path> --quick --check-readme` |
 | Compare skill versions | `uv run scripts/evaluate_skill.py <path> --compare <original>` |
 | Test scripts/references work | `uv run scripts/evaluate_skill.py <path> --validate-functionality` |
 | Get version table row | `uv run scripts/evaluate_skill.py <path> --export-table-row --version X.Y.Z` |
@@ -58,7 +58,7 @@ Fast structural validation for pre-commit hooks and CI/CD pipelines:
 - Character limits (name ≤64 chars, description ≤1024 chars)
 - Naming conventions (lowercase-with-hyphens)
 - Version field presence (in metadata or frontmatter)
-- README.md completeness checking (optional)
+- Plugin README.md completeness checking (optional)
 
 #### Comprehensive Evaluation Mode
 Full quality assessment with detailed metrics:
@@ -84,8 +84,8 @@ Full quality assessment with detailed metrics:
 # Quick validation (fast, structure-only)
 python3 scripts/evaluate_skill.py <skill-path> --quick
 
-# Quick validation with IMPROVEMENT_PLAN check
-python3 scripts/evaluate_skill.py <skill-path> --quick --check-improvement-plan
+# Quick validation with plugin README check
+python3 scripts/evaluate_skill.py <skill-path> --quick --check-readme
 
 # Basic evaluation with metrics and spec validation
 python3 scripts/evaluate_skill.py <skill-path>
@@ -121,8 +121,8 @@ Strict mode treats warnings as errors, creating a validation gate for pre-releas
 # Strict quick validation (warnings block completion)
 uv run scripts/evaluate_skill.py <skill-path> --quick --strict
 
-# Strict mode with IMPROVEMENT_PLAN checking
-uv run scripts/evaluate_skill.py <skill-path> --quick --strict --check-improvement-plan
+# Strict mode with plugin README checking
+uv run scripts/evaluate_skill.py <skill-path> --quick --strict --check-readme
 ```
 
 #### When to Use Strict Mode
@@ -144,7 +144,7 @@ When strict mode reports issues you want to defer:
 
 1. Acknowledge the issues (don't ignore them)
 2. Create a GitHub issue for the deferred work
-3. Document the deferral in your README.md
+3. Document the deferral in the plugin's README.md
 4. Later: Complete the deferred work in a follow-up phase
 
 Example workflow:
@@ -157,7 +157,7 @@ uv run scripts/evaluate_skill.py skills/my-skill --quick --strict
 gh issue create --title "my-skill: Fix documentation issues"
 # Output: Created issue #456
 
-# 2. Document in README.md Active Work section:
+# 2. Document in plugin README.md Active Work section:
 # - [#456](link): Fix documentation issues (Planning)
 
 # 3. Later: Complete the deferred work and run strict validation again
@@ -171,7 +171,7 @@ Quick mode (`--quick`) is optimized for speed and minimal output. Use it for:
 - **Pre-commit hooks** - Fast validation before commits
 - **CI/CD validation gates** - Automated pipeline checks
 - **Quick sanity checks** - During development iterations
-- **IMPROVEMENT_PLAN validation** - Before release (with `--check-improvement-plan`)
+- **Plugin README validation** - Before release (with `--check-readme`)
 - **Strict validation** - With `--strict` flag for pre-release gates
 - **Structural validation only** - When metrics aren't needed
 
@@ -376,7 +376,7 @@ User: "Improve the skillsmith skill"
 → Skillsmith runs research_skill.py for baseline analysis
 → Research findings inform GitHub Issue creation
 → Issue includes baseline metrics and opportunities
-→ README.md updated with research context
+→ Plugin README.md updated with research context
 → Implementation proceeds with data-driven approach
 ```
 
@@ -441,10 +441,10 @@ python3 scripts/evaluate_skill.py skills/my-skill/ \
 # 1. Comprehensive evaluation
 python3 scripts/evaluate_skill.py skills/my-skill/ \
   --validate-functionality \
-  --check-improvement-plan \
+  --check-readme \
   --store-metrics
 
-# 2. Verify IMPROVEMENT_PLAN completeness
+# 2. Verify plugin README completeness
 # Ensure version history is updated
 
 # 3. Final quality check

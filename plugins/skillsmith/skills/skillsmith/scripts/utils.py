@@ -3,8 +3,14 @@
 # ///
 """Shared utilities for skillsmith scripts."""
 
+import re
 import sys
 from pathlib import Path
+
+# Skill name format per Anthropic spec: max 64 chars, lowercase letters,
+# numbers, and hyphens only. Must not start or end with a hyphen.
+SKILL_NAME_PATTERN = re.compile(r'^[a-z][a-z0-9]*(-[a-z0-9]+)*$')
+SKILL_NAME_MAX_LENGTH = 64
 
 
 def find_repo_root(start_path=None):
@@ -40,6 +46,72 @@ def find_repo_root(start_path=None):
         current = parent
 
     return None
+
+
+def find_plugin_root(start_path=None):
+    """Find the nearest plugin root by searching up for .claude-plugin/plugin.json.
+
+    Unlike find_repo_root() which finds the repository root, this finds the
+    nearest enclosing plugin directory — useful when a skill needs to locate
+    its containing plugin's README.md or plugin.json.
+
+    Args:
+        start_path: Starting directory (defaults to current directory)
+
+    Returns:
+        Path to plugin root directory, or None if not found
+    """
+    if start_path is None:
+        start_path = Path.cwd()
+    else:
+        start_path = Path(start_path).resolve()
+
+    current = start_path
+
+    for _ in range(10):
+        plugin_json = current / ".claude-plugin" / "plugin.json"
+        if plugin_json.exists():
+            return current
+
+        parent = current.parent
+        if parent == current:
+            break
+        current = parent
+
+    return None
+
+
+def validate_skill_name(name):
+    """Validate a skill name against the Anthropic spec.
+
+    Rules: max 64 chars, lowercase letters, numbers, and hyphens only.
+    Must start with a letter. Must not end with a hyphen.
+
+    Args:
+        name: Skill name to validate
+
+    Returns:
+        Tuple of (is_valid, error_message). error_message is None if valid.
+    """
+    if not name:
+        return False, "Skill name is empty"
+
+    if len(name) > SKILL_NAME_MAX_LENGTH:
+        return False, f"Skill name exceeds {SKILL_NAME_MAX_LENGTH} characters ({len(name)})"
+
+    if not SKILL_NAME_PATTERN.match(name):
+        if name[0] == '-':
+            return False, "Skill name must not start with a hyphen"
+        if name[-1] == '-':
+            return False, "Skill name must not end with a hyphen"
+        if any(c.isupper() for c in name):
+            return False, "Skill name must be lowercase"
+        return False, (
+            "Skill name must match pattern: lowercase letters, numbers, "
+            "and hyphens only (e.g., 'my-skill-name')"
+        )
+
+    return True, None
 
 
 def get_repo_root(args_path, verbose=False):
