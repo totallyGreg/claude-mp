@@ -12,7 +12,7 @@ See `/WORKFLOW.md` for complete documentation on:
 
 ## Repository Structure
 
-- `skills/*/` - Individual skills with README.md
+- `plugins/*/` - Plugins with skill metrics in plugin-level README.md
 - `docs/plans/` - Ephemeral planning for complex work
 - `docs/lessons/` - Cross-skill learnings
 - `WORKFLOW.md` - Primary workflow documentation
@@ -29,7 +29,7 @@ docs/lessons/         →  docs/plans/           →  GitHub Issues      →  RE
 
 1. **Simple changes**: Commit directly to main
 2. **Complex work**:
-   - Add to skill's README.md (simple table format)
+   - Add to plugin-level README.md (under `## Skill: <name>` section)
    - Create GitHub Issue for tracking (source of truth)
    - Link issue in commits and README.md
 
@@ -39,7 +39,7 @@ docs/lessons/         →  docs/plans/           →  GitHub Issues      →  RE
 ```bash
 uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py <skill-path>
 ```
-Record the eval score in the skill's README.md version history entry.
+Record the eval score in the plugin-level README.md version history entry (under `## Skill: <name>`).
 
 See WORKFLOW.md for details.
 
