@@ -68,10 +68,12 @@ PLUGIN_JSON_KNOWN_FIELDS = {
 }
 PLUGIN_JSON_REQUIRED_FIELDS = {'name'}
 
-# Files that don't require version bumps when changed
+# Files that don't require version bumps when changed.
+# references/ and examples/ are NOT excluded — they are skill content
+# (progressive disclosure layer) per plugin-dev skill-development spec.
 EXCLUDED_PATTERNS = [
     'IMPROVEMENT_PLAN.md', 'CHANGELOG.md', 'LICENSE*', 'README*',
-    'docs/*', 'references/*', 'examples/*', 'tests/*',
+    'docs/*', 'tests/*',
     '.gitignore', '.skillignore', '.DS_Store', '__pycache__/*', '*.pyc',
     '.claude-plugin/marketplace.json',
 ]
