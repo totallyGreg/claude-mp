@@ -1,12 +1,12 @@
 # Marketplace Distribution Guide
 
-This reference provides guidance on distributing skills via Claude Code plugin marketplace. Load this file when you need to publish skills to a marketplace or understand the distribution workflow.
+Guidance on distributing plugins via the Claude Code marketplace system. For marketplace.json schema details and organization patterns, see `plugin_marketplace_guide.md`.
 
 ---
 
 ## Overview
 
-Skills can be distributed through the Claude Code plugin marketplace system, making them available for installation by other users. Skillsmith delegates all marketplace operations to the **marketplace-manager** skill, which handles versioning, validation, and publication.
+Plugins are distributed through the Claude Code marketplace system, making them available for installation by other users. The **marketplace-manager** skill handles versioning, validation, and publication.
 
 ---
 
@@ -14,447 +14,205 @@ Skills can be distributed through the Claude Code plugin marketplace system, mak
 
 ### High-Level Process
 
-1. **Create or improve skill** - Complete skill development (Steps 1-4)
-2. **Validate skill** - Run `evaluate_skill.py` to ensure quality
-3. **Invoke marketplace-manager** - Delegate to marketplace-manager skill
-4. **Review marketplace changes** - marketplace-manager shows what will be committed
-5. **Commit to marketplace** - Approve marketplace.json + skill commit
-6. **Push to remote** - Optionally push to remote repository
+1. **Develop plugin** -- Complete plugin with skills, commands, agents, etc.
+2. **Validate** -- Run `evaluate_skill.py` to ensure quality
+3. **Invoke marketplace-manager** -- Delegate marketplace operations
+4. **Review changes** -- marketplace-manager shows what will be committed
+5. **Commit** -- Approve marketplace.json + plugin changes
+6. **Push to remote** -- Optionally push to remote repository
 
-### Detailed Workflow
-
-#### Step 1: Prepare Skill for Distribution
+### Preparation Checklist
 
 Before distributing, ensure:
-- [ ] Skill passes validation (`evaluate_skill.py`)
-- [ ] SKILL.md is complete and accurate
-- [ ] Version number is correct in `metadata.version`
-- [ ] README.md includes skill in marketplace listing
+- [ ] Plugin passes validation
+- [ ] SKILL.md is complete and accurate (for skill-based plugins)
+- [ ] Version number is set in plugin.json or SKILL.md `metadata.version`
 - [ ] All bundled resources are tested and working
 
-#### Step 2: Invoke marketplace-manager
-
-Skillsmith automatically delegates to marketplace-manager when appropriate. You can also invoke directly:
+### Invocation
 
 ```bash
-# Via skillsmith (recommended)
-User: "Publish skillsmith to marketplace"
-→ Skillsmith delegates to marketplace-manager
+# Via skillsmith delegation (recommended)
+User: "Publish my-plugin to marketplace"
 
 # Direct invocation
-/marketplace-manager add skills/my-skill/
+/marketplace-manager add plugins/my-plugin/
 ```
 
-#### Step 3: marketplace-manager Operations
+### What marketplace-manager Does
 
-marketplace-manager performs these operations automatically:
-
-1. **Add skill to marketplace.json** (if new skill)
-   - Creates plugin entry
-   - Sets skill path
-   - Initializes version
-
-2. **Sync skill version to marketplace.json**
-   - Reads version from SKILL.md `metadata.version`
-   - Updates marketplace.json version field
-   - Ensures consistency
-
-3. **Validate marketplace structure**
-   - Checks marketplace.json schema
-   - Verifies all paths are valid
-   - Confirms no duplicate entries
-
-4. **Prepare commit**
-   - Stages SKILL.md changes
-   - Stages marketplace.json changes
-   - Generates commit message
-
-#### Step 4: Review and Commit
-
-marketplace-manager asks: "Commit to marketplace?"
-
-**Review checklist before approving:**
-- [ ] Version number is correct
-- [ ] Skill changes are accurate
-- [ ] marketplace.json entry is correct
-- [ ] Commit message is descriptive
-
-If approved, marketplace-manager commits both files together.
-
-#### Step 5: Push to Remote (Optional)
-
-marketplace-manager asks: "Push to remote?"
-
-**Options:**
-- **Yes** - Push immediately to remote repository
-- **No** - Keep changes local, push manually later
-
----
-
-## marketplace-manager Capabilities
-
-### Automatic Version Syncing
-
-marketplace-manager keeps SKILL.md and marketplace.json versions synchronized:
-
-```yaml
-# SKILL.md frontmatter
-metadata:
-  version: "2.2.0"
-
-# marketplace.json (auto-synced)
-{
-  "plugins": [
-    {
-      "name": "skillsmith",
-      "version": "2.2.0"  ← Automatically synced
-    }
-  ]
-}
-```
-
-### Git Integration
-
-marketplace-manager handles all git operations:
-- **Staging** - Both SKILL.md and marketplace.json
-- **Committing** - Atomic commits with descriptive messages
-- **Pushing** - Optional push to remote
-
-**Example commit message:**
-```
-Add skillsmith v2.2.0 to marketplace
-
-- Initial marketplace publication
-- Skill creation and management tool
-```
-
-### Marketplace Validation
-
-marketplace-manager validates marketplace structure:
-- **Schema compliance** - marketplace.json follows required format
-- **Path validation** - All skill paths exist and are valid
-- **Duplicate detection** - No duplicate plugin entries
-- **Version format** - Semantic versioning (MAJOR.MINOR.PATCH)
-
-### Multi-Component Plugin Versioning
-
-For plugins with multiple skills, marketplace-manager handles:
-- **Individual skill versions** - Each skill has independent version
-- **Plugin version** - Overall plugin version
-- **Coordinated updates** - Update multiple skills in single commit
-
----
-
-## Manual Operations
-
-While skillsmith delegates to marketplace-manager, you can also perform manual operations:
-
-### Add New Skill to Marketplace
-
-```bash
-/marketplace-manager add skills/new-skill/
-```
-
-marketplace-manager will:
-1. Add skill to marketplace.json
-2. Set initial version from SKILL.md
-3. Ask to commit changes
-
-### Update Skill Version
-
-```bash
-# Update version in SKILL.md first
-vim skills/my-skill/SKILL.md
-# Change metadata.version to new version
-
-# Sync to marketplace
-/marketplace-manager sync skills/my-skill/
-```
-
-### Validate Marketplace
-
-```bash
-/marketplace-manager validate
-```
-
-Checks marketplace.json for:
-- Schema compliance
-- Path validity
-- Version consistency
-- Duplicate entries
+1. **Adds plugin to marketplace.json** (if new) -- creates entry with `name` and `source`
+2. **Syncs version** -- reads version from plugin.json or SKILL.md, updates marketplace.json
+3. **Validates structure** -- checks schema compliance, path validity, duplicate detection
+4. **Prepares commit** -- stages changes, generates commit message
 
 ---
 
 ## marketplace.json Structure
 
-### Required Format
+Source: https://docs.anthropic.com/en/docs/claude-code/plugin-marketplaces
+
+### Minimal Valid Example
 
 ```json
 {
-  "name": "marketplace-name",
-  "owner": {
-    "name": "Owner Name",
-    "email": "owner@example.com"
+  "name": "my-marketplace",
+  "owner": { "name": "Dev Team" },
+  "plugins": [
+    { "name": "my-plugin", "source": "./plugins/my-plugin" }
+  ]
+}
+```
+
+### With Optional Fields
+
+```json
+{
+  "name": "my-marketplace",
+  "owner": { "name": "Dev Team", "email": "team@example.com" },
+  "metadata": {
+    "description": "Internal development tools",
+    "version": "1.0.0"
   },
   "plugins": [
     {
-      "name": "plugin-name",
-      "version": "1.0.0",
-      "source": "./path/to/plugin",
-      "skills": ["./"]
+      "name": "my-plugin",
+      "source": "./plugins/my-plugin",
+      "version": "2.1.0",
+      "description": "Code formatting and linting",
+      "category": "developer-tools",
+      "keywords": ["formatting", "linting"]
     }
   ]
 }
 ```
 
-### Field Definitions
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Marketplace name |
-| `owner` | object | Marketplace owner information |
-| `plugins` | array | List of plugins in marketplace |
-| `plugins[].name` | string | Plugin name (kebab-case, required) |
-| `plugins[].source` | string or object | Where to fetch the plugin (required) |
-| `plugins[].version` | string | Plugin version (semantic versioning, optional) |
-| `plugins[].description` | string | Brief plugin description (optional) |
-| `plugins[].author` | string or object | Plugin author (optional) |
-| `plugins[].category` | string | Plugin category (optional) |
-| `plugins[].keywords` | array | Tags for discovery (optional) |
-
-### Single-Skill Plugin
-
-```json
-{
-  "name": "my-skill",
-  "version": "1.0.0",
-  "source": "./skills/my-skill",
-  "skills": ["./"]
-}
-```
-
-### Multi-Skill Plugin
-
-```json
-{
-  "name": "my-plugin-bundle",
-  "version": "1.0.0",
-  "source": "./",
-  "skills": [
-    "./skill-one",
-    "./skill-two",
-    "./skill-three"
-  ]
-}
-```
-
----
-
-## Distribution Best Practices
-
-### Before Distribution
-
-1. **Validate thoroughly**
-   ```bash
-   python3 scripts/evaluate_skill.py skills/my-skill/ --validate-functionality
-   ```
-
-2. **Test locally**
-   - Install skill locally
-   - Test all workflows
-   - Verify bundled resources work
-
-3. **Update README.md**
-   - Add skill to marketplace listing
-   - Include version number
-   - Describe key features
-
-4. **Version appropriately**
-   - New skill: Start with 1.0.0
-   - Bug fix: PATCH bump (1.0.0 → 1.0.1)
-   - New feature: MINOR bump (1.0.0 → 1.1.0)
-   - Breaking change: MAJOR bump (1.0.0 → 2.0.0)
-
-### After Distribution
-
-1. **Verify installation**
-   ```bash
-   claude-code plugin install <marketplace>/<plugin-name>
-   ```
-
-2. **Test installed skill**
-   - Invoke skill
-   - Verify it works as expected
-
-3. **Monitor usage**
-   - Watch for issues
-   - Respond to user feedback
-
-4. **Maintain documentation**
-   - Keep README.md updated
-   - Document breaking changes
-   - Provide migration guides
+For complete schema tables and all 6 organization patterns, see `plugin_marketplace_guide.md`.
 
 ---
 
 ## Version Management
 
+### Version Sources
+
+marketplace-manager reads versions from these sources (in priority order):
+
+1. `.claude-plugin/plugin.json` `version` field
+2. `skills/*/SKILL.md` `metadata.version` frontmatter (single-skill plugins only)
+
+### Automatic Version Sync
+
+```yaml
+# SKILL.md frontmatter (source of truth)
+metadata:
+  version: "2.2.0"
+```
+
+marketplace-manager syncs this to marketplace.json:
+
+```json
+{
+  "plugins": [
+    {
+      "name": "my-plugin",
+      "version": "2.2.0",
+      "source": "./plugins/my-plugin"
+    }
+  ]
+}
+```
+
 ### Semantic Versioning
 
-Skills should follow semantic versioning (MAJOR.MINOR.PATCH):
+- **MAJOR (X.0.0)** -- Breaking changes, incompatible workflow changes
+- **MINOR (x.X.0)** -- New features, backward-compatible enhancements
+- **PATCH (x.x.X)** -- Bug fixes, documentation updates
 
-**MAJOR (X.0.0)**
-- Breaking changes
-- Incompatible workflow changes
-- Removed features
+### Multi-Skill Plugin Versioning
 
-**MINOR (x.X.0)**
-- New features
-- Backward-compatible enhancements
-- New bundled resources
+For plugins with multiple skills, plugin version is independent from individual skill versions. Manual version bumps are required. See `plugin_marketplace_guide.md` for details.
 
-**PATCH (x.x.X)**
-- Bug fixes
-- Documentation updates
-- Minor improvements
+---
 
-### Version Consistency
+## Marketplace Validation
 
-marketplace-manager ensures version consistency between:
-- **SKILL.md metadata.version** - Source of truth
-- **marketplace.json plugins[].version** - Auto-synced
-- **README.md listing** - Should be updated manually
+marketplace-manager validates against the official Anthropic schema:
+
+- **Required fields** -- `name`, `owner`, `plugins` at root; `name`, `source` per plugin entry
+- **Path validation** -- all relative source paths resolve to existing directories
+- **Duplicate detection** -- no duplicate plugin names
+- **Version format** -- semver (MAJOR.MINOR.PATCH)
+- **Structure checks** -- detects anti-patterns like shared `source: "./"` across multiple plugins
+
+```bash
+/marketplace-manager validate
+```
+
+---
+
+## Post-Distribution
+
+### Verify Installation
+
+```bash
+/plugin install my-plugin@my-marketplace
+```
+
+### Maintain
+
+- Keep plugin.json or SKILL.md versions current
+- Document breaking changes in commit messages
+- Use MAJOR version bumps for breaking changes
 
 ---
 
 ## Troubleshooting
 
-### "marketplace-manager can't find my skill"
+### "marketplace-manager can't find my plugin"
 
-**Solution:** Verify skill path is correct:
+Verify the plugin path is correct and contains discoverable components (skills/, commands/, .claude-plugin/, etc.):
+
 ```bash
-# Check SKILL.md exists
-ls skills/my-skill/SKILL.md
-
-# Use absolute or relative path
-/marketplace-manager add ./skills/my-skill/
+ls plugins/my-plugin/skills/*/SKILL.md
+ls plugins/my-plugin/.claude-plugin/plugin.json
 ```
 
 ### "Version sync failed"
 
-**Solution:** Ensure version is in correct location:
+Ensure version is in one of these locations:
+
+```json
+// .claude-plugin/plugin.json
+{ "name": "my-plugin", "version": "1.0.0" }
+```
+
 ```yaml
-# Preferred location
+# skills/my-skill/SKILL.md frontmatter
 metadata:
   version: "1.0.0"
-
-# Also acceptable
-version: "1.0.0"
 ```
 
 ### "marketplace.json validation failed"
 
-**Solution:** Run validation to see specific errors:
+Run validation for specific errors:
+
 ```bash
 /marketplace-manager validate
 ```
 
 Common issues:
-- Missing required fields
-- Invalid version format (use X.Y.Z)
-- Invalid skill paths
+- Missing `name` or `source` in plugin entries
+- Invalid version format (use X.Y.Z, not vX.Y.Z)
+- Source path does not exist on disk
 - Duplicate plugin names
-
-### "Can't push to remote"
-
-**Possible causes:**
-- No remote configured
-- Authentication required
-- Branch protection rules
-
-**Solution:**
-```bash
-# Check remote
-git remote -v
-
-# Manual push if needed
-git push origin main
-```
-
----
-
-## Integration with Skillsmith Workflow
-
-marketplace-manager integrates seamlessly with skillsmith workflows:
-
-### Quick Update Workflow + Distribution
-
-```
-1. User: "Add reference file X to skillsmith"
-2. Skillsmith: [Makes quick update, bumps version 2.2.0 → 2.2.1]
-3. Skillsmith: "Ready to publish to marketplace?"
-4. User: "Yes"
-5. Skillsmith: [Invokes marketplace-manager]
-6. marketplace-manager: [Syncs version, asks to commit]
-7. User: [Approves]
-8. marketplace-manager: [Commits SKILL.md + marketplace.json]
-```
-
-### Complex Improvement + Distribution
-
-```
-1. User: "Simplify skillsmith instructions"
-2. Skillsmith: [Routes to skill-planner]
-3. skill-planner: [Research, plan, implement]
-4. Skillsmith: "Version bump? MINOR or MAJOR?"
-5. User: "MAJOR - 2.2.0 → 3.0.0"
-6. Skillsmith: [Updates version]
-7. Skillsmith: "Ready to publish?"
-8. User: "Yes"
-9. Skillsmith: [Invokes marketplace-manager]
-10. marketplace-manager: [Syncs, commits, pushes]
-```
-
----
-
-## Post-Validation Checklist
-
-After validation passes, optionally distribute to marketplace:
-
-**Post-Validation Checklist:**
-- [ ] Update root README.md with version and changelog
-- [ ] Optionally invoke marketplace-manager skill to publish
-
-**To publish to marketplace:**
-```bash
-# Via skill invocation
-/marketplace-manager add skills/my-skill/
-
-# Via skillsmith delegation
-User: "Publish my-skill to marketplace"
-```
-
-See **marketplace-manager** skill documentation for:
-- Comprehensive marketplace operations
-- Advanced versioning strategies
-- Multi-skill plugin management
-- Marketplace administration
-
----
-
-## Related Skills
-
-- **marketplace-manager** - Full marketplace operations and documentation
-- **skillsmith** - Skill creation and improvement (delegates to marketplace-manager)
-- **skill-planner** - Systematic improvement planning
 
 ---
 
 ## Related References
 
-- `improvement_workflow_guide.md` - When marketplace distribution happens in workflows
-- `validation_tools_guide.md` - Pre-distribution validation
+- `plugin_marketplace_guide.md` -- Schema tables, organization patterns, component auto-discovery
+- `official_docs_index.md` -- Links to official Anthropic documentation
 
 ---
 
-*This guide describes marketplace distribution workflow. For comprehensive marketplace operations, see the marketplace-manager skill documentation.*
+*This guide describes marketplace distribution workflow. For schema details and organization patterns, see `plugin_marketplace_guide.md`.*

@@ -1,56 +1,69 @@
-# Official Claude Code Documentation
+# Official Claude Code Documentation Index
 
-## Overview
-
-This document provides links to official Anthropic documentation for Claude Code plugins and marketplaces. Always consult these sources for the most current specifications.
+Links to official Anthropic documentation for Claude Code plugins and marketplaces. Always consult these sources for the most current specifications.
 
 ## Official Documentation URLs
 
 ### Plugin Marketplaces
 
-**URL**: https://code.claude.com/docs/en/plugin-marketplaces
+**URL**: https://docs.anthropic.com/en/docs/claude-code/plugin-marketplaces
 
-Documentation covering:
-- Marketplace creation and hosting
-- `marketplace.json` structure and fields
-- Publishing plugins to marketplaces
-- Installing from marketplaces
+Covers:
+- marketplace.json schema (required root fields, plugin entry fields, component configuration)
+- Source types (relative path, GitHub, Git URL, git-subdir, npm)
+- `strict` mode (true vs false)
+- `metadata.pluginRoot` for path simplification
+- Path resolution rules
+- `${CLAUDE_PLUGIN_ROOT}` and `${CLAUDE_PLUGIN_DATA}` variables
+
+### Plugins Guide
+
+**URL**: https://docs.anthropic.com/en/docs/claude-code/plugins
+
+Covers:
+- Plugin creation walkthrough
+- Plugin directory structure and component layout
+- Component auto-discovery (commands/, agents/, skills/, hooks/, .mcp.json, .lsp.json)
+- Installation scopes (user vs project)
+- Plugin structure overview (what goes where)
 
 ### Plugins Reference
 
 **URL**: https://code.claude.com/docs/en/plugins-reference
 
-Documentation covering:
-- Plugin manifest (`plugin.json`) specification
-- Plugin components (commands, agents, skills, hooks, MCP servers, LSP servers)
-- Installation scopes (user vs project)
-- Plugin directory structure
-- Component auto-discovery
+Covers:
+- plugin.json manifest specification (optional; only `name` required if present)
+- All plugin.json fields and their types
+- Component configuration details
+- `strict` mode behavior
 
-### Marketplace Schema
+### Skills Reference
+
+**URL**: https://code.claude.com/docs/en/skills
+
+Covers:
+- SKILL.md frontmatter specification
+- Skill discovery (skills/*/SKILL.md pattern)
+- Monorepo support
+- Skill metadata fields
+
+### Marketplace JSON Schema
 
 **URL**: https://anthropic.com/claude-code/marketplace.schema.json
 
-The official JSON Schema for validating `marketplace.json` files. Use with JSON schema validators for automated compliance checking.
+The formal JSON Schema for validating marketplace.json files. Use with JSON schema validators for automated compliance checking.
 
 ## Quick Reference
 
 | Topic | URL |
 |-------|-----|
-| Marketplace docs | https://code.claude.com/docs/en/plugin-marketplaces |
-| Plugin reference | https://code.claude.com/docs/en/plugins-reference |
+| Marketplace guide | https://docs.anthropic.com/en/docs/claude-code/plugin-marketplaces |
+| Plugins guide | https://docs.anthropic.com/en/docs/claude-code/plugins |
+| Plugins reference | https://code.claude.com/docs/en/plugins-reference |
+| Skills reference | https://code.claude.com/docs/en/skills |
 | Marketplace schema | https://anthropic.com/claude-code/marketplace.schema.json |
-
-## Usage
-
-When building or validating marketplace plugins:
-
-1. **Marketplace structure**: Consult plugin-marketplaces docs
-2. **Plugin manifest**: Consult plugins-reference docs
-3. **Schema validation**: Use marketplace.schema.json for automated checks
 
 ## See Also
 
-- `plugin_marketplace_guide.md` - Practical guide with examples
-- `marketplace_distribution_guide.md` - Distribution workflow
-- `troubleshooting.md` - Common issues and solutions
+- `plugin_marketplace_guide.md` -- Schema tables, organization patterns, component auto-discovery
+- `marketplace_distribution_guide.md` -- Distribution workflow and version management
