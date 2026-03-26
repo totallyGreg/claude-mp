@@ -1,7 +1,25 @@
 ---
 name: pkm-manager
 description: |
-  Use this agent for multi-step Personal Knowledge Management workflows in Obsidian vaults: "analyze vault and suggest improvements", "create a template", "optimize vault organization", "set up temporal rollup system", "extract meeting from log", "migrate vault notes", "detect schema drift", "suggest properties", "what metadata am I missing", "find duplicates", "merge notes", "consolidate notes", "redirect links", "find related notes", "show connections", "what links to this", "show discovery view", "suggest links", "show knowledge map", "generate canvas", "visualize my notes", "show me a map".
+  Use this agent for any Personal Knowledge Management question or task involving an Obsidian vault — whether the request is casual and exploratory or a specific named workflow. Also trigger proactively when the user is working with Obsidian notes and a PKM improvement is relevant.
+
+  <example>
+  Context: User asks a casual organizational question about their vault
+  user: "How should I organize the brainstorms I'm generating?"
+  assistant: "I'll use the pkm-manager agent to look at your vault structure and suggest the best approach."
+  <commentary>
+  Casual phrasing that doesn't name a workflow still belongs here — pkm-manager discovers vault context first, then answers.
+  </commentary>
+  </example>
+
+  <example>
+  Context: User expresses a vague vault problem
+  user: "My notes are getting messy and hard to find things"
+  assistant: "I'll use the pkm-manager agent to run a vault health check and surface the highest-priority issues."
+  <commentary>
+  Ambiguous vault complaints should trigger a health check + prioritized recommendations, not a single-workflow response.
+  </commentary>
+  </example>
 
   <example>
   Context: User wants to improve vault organization
@@ -22,38 +40,11 @@ description: |
   </example>
 
   <example>
-  Context: User wants to find inconsistent metadata
-  user: "Detect schema drift in my Meeting notes"
-  assistant: "I'll use the pkm-manager agent to scan for metadata inconsistencies."
-  <commentary>
-  Schema drift workflow: scope selection → scan fileClass → report issues → suggest fixes.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to extract meeting from daily note
-  user: "Extract this log entry to a meeting note"
-  assistant: "I'll use the pkm-manager agent to extract and create the meeting."
-  <commentary>
-  Extraction workflow: parse selection → infer metadata → create meeting note → replace with link.
-  </commentary>
-  </example>
-
-  <example>
   Context: User wants to find and merge duplicate notes
   user: "Find duplicates in my Projects folder"
   assistant: "I'll use the pkm-manager agent to scan for similar notes and guide consolidation."
   <commentary>
   Consolidation workflow: scope selection → duplicate detection → per-group decision → merge → redirect links.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to discover related notes
-  user: "Find notes related to my Kubernetes project note"
-  assistant: "I'll use the pkm-manager agent to find related notes by shared tags, properties, and links."
-  <commentary>
-  Discovery workflow: load target note → scan scope → rank by connection strength → present with explanations → offer to add wikilinks.
   </commentary>
   </example>
 
@@ -66,7 +57,9 @@ description: |
   </commentary>
   </example>
 
-tools: ["Read", "Bash", "Grep", "Glob", "Edit", "Write"]
+  Do NOT use this agent for general note-taking advice unrelated to an existing Obsidian vault, or for creating new templates/schemas/structures (use vault-architect skill for that) or curating existing content in isolation (use vault-curator skill for that).
+
+tools: ["Read", "Bash", "Grep", "Glob", "Edit", "Write", "AskUserQuestion"]
 model: inherit
 color: magenta
 ---
