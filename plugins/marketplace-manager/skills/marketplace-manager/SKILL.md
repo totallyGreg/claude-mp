@@ -14,11 +14,11 @@ description: >-
 license: MIT
 metadata:
   conciseness: 100
-  complexity: 90
-  spec_compliance: 90
+  complexity: 100
+  spec_compliance: 100
   progressive: 100
-  overall: 95
-  last_evaluated: 2026-03-11
+  overall: 100
+  last_evaluated: 2026-03-26
   version: "4.0.0"
   author: J. Greg Williams
 compatibility: Requires git repository with .claude-plugin/marketplace.json
