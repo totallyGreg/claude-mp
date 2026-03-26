@@ -1,18 +1,16 @@
-Sync SKILL.md versions to marketplace.json and update README.md.
+Sync plugin versions from plugin.json/SKILL.md to marketplace.json.
 
 Run the sync script to detect and update version mismatches:
 
 ```bash
-uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py $ARGUMENTS
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/repo/sync.py $ARGUMENTS
 ```
 
 Common arguments:
-- (no args) - Sync all skill versions in auto mode
-- `--dry-run` - Preview changes without saving
-- `--mode=manual` - Warn about mismatches instead of auto-updating (for multi-skill plugins)
+- (no args) - Sync all plugin versions to marketplace.json
+- `--dry-run` - Preview changes without writing
 
 Report the sync results:
 - List any version updates made to marketplace.json
-- Show updates made to README.md plugin tables
-- Show warnings for skills with deprecated `version` field
-- Confirm marketplace.json and README.md are synchronized
+- Show plugins that were already in sync
+- Suggest running `/mp-validate` after syncing

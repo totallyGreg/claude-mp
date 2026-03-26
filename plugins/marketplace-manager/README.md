@@ -5,11 +5,11 @@ Plugin marketplace operations: version syncing, skill publishing, and marketplac
 ## Components
 
 ### Skill: marketplace-manager
-Programmatic marketplace management with git integration:
-- Version syncing from plugin.json/SKILL.md to marketplace.json
-- Validation including undeclared skill detection (skills on disk missing from skills array)
-- Plugin scaffolding, skill migration, and deprecation tooling
-- Pre-commit hook for automatic version sync
+Self-sufficient marketplace repo model with two-tier script architecture:
+- Repo-level scripts (validate.py, sync.py) installed into marketplace repos for standalone operation
+- Skill-level scripts (setup.py, scaffold.py) for repo initialization and plugin scaffolding
+- Official Anthropic schema validation with reverse scan and auto-fix
+- Pre-commit hook using repo-local scripts
 
 ### Commands (5)
 `/mp-sync`, `/mp-validate`, `/mp-add`, `/mp-list`, `/mp-status`
@@ -18,6 +18,7 @@ Programmatic marketplace management with git integration:
 
 | Version | Changes |
 |---------|---------|
+| 4.0.0 | Official Anthropic schema alignment, self-sufficient repo model, 12 scripts replaced by 4, reverse scan + auto-fix |
 | 2.9.0 | Multi-plugin structure detection (`--check-structure`), CI mode (`--ci`), advisory hook warning, docs |
 | 2.8.0 | Undeclared skill detection in validate; uv guard; license frontmatter fix |
 | 2.7.0 | Add trigger phrases to description |
@@ -38,6 +39,7 @@ Programmatic marketplace management with git integration:
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 4.0.0 | 2026-03-26 | [#145](https://github.com/totallyGreg/claude-mp/issues/145) | Official schema alignment, self-sufficient repo model, 12 scripts replaced by 4, reverse scan + auto-fix | - | - | - | - | - | - |
 | 3.1.0 | 2026-03-25 | - | Fix validator schema guidance: remove metadata from known fields, correct version/description migration advice, merge SKILL.md sections (10→4 H2s), add negative trigger clause | 100 | 100 | 100 | 100 | 100 | 100 |
 | 2.9.0 | 2026-03-23 | [#139](https://github.com/totallyGreg/claude-mp/issues/139) | Multi-plugin structure detection (`--check-structure`), CI mode (`--ci`), advisory hook warning, docs | 100 | 87 | 100 | 100 | 100 | 97 |
 | 2.8.0 | 2026-03-21 | - | Undeclared skill detection in validate; uv guard on add_to_marketplace.py; license field fix | 100 | 90 | 100 | 100 | 100 | 98 |

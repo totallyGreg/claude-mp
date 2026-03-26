@@ -1,13 +1,13 @@
 # Validates Claude Code plugin structure and version enforcement on MRs.
-# Requires: marketplace_ci.py vendored at scripts/marketplace_ci.py
+# Uses repo-local scripts installed by marketplace-manager setup.py.
+# These scripts are stdlib-only Python -- no pip/uv needed.
 #
 # Notes:
-# - marketplace_ci.py is stdlib-only Python — works with bare python3, no pip/uv needed.
+# - validate.py and sync.py are self-contained, stdlib-only scripts copied
+#   into the repo by `setup.py install-scripts`. No runtime dependency on
+#   marketplace-manager.
 # - GitLab CI shallow clones do NOT include the target branch ref. The git fetch
-#   in version:check is mandatory — without it, `git diff origin/main...HEAD` fails.
-# - Pass --target-branch explicitly rather than relying on env var auto-detection
-#   inside the script, since CI_MERGE_REQUEST_TARGET_BRANCH_NAME is only set in
-#   merge_request_event pipelines.
+#   in version:check is mandatory -- without it, `git diff origin/main...HEAD` fails.
 # - validate and structure-check run on all pipelines (MR + default branch).
 #   version:check only runs on MR pipelines where a target branch exists.
 
@@ -19,8 +19,8 @@ validate:plugin:
   stage: validate
   image: python:3.12-slim
   script:
-    - python3 scripts/marketplace_ci.py validate --ci
-    - python3 scripts/marketplace_ci.py structure-check --ci
+    - python3 scripts/validate.py --format json
+    - python3 scripts/validate.py --check-structure
 
 version:check:
   stage: version
@@ -28,6 +28,6 @@ version:check:
   before_script:
     - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --quiet
   script:
-    - python3 scripts/marketplace_ci.py version-check --mr --ci --target-branch "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+    - python3 scripts/sync.py --dry-run
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

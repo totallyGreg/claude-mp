@@ -3,15 +3,14 @@
 name: marketplace-manager
 description: >-
   This skill should be used when managing Claude Code plugin marketplace
-  operations including version syncing, skill publishing, and marketplace.json
-  maintenance. Supports programmatic invocation by other skills for automated
-  version management. Use when adding skills to marketplace, updating skill
-  versions, syncing marketplace.json, or managing plugin distributions.
-  Triggers on "sync versions", "validate plugin", "add to marketplace",
-  "check marketplace", "update marketplace", "create plugin", "configure
-  marketplace hook", or "fix version mismatch". Do NOT use for skill content
-  improvements (use skillsmith), plugin component creation (use plugin-dev),
-  or OmniFocus/Obsidian operations.
+  operations including setup, validation, version syncing, and plugin
+  scaffolding. Sets up marketplace repos to be self-sufficient with their
+  own validation and sync scripts. Triggers on "setup marketplace repo",
+  "install repo scripts", "scaffold plugin", "auto-fix marketplace",
+  "reverse scan", "sync versions", "validate marketplace", "add to
+  marketplace", "check marketplace", or "create plugin". Do NOT use for
+  skill content improvements (use skillsmith), plugin component creation
+  (use plugin-dev), or OmniFocus/Obsidian operations.
 license: MIT
 metadata:
   conciseness: 100
@@ -20,7 +19,7 @@ metadata:
   progressive: 100
   overall: 95
   last_evaluated: 2026-03-11
-  version: "3.1.0"
+  version: "4.0.0"
   author: J. Greg Williams
 compatibility: Requires git repository with .claude-plugin/marketplace.json
 
@@ -28,81 +27,65 @@ compatibility: Requires git repository with .claude-plugin/marketplace.json
 
 # Marketplace Manager
 
-Manages Claude Code plugin marketplace operations with automatic version detection and syncing.
+Manages Claude Code plugin marketplace operations. Makes marketplace repos self-sufficient with their own validation and sync scripts.
 
 | Command | Purpose |
 |---------|---------|
 | `/mp-sync` | Sync plugin versions to marketplace.json |
-| `/mp-validate` | Validate marketplace.json structure |
-| `/mp-add` | Add skill or create plugin |
+| `/mp-validate` | Validate marketplace.json against official schema |
+| `/mp-add` | Scaffold a new plugin or migrate a legacy skill |
 | `/mp-list` | List all marketplace plugins |
-| `/mp-status` | Show version mismatches |
+| `/mp-status` | Show version mismatches and validation summary |
+
+## Architecture
+
+Two-tier script model:
+
+**Repo-level scripts** -- installed INTO marketplace repos by `setup.py`, making them self-sufficient:
+- `scripts/repo/validate.py` -- schema validation, bidirectional disk scan, auto-fix, CI output
+- `scripts/repo/sync.py` -- version sync from plugin.json/SKILL.md to marketplace.json
+
+**Skill-level scripts** -- used by the marketplace-manager skill directly:
+- `scripts/setup.py` -- initialize repos, copy repo scripts, install pre-commit hook
+- `scripts/scaffold.py` -- create new plugins, migrate legacy skills
+
+After `setup.py all`, a marketplace repo is fully self-sufficient with no runtime dependency on marketplace-manager.
 
 ## Operations
 
-### Version Syncing
+### Setup (initialize a marketplace repo)
 
 ```bash
-uv run scripts/sync_marketplace_versions.py               # Auto (default)
-uv run scripts/sync_marketplace_versions.py --dry-run      # Preview changes
-uv run scripts/sync_marketplace_versions.py --mode=manual   # Multi-skill plugins
+python3 scripts/setup.py init --name my-marketplace --owner-name "Team"
+python3 scripts/setup.py install-scripts    # Copy validate.py + sync.py into repo
+python3 scripts/setup.py install-hook       # Install pre-commit hook
+python3 scripts/setup.py all               # All of the above in sequence
 ```
 
-### Adding Skills
+### Validate (official Anthropic schema)
 
 ```bash
-uv run scripts/add_to_marketplace.py list                                        # List contents
-uv run scripts/add_to_marketplace.py add-skill <skill-path> --plugin <name>      # Add to plugin
-uv run scripts/add_to_marketplace.py create-plugin <name> --skill <skill-path>   # New plugin
+python3 scripts/repo/validate.py [path]              # Validate marketplace.json
+python3 scripts/repo/validate.py --fix                # Auto-add unregistered plugins
+python3 scripts/repo/validate.py --format json        # CI/CD output
+python3 scripts/repo/validate.py --staged             # Pre-commit version check
+python3 scripts/repo/validate.py --check-structure    # Anti-pattern detection
 ```
 
-### Validation
+### Sync (version alignment)
 
 ```bash
-uv run scripts/add_to_marketplace.py validate              # Validate structure
-uv run scripts/add_to_marketplace.py validate --format json # CI/CD output
+python3 scripts/repo/sync.py [path]          # Sync versions to marketplace.json
+python3 scripts/repo/sync.py --dry-run       # Preview changes without writing
 ```
 
-Checks: required root fields (`name`, `owner`, `plugins` array), unknown root fields, plugin entry `name`/`source`, version format, duplicate names, source path validity.
-
-### Structure & CI
-
-Detect anti-patterns (e.g. multiple plugins sharing `source: "./"`) and enforce version bumps:
+### Scaffold (plugin creation and migration)
 
 ```bash
-uv run scripts/detect_version_changes.py --check-structure --ci  # Structure check
-uv run scripts/detect_version_changes.py --check-staged --ci     # Version bump check
+python3 scripts/scaffold.py create my-plugin --description "Does things"
+python3 scripts/scaffold.py create my-plugin --with-commands --with-agents
+python3 scripts/scaffold.py migrate skills/old-skill --dry-run
 ```
-
-See `references/plugin_marketplace_guide.md` → "Single-Plugin vs Multi-Plugin Marketplace Layouts".
-
-## Git Integration & External Repos
-
-Auto-sync marketplace.json before commits via pre-commit hook:
-
-```bash
-bash scripts/install_hook.sh           # Install hook
-bash scripts/install_hook.sh --dry-run # Preview installation
-```
-
-For external repos (marketplace-manager installed as plugin):
-
-```bash
-bash ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/install_hook.sh
-uv run ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/add_to_marketplace.py init
-```
-
-## Scaffolding & Version Management
-
-```bash
-uv run scripts/create_plugin.py <name> --description "..." --skill <path>  # New plugin
-uv run scripts/migrate_to_plugin.py <skill-name> [--dry-run]               # Migrate legacy
-uv run scripts/deprecate_skill.py --skill <name> --reason "Reason"         # Deprecate
-uv run scripts/analyze_bundling.py                                         # Analyze bundles
-```
-
-**Auto Mode** (single-skill plugins): Plugin version syncs from skill version automatically.
-**Manual Mode** (multi-component plugins): Warns about mismatches, requires manual update.
 
 ## References
 
