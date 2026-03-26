@@ -163,7 +163,7 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 5. See consolidation protocol reference for merge semantics
 
 ### Consolidation: Merge Notes
-1. Git checkpoint: `bash cd ${VAULT_PATH} && git add -A && git commit -m "Pre-consolidation checkpoint"`
+1. Git checkpoint: `bash cd ${VAULT_PATH} && git add "${VAULT_PATH}" && git commit -m "Pre-consolidation checkpoint"`
 2. Dry-run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/merge_notes.py ${VAULT_PATH} --source "${SOURCE}" --target "${TARGET}" --dry-run`
 3. Present frontmatter changes and conflicts to user
 4. Resolve conflicts with user input

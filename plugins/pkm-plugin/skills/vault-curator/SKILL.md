@@ -11,8 +11,10 @@ description: >
   "migrate vault notes", "visualize my notes", or "show me a map".
   Curates and evolves existing vault content through pattern detection, migration workflows,
   metadata intelligence, consolidation, discovery, visualization, and programmatic manipulation.
+  Do NOT use for creating new templates, schemas, Bases queries, or vault structures
+  (use vault-architect for those).
 metadata:
-  version: "1.7.0"
+  version: "1.8.0"
   plugin: "pkm-plugin"
   stage: "3"
 license: MIT

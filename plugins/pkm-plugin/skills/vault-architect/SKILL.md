@@ -9,9 +9,12 @@ description: >
   Architects new PKM structures and provides guidance for Templater, Bases, Chronos,
   and QuickAdd patterns. Particularly useful for creating automatic note organization systems,
   temporal rollup structures (daily to yearly), and maintaining job-agnostic organizational patterns.
+  Do NOT use for maintaining or evolving existing vault content (metadata drift, duplicate notes,
+  merges, link redirects, canvas generation — use vault-curator for those).
+license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
   plugin: "pkm-plugin"
   stage: "3"
 ---
@@ -23,6 +26,25 @@ metadata:
 Provide expert guidance for organizing and evolving Obsidian-based Personal Knowledge Management systems. Help users create efficient workflows for quick note capture with automatic organization through metadata, templates, and relationship queries.
 
 **Scope boundary:** This skill creates *new* structures (templates, schemas, queries, rollups). For maintaining and evolving *existing* vault content (metadata drift, duplicates, merges, discovery, visualization), use the vault-curator skill.
+
+## Vault Discovery
+
+Before making structure recommendations, always discover the current vault state. This prevents redundant suggestions and grounds recommendations in what actually exists.
+
+```bash
+obsidian templates              # what templates already exist
+obsidian tags all counts        # tag usage distribution
+obsidian folders               # actual folder structure
+uv run scripts/analyze_vault.py ${VAULT_PATH}   # full health check
+```
+
+Key signals to surface before recommending:
+- **Existing templates** — avoid duplicating; refine or extend instead of creating new ones
+- **Tag distribution** — identify overloaded or underused tags that indicate schema gaps
+- **Orphan count** — high orphans suggest broken capture flows or missing MOC templates
+- **fileClass distribution** — which note types are most numerous and need schema attention
+
+If a `_vault-profile.md` exists in the vault root, read it first for accumulated context about conventions and past decisions.
 
 ## Core PKM Principles
 
@@ -135,21 +157,16 @@ Workflows are discovered by `900 📐Templates/970 Bases/Workflows.base` via any
 - `fileClass == "Workflow"`
 - `tags.contains("workflow")`
 
-**Creating a new workflow note:** use the `New Workflow.md` Templater template (`900 📐Templates/910 File Templates/New Workflow.md`). It prompts for a title and auto-moves to `700 Notes/Workflows/`.
+**Creating a new workflow note:** use `900 📐Templates/910 File Templates/New Workflow.md` — prompts for title, auto-moves to `700 Notes/Workflows/`. Required fields: `status`, `type`, `parent`/`child`, `dependencies`, `fileClass: Workflow`. See `[[Capture to Review]]` as the canonical structure example.
 
-Required frontmatter fields for the `Workflow` fileClass:
+## Cross-Skill Handoff
 
-| Field | Values |
-|-------|--------|
-| `status` | `Idea 💡` → `Scoping 🔭` → `Evolving ⤴️` → `Operational ⚙️` → `Degrading ⤵️` → `Deprecated ⛔️` |
-| `type` | `Ad-Hoc`, `AI🤖`, `Application`, `Documentation`, `Macros`, `Scripts`, `Task Template`, `Sequential`, `Agentic` |
-| `parent` / `child` | wikilinks to related workflows |
-| `dependencies` | wikilinks to tools/notes this workflow requires |
-| `fileClass` | `Workflow` (required for Bases to pick it up) |
-
-**Canonical note structure:** Description (inputs/outputs) → Steps → Use Cases table → Mermaid diagram → `## ![[#Mermaid]]` embed. See `[[Capture to Review]]` (`700 Notes/Workflows/Capture to Review.md`) as the reference example.
-
-**Capture-to-Review workflow** (for deferring non-urgent work): create note → inject wikilink into today's daily note under `## 🔗 Notes & References` (via `918 Snippet Templates/Insert Note Link.md` Templater snippet) → create OmniFocus inbox task with `obsidian://` deep link in Notes field. See `[[Capture to Review]]` for full steps.
+After architect work, offer curator follow-through to close the loop:
+- **New template** → "Run schema drift check to migrate existing notes to this schema?"
+- **New schema** → "Suggest missing properties on existing notes of this type?"
+- **MOC template** → "Find orphaned notes to seed this MOC?"
+- **Folder refinement** → "Generate canvas map to verify connections?"
+- **QuickAdd workflow** → "Audit existing captures against this new workflow?"
 
 ## Resources
 
