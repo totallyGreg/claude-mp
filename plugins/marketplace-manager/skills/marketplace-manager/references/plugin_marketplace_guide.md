@@ -1,353 +1,475 @@
-# Plugins reference
+# Plugin Marketplace Guide
 
-Claude's plugin system allows you to extend its functionality with custom commands, agents, skills, and more. This document provides a technical reference for creating and managing plugins.
+Technical reference for Claude Code plugin marketplaces. All schema details are sourced from official Anthropic documentation with URLs cited inline.
 
-## Official Documentation
+---
 
-For the latest specifications, consult official Anthropic documentation:
-- **Marketplaces**: https://code.claude.com/docs/en/plugin-marketplaces
-- **Plugins Reference**: https://code.claude.com/docs/en/plugins-reference
-- **Schema**: https://anthropic.com/claude-code/marketplace.schema.json
+## Official Sources
 
-## Plugin Components
+| Source | URL |
+|--------|-----|
+| Marketplace guide | https://docs.anthropic.com/en/docs/claude-code/plugin-marketplaces |
+| Plugins guide | https://docs.anthropic.com/en/docs/claude-code/plugins |
+| Plugins reference | https://code.claude.com/docs/en/plugins-reference |
+| Skills reference | https://code.claude.com/docs/en/skills |
 
-A plugin can contain one or more of the following components:
+---
 
-- **Commands:** Custom actions that can be invoked from the chat interface.
-- **Agents:** Autonomous agents that can perform tasks in the background.
-- **Skills:** Collections of related commands and agents that provide a specific functionality.
-- **Hooks:** Scripts that are executed at specific points in the application's lifecycle.
-- **MCP Servers:** Multi-context-passing servers that can be used to communicate with external services.
-- **LSP Servers:** Language Server Protocol servers that can be used to provide language-specific features.
+## marketplace.json Schema
 
-## Installation Scopes
+Source: https://docs.anthropic.com/en/docs/claude-code/plugin-marketplaces
 
-Plugins can be installed at two different scopes:
+### Required Root Fields
 
-- **User:** The plugin is available only to the current user.
-- **Project:** The plugin is available to all users of the current project.
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Marketplace identifier (kebab-case) |
+| `owner` | object | Maintainer info (`name` required, `email` optional) |
+| `plugins` | array | List of available plugins |
 
-The installation scope is determined by the location of the plugin's manifest file.
+### Optional Root Metadata
 
-- **User-scoped plugins** are installed in `~/.claude/plugins/`.
-- **Project-scoped plugins** are installed in `.claude/plugins/` at the root of the project.
+| Field | Type | Description |
+|-------|------|-------------|
+| `metadata.description` | string | Brief marketplace description |
+| `metadata.version` | string | Marketplace version |
+| `metadata.pluginRoot` | string | Base directory prepended to relative source paths |
 
-## Plugin Manifest
+### Required Plugin Entry Fields
 
-Every plugin must have a `plugin.json` manifest file at its root. This file contains metadata about the plugin, such as its name, version, and a list of its components.
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Plugin identifier (kebab-case) |
+| `source` | string or object | Where to fetch the plugin |
+
+### Optional Plugin Entry Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `description` | string | Brief plugin description |
+| `version` | string | Plugin version (semver) |
+| `author` | object | Author info |
+| `homepage` | string | Documentation URL |
+| `repository` | string | Source code URL |
+| `license` | string | SPDX identifier |
+| `keywords` | array | Discovery tags |
+| `category` | string | Organization category |
+| `tags` | array | Searchability tags |
+| `strict` | boolean | Whether plugin.json is authority for components (default: true) |
+
+### Component Configuration Fields
+
+These fields can appear in plugin entries to specify custom component paths or inline configurations.
+
+Source: https://docs.anthropic.com/en/docs/claude-code/plugin-marketplaces
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `commands` | string or array | Custom paths to command files or directories |
+| `agents` | string or array | Custom paths to agent files |
+| `hooks` | string or object | Custom hooks configuration or path to hooks file |
+| `mcpServers` | string or object | MCP server configurations or path to MCP config |
+| `lspServers` | string or object | LSP server configurations or path to LSP config |
+
+### Fields NOT in the Official Schema
+
+The following are **not** part of the official marketplace.json schema:
+
+- `skills` (as a plugin entry field) -- Claude Code auto-discovers skills from `skills/*/SKILL.md`
+- `components` -- there is no `components` wrapper object
+- `metadata` at the plugin entry level -- `metadata` is a root-level field only
+
+---
+
+## plugin.json (Plugin Manifest)
+
+Source: https://code.claude.com/docs/en/plugins-reference
+
+The plugin manifest (`plugin.json` inside `.claude-plugin/`) is **optional**. If omitted, Claude Code auto-discovers components in default locations and derives the plugin name from the directory name.
+
+If present, **only `name` is required**. All other fields are optional.
 
 ```json
 {
   "name": "my-plugin",
   "version": "1.0.0",
-  "description": "A brief description of my plugin.",
-  "author": "Your Name",
-  "components": {
-    "commands": ["commands/my-command.json"],
-    "agents": ["agents/my-agent.json"],
-    "skills": ["skills/my-skill.json"],
-    "hooks": ["hooks/my-hook.json"],
-    "mcp_servers": ["mcp-servers/my-mcp-server.json"],
-    "lsp_servers": ["lsp-servers/my-lsp-server.json"]
-  }
+  "description": "Brief description of plugin purpose"
 }
 ```
 
-## Caching
+Use a manifest when you need to set version, description, author, license, or custom component paths. For simple single-skill plugins, omitting `plugin.json` entirely is valid.
 
-To improve performance, Claude caches the components of installed plugins. The cache is located at `~/.claude/cache/`.
+---
 
-To clear the cache, run the following command:
+## Component Auto-Discovery
 
-```bash
-/claude clear-cache
+Source: https://docs.anthropic.com/en/docs/claude-code/plugins
+
+Claude Code auto-discovers components by scanning well-known directories inside the plugin root:
+
+| Directory/File | What It Finds | Discovery Pattern |
+|----------------|---------------|-------------------|
+| `commands/` | Slash commands | `*.md` files |
+| `agents/` | Custom agents | `*.md` files |
+| `skills/` | Agent skills | `*/SKILL.md` subdirectories |
+| `hooks/` | Event handlers | `hooks.json` |
+| `.mcp.json` | MCP servers | JSON config at plugin root |
+| `.lsp.json` | LSP servers | JSON config at plugin root |
+| `settings.json` | Default settings | JSON config at plugin root |
+
+**Important:** Do not put `commands/`, `agents/`, `skills/`, or `hooks/` inside `.claude-plugin/`. Only `plugin.json` goes inside `.claude-plugin/`. All other directories must be at the plugin root level.
+
+Source: https://docs.anthropic.com/en/docs/claude-code/plugins#plugin-structure-overview
+
+---
+
+## `strict` Mode
+
+Source: https://docs.anthropic.com/en/docs/claude-code/plugin-marketplaces, https://code.claude.com/docs/en/plugins-reference
+
+| Value | Behavior |
+|-------|----------|
+| `true` (default) | The plugin has its own `plugin.json` and manages its own components. The marketplace entry can add extra commands or hooks on top -- both sources are merged. |
+| `false` | The plugin does not need its own `plugin.json`. The marketplace entry defines everything. If the plugin also has a `plugin.json` that declares components, that is a conflict and the plugin fails to load. |
+
+Use `strict: false` when the marketplace entry should be the sole authority for component declarations.
+
+---
+
+## Path Variables
+
+Source: https://docs.anthropic.com/en/docs/claude-code/plugin-marketplaces
+
+| Variable | Description |
+|----------|-------------|
+| `${CLAUDE_PLUGIN_ROOT}` | The plugin's installation directory (required because plugins are copied to a cache) |
+| `${CLAUDE_PLUGIN_DATA}` | Persistent state directory that survives plugin updates |
+
+Use these in hook commands, MCP server configs, and other paths that need to reference plugin files at runtime.
+
+---
+
+## `metadata.pluginRoot`
+
+Source: https://docs.anthropic.com/en/docs/claude-code/plugin-marketplaces
+
+Base directory prepended to relative plugin source paths. For example, `"pluginRoot": "./plugins"` lets you write `"source": "formatter"` instead of `"source": "./plugins/formatter"`.
+
+### Path Resolution
+
+Paths resolve relative to the marketplace root -- the directory containing `.claude-plugin/`. So `./plugins/my-plugin` points to `<repo>/plugins/my-plugin`, even though `marketplace.json` lives at `<repo>/.claude-plugin/marketplace.json`. Do not use `../` to escape `.claude-plugin/`.
+
+---
+
+## Marketplace Organization Patterns
+
+All patterns below are derived from official Anthropic documentation. Each shows directory structure, marketplace.json snippet, and when to use.
+
+### Pattern 1: Single Plugin, Single Skill (simplest)
+
+One plugin with one skill. `plugin.json` is optional -- if omitted, Claude Code auto-discovers components and derives the plugin name from the directory name.
+
+```
+my-marketplace/
++-- .claude-plugin/
+|   +-- marketplace.json
++-- plugins/
+    +-- my-plugin/
+        +-- .claude-plugin/
+        |   +-- plugin.json        # optional
+        +-- skills/
+            +-- my-skill/
+                +-- SKILL.md       # auto-discovered
 ```
 
-## Directory Structure
-
-The recommended directory structure for a plugin is as follows:
-
-```
-my-plugin/
-├── plugin.json
-├── commands/
-│   └── my-command.json
-├── agents/
-│   └── my-agent.json
-├── skills/
-│   └── my-skill.json
-├── hooks/
-│   └── my-hook.json
-├── mcp-servers/
-│   └── my-mcp-server.json
-└── lsp-servers/
-    └── my-lsp-server.json
+```json
+{
+  "name": "my-marketplace",
+  "owner": { "name": "Dev Team" },
+  "plugins": [
+    { "name": "my-plugin", "source": "./plugins/my-plugin" }
+  ]
+}
 ```
 
-## CLI Commands
+**When to use:** Most common case. One focused plugin, one skill. Simple version management.
 
-The following CLI commands are available for managing plugins:
+### Pattern 2: Single Plugin, Multiple Skills (bundle)
 
-- `/plugin install <plugin-name>`: Installs a plugin from the marketplace.
-- `/plugin uninstall <plugin-name>`: Uninstalls a plugin.
-- `/plugin list`: Lists all installed plugins.
-- `/plugin status <plugin-name>`: Shows the status of a plugin.
-- `/plugin marketplace add <url>`: Adds a new marketplace.
-- `/plugin marketplace remove <url>`: Removes a marketplace.
-- `/plugin marketplace list`: Lists all configured marketplaces.
+One plugin bundles several related skills. Still one `plugin.json`.
 
-## Debugging
+```
+my-marketplace/
++-- .claude-plugin/
+|   +-- marketplace.json
++-- plugins/
+    +-- terminal-guru/
+        +-- .claude-plugin/
+        |   +-- plugin.json
+        +-- skills/
+        |   +-- terminal-emulation/
+        |   |   +-- SKILL.md
+        |   +-- zsh-dev/
+        |   |   +-- SKILL.md
+        |   +-- signals-monitoring/
+        |       +-- SKILL.md
+        +-- commands/
+        |   +-- diagnose.md
+        +-- agents/
+            +-- terminal-guru.md
+```
 
-To debug a plugin, you can use the following tools:
+```json
+{
+  "name": "terminal-marketplace",
+  "owner": { "name": "Terminal Team" },
+  "plugins": [
+    { "name": "terminal-guru", "source": "./plugins/terminal-guru", "version": "2.0.0" }
+  ]
+}
+```
 
-- **Log files:** Log files for plugins are located in `~/.claude/logs/`.
-- **Developer tools:** You can open the developer tools by pressing `Ctrl+Shift+I` (or `Cmd+Option+I` on macOS).
+**When to use:** Tightly coupled skills that always ship together. Commands and agents complement the skills. Plugin version is independent from individual skill versions; manual version management required.
 
-## Distribution and Versioning
+### Pattern 3: Multiple Independent Plugins
 
-Plugins can be distributed through a marketplace or by sharing the plugin's source code directly.
+Multiple independent plugins in one marketplace repo. Each has its own `plugin.json`. Users install selectively.
 
-When publishing a plugin to a marketplace, it is recommended to use semantic versioning to indicate the nature of changes between versions.
+```
+my-marketplace/
++-- .claude-plugin/
+|   +-- marketplace.json
++-- plugins/
+    +-- formatter/
+    |   +-- .claude-plugin/
+    |   |   +-- plugin.json
+    |   +-- skills/
+    |       +-- code-format/
+    |           +-- SKILL.md
+    +-- deployer/
+    |   +-- .claude-plugin/
+    |   |   +-- plugin.json
+    |   +-- skills/
+    |   |   +-- deploy/
+    |   |       +-- SKILL.md
+    |   +-- commands/
+    |       +-- deploy-status.md
+    +-- linter/
+        +-- .claude-plugin/
+        |   +-- plugin.json
+        +-- skills/
+            +-- lint-check/
+                +-- SKILL.md
+```
+
+```json
+{
+  "name": "devtools-marketplace",
+  "owner": { "name": "DevTools Team" },
+  "plugins": [
+    { "name": "formatter", "source": "./plugins/formatter", "version": "2.1.0" },
+    { "name": "deployer", "source": "./plugins/deployer", "version": "1.0.0" },
+    { "name": "linter", "source": "./plugins/linter", "version": "1.3.0" }
+  ]
+}
+```
+
+**When to use:** A team publishes multiple unrelated plugins from one repo. Each plugin versions independently. Install with `/plugin install formatter@my-marketplace`.
+
+### Pattern 4: Full-Featured Plugin (all component types)
+
+A plugin using every available component type: commands, agents, skills, hooks, MCP servers, LSP servers, and settings.
+
+```
+my-marketplace/
++-- .claude-plugin/
+|   +-- marketplace.json
++-- plugins/
+    +-- enterprise-tools/
+        +-- .claude-plugin/
+        |   +-- plugin.json
+        +-- commands/
+        |   +-- core/
+        |   |   +-- status.md
+        |   |   +-- deploy.md
+        |   +-- experimental/
+        |       +-- preview.md
+        +-- agents/
+        |   +-- security-reviewer.md
+        |   +-- compliance-checker.md
+        +-- skills/
+        |   +-- code-review/
+        |   |   +-- SKILL.md
+        |   |   +-- references/
+        |   |   +-- scripts/
+        |   +-- incident-response/
+        |       +-- SKILL.md
+        +-- hooks/
+        |   +-- hooks.json
+        +-- .mcp.json
+        +-- .lsp.json
+        +-- settings.json
+```
+
+The marketplace entry can specify custom component paths and inline configurations:
+
+```json
+{
+  "name": "enterprise-marketplace",
+  "owner": { "name": "Platform Team" },
+  "plugins": [
+    {
+      "name": "enterprise-tools",
+      "source": { "source": "github", "repo": "company/enterprise-plugin" },
+      "version": "2.1.0",
+      "description": "Enterprise workflow automation tools",
+      "commands": ["./commands/core/", "./commands/experimental/preview.md"],
+      "agents": ["./agents/security-reviewer.md", "./agents/compliance-checker.md"],
+      "hooks": {
+        "PostToolUse": [{
+          "matcher": "Write|Edit",
+          "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh" }]
+        }]
+      },
+      "mcpServers": {
+        "enterprise-db": {
+          "command": "${CLAUDE_PLUGIN_ROOT}/servers/db-server",
+          "args": ["--config", "${CLAUDE_PLUGIN_ROOT}/config.json"]
+        }
+      },
+      "strict": false
+    }
+  ]
+}
+```
+
+**When to use:** Enterprise or complex plugins needing explicit component paths, inline hooks, or MCP server configs. Use `strict: false` when the marketplace entry is the sole authority (no `plugin.json` component declarations).
+
+### Pattern 5: Using `pluginRoot` to Simplify Paths
+
+When all plugins live under a common directory, `metadata.pluginRoot` avoids repetitive path prefixes.
+
+```json
+{
+  "name": "company-tools",
+  "owner": { "name": "DevTools Team" },
+  "metadata": {
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    { "name": "formatter", "source": "formatter" },
+    { "name": "deployer", "source": "deployer" },
+    { "name": "linter", "source": "linter" }
+  ]
+}
+```
+
+Equivalent to writing `"source": "./plugins/formatter"` etc. without `pluginRoot`.
+
+**When to use:** Marketplaces with many plugins under a shared parent directory. Reduces boilerplate.
+
+### Pattern 6: External Source Types
+
+Plugins do not have to live in the marketplace repo. The `source` field supports multiple external types.
+
+Source: https://docs.anthropic.com/en/docs/claude-code/plugin-marketplaces
+
+| Source Type | Example | Use Case |
+|-------------|---------|----------|
+| Relative path | `"./plugins/my-plugin"` | Plugin lives in marketplace repo |
+| GitHub | `{ "source": "github", "repo": "owner/repo" }` | Plugin in a separate GitHub repo |
+| Git URL | `{ "source": "url", "url": "https://gitlab.com/org/repo.git" }` | Any git host (GitLab, Bitbucket, etc.) |
+| Git subdirectory | `{ "source": "git-subdir", "url": "owner/repo", "path": "tools/plugin" }` | Plugin in a monorepo subdirectory |
+| npm | `{ "source": "npm", "package": "@org/plugin" }` | Published npm package |
+
+All object source types support optional `ref` (branch/tag) and `sha` (pin to exact commit) fields.
+
+**When to use:** Plugin maintained in a separate repository or published as an npm package.
+
+### Pattern Selection Guide
+
+| Scenario | Recommended Pattern |
+|----------|---------------------|
+| One plugin, one skill | Pattern 1 |
+| One plugin, related skills that always ship together | Pattern 2 |
+| Multiple independent plugins from one repo | Pattern 3 |
+| Plugin with hooks, MCP servers, or LSP servers | Pattern 4 |
+| Many plugins under shared directory | Pattern 5 (pluginRoot) |
+| Plugin maintained in separate repo | Pattern 6 (external source) |
+| Starting out, unsure of structure | Pattern 1; migrate to Pattern 2 or 3 later |
+
+---
+
+## Anti-Pattern: Shared `source: "./"` with Multiple Plugins
+
+Do NOT list multiple independent plugins with `source: "./"`. All entries resolve to the same `.claude-plugin/plugin.json`, causing version enforcement conflicts.
+
+```json
+// WRONG -- all three resolve to the same plugin.json
+{
+  "plugins": [
+    { "name": "plugin-a", "source": "./", "version": "1.0.0" },
+    { "name": "plugin-b", "source": "./", "version": "1.0.0" },
+    { "name": "plugin-c", "source": "./", "version": "1.0.0" }
+  ]
+}
+```
+
+**Fix:** Give each plugin its own directory under `plugins/` (Pattern 3).
+
+---
+
+## Convention vs Spec
+
+The marketplace-manager skill adds conventions on top of the official spec. This section distinguishes them.
+
+| Aspect | Official Spec | marketplace-manager Convention |
+|--------|---------------|-------------------------------|
+| `plugin.json` | Optional; only `name` required if present | Recommended for version tracking |
+| Plugin entry fields | `name` and `source` required | Also expects `version` for sync |
+| Version source | Not specified | SKILL.md `metadata.version` or `plugin.json` `version` |
+| Version sync | Not specified | Auto-sync from source to marketplace.json |
+| Pre-commit hooks | Not specified | Validates marketplace.json on commit |
+| Plugin directory | Any path | Convention: `plugins/<name>/` |
+| Kebab-case names | Required by spec | Enforced by validation |
+
+The official spec defines **structure**. marketplace-manager adds **workflow** (version syncing, validation, scaffolding).
+
+---
+
+## Plugin Versioning
 
 ### Semantic Versioning
 
-Use semantic versioning (MAJOR.MINOR.PATCH) for both skills and plugins:
-- **MAJOR** - Breaking changes that require user action
-- **MINOR** - New features that are backward-compatible
-- **PATCH** - Bug fixes that are backward-compatible
+Use semver (MAJOR.MINOR.PATCH):
+- **MAJOR** -- Breaking changes requiring user action
+- **MINOR** -- New backward-compatible features
+- **PATCH** -- Backward-compatible bug fixes
 
-Examples:
-- `1.0.0` → `1.1.0` - Added new skill to plugin
-- `1.1.0` → `1.1.1` - Fixed bug in existing skill
-- `1.1.1` → `2.0.0` - Removed skill or introduced breaking change
+### Single-Skill Plugins (Recommended)
 
-### Plugin Versioning Strategies
+Plugin version matches skill version. Sync script auto-updates marketplace.json.
 
-**Single-Component Plugins (Recommended)**
-- Plugin contains one skill/component only
-- Plugin version automatically matches component version
-- Simple, clear, no versioning conflicts
-- Use sync script in auto mode (default)
+### Multi-Skill Plugins (Manual Versioning)
 
-Example:
-```json
-{
-  "name": "terminal-guru",
-  "version": "2.0.0",
-  "skills": ["./skills/terminal-guru"]
-}
-```
-If terminal-guru skill updates to 2.1.0, plugin auto-updates to 2.1.0
+Plugin version is independent from individual skill versions. Developer manually bumps plugin version when any component changes.
 
-**Multi-Component Plugins (Manual Versioning Required)**
-- Plugin contains multiple skills, MCP servers, LSP servers, hooks, or agents
-- Plugin version independent from component versions
-- Developer manually bumps plugin version when any component changes
-- Use sync script in manual mode (`--mode=manual`)
+**Best Practice:** Use single-skill plugins whenever possible. Only use multi-skill bundles for tightly coupled components.
 
-Example problem with auto-versioning:
-```
-Plugin v1.5.0 contains:
-  - skill-a: v1.5.0
-  - skill-b: v1.2.0
+---
 
-Developer updates skill-b to v1.3.0
-Auto-sync would leave plugin at v1.5.0 = no update signal!
-```
+## CLI Commands
 
-**Manual versioning workflow:**
-1. Update component version in its SKILL.md
-2. Run: `python3 scripts/sync_marketplace_versions.py --mode=manual`
-3. Script warns about version mismatch
-4. Manually update plugin version in marketplace.json based on impact:
-   - **MAJOR**: Any component has breaking changes
-   - **MINOR**: Any component adds new features
-   - **PATCH**: All components only have bug fixes
-5. Commit all changes together
+| Command | Description |
+|---------|-------------|
+| `/plugin install <name>` | Install a plugin from a marketplace |
+| `/plugin uninstall <name>` | Uninstall a plugin |
+| `/plugin list` | List installed plugins |
+| `/plugin status <name>` | Show plugin status |
+| `/plugin marketplace add <url>` | Add a marketplace |
+| `/plugin marketplace remove <url>` | Remove a marketplace |
+| `/plugin marketplace list` | List configured marketplaces |
 
-**Best Practice:** Use single-component plugins whenever possible. Only use multi-component plugins for tightly coupled components that are always used together.
+---
 
-## Single-Plugin vs Multi-Plugin Marketplace Layouts
-
-A marketplace repo can host one plugin or several independent plugins. The layout choice determines how version sources are resolved.
-
-### Single-Plugin Repo (most common)
-
-One plugin owns the entire repo. The `.claude-plugin/plugin.json` at the repo root is the version source.
-
-```
-repo/
-├── .claude-plugin/
-│   ├── plugin.json       ← version source for the single plugin
-│   └── marketplace.json  ← declares one plugin with source: "./"
-└── skills/
-    └── my-skill/
-```
-
-### Multi-Skill Bundle (one plugin, multiple skills)
-
-One plugin bundles several related skills. Still one `plugin.json` — valid, not an anti-pattern.
-
-```
-repo/
-├── plugins/
-│   └── terminal-guru/
-│       ├── .claude-plugin/
-│       │   └── plugin.json   ← version source for terminal-guru
-│       └── skills/
-│           ├── terminal-emulation/
-│           ├── zsh-dev/
-│           └── signals-monitoring/
-└── .claude-plugin/
-    └── marketplace.json  ← declares terminal-guru with source: "./plugins/terminal-guru"
-```
-
-### Multi-Plugin Repo (independent plugins)
-
-Multiple independent plugins share the same repo. **Each plugin must have its own `plugin.json`.**
-
-```
-repo/
-├── .claude-plugin/
-│   └── marketplace.json  ← catalog only — no root plugin.json
-├── plugins/
-│   ├── airs-tme/
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json  ← version source for airs-tme
-│   │   └── skills/
-│   ├── pai-ops/
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json  ← version source for pai-ops
-│   │   └── skills/
-│   └── prisma-airs/
-│       ├── .claude-plugin/
-│       │   └── plugin.json  ← version source for prisma-airs
-│       └── skills/
-```
-
-marketplace.json entries:
-```json
-{
-  "plugins": [
-    {"name": "airs-tme",    "source": "./plugins/airs-tme",    "version": "1.0.0"},
-    {"name": "pai-ops",     "source": "./plugins/pai-ops",     "version": "1.0.0"},
-    {"name": "prisma-airs", "source": "./plugins/prisma-airs", "version": "1.0.0"}
-  ]
-}
-```
-
-### Anti-Pattern: Shared `source: "./"` with Multiple Plugins
-
-**Do not** list multiple independent plugins with `source: "./"`. All three will resolve to the same `.claude-plugin/plugin.json`, so bumping one plugin's version incorrectly triggers version checks for the others.
-
-```json
-// ❌ WRONG — all three resolve to the same plugin.json
-{
-  "plugins": [
-    {"name": "airs-tme",    "source": "./", "version": "1.0.0"},
-    {"name": "pai-ops",     "source": "./", "version": "1.0.0"},
-    {"name": "prisma-airs", "source": "./", "version": "1.0.0"}
-  ]
-}
-```
-
-**Detection:** Run `marketplace_ci.py structure-check` (or legacy `detect_version_changes.py --check-structure`) to identify this pattern in any repo.
-
-### When to Use Each Layout
-
-| Scenario | Layout |
-|----------|--------|
-| One plugin, one skill | Single-plugin root |
-| One plugin, several related skills | Multi-skill bundle |
-| Multiple independent plugins in one repo | Multi-plugin with per-plugin dirs |
-| Unsure | Start with single-plugin; migrate later |
-
-## Standalone Plugin Architecture
-
-Plugins can be organized as **standalone plugins** in a `plugins/` directory, which provides:
-- Self-contained distribution (plugin.json + commands + skills)
-- Clear separation between plugin-level and skill-level components
-- Auto-discovery of commands and skills
-
-### Standalone Plugin Structure
-
-```
-plugins/my-plugin/
-├── .claude-plugin/
-│   └── plugin.json           # Plugin manifest (required)
-├── commands/                  # Plugin-level commands (auto-discovered)
-│   ├── my-cmd-1.md
-│   └── my-cmd-2.md
-└── skills/                    # Bundled skills
-    └── my-skill/
-        ├── SKILL.md           # Skill definition
-        ├── IMPROVEMENT_PLAN.md
-        ├── scripts/           # Bundled scripts
-        └── references/        # Reference documentation
-```
-
-### Plugin Manifest (plugin.json)
-
-```json
-{
-  "name": "my-plugin",
-  "version": "1.0.0",
-  "description": "Brief description of plugin purpose",
-  "author": {
-    "name": "Your Name",
-    "email": "you@example.com"
-  },
-  "license": "MIT",
-  "keywords": ["keyword1", "keyword2"]
-}
-```
-
-### Commands in Plugins
-
-Commands in the `commands/` directory are auto-discovered. Each command is a markdown file:
-
-```markdown
-Command description and instructions here.
-
-Run the following command:
-
-\`\`\`bash
-your-command-here $ARGUMENTS
-\`\`\`
-
-Explain what to do with the results.
-```
-
-**Naming convention**: Use short prefixes for related commands (e.g., `gw-status`, `gw-logs`, `mp-sync`, `mp-validate`).
-
-### Migration from Legacy Skills
-
-To migrate a skill from `skills/` to `plugins/`:
-
-1. **Create plugin structure**:
-   ```bash
-   mkdir -p plugins/my-skill/.claude-plugin
-   mkdir -p plugins/my-skill/commands
-   mkdir -p plugins/my-skill/skills/my-skill
-   ```
-
-2. **Create plugin.json** from SKILL.md metadata
-
-3. **Move skill files**:
-   ```bash
-   git mv skills/my-skill/* plugins/my-skill/skills/my-skill/
-   ```
-
-4. **Create commands** for common operations
-
-5. **Update marketplace.json**:
-   ```json
-   {
-     "source": "./plugins/my-plugin",
-     "skills": ["./skills/my-skill"]
-   }
-   ```
-
-6. **Update version** to major bump (e.g., 1.5.0 → 2.0.0)
-
-**Example**: See `plugins/gateway-manager/` for a canonical standalone plugin implementation.
+*This reference is aligned with official Anthropic documentation as of 2026-03-26. Consult the source URLs above for the latest specifications.*

@@ -6,19 +6,16 @@ This guide provides solutions to common issues when using marketplace-manager.
 
 ### Hook not syncing marketplace.json
 
-**Check hook status:**
+**Reinstall the hook:**
 ```bash
-python3 skills/marketplace-manager/scripts/validate_hook.py
-
-# Reinstall if needed
-bash skills/marketplace-manager/scripts/install_hook.sh --force
+python3 scripts/setup.py install-hook
 ```
 
 ### Hook shows version mismatch warning
 
 This means the installed hook is outdated:
-- Run: `bash skills/marketplace-manager/scripts/install_hook.sh`
-- Hook will auto-update to latest version
+- Run: `python3 scripts/setup.py install-hook`
+- Hook will be updated to use the latest repo-local scripts
 
 ### Hook not found errors
 
@@ -41,7 +38,8 @@ git commit --no-verify
 ### Hook blocking commits
 
 - Check error message for specific issue
-- Run sync manually: `python3 skills/marketplace-manager/scripts/sync_marketplace_versions.py`
+- Run sync manually: `python3 scripts/sync.py`
+- Run validation: `python3 scripts/validate.py`
 - Fix reported issues, then commit again
 - Or bypass with `--no-verify` if urgent
 
@@ -104,15 +102,15 @@ This means multiple plugin entries in `marketplace.json` resolve to the same `pl
 
 **To diagnose:**
 ```bash
-python3 marketplace_ci.py structure-check
-python3 marketplace_ci.py structure-check --ci  # JSON output
+python3 scripts/validate.py --check-structure
+python3 scripts/validate.py --check-structure --format json  # JSON output
 ```
 
 See `plugin_marketplace_guide.md` → "Multi-Plugin Repo" for the canonical layout.
 
-### detect_version_changes.py reports wrong plugin for a version bump
+### Version check reports wrong plugin for a version bump
 
-This often indicates the shared-source anti-pattern: multiple plugins resolve to the same `plugin.json`. Run `--check-structure` to confirm.
+This often indicates the shared-source anti-pattern: multiple plugins resolve to the same `plugin.json`. Run `validate.py --check-structure` to confirm.
 
 ## Validation Issues
 
@@ -120,7 +118,7 @@ This often indicates the shared-source anti-pattern: multiple plugins resolve to
 
 Check for:
 - Valid JSON syntax (use `python3 -m json.tool marketplace.json`)
-- Required fields: `name`, `version`, `description`, `owner`, `plugins`
+- Required fields: `name`, `owner`, `plugins`
 - Semantic versioning format for all version fields
 - Skill paths exist and contain SKILL.md files
 - No duplicate plugin names

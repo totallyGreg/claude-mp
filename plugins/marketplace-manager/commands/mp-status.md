@@ -1,17 +1,18 @@
-Show version mismatches between SKILL.md files and marketplace.json.
+Show version mismatches and validation summary for the marketplace.
 
-Run the detection script:
+Run the sync script in dry-run mode and validate:
 
 ```bash
-uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/detect_version_changes.py $ARGUMENTS
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/repo/sync.py --dry-run
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/repo/validate.py $ARGUMENTS
 ```
 
 Common arguments:
-- (no args) - Check all plugins for version mismatches
-- `--verbose` - Show detailed version information for each skill
+- (no args) - Show version mismatches and validation status
+- `--check-structure` - Also detect structural anti-patterns
 
 Report:
-- Plugins with version mismatches (SKILL.md vs marketplace.json)
+- Plugins with version mismatches (source vs marketplace.json)
 - Plugins that are in sync
-- Recommended actions to resolve mismatches
+- Validation errors or warnings
 - Suggest running `/mp-sync` if updates needed

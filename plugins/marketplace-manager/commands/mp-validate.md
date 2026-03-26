@@ -1,20 +1,24 @@
-Validate marketplace.json structure and skill references.
+Validate marketplace.json against the official Anthropic marketplace schema.
 
 Run the validation command:
 
 ```bash
-uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/add_to_marketplace.py validate $ARGUMENTS
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/repo/validate.py $ARGUMENTS
 ```
 
 Common arguments:
-- (no args) - Validate all plugins in marketplace.json
+- (no args) - Validate marketplace.json schema and plugin references
+- `--fix` - Auto-add unregistered plugins found on disk (reverse scan)
 - `--format json` - Output results as JSON for CI/CD integration
+- `--staged` - Check staged files for version bump requirements
+- `--check-structure` - Detect anti-patterns (e.g. shared source paths)
 
 The validator checks:
-- Marketplace.json schema compliance
-- Semantic versioning format (X.Y.Z)
-- Skill directory and SKILL.md existence
+- Required root fields (name, owner, plugins)
+- Plugin entry required fields (name, source)
+- Semantic versioning format, kebab-case names
+- Source path existence and component discoverability
+- Reverse scan for unregistered plugins on disk
 - Duplicate plugin name detection
-- Frontmatter metadata completeness
 
 Report validation results with any errors or warnings found.

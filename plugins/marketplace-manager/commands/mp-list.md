@@ -1,18 +1,17 @@
 List all plugins in the marketplace.
 
-Run the list command:
+Read marketplace.json directly and run validation to check plugin status:
 
 ```bash
-uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/add_to_marketplace.py list $ARGUMENTS
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/repo/validate.py $ARGUMENTS
 ```
 
 Common arguments:
-- (no args) - List all plugins with basic info
-- `--verbose` - Show full plugin details including skills and source paths
+- (no args) - Validate and list all plugins with status
+- `--format json` - Machine-readable output
 
 Display the results in a formatted table showing:
 - Plugin name and version
-- Description
-- Category
-- Number of skills (if multi-skill plugin)
 - Source path
+- Description (if present)
+- Validation status (errors/warnings)
