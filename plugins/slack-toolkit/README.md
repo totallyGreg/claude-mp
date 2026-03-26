@@ -33,4 +33,24 @@ python3 skills/slack-toolkit/scripts/slacker.py thread C0123 1234567890.123456
 
 | Version | Date | Overall | Conc | Comp | Spec | Disc | Desc | Changes |
 |---------|------|---------|------|------|------|------|------|---------|
+| 1.1.0 | 2026-03-26 | 98 | 100 | 90 | 100 | 100 | 100 | Add --append-file/--content-file to canvas update, auto-chunking for large content, canvas-operations reference |
 | 1.0.0 | 2026-03-26 | 95 | 100 | 90 | 100 | 85 | 100 | Initial release: canvas CRUD, reactions, threads, history, URL parsing |
+
+## Skill: slack-toolkit
+
+### Current Metrics
+
+**Score: 98/100** (Excellent) — 2026-03-26
+
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 100 | 90 | 100 | 100 | 100 |
+
+### Version History
+
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.1.0 | 2026-03-26 | - | Add --append-file, auto-chunking, canvas-operations ref | 100 | 90 | 100 | 100 | 100 | 98 |
+| 1.0.0 | 2026-03-26 | - | Initial release | 100 | 90 | 100 | 85 | 100 | 95 |
+
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)

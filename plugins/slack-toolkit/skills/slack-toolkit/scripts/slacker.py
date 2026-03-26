@@ -446,13 +446,75 @@ def cmd_canvas_create(args):
         print("Error: Provide --content or --content-file.", file=sys.stderr)
         sys.exit(EXIT_USAGE)
 
-    result = slack_post_json("canvases.create", token, {
-        "title": args.title,
-        "document_content": {"type": "markdown", "markdown": content},
-    })
+    # Large content: create with first chunk, append the rest
+    max_create_size = 3000
+    if len(content.encode("utf-8")) > max_create_size:
+        # Split at first paragraph boundary within limit
+        split_pos = content.rfind("\n\n", 0, max_create_size)
+        if split_pos == -1:
+            split_pos = max_create_size
+        first_part = content[:split_pos]
+        rest = content[split_pos:].lstrip("\n")
 
-    canvas_id = result.get("canvas_id", "unknown")
-    print(json.dumps({"canvas_id": canvas_id}))
+        result = slack_post_json("canvases.create", token, {
+            "title": args.title,
+            "document_content": {"type": "markdown", "markdown": first_part},
+        })
+        canvas_id = result.get("canvas_id", "unknown")
+
+        if rest:
+            time.sleep(1)
+            chunks = _canvas_append_chunked(canvas_id, rest, token)
+        else:
+            chunks = 1
+
+        print(json.dumps({"canvas_id": canvas_id, "chunks": 1 + chunks}))
+    else:
+        result = slack_post_json("canvases.create", token, {
+            "title": args.title,
+            "document_content": {"type": "markdown", "markdown": content},
+        })
+        canvas_id = result.get("canvas_id", "unknown")
+        print(json.dumps({"canvas_id": canvas_id}))
+
+
+def _canvas_append_chunked(canvas_id, content, token, chunk_size=3000):
+    """Append content to a canvas, auto-chunking to stay within Slack API limits.
+
+    Slack's canvases.edit fails silently above ~4KB per operation.
+    Splits on paragraph boundaries (double newline) to avoid breaking markdown.
+    """
+    if len(content.encode("utf-8")) <= chunk_size:
+        slack_post_json("canvases.edit", token, {
+            "canvas_id": canvas_id,
+            "changes": [{"operation": "insert_at_end", "document_content": {"type": "markdown", "markdown": content}}],
+        })
+        return 1
+
+    chunks = []
+    current = []
+    current_size = 0
+    for paragraph in content.split("\n\n"):
+        para_size = len((paragraph + "\n\n").encode("utf-8"))
+        if current_size + para_size > chunk_size and current:
+            chunks.append("\n\n".join(current))
+            current = [paragraph]
+            current_size = para_size
+        else:
+            current.append(paragraph)
+            current_size += para_size
+    if current:
+        chunks.append("\n\n".join(current))
+
+    for i, chunk in enumerate(chunks):
+        slack_post_json("canvases.edit", token, {
+            "canvas_id": canvas_id,
+            "changes": [{"operation": "insert_at_end", "document_content": {"type": "markdown", "markdown": chunk}}],
+        })
+        if i < len(chunks) - 1:
+            time.sleep(1)  # Rate limit courtesy between chunks
+
+    return len(chunks)
 
 
 def cmd_canvas_update(args):
@@ -466,19 +528,39 @@ def cmd_canvas_update(args):
         print("Warning: This is a quip-type canvas. Updates via canvases.edit may not work.", file=sys.stderr)
         print("Suggestion: Use 'canvas rewrite' to migrate to a new-type canvas first.", file=sys.stderr)
 
-    if args.append:
-        changes = [{"operation": "insert_at_end", "document_content": {"type": "markdown", "markdown": args.append}}]
-    elif args.replace and args.content:
-        changes = [{"operation": "replace", "section_id": args.replace, "document_content": {"type": "markdown", "markdown": args.content}}]
-    else:
-        print("Error: Provide --append or --replace <section_id> --content.", file=sys.stderr)
-        sys.exit(EXIT_USAGE)
+    # Resolve content from file or inline
+    content = None
+    if args.append_file:
+        try:
+            with open(args.append_file, "r") as f:
+                content = f.read()
+        except OSError as e:
+            print(f"Error: Cannot read file — {e}", file=sys.stderr)
+            sys.exit(EXIT_USAGE)
+    elif args.append:
+        content = args.append
+    elif args.content_file:
+        try:
+            with open(args.content_file, "r") as f:
+                content = f.read()
+        except OSError as e:
+            print(f"Error: Cannot read file — {e}", file=sys.stderr)
+            sys.exit(EXIT_USAGE)
+    elif args.content:
+        content = args.content
 
-    slack_post_json("canvases.edit", token, {
-        "canvas_id": args.canvas_id,
-        "changes": changes,
-    })
-    print(json.dumps({"ok": True}))
+    if args.append or args.append_file:
+        chunks = _canvas_append_chunked(args.canvas_id, content, token)
+        print(json.dumps({"ok": True, "chunks": chunks}))
+    elif args.replace and content:
+        slack_post_json("canvases.edit", token, {
+            "canvas_id": args.canvas_id,
+            "changes": [{"operation": "replace", "section_id": args.replace, "document_content": {"type": "markdown", "markdown": content}}],
+        })
+        print(json.dumps({"ok": True}))
+    else:
+        print("Error: Provide --append[--append-file] or --replace <section_id> --content[--content-file].", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
 
 
 def cmd_canvas_rewrite(args):
@@ -622,9 +704,11 @@ def build_parser():
     # canvas update
     cu = canvas_sub.add_parser("update", help="Update an existing canvas")
     cu.add_argument("canvas_id", help="Canvas file ID (F-prefixed)")
-    cu.add_argument("--append", help="Markdown to append at end")
+    cu.add_argument("--append", help="Markdown to append at end (inline)")
+    cu.add_argument("--append-file", help="Path to markdown file to append")
     cu.add_argument("--replace", metavar="SECTION_ID", help="Section ID to replace")
-    cu.add_argument("--content", help="Replacement content (with --replace)")
+    cu.add_argument("--content", help="Replacement content (inline, with --replace)")
+    cu.add_argument("--content-file", help="Path to file with replacement content (with --replace)")
     cu.set_defaults(func=cmd_canvas_update)
 
     # canvas rewrite

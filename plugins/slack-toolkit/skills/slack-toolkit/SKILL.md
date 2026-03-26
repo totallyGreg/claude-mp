@@ -1,7 +1,7 @@
 ---
 name: slack-toolkit
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 compatibility: Requires python3 for slacker.py CLI execution
 license: MIT
 description: >-
@@ -56,17 +56,20 @@ slacker.py canvas read <canvas_id>
 slacker.py canvas create <title> --content "# Markdown content"
 slacker.py canvas create <title> --content-file /path/to/file.md
 
-# Update canvas — append content (new-type only)
+# Update canvas — append from file (recommended for code blocks / large content)
+slacker.py canvas update <canvas_id> --append-file /path/to/content.md
+
+# Update canvas — append inline (small additions only)
 slacker.py canvas update <canvas_id> --append "## New Section\n\nContent here"
 
 # Update canvas — replace a section (requires section_id from read)
-slacker.py canvas update <canvas_id> --replace <section_id> --content "## Updated"
+slacker.py canvas update <canvas_id> --replace <section_id> --content-file /path/to/content.md
 
 # Rewrite quip canvas as new-type (creates new canvas, outputs both IDs)
 slacker.py canvas rewrite <canvas_id>
 ```
 
-Canvas content uses markdown: `{type: "markdown", markdown: "# Heading\n\nText"}`.
+Canvas content uses markdown. Auto-chunks content >3KB to stay within Slack API limits. See `references/canvas-operations.md` for size limits and quip handling.
 
 ### Reactions (MCP gap)
 
@@ -116,3 +119,4 @@ Timestamp: strip `p` prefix, insert `.` before last 6 digits.
 | Reference | Content |
 |-----------|---------|
 | `references/api-reference.md` | Endpoint table with methods, scopes, rate tiers |
+| `references/canvas-operations.md` | Size limits, quip vs new-type, auto-chunking, update patterns |
