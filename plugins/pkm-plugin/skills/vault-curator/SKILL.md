@@ -8,13 +8,14 @@ description: >
   "check for orphaned notes", or "analyze note relationships".
   Also handles: "find duplicates", "merge notes", "redirect links",
   "suggest properties", "show connections", "extract meeting from log",
-  "migrate vault notes", "visualize my notes", or "show me a map".
+  "migrate vault notes", "visualize my notes", "show me a map",
+  "update this note", "write to vault", or "create a note from URL".
   Curates and evolves existing vault content through pattern detection, migration workflows,
-  metadata intelligence, consolidation, discovery, visualization, and programmatic manipulation.
+  metadata intelligence, consolidation, discovery, visualization, and direct vault writes.
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.9.0"
+  version: "1.9.1"
   plugin: "pkm-plugin"
   stage: "3"
 license: MIT

@@ -65,7 +65,7 @@ MIT
 
 ### Current Metrics
 
-**Score: 99/100** (Excellent) — 2026-03-26
+**Score: 99/100** (Excellent) — 2026-03-27
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -75,6 +75,7 @@ MIT
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.9.1 | 2026-03-27 | - | Add vault write triggers ("update this note", "write to vault", "create a note from URL") to route content writes through curator | 98 | 100 | 100 | 100 | 100 | 99 |
 | 1.9.0 | 2026-03-26 | - | Add opportunistic drift detection to scope selection; surface schema inconsistencies proactively during any vault operation | 98 | 100 | 100 | 100 | 100 | 99 |
 | 1.8.1 | 2026-03-25 | - | Reduce section count for complexity score; merge Core Principles into intro, Visualization into Discovery; add markdown-oxide LSP fallback | 98 | 100 | 100 | 100 | 100 | 99 |
 | 1.8.0 | 2026-03-25 | - | Add negative trigger clause to prevent overtriggering vs vault-architect; fix git add -A bug in pkm-manager pre-consolidation checkpoint | 98 | 90 | 100 | 100 | 100 | 97 |
