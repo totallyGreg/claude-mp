@@ -14,18 +14,16 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.4.0"
+  version: "1.5.0"
   plugin: "pkm-plugin"
   stage: "3"
 ---
 
 # Vault Architect
 
-## Overview
+Provide expert guidance for organizing and evolving Obsidian-based PKM systems. Creates *new* structures (templates, schemas, queries, rollups). For maintaining *existing* vault content (metadata drift, duplicates, merges, discovery, visualization), use vault-curator.
 
-Provide expert guidance for organizing and evolving Obsidian-based Personal Knowledge Management systems. Help users create efficient workflows for quick note capture with automatic organization through metadata, templates, and relationship queries.
-
-**Scope boundary:** This skill creates *new* structures (templates, schemas, queries, rollups). For maintaining and evolving *existing* vault content (metadata drift, duplicates, merges, discovery, visualization), use the vault-curator skill.
+Principles: capture quickly, organize via metadata not folders, aggregate automatically through shared properties, roll up progressively (daily→weekly→monthly→yearly), design job-agnostically so work notes survive employer changes.
 
 ## Vault Discovery
 
@@ -45,14 +43,6 @@ Key signals to surface before recommending:
 - **fileClass distribution** — which note types are most numerous and need schema attention
 
 If a `_vault-profile.md` exists in the vault root, read it first for accumulated context about conventions and past decisions.
-
-## Core PKM Principles
-
-1. **Quick Capture, Smart Organization** - Notes should be created quickly. Organization happens automatically through metadata and queries, not manual filing.
-2. **Metadata Over Folders** - Use frontmatter properties and Bases queries for dynamic structure. Folders are for major grouping only.
-3. **Automatic Aggregation** - Notes appear in relevant views through shared metadata (aliases, tags, properties) rather than manual linking.
-4. **Progressive Disclosure** - Daily notes roll up to weekly, weekly to monthly, monthly to quarterly, quarterly to yearly.
-5. **Job-Agnostic Structure** - Work notes should allow easy archiving when changing jobs while maintaining searchability.
 
 ## Core Capabilities
 
@@ -137,9 +127,13 @@ Each vault should maintain a System Guide documenting: folder structure, metadat
 
 ### Analyzing and Improving Vault Organization
 
-1. Understand current state (philosophy, structure, templates, queries)
-2. Run `scripts/analyze_vault.py` for automated checks
-3. Identify pain points (manual work, hard-to-find notes, inconsistencies)
+1. **Discover first** — run before asking the user anything:
+   ```bash
+   obsidian templates && obsidian tags all counts && obsidian folders
+   uv run scripts/analyze_vault.py ${VAULT_PATH}
+   ```
+2. Identify pain points from observed data (orphans, schema gaps, missing templates)
+3. Ask about philosophy and priorities only after surfacing findings
 4. Propose specific improvements (frontmatter, queries, templates, folders)
 5. Implement incrementally, starting with highest-impact changes
 
@@ -159,7 +153,7 @@ Workflows are discovered by `900 📐Templates/970 Bases/Workflows.base` via any
 
 **Creating a new workflow note:** use `900 📐Templates/910 File Templates/New Workflow.md` — prompts for title, auto-moves to `700 Notes/Workflows/`. Required fields: `status`, `type`, `parent`/`child`, `dependencies`, `fileClass: Workflow`. See `[[Capture to Review]]` as the canonical structure example.
 
-## Cross-Skill Handoff
+### Cross-Skill Handoff
 
 After architect work, offer curator follow-through to close the loop:
 - **New template** → "Run schema drift check to migrate existing notes to this schema?"
@@ -168,43 +162,11 @@ After architect work, offer curator follow-through to close the loop:
 - **Folder refinement** → "Generate canvas map to verify connections?"
 - **QuickAdd workflow** → "Audit existing captures against this new workflow?"
 
-## Resources
+## Design Principles
 
-### scripts/
-- `analyze_vault.py` - Vault analysis (untagged notes, orphans, inconsistencies)
-- `validate_frontmatter.py` - Frontmatter validation against schema
+**Do:** Start simple — add complexity only when needed. Use frontmatter over folders for dynamic structure. Test templates with sample notes. Leverage aliases for automatic aggregation. Embed Bases views to bring organization to notes. Document conventions in a vault System Guide. Migrate patterns incrementally.
 
-### references/
-- `templater-api.md` - Templater API reference
-- `templater-patterns.md` - Templater code patterns and examples
-- `bases-query-reference.md` - Bases query syntax reference
-- `bases-patterns.md` - Bases query examples
-- `excalibrain-metadata.md` - Excalibrain semantic relationship mapping
-- `folder-structures.md` - Example vault organizations
-- `chronos-syntax.md` - Chronos timeline syntax
-- `quickadd-patterns.md` - QuickAdd complete reference (v2.12.0)
-
-### assets/
-- `base-templates/` - Starting .base files (related-files, temporal-rollup, terminology, customer-notes)
-
-## Best Practices
-
-1. **Start Simple** - Add complexity only when needed.
-2. **Metadata is Key** - Good frontmatter enables automatic organization.
-3. **Test Templates** - Create test notes to verify behavior.
-4. **Document Conventions** - Maintain a System Guide in the vault.
-5. **Incremental Migration** - Change patterns gradually.
-6. **Leverage Aliases** - They enable powerful automatic aggregation.
-7. **Embed Bases Views** - Bring organization to notes, not notes to folders.
-
-## Common Anti-Patterns
-
-1. **Manual Filing** - Don't rely on users to remember folder structures.
-2. **Rigid Hierarchies** - Folders for broad categories only.
-3. **Duplicate Information** - Use queries and embeds instead of copying.
-4. **Hardcoded Paths** - Make templates adaptable for job changes.
-5. **Inline Metadata** - Bases doesn't support dataview inline fields; use frontmatter.
-6. **Ignoring Relationships** - Design for how notes connect, not just how they're filed.
+**Avoid:** Manual filing (users forget folder structures). Rigid folder hierarchies. Duplicating information (use queries and embeds). Hardcoded paths (breaks on job change). Inline Dataview metadata (Bases requires frontmatter). Designing notes in isolation without considering relationships.
 
 ---
 

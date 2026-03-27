@@ -22,18 +22,19 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 | Plugin | Version | Description |
 |--------|---------|-------------|
 | **helm-chart-developer** | 1.0.0 | Expert guide for Helm chart development, testing, and security |
-| **marketplace-manager** | 3.1.0 | Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance |
+| **marketplace-manager** | 4.0.0 | Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance |
 | **skillsmith** | 6.8.0 | Guide for forging effective Claude skills with marketplace integration |
 | **swift-dev** | 1.2.0 | Swift development expert for SwiftUI, iOS/macOS frameworks, Server-side Swift, and Objective-C migration |
 | **terminal-guru** | 4.0.0 | Terminal diagnostics, configuration, and zsh development expert with triage agent and three focused skills |
 
-### Productivity (3 plugins)
+### Productivity (4 plugins)
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
 | **confluence-pages** | 1.1.0 | Create, update, move, and delete Confluence pages via REST API |
 | **omnifocus-manager** | 10.2.0 | Interface with OmniFocus to surface insights, create reusable automations and perspectives, and suggest workflow optimizations |
-| **pkm-plugin** | 1.12.0 | Personal Knowledge Management expert for Obsidian vaults with dual-skill architecture: vault-architect (create structures) and vault-curator (evolve content) |
+| **pkm-plugin** | 1.14.0 | Personal Knowledge Management expert for Obsidian vaults with dual-skill architecture: vault-architect (create structures) and vault-curator (evolve content) |
+| **slack-toolkit** | 1.1.0 | Slack Web API access via Python CLI — Canvas read/create/update/rewrite, reactions, threads, and channel history without MCP dependency |
 
 ### Security (1 plugin)
 
