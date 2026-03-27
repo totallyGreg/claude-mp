@@ -69,19 +69,19 @@ System observability and event-response:
 
 ### Current Metrics
 
-**Score: 88/100** (Good) — 2026-03-22
+**Score: 98/100** (Excellent) — 2026-03-27
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
-| 95 | 77 | 80 | 100 | 100 |
+| 100 | 90 | 100 | 100 | 100 |
 
 ### Version History
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 3.2.0 | 2026-03-27 | - | Add frontmatter, negative trigger, reduce inline content to references | 100 | 90 | 100 | 100 | 100 | 98 |
 | 3.0.0 | 2026-02-09 | [#40](https://github.com/totallyGreg/claude-mp/issues/40) | Split from terminal-guru monolith into focused zsh-dev skill within plugin | 80 | 78 | 80 | 100 | - | 81 |
 | 2.1.0 | 2026-02-08 | #12 | Add zsh function patterns, completion guide, and Plugin Standard references | 33 | 66 | 80 | 100 | - | 69 |
 | 2.0.0 | 2025-11-20 | - | Initial release with terminal diagnostics and zsh configuration support | 20 | 66 | 80 | 100 | - | 66 |
 
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
-

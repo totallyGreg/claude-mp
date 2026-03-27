@@ -1,15 +1,17 @@
 ---
 name: zsh-dev
-description: This skill should be used when the user asks to "create a zsh function", "configure fpath", "add a keychain secret", "set up keychainctl", "check shell startup", or needs help with autoload functions, completions, zsh testing, Plugin Standard compliance, storing tokens, retrieving secrets, or macOS keychain management via keychainctl.
+description: This skill should be used when the user asks to "create a zsh function", "configure fpath", "add a keychain secret", "set up keychainctl", "check shell startup", or needs help with autoload functions, completions, zsh testing, Plugin Standard compliance, storing tokens, retrieving secrets, or macOS keychain management via keychainctl. Do NOT use for terminal display issues or signal handling (use terminal-emulation or signals-monitoring skills instead).
+license: MIT
+compatibility: claude-code, Requires uv for Python script execution
 metadata:
-  version: "3.1.0"
+  version: "3.2.0"
 ---
 
 # Zsh Development
 
 ## Overview
 
-Create, test, and optimize Zsh shell configurations: autoload functions, fpath management, completions, function generation from established patterns, and a Python-based testing framework for safe experimentation in isolated environments. Measure performance, validate plugin compatibility, and iteratively optimize configurations without affecting your working shell.
+Create, test, and optimize Zsh shell configurations: autoload functions, fpath management, completions, function generation from established patterns, and a Python-based testing framework for safe experimentation in isolated environments.
 
 ## When to Use This Skill
 
@@ -21,316 +23,85 @@ Create, test, and optimize Zsh shell configurations: autoload functions, fpath m
 - Performance optimization (slow startup, plugin overhead)
 - Plugin configuration and compatibility testing
 - Safe testing of configuration changes
-- Comparing different plugin managers or configurations
 - Storing and retrieving secrets via macOS keychain (`keychainctl`)
 
-### Zsh Function Generation
+## Zsh Function Generation
 
 Use this skill to **generate, create, or write zsh functions** using established patterns:
-- "Generate a zsh function that..." - Direct function generation
-- "Create an autoload function with completions" - With completion support
-- "Write a modular zsh function using xargs" - Specific pattern (xargs modularity)
-- "Implement a secure function with keychain integration" - Credential security pattern
-- "Create a subcommand function" - Subcommand dispatcher pattern
-- "Write a zsh function following the Plugin Standard" - Standards compliance
-- "Create a zsh function with async operations" - Advanced patterns
+- Direct function generation, with or without completions
+- Specific patterns: xargs modularity, credential security, subcommand dispatcher
+- Plugin Standard compliance and async operations
 
-See `references/zsh_function_patterns.md` for comprehensive pattern documentation and `references/zsh_completion_guide.md` for completion implementation patterns.
+See `references/zsh_function_patterns.md` for pattern documentation and `references/zsh_completion_guide.md` for completion patterns.
 
 ## Core Capabilities
 
-### 1. Zsh Configuration and Autoload Functions
+### Zsh Configuration and Autoload Functions
 
-For comprehensive Zsh guidance, refer to `references/zsh_configuration.md` which covers:
-- Zsh startup file order (.zshenv, .zprofile, .zshrc, .zlogin)
-- ZDOTDIR configuration
-- Autoload function syntax and best practices
-- fpath management and organization
-- Completion system (compinit)
-- Function debugging and reloading
-- Performance optimization
+Refer to `references/zsh_configuration.md` for comprehensive guidance on startup file order, ZDOTDIR, autoload syntax, fpath management, compinit, debugging, and performance.
 
-**Creating autoload functions**:
-
-1. Create function file (no extension, name matches function):
-```bash
-# File: ~/.zsh/functions/mkcd
-mkcd() {
-    if [[ $# -eq 0 ]]; then
-        echo "Usage: mkcd <directory>" >&2
-        return 1
-    fi
-    mkdir -p "$1" && cd "$1"
-}
-
-# Execute if called directly
-mkcd "$@"
-```
-
-2. Install the function:
-```bash
-bash scripts/install_autoload.sh mkcd ~/.zsh/functions/mkcd
-
-# Or manually:
-fpath=(~/.zsh/functions $fpath)
-autoload -Uz mkcd
-```
-
-3. Add to ~/.zshrc for persistence:
-```bash
-fpath=(~/.zsh/functions $fpath)
-typeset -U fpath
-autoload -Uz mkcd
-```
-
-### 2. Testing and Optimization Framework
-
-Create isolated test environments where you can test changes without affecting the user's working shell. All test logic is in Python, eliminating the circular dependency of "shell testing shell."
-
-#### Creating Isolated Test Environments
+**Autoload function workflow:**
 
 ```bash
-# Create isolated environment
-python3 scripts/environment_builder.py --create my-test
-
-# List all test environments
-python3 scripts/environment_builder.py --list
-
-# Remove test environment
-python3 scripts/environment_builder.py --cleanup /path/to/env
+# 1. Create file (no extension, name = function name)
+# 2. Install and configure fpath
+bash scripts/install_autoload.sh myfunction ~/.zsh/functions/myfunction
+# 3. Add to ~/.zshrc
+fpath=(~/.zsh/functions $fpath); autoload -Uz myfunction
+# 4. Reload after changes
+unfunction myfunction; autoload -Uz myfunction
 ```
 
-#### Running Comprehensive Tests
+### Testing and Optimization Framework
+
+Isolated test environments for safe experimentation. All test logic is in Python, eliminating the circular dependency of "shell testing shell."
+
+- **Create:** `python3 scripts/environment_builder.py --create <name>`
+- **Test:** `python3 scripts/terminal_test_runner.py --name <name> --suite all|performance`
+- **Compare:** `python3 scripts/terminal_test_runner.py --compare baseline.json optimized.json`
+- **Cleanup:** `python3 scripts/environment_builder.py --cleanup <path>`
+
+See `references/isolated_environments.md` for the full testing workflow.
+
+### Keychain Secret Management
+
+The `keychainctl` script provides macOS keychain operations for secure credential storage.
 
 ```bash
-# Run all test suites
-python3 scripts/terminal_test_runner.py --name my-test --suite all
-
-# Run specific test suite
-python3 scripts/terminal_test_runner.py --name perf-test --suite performance
-
-# Preserve environment for inspection
-python3 scripts/terminal_test_runner.py --name debug --preserve
+keychainctl set API_KEY           # prompts securely
+TOKEN=$(keychainctl get API_KEY)  # stdout only — safe for capture
+keychainctl ls [keychain]         # optional fzf browse
+keychainctl rm OLD_SECRET
 ```
 
-**Test Suites:**
-- **Performance Tests** - Startup time, command execution latency, profiling
-- **Plugin Tests** - Plugin detection, FPATH configuration, autoload mechanism
-
-#### Comparing Configurations
-
-```bash
-# Run baseline
-python3 scripts/terminal_test_runner.py --name baseline
-
-# Modify config in test environment and re-run
-python3 scripts/terminal_test_runner.py --name optimized
-
-# Compare results
-python3 scripts/terminal_test_runner.py --compare \
-    ~/.terminal-guru/test-environments/baseline-*/results/all_results.json \
-    ~/.terminal-guru/test-environments/optimized-*/results/all_results.json
-```
-
-#### Testing Workflow
-
-1. **Create Environment** - Isolated ZDOTDIR with copy of user's config
-2. **Run Baseline Tests** - Identify current issues and performance
-3. **Apply Changes** - Modify config in isolated environment
-4. **Re-test** - Validate improvements
-5. **Compare Results** - Analyze before/after differences
-6. **Apply to Production** - Once validated, apply changes to real config
-
-**Reference:** See `references/isolated_environments.md` for detailed guide on ZDOTDIR isolation and testing workflows.
-
-## Creating Zsh Autoload Functions
-
-Complete workflow for creating and installing Zsh autoload functions:
-
-### Step 1: Create the Function
-
-Best practices:
-- One function per file
-- File name must match function name exactly
-- No file extension
-- Call the function at end of file (enables direct execution when autoloaded)
-- Use local variables to avoid polluting global scope
-
-```bash
-# Example: ~/.zsh/functions/extract
-extract() {
-    if [[ $# -eq 0 ]]; then
-        echo "Usage: extract <archive-file>" >&2
-        return 1
-    fi
-
-    if [[ ! -f "$1" ]]; then
-        echo "Error: '$1' is not a file" >&2
-        return 1
-    fi
-
-    case "$1" in
-        *.tar.gz|*.tgz)   tar xzf "$1"   ;;
-        *.tar.bz2|*.tbz2) tar xjf "$1"   ;;
-        *.tar.xz|*.txz)   tar xJf "$1"   ;;
-        *.tar)            tar xf "$1"    ;;
-        *.gz)             gunzip "$1"    ;;
-        *.bz2)            bunzip2 "$1"   ;;
-        *.zip)            unzip "$1"     ;;
-        *.rar)            unrar x "$1"   ;;
-        *.7z)             7z x "$1"      ;;
-        *)
-            echo "Error: Unknown archive format" >&2
-            return 1
-            ;;
-    esac
-}
-
-extract "$@"
-```
-
-### Step 2: Install the Function
-
-```bash
-bash scripts/install_autoload.sh extract ~/.zsh/functions/extract
-```
-
-### Step 3: Configure Shell
-
-Add to ~/.zshrc (before compinit if used):
-
-```bash
-fpath=(~/.zsh/functions $fpath)
-typeset -U fpath
-autoload -Uz extract
-# Or autoload all: autoload -Uz ~/.zsh/functions/*(.:t)
-```
-
-### Step 4: Test and Reload
-
-```bash
-extract archive.tar.gz
-
-# If making changes, reload:
-unfunction extract
-autoload -Uz extract
-
-# Or reload shell
-exec zsh
-```
-
-## Advanced Scenarios
-
-### Lazy Loading for Performance
-
-For expensive operations (like NVM, pyenv), use lazy loading:
-
-```bash
-# File: ~/.zsh/functions/nvm
-nvm() {
-    unfunction nvm
-    export NVM_DIR="$HOME/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-    nvm "$@"
-}
-
-nvm "$@"
-```
-
-### Debugging Shell Startup
-
-```bash
-# Profile startup time
-zmodload zsh/zprof
-# ... rest of config ...
-zprof
-
-# Trace execution
-zsh -x
-```
+`get` outputs only the password to stdout (safe for `$(...)`). Optional fzf integration for interactive browse.
 
 ## Common Use Cases
 
 ### "I want to create a Zsh function"
-1. Create function file in ~/.zsh/functions/
-2. Install: `bash scripts/install_autoload.sh <name> <file>`
-3. Add to ~/.zshrc: `fpath=(~/.zsh/functions $fpath); autoload -Uz <name>`
-4. Refer to `references/zsh_configuration.md` for advanced patterns
+1. Create file in `$ZDOTDIR/functions/` — see `references/zsh_function_patterns.md` for patterns
+2. Install and add to fpath (workflow above)
 
 ### "My custom function isn't found"
-1. Check fpath: `print -l $fpath`
-2. Verify function file exists: `ls ~/.zsh/functions/<name>`
-3. Ensure in fpath: `fpath=(~/.zsh/functions $fpath)`
-4. Reload: `unfunction <name>; autoload -Uz <name>`
-5. Check function location: `whence -v <name>`
+1. `print -l $fpath` — verify directory is listed
+2. `whence -v <name>` — check function location
+3. Reload: `unfunction <name>; autoload -Uz <name>`
 
 ### "My zsh startup is slow"
-1. Run performance tests: `python3 scripts/terminal_test_runner.py --name perf --suite performance`
-2. Check results in `~/.terminal-guru/test-environments/perf-*/results/performance_results.json`
-3. Identify slow components from startup time measurements
-4. Apply optimizations (lazy loading, defer plugins, cache compinit)
-5. Re-test to verify improvements
-
-### "I want to test a config change safely"
-1. Create test environment: `python3 scripts/environment_builder.py --create test`
-2. Edit isolated config: `vim ~/.terminal-guru/test-environments/test-*/zdotdir/.zshrc`
-3. Run tests: `python3 scripts/terminal_test_runner.py --name test --suite all`
-4. If successful, apply changes to real ~/.zshrc
-5. If failed, just delete the test environment
-
-### "Compare oh-my-zsh vs zinit"
-1. Run baseline with oh-my-zsh: `python3 scripts/terminal_test_runner.py --name omz`
-2. Create test environment and convert to zinit
-3. Run tests with zinit: `python3 scripts/terminal_test_runner.py --name zinit`
-4. Compare: `python3 scripts/terminal_test_runner.py --compare omz.json zinit.json`
-5. Choose based on performance and compatibility results
-
-## Keychain Secret Management
-
-The `keychainctl` script provides a consistent CLI for macOS keychain operations, designed for storing and retrieving environment variables securely.
-
-```bash
-# Store a secret (prompts for password securely)
-keychainctl set CLAUDE_ASANA
-
-# Store with value inline
-keychainctl set CLAUDE_ASANA sk-12345
-
-# Retrieve for use in scripts
-ASANA_TOKEN=$(keychainctl get CLAUDE_ASANA)
-
-# List secrets (interactive with fzf if available)
-keychainctl ls
-
-# Use a specific keychain (auto-suffixed: 'work' becomes 'work.keychain')
-keychainctl ls work
-keychainctl get API_KEY work
-
-# Delete a secret
-keychainctl rm OLD_SECRET
-```
-
-**Key features:**
-- `get` outputs only the password to stdout — safe for `$(...)` capture
-- All other output goes to stderr
-- Optional fzf integration (interactive browse when TTY + fzf available, plain output otherwise)
-- `KEYCHAINCTL_KEYCHAIN` env var overrides default keychain (default: `login.keychain`)
-- Keychain names auto-suffixed with `.keychain` if missing
+1. Run: `python3 scripts/terminal_test_runner.py --name perf --suite performance`
+2. Apply optimizations (lazy loading, defer plugins, cache compinit)
+3. Re-test to verify
 
 ## Resources
 
 ### scripts/
-- **`keychainctl`** - macOS keychain secret management CLI (get, set, rm, ls)
-- **`environment_builder.py`** - Create and manage isolated ZDOTDIR test environments
-- **`terminal_test_runner.py`** - Run automated test suites in isolated environments
-- **`install_autoload.sh`** - Install Zsh autoload functions to correct fpath location
-- **`tests/performance_tests.py`** - Performance profiling and benchmarking
-- **`tests/plugin_tests.py`** - Plugin compatibility testing
-- **`tests/base.py`** - Shared test infrastructure
-- **`analysis/output_analyzer.py`** - Analyze test results and generate recommendations
+- **`keychainctl`** - macOS keychain secret management CLI
+- **`environment_builder.py`** - Isolated ZDOTDIR test environments
+- **`terminal_test_runner.py`** - Automated test suites
+- **`install_autoload.sh`** - Install autoload functions to fpath
 
 ### references/
-- **`zsh_configuration.md`** - Comprehensive Zsh configuration including autoload and fpath
-- **`zsh_function_patterns.md`** - Zsh function generation patterns and templates
+- **`zsh_configuration.md`** - Comprehensive Zsh configuration guide
+- **`zsh_function_patterns.md`** - Function generation patterns and templates
 - **`zsh_completion_guide.md`** - Completion implementation patterns
-- **`isolated_environments.md`** - Guide to ZDOTDIR isolation and testing workflows
+- **`isolated_environments.md`** - ZDOTDIR isolation and testing workflows
