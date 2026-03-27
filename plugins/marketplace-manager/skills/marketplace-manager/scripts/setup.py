@@ -102,6 +102,7 @@ def cmd_init(args: argparse.Namespace) -> bool:
 def cmd_install_scripts(args: argparse.Namespace) -> bool:
     """Copy validate.py and sync.py into the target repo's scripts directory."""
     target_dir = Path(args.target_dir)
+    force = getattr(args, "force", False)
 
     if not REPO_SCRIPTS_DIR.is_dir():
         print(
@@ -122,6 +123,9 @@ def cmd_install_scripts(args: argparse.Namespace) -> bool:
     for script_name in REPO_SCRIPTS:
         src = REPO_SCRIPTS_DIR / script_name
         dst = target_dir / script_name
+        if dst.exists() and not force:
+            print(f"  Skipped {dst} (already exists; use --force to overwrite)")
+            continue
         action = "Updated" if dst.exists() else "Copied"
         shutil.copy2(src, dst)
         print(f"  {action} {dst}")
@@ -217,6 +221,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--target-dir", default="./scripts",
         help="Destination directory (default: ./scripts)",
     )
+    p_scripts.add_argument(
+        "--force", action="store_true",
+        help="Overwrite existing scripts",
+    )
 
     # install-hook
     p_hook = subparsers.add_parser(
@@ -241,6 +249,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_all.add_argument(
         "--dry-run", action="store_true",
         help="Preview hook content without installing",
+    )
+    p_all.add_argument(
+        "--force", action="store_true",
+        help="Overwrite existing scripts",
     )
 
     return parser
