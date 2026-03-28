@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.9.1"
+  version: "1.9.2"
   plugin: "pkm-plugin"
   stage: "3"
 license: MIT
@@ -55,7 +55,7 @@ obsidian search query="Docker" format=json   # find matching notes/folders
 - **Whole vault** requested: Warn about file count, require explicit confirmation
 - **Obsidian CLI unavailable**: Fall back to `tree` + Glob/Grep for structure discovery
 
-**CLI delegation:** `obsidian-cli` (operations), `obsidian-markdown` (content), `obsidian-bases` (`.base` files), `json-canvas` (`.canvas` files). To update note content, use `obsidian create path="..." overwrite content="..." silent` (`obsidian file` is read-only). See `references/cli-patterns.md` for bugs. Fallback: markdown-oxide LSP (if available via Neovim), then Grep/Glob/Read.
+**CLI delegation:** `obsidian-cli` (obsidian-skills marketplace), `obsidian-markdown` (content), `obsidian-bases` (`.base` files), `json-canvas` (`.canvas` files). To update note content, use `obsidian create path="..." overwrite content="..." silent` (`obsidian file` is read-only). See `references/cli-patterns.md` for bugs and error handling. Fallback: markdown-oxide LSP (if available via Neovim), then Grep/Glob/Read.
 
 **Opportunistic drift detection:** When frontmatter is sampled during any operation, watch for obvious inconsistencies — competing property names (`url`/`site`/`urls`), mixed-case `fileClass` values, YAML corruption artifacts. Offer: "I noticed schema drift in `<folder>` — run detection before continuing?"
 

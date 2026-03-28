@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.5.0"
+  version: "1.6.0"
   plugin: "pkm-plugin"
   stage: "3"
 ---
@@ -28,6 +28,8 @@ Principles: capture quickly, organize via metadata not folders, aggregate automa
 ## Vault Discovery
 
 Before making structure recommendations, always discover the current vault state. This prevents redundant suggestions and grounds recommendations in what actually exists.
+
+> **CLI source:** `obsidian-cli` skill from the [obsidian-skills](https://github.com/kepano/obsidian-skills) marketplace. Parameter distinction: `path=exact/path.md` (vault-relative path) vs `file=name` (link-style resolution — use `file=` when resolving folder notes, e.g. `obsidian read file="Workflows"`). For bugs and fallback patterns, see `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/cli-patterns.md`. Fallback: Glob/Grep/Read on vault files at `/Users/totally/Notes/`.
 
 ```bash
 obsidian templates              # what templates already exist

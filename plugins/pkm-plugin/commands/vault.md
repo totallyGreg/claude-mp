@@ -1,9 +1,9 @@
 ---
 name: vault
-description: Start a PKM session with the pkm-manager agent for your Obsidian vault. Use when you want to work with your vault — organizing notes, checking health, fixing metadata, finding duplicates, generating canvases, or just exploring what needs attention.
+description: Start a PKM session with the archivist agent for your Obsidian vault. Use when you want to work with your vault — organizing notes, checking health, fixing metadata, finding duplicates, generating canvases, or just exploring what needs attention.
 ---
 
-Invoke the pkm-manager agent to begin a vault session.
+Invoke the archivist agent to begin a vault session.
 
 The agent should:
 1. Confirm vault connection via `obsidian vault`
