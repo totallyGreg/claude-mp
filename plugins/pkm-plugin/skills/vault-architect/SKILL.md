@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.5.0"
+  version: "1.6.0"
   plugin: "pkm-plugin"
   stage: "3"
 ---

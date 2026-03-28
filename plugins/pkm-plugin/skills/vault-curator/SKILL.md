@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.9.1"
+  version: "1.9.2"
   plugin: "pkm-plugin"
   stage: "3"
 license: MIT
