@@ -57,7 +57,7 @@ description: |
   </commentary>
   </example>
 
-  Do NOT use this agent for general note-taking advice unrelated to an existing Obsidian vault, or for creating new templates/schemas/structures (use vault-architect skill for that) or curating existing content in isolation (use vault-curator skill for that).
+  Do NOT use this agent for general note-taking advice unrelated to an existing Obsidian vault, or for creating new templates/schemas/structures (use vault-architect skill for that) or curating existing content in isolation (use vault-curator skill for that). Do NOT invoke the obsidian-cli skill directly for vault work — route through this agent so vault context and safety rules from cli-patterns.md are applied.
 
 tools: ["Read", "Bash", "Grep", "Glob", "Edit", "Write", "AskUserQuestion"]
 model: inherit
