@@ -33,7 +33,7 @@ Detection uses three tiers, each progressively more expensive:
 - Agent reads content of top candidates from Tiers 1-2
 - Judges whether notes are truly duplicates, related, or distinct
 - Only invoked when automated tiers produce ambiguous results
-- Not implemented in scripts — the pkm-manager agent handles this interactively
+- Not implemented in scripts — the archivist agent handles this interactively
 
 ### Detection Constraints
 
@@ -194,7 +194,7 @@ If vault is not a git repo:
 
 ## Full Consolidation Flow
 
-The complete workflow orchestrated by pkm-manager:
+The complete workflow orchestrated by archivist:
 
 ```
 1. Scope Selection

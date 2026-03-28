@@ -4,7 +4,7 @@ Personal Knowledge Management expert for Obsidian vaults with autonomous orchest
 
 ## Usage
 
-Ask Claude to help with Obsidian PKM tasks. The `pkm-manager` agent will orchestrate vault analysis, template creation, and system optimization.
+Ask Claude to help with Obsidian PKM tasks. The `archivist` agent will orchestrate vault analysis, template creation, and system optimization.
 
 **Examples:**
 - "Analyze my vault and suggest improvements"
@@ -78,7 +78,7 @@ MIT
 | 1.9.1 | 2026-03-27 | - | Add vault write triggers ("update this note", "write to vault", "create a note from URL") to route content writes through curator | 98 | 100 | 100 | 100 | 100 | 99 |
 | 1.9.0 | 2026-03-26 | - | Add opportunistic drift detection to scope selection; surface schema inconsistencies proactively during any vault operation | 98 | 100 | 100 | 100 | 100 | 99 |
 | 1.8.1 | 2026-03-25 | - | Reduce section count for complexity score; merge Core Principles into intro, Visualization into Discovery; add markdown-oxide LSP fallback | 98 | 100 | 100 | 100 | 100 | 99 |
-| 1.8.0 | 2026-03-25 | - | Add negative trigger clause to prevent overtriggering vs vault-architect; fix git add -A bug in pkm-manager pre-consolidation checkpoint | 98 | 90 | 100 | 100 | 100 | 97 |
+| 1.8.0 | 2026-03-25 | - | Add negative trigger clause to prevent overtriggering vs vault-architect; fix git add -A bug in archivist pre-consolidation checkpoint | 98 | 90 | 100 | 100 | 100 | 97 |
 | 1.7.0 | 2026-03-22 | - | Delegate CLI ops to marketplace skills; promote `create overwrite` write pattern inline; strip generic commands from cli-patterns.md to gotchas-only | 98 | 90 | 100 | 100 | 100 | 97 |
 | 1.6.0 | 2026-03-20 | - | Add read/append/insertion CLI patterns to references; add license; move scripts table to reference; add available-scripts.md | 97 | 98 | 90 | 100 | 100 | 100 |
 | 1.5.3 | 2026-03-16 | [#103](https://github.com/totallyGreg/claude-mp/issues/103) | Fix: document `obsidian file` is read-only; warn content/overwrite silently ignored | 78 | 88 | 90 | 100 | 100 | 90 |
