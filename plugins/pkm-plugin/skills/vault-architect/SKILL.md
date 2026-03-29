@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.6.0"
+  version: "1.7.0"
   plugin: "pkm-plugin"
   stage: "3"
 ---
@@ -37,6 +37,24 @@ obsidian tags all counts        # tag usage distribution
 obsidian folders               # actual folder structure
 uv run scripts/analyze_vault.py ${VAULT_PATH}   # full health check
 ```
+
+**Linter plugin config:** Read `.obsidian/plugins/obsidian-linter/data.json` at the vault root to discover active formatting rules before writing any note content or templates. Linter auto-reformats on save — notes written in violation will silently change, causing spurious git diffs and user confusion.
+
+```bash
+# Read active Linter rules
+cat "${VAULT_PATH}/.obsidian/plugins/obsidian-linter/data.json"
+```
+
+Key rules to check and apply when writing vault content:
+- `yaml-title-alias` — whether title aliases are auto-managed
+- `yaml-key-sort` — expected frontmatter key ordering
+- `trailing-spaces` — trailing whitespace handling
+- `heading-blank-lines` — blank lines required before/after headings
+- `paragraph-blank-lines` — blank lines between paragraphs
+- `empty-line-around-code-blocks` — blank lines around fenced code blocks
+- `yaml-timestamp-date-created`/`yaml-timestamp-date-modified` — auto-managed date fields
+
+If the file does not exist, Linter is not installed — proceed with vault conventions only.
 
 Key signals to surface before recommending:
 - **Existing templates** — avoid duplicating; refine or extend instead of creating new ones

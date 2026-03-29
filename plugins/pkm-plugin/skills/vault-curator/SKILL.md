@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.9.2"
+  version: "1.9.3"
   plugin: "pkm-plugin"
   stage: "3"
 license: MIT
@@ -45,19 +45,24 @@ All intelligence workflows (metadata, consolidation, discovery, visualization) b
 
 4. **Scope all operations** to the selected path for the rest of the session
 
-**Quick path:** If the user mentions a specific topic ("my Docker notes"), use CLI search to find the relevant directory before presenting choices:
+**Quick path:** If the user mentions a specific topic ("my Docker notes"), search first:
 ```bash
-obsidian search query="Docker" format=json   # find matching notes/folders
+obsidian search query="Docker" format=json
 ```
 
-**Edge cases:**
-- **Empty scope** (no markdown files): Inform user, suggest broadening
-- **Whole vault** requested: Warn about file count, require explicit confirmation
-- **Obsidian CLI unavailable**: Fall back to `tree` + Glob/Grep for structure discovery
+**Edge cases:** Empty scope → inform and suggest broadening. Whole vault → warn and require confirmation. CLI unavailable → fall back to `tree` + Glob/Grep.
 
 **CLI delegation:** `obsidian-cli` (obsidian-skills marketplace), `obsidian-markdown` (content), `obsidian-bases` (`.base` files), `json-canvas` (`.canvas` files). To update note content, use `obsidian create path="..." overwrite content="..." silent` (`obsidian file` is read-only). See `references/cli-patterns.md` for bugs and error handling. Fallback: markdown-oxide LSP (if available via Neovim), then Grep/Glob/Read.
 
 **Opportunistic drift detection:** When frontmatter is sampled during any operation, watch for obvious inconsistencies — competing property names (`url`/`site`/`urls`), mixed-case `fileClass` values, YAML corruption artifacts. Offer: "I noticed schema drift in `<folder>` — run detection before continuing?"
+
+## Vault Write Quality Gate
+
+Before writing any note to the vault:
+
+1. **Frontmatter on line 1** — `---` must be the very first characters. A leading newline silently breaks Obsidian's property parsing and fileClass resolution. When using `obsidian append`, ensure content begins with `---` directly.
+2. **Linter compliance** — check `.obsidian/plugins/obsidian-linter/data.json` first (see vault-architect for key fields). Linter auto-reformats on save; non-compliant notes produce spurious git diffs.
+3. **Bulk validation**: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/validate_frontmatter.py ${VAULT_PATH}`
 
 ## Migration & Metadata Workflows
 
@@ -257,16 +262,7 @@ When asked "show me a map", "generate canvas", "visualize my notes", or "show kn
 
 **Layout:** Grid layout with file nodes for each note. Edges represent wikilinks between notes in scope. Color-coded by `fileClass` (Meeting=orange, Person=cyan, Project=green, Company=purple, MOC=yellow).
 
-**Naming:** `_knowledge-map-YYYY-MM-DD.canvas` in the scoped directory. Leading underscore keeps it sorted above content notes. If a canvas with that name exists, a numeric suffix is appended.
-
-**Limits:**
-- **50-node cap** (default) — keeps canvases readable in Obsidian
-- **Clustering:** When notes exceed the cap, folders with 4+ notes are collapsed into group nodes containing their sub-notes
-- **Zero relationships:** Canvas is still generated (shows notes without edges) with a message suggesting wikilinks
-
-**Options:**
-- `--output <name>` — custom canvas filename
-- `--max-nodes <n>` — adjust the clustering threshold
+**Naming:** `_knowledge-map-YYYY-MM-DD.canvas` in the scoped directory. Numeric suffix appended if name exists. 50-node cap by default; folders with 4+ notes collapse into group nodes when exceeded. See `references/available-scripts.md` for `--output` and `--max-nodes` options.
 
 ### Pattern Detection
 
