@@ -15,7 +15,7 @@ license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
   version: "1.7.0"
-  plugin: "pkm-plugin"
+  plugin: "archivist"
   stage: "3"
 ---
 

@@ -16,7 +16,7 @@ description: >
   (use vault-architect for those).
 metadata:
   version: "1.9.3"
-  plugin: "pkm-plugin"
+  plugin: "archivist"
   stage: "3"
 license: MIT
 compatibility: Requires python3.11+ and uv for script execution. Obsidian CLI 1.12+ for intelligence workflows.

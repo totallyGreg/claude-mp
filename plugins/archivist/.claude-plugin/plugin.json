@@ -1,5 +1,5 @@
 {
-  "name": "pkm-plugin",
+  "name": "archivist",
   "version": "1.15.0",
   "description": "Personal Knowledge Management expert for Obsidian vaults with autonomous orchestration",
   "author": {

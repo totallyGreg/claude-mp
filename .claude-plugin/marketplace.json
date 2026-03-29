@@ -55,7 +55,7 @@
       "source": "./skills/swift-dev"
     },
     {
-      "name": "pkm-plugin",
+      "name": "archivist",
       "description": "Personal Knowledge Management expert for Obsidian vaults with dual-skill architecture: vault-architect (create structures) and vault-curator (evolve content)",
       "category": "productivity",
       "version": "1.15.0",
@@ -63,7 +63,7 @@
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./plugins/pkm-plugin"
+      "source": "./plugins/archivist"
     },
     {
       "name": "omnifocus-manager",
