@@ -1,0 +1,19 @@
+{
+  "name": "chronicle",
+  "version": "0.1.0",
+  "description": "Opinionated guidance for managing change across documents, code, and experiments. Covers git (primary), jujutsu, and historical VCS tools with strong opinions on commit craft, branching, merge strategy, and multi-agent worktree workflows.",
+  "author": {
+    "name": "J. Greg Williams",
+    "email": "283704+totallyGreg@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "jujutsu",
+    "version-control",
+    "branching",
+    "merging",
+    "worktrees",
+    "claude-code"
+  ]
+}
