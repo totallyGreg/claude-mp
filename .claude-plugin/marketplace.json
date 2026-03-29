@@ -130,6 +130,17 @@
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
       "source": "./plugins/slack-toolkit"
+    },
+    {
+      "name": "chronicle",
+      "description": "Opinionated guidance for managing change across documents, code, and experiments. Covers git (primary), jujutsu, and historical VCS tools with strong opinions on commit craft, branching, merge strategy, and multi-agent worktree workflows.",
+      "category": "development",
+      "version": "0.1.0",
+      "author": {
+        "name": "J. Greg Williams",
+        "email": "283704+totallyGreg@users.noreply.github.com"
+      },
+      "source": "./plugins/chronicle"
     }
   ]
 }
