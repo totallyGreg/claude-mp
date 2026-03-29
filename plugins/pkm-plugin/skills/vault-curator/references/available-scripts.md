@@ -13,3 +13,4 @@ All scripts use PEP 723 inline metadata for `uv run` compatibility. Run via:
 | `merge_notes.py` | Merge two notes (frontmatter union + content concat) |
 | `redirect_links.py` | Vault-wide wikilink replacement after merge |
 | `generate_canvas.py` | Generate JSON Canvas maps of note relationships |
+| `check_collection_health.py` | Audit Collection Folder Pattern health (folder note, Bases file, schema drift) |

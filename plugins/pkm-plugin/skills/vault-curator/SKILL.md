@@ -270,3 +270,26 @@ When asked "show me a map", "generate canvas", "visualize my notes", or "show kn
 - **Note clusters**: `find_related.py --scope` — groups of related notes within a directory
 
 **See:** `references/available-scripts.md` for full script inventory
+
+### Collection Health Check
+
+Audit Collection Folder Pattern compliance across the vault. A collection is healthy when it has a folder note, a Bases file, and consistent member frontmatter.
+
+```bash
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_collection_health.py \
+  ${VAULT_PATH} [--scope "${SCOPE}"] [--folder "700 Notes/Workflows"]
+```
+
+Output per collection:
+- `has_folder_note` — `<Folder>/<Folder>.md` exists
+- `folder_note_embeds_bases` — folder note contains `![[...base#...]]`
+- `has_bases_file` — `900 📐Templates/970 Bases/<Name>.base` exists
+- `dominant_fileclass` — most common `fileClass` among members
+- `schema_drift_issues` — count of drift issues (from drift analysis)
+- `health` — `healthy` | `partial` | `missing_infrastructure`
+
+**After report, offer fixes in order:**
+1. Missing folder note → scaffold via vault-architect (New Collection Setup)
+2. Folder note missing Bases embed → add embed with confirmation
+3. Missing Bases file → scaffold via vault-architect
+4. Schema drift → run `detect_schema_drift.py --scope <folder>` and offer bulk fixes

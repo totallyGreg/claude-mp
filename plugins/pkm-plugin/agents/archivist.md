@@ -177,6 +177,27 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 3. Generate prioritized recommendations
 4. Offer to implement improvements
 
+### Collection Setup (Vault Architect)
+
+Scaffold a new Collection Folder (folder + folder note + Bases file + Templater template):
+1. Check existing parts: `obsidian read file="<Name>"`, check `900 📐Templates/970 Bases/<Name>.base`
+2. Design schema — infer from existing notes or ask user
+3. Create Bases file → folder note with description and `![[<Name>.base#<View>]]` embed → Templater template
+4. Backfill `fileClass` on existing members if needed (offer curator batch update)
+
+**Reference:** vault-architect → "New Collection Setup" workflow; `references/collection-folder-pattern.md`
+
+### Collection Health Check (Vault Curator)
+
+Audit all Collection Folder Pattern instances in scope:
+1. Run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_collection_health.py ${VAULT_PATH} [--scope "${SCOPE}"]`
+2. Report per collection: `health` (healthy / partial / missing_infrastructure), `missing`, `schema_drift_issues`
+3. For each unhealthy collection, offer fixes in order:
+   - Missing folder note → scaffold via Collection Setup
+   - Folder note missing Bases embed → add embed with confirmation
+   - Missing Bases file → scaffold via Collection Setup
+   - Schema drift → run `detect_schema_drift.py --scope <folder>` and offer bulk fixes
+
 ### Template Creation
 1. Gather requirements (reference skill's template patterns)
 2. Design frontmatter schema
@@ -209,6 +230,7 @@ Offer the complementary skill's next action to close the loop:
 
 | Completed (architect) | Offer (curator) |
 |-----------------------|-----------------|
+| New collection created | "Run collection health check to verify all members are consistent?" |
 | New template created | "Run schema drift check to migrate existing notes to this schema?" |
 | New frontmatter schema | "Suggest missing properties on existing notes of this type?" |
 | MOC template | "Find orphaned notes to seed this MOC?" |
@@ -217,6 +239,7 @@ Offer the complementary skill's next action to close the loop:
 
 | Completed (curator) | Offer (architect) |
 |---------------------|-------------------|
+| Collection health check found issues | "Scaffold missing parts for unhealthy collections?" |
 | Schema drift found | "Create or update the template for this fileClass?" |
 | Duplicates merged | "Build a MOC template to prevent future fragmentation?" |
 | Orphans surfaced | "Design a capture workflow to keep notes connected?" |
@@ -262,5 +285,6 @@ ALWAYS ask user confirmation before:
 | `find_similar_notes.py` | `<vault-path> --scope <path> [--min-similarity <pct>] [--max-groups <n>] [--dry-run]` |
 | `merge_notes.py` | `<vault-path> --source <path> --target <path> [--dry-run]` |
 | `redirect_links.py` | `<vault-path> --old <name> --new <name> [--scope <path>] [--dry-run]` |
+| `check_collection_health.py` | `<vault-path> [--scope <path>] [--folder <path>] [--dry-run]` |
 
 Run via: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/<script> <args>`

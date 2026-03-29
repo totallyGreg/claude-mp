@@ -130,7 +130,16 @@ Organize work notes to survive job changes. Keep company profiles separate from 
 **References:**
 - `references/folder-structures.md` - Example vault organizations for different workflows
 
-### 9. Vault System Documentation
+### 9. Collection Folder Pattern
+
+A Collection Folder groups related notes of the same type under a folder with a folder note, a Bases view, and a Templater template. This is the standard unit for any repeating note type (Workflows, People, Ideas, Personas, etc.).
+
+Every healthy collection has five parts: the folder, a folder note (`Folder/Folder.md`) that embeds the Bases view, member notes with a consistent `fileClass`, a Bases file at `900 📐Templates/970 Bases/<Name>.base`, and a Templater template at `900 📐Templates/910 File Templates/New <Type>.md`.
+
+**References:**
+- `references/collection-folder-pattern.md` — full anatomy, examples, and health signals
+
+### 10. Vault System Documentation
 
 Each vault should maintain a System Guide documenting: folder structure, metadata schema, template inventory, Bases queries, conventions, and migration history.
 
@@ -173,9 +182,25 @@ Workflows are discovered by `900 📐Templates/970 Bases/Workflows.base` via any
 
 **Creating a new workflow note:** use `900 📐Templates/910 File Templates/New Workflow.md` — prompts for title, auto-moves to `700 Notes/Workflows/`. Required fields: `status`, `type`, `parent`/`child`, `dependencies`, `fileClass: Workflow`. See `[[Capture to Review]]` as the canonical structure example.
 
+### New Collection Setup
+
+Scaffold a Collection Folder (a named folder for a repeating note type):
+
+1. **Check existing state**: `obsidian read file="<Name>"`, `obsidian read path="900 📐Templates/970 Bases/<Name>.base"`, `obsidian templates`
+2. **Design schema** — infer from existing notes or ask user for required fields
+3. **Create Bases file** at `900 📐Templates/970 Bases/<Name>.base` — fileClass filter, named view, sorted by `file.mtime DESC`
+4. **Create folder note** at `<Folder>/<Folder>.md` — description, schema table, `![[<Name>.base#<View>]]` embed
+5. **Create Templater template** at `900 📐Templates/910 File Templates/New <Type>.md` — prompts, auto-move, required frontmatter
+6. **Backfill fileClass** on existing members if needed (offer via curator)
+
+After setup, offer: "Run collection health check to verify all parts are consistent?"
+
+**Reference:** `references/collection-folder-pattern.md`
+
 ### Cross-Skill Handoff
 
 After architect work, offer curator follow-through to close the loop:
+- **New collection created** → "Run collection health check to verify all members are consistent?"
 - **New template** → "Run schema drift check to migrate existing notes to this schema?"
 - **New schema** → "Suggest missing properties on existing notes of this type?"
 - **MOC template** → "Find orphaned notes to seed this MOC?"
