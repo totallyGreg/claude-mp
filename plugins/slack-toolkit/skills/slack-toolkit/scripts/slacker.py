@@ -446,10 +446,20 @@ def cmd_canvas_create(args):
         print("Error: Provide --content or --content-file.", file=sys.stderr)
         sys.exit(EXIT_USAGE)
 
-    # Large content: create with first chunk, append the rest
+    # Create the canvas — try full content first, fall back to chunked
     max_create_size = 3000
-    if len(content.encode("utf-8")) > max_create_size:
-        # Split at first paragraph boundary within limit
+    content_bytes = len(content.encode("utf-8"))
+
+    if content_bytes <= max_create_size:
+        result = slack_post_json("canvases.create", token, {
+            "title": args.title,
+            "document_content": {"type": "markdown", "markdown": content},
+        })
+        canvas_id = result.get("canvas_id", "unknown")
+        print(json.dumps({"canvas_id": canvas_id}))
+    else:
+        # Check if workspace supports chunked appends (non-quip)
+        # by creating with first chunk, checking type, then appending rest
         split_pos = content.rfind("\n\n", 0, max_create_size)
         if split_pos == -1:
             split_pos = max_create_size
@@ -462,20 +472,27 @@ def cmd_canvas_create(args):
         })
         canvas_id = result.get("canvas_id", "unknown")
 
-        if rest:
+        # Detect if workspace produces quip canvases
+        info = slack_post("files.info", token, file=canvas_id)
+        is_quip = info.get("file", {}).get("filetype") == "quip"
+
+        if is_quip and rest:
+            print(
+                f"Warning: Workspace produces quip-type canvases. "
+                f"Content was truncated to ~{max_create_size} bytes "
+                f"({content_bytes - len(rest.encode('utf-8'))}/{content_bytes}). "
+                f"canvases.edit is not supported on quip canvases.",
+                file=sys.stderr,
+            )
+            print(json.dumps({"canvas_id": canvas_id, "truncated": True,
+                               "bytes_written": content_bytes - len(rest.encode("utf-8")),
+                               "bytes_total": content_bytes}))
+        elif rest:
             time.sleep(1)
             chunks = _canvas_append_chunked(canvas_id, rest, token)
+            print(json.dumps({"canvas_id": canvas_id, "chunks": 1 + chunks}))
         else:
-            chunks = 1
-
-        print(json.dumps({"canvas_id": canvas_id, "chunks": 1 + chunks}))
-    else:
-        result = slack_post_json("canvases.create", token, {
-            "title": args.title,
-            "document_content": {"type": "markdown", "markdown": content},
-        })
-        canvas_id = result.get("canvas_id", "unknown")
-        print(json.dumps({"canvas_id": canvas_id}))
+            print(json.dumps({"canvas_id": canvas_id}))
 
 
 def _canvas_append_chunked(canvas_id, content, token, chunk_size=3000):
@@ -561,6 +578,56 @@ def cmd_canvas_update(args):
     else:
         print("Error: Provide --append[--append-file] or --replace <section_id> --content[--content-file].", file=sys.stderr)
         sys.exit(EXIT_USAGE)
+
+
+def cmd_canvas_probe(args):
+    """Probe workspace to determine if canvases.create produces quip or new-type canvases."""
+    token = resolve_token("bot" if args.bot else "user")
+
+    # Create a tiny test canvas
+    result = slack_post_json("canvases.create", token, {
+        "title": "__canvas_probe_test__",
+        "document_content": {"type": "markdown", "markdown": "probe"},
+    })
+    canvas_id = result.get("canvas_id", "unknown")
+
+    # Check its filetype
+    info = slack_post("files.info", token, file=canvas_id)
+    file_data = info.get("file", {})
+    filetype = file_data.get("filetype", "unknown")
+    is_quip = filetype == "quip"
+
+    # Try to delete the test canvas (may fail if token lacks files:write scope)
+    try:
+        delete_url = "https://slack.com/api/files.delete"
+        delete_data = urllib.parse.urlencode({"file": canvas_id}).encode("utf-8")
+        delete_req = urllib.request.Request(
+            delete_url, data=delete_data,
+            headers={"Authorization": f"Bearer {token}",
+                     "Content-Type": "application/x-www-form-urlencoded"},
+        )
+        with urllib.request.urlopen(delete_req) as resp:
+            delete_result = json.loads(resp.read().decode("utf-8"), strict=False)
+        cleaned_up = delete_result.get("ok", False)
+    except Exception:
+        cleaned_up = False
+
+    result = {
+        "workspace_canvas_type": "quip" if is_quip else "new",
+        "canvases_edit_supported": not is_quip,
+        "chunked_create_supported": not is_quip,
+        "probe_cleaned_up": cleaned_up,
+    }
+    if not cleaned_up:
+        result["probe_canvas_id"] = canvas_id
+    if is_quip:
+        result["warning"] = (
+            "This workspace routes canvases.create through legacy Quip backend. "
+            "canvases.edit (append/replace) will not work reliably. "
+            "For large content, create must fit in a single API call (~4KB). "
+            "Canvas inline comments are not accessible via API."
+        )
+    print(json.dumps(result, indent=2))
 
 
 def cmd_canvas_rewrite(args):
@@ -715,6 +782,10 @@ def build_parser():
     cw = canvas_sub.add_parser("rewrite", help="Rewrite quip canvas as new-type canvas")
     cw.add_argument("canvas_id", help="Quip canvas file ID to rewrite")
     cw.set_defaults(func=cmd_canvas_rewrite)
+
+    # canvas probe
+    cp = canvas_sub.add_parser("probe", help="Detect if workspace produces quip or new-type canvases")
+    cp.set_defaults(func=cmd_canvas_probe)
 
     # --- react ---
     react_parser = subparsers.add_parser("react", help="Add reaction to message")

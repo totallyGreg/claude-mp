@@ -35,12 +35,12 @@ All Slack conversation endpoints require **POST with form-encoded body**. GET re
 
 ## Canvas Types
 
-Slack has two incompatible canvas types:
+Slack has two incompatible canvas backends. The type is determined at the **workspace level** — some workspaces (particularly Enterprise Grid) route all canvas creation through the legacy Quip backend, even when using the `canvases.create` API.
 
-- **Quip-type** (`filetype: "quip"`): Legacy format. Read via `files.info` + `url_private` (returns HTML). The CLI auto-detects and converts HTML→markdown. Cannot be updated via `canvases.edit` — use `canvas rewrite` to migrate.
-- **New Canvas API** (all other filetypes): Read via `canvases.sections.lookup`. Create/update via `canvases.create`/`canvases.edit`.
+- **Quip-type** (`filetype: "quip"`): Legacy format. Read works (auto HTML→markdown). `canvases.edit` (append/replace) **does not work**. Content limited to ~4KB per create call. Inline comments not accessible via API.
+- **New Canvas API** (all other filetypes): Full CRUD via `canvases.create`/`canvases.edit`. Auto-chunked for large content.
 
-The CLI auto-detects canvas type on read. All creates produce new-type canvases.
+Run `canvas probe` to detect your workspace type before creating canvases. On quip workspaces, updating content requires creating a new canvas with the full content.
 
 ## CLI Reference
 
@@ -67,9 +67,12 @@ slacker.py canvas update <canvas_id> --replace <section_id> --content-file /path
 
 # Rewrite quip canvas as new-type (creates new canvas, outputs both IDs)
 slacker.py canvas rewrite <canvas_id>
+
+# Detect workspace canvas type (quip vs new-type)
+slacker.py canvas probe
 ```
 
-Canvas content uses markdown. Auto-chunks content >3KB to stay within Slack API limits. See `references/canvas-operations.md` for size limits and quip handling.
+Canvas content uses markdown. On non-quip workspaces, auto-chunks content >3KB. On quip workspaces, large content is truncated with a warning. See `references/canvas-operations.md` for details.
 
 ### Reactions (MCP gap)
 

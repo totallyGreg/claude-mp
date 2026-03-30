@@ -13,14 +13,45 @@ The CLI auto-chunks content that exceeds these limits, splitting on paragraph bo
 
 ## Quip vs New-Type Canvases
 
+Slack has two incompatible canvas backends. The type is determined at the **workspace level** — not by which API you use. Some workspaces (particularly on Slack Enterprise Grid) route all canvas creation through the legacy Quip backend, even when using the `canvases.create` API.
+
 | Aspect | Quip Canvas | New Canvas API |
 |--------|------------|----------------|
 | Detection | `files.info` returns `filetype: "quip"` | Any other filetype |
 | Read method | `files.info` → `url_private` (HTML) | `canvases.sections.lookup` (markdown) |
-| Write support | Read-only — cannot update via API | Full CRUD via `canvases.edit` |
-| Migration | Use `canvas rewrite` to create new-type copy | Already new-type |
+| Write support | **Read-only** — `canvases.edit` fails or behaves unpredictably | Full CRUD via `canvases.edit` |
+| Inline comments | Trapped in Quip's proprietary format — not accessible via API | Accessible as threaded messages |
+| Content size | Single `canvases.create` call (~4KB limit) — no reliable append | Auto-chunked via `canvases.edit` appends |
 
-The CLI auto-detects canvas type on read and converts quip HTML to markdown transparently. For updates, quip canvases must first be rewritten to new-type via `canvas rewrite`.
+### Detecting Workspace Canvas Type
+
+Use `canvas probe` to determine what type of canvases your workspace produces **before** creating content:
+
+```bash
+slacker.py canvas probe
+```
+
+This creates a tiny test canvas, checks its filetype, deletes it, and reports:
+
+```json
+{
+  "workspace_canvas_type": "quip",
+  "canvases_edit_supported": false,
+  "chunked_create_supported": false,
+  "warning": "This workspace routes canvases.create through legacy Quip backend..."
+}
+```
+
+### Implications for Quip Workspaces
+
+On quip workspaces:
+- **Canvas read works fine** — the CLI auto-detects quip and converts HTML to markdown
+- **Canvas create works** — but content is limited to ~4KB (single API call). Larger content is truncated with a warning
+- **Canvas update (append/replace) does not work** — `canvases.edit` is not supported on quip canvases
+- **Canvas rewrite does not help** — rewriting creates another quip canvas on the same workspace
+- **To update content**: create a new canvas with the full updated content and retire the old one
+
+The CLI auto-detects quip on read and transparently converts HTML to markdown. On create, it checks the result and warns if content was truncated due to quip limitations.
 
 ## Update Operations
 
