@@ -197,6 +197,100 @@ After setup, offer: "Run collection health check to verify all parts are consist
 
 **Reference:** `references/collection-folder-pattern.md`
 
+### Vault Profiling
+
+Create or regenerate `_vault-profile.md` in the vault root. This profile provides accumulated context for all future archivist sessions — installed plugins, active fileClasses, folder philosophy, schema conventions, and directory trust levels.
+
+**When triggered:** By the archivist agent during initialization when `_vault-profile.md` is absent or corrupted.
+
+**Workflow:**
+
+1. **Discover vault structure:**
+   ```bash
+   uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/analyze_vault.py ${VAULT_PATH}
+   obsidian folders
+   obsidian templates
+   obsidian tags all counts
+   ```
+   If `obsidian` CLI fails (app not running), fall back to Glob/Grep/Read on vault files.
+
+2. **Discover installed plugins:**
+   ```bash
+   ls "${VAULT_PATH}/.obsidian/plugins/"
+   ```
+
+3. **Sample fileClass distribution:**
+   ```bash
+   grep -r "^fileClass:" "${VAULT_PATH}" --include="*.md" | sed 's/.*fileClass: *//' | sort | uniq -c | sort -rn
+   ```
+   Fall back to Grep tool if bash grep is unavailable.
+
+4. **Read Linter config** (if installed):
+   ```bash
+   cat "${VAULT_PATH}/.obsidian/plugins/obsidian-linter/data.json"
+   ```
+
+5. **Analyze folder philosophy** — interpret top-level folder naming convention:
+   - Numbered prefixes (e.g., `100`, `200`) → hierarchical organization
+   - Emoji markers → functional categorization
+   - Plain names → flat/ad-hoc structure
+
+6. **Classify directory trust levels** — categorize each top-level directory:
+   | Trust Level | Signals | Example |
+   |-------------|---------|---------|
+   | **automated/generated** | Names containing "Generated", "Output", "Auto" | `800 Generated/` |
+   | **infrastructure** | Names containing "Template", "📐", "System", "Config" | `900 📐Templates/` |
+   | **project-scoped** | Names containing "Project", work-related folders | `600 Projects/` |
+   | **personal/guarded** | Names containing "Notes", "Journal", "Personal", "Private" | `700 Notes/` |
+
+7. **Propose permission zones** based on folder analysis (see Unit 2 for zone storage):
+   - Template/infrastructure folders → architect zones
+   - Generated/output folders → designated output zones
+   - Everything else → curator zones
+
+8. **Present profile to user** for confirmation before saving.
+
+9. **Write `_vault-profile.md`** to vault root with this structure:
+
+   ```markdown
+   ---
+   last_updated: YYYY-MM-DD
+   managed_by: archivist
+   ---
+
+   # Vault Profile
+
+   ## Installed Plugins
+   <!-- List of active community plugins -->
+
+   ## Active fileClasses
+   <!-- fileClass names with note counts -->
+
+   ## Folder Structure & Philosophy
+   <!-- Numbered/emoji convention explanation, top-level folder purposes -->
+
+   ## Directory Trust Levels
+   <!-- Each top-level directory with its trust classification -->
+
+   ## Template Inventory
+   <!-- Summary of templates in the templates directory -->
+
+   ## Schema Conventions
+   <!-- Known frontmatter patterns, naming conventions -->
+
+   ## Linter Rules Summary
+   <!-- Key active Linter rules affecting note formatting -->
+   ```
+
+   Each section heading is agent-managed. User-added sections (headings not in this list) are preserved during updates.
+
+**On subsequent runs:** The archivist agent's Session Learning handles incremental updates. It diffs current vault state against the profile and updates specific sections by heading, preserving user-added sections.
+
+**Edge cases:**
+- Vault with minimal structure (few folders, no templates) → create profile with minimal content, don't pad empty sections
+- `_vault-profile.md` exists but is corrupted (malformed YAML frontmatter) → regenerate from scratch, warn user
+- Obsidian CLI unavailable → use file tools exclusively, note limitation in profile
+
 ### Cross-Skill Handoff
 
 After architect work, offer curator follow-through to close the loop:
@@ -206,6 +300,22 @@ After architect work, offer curator follow-through to close the loop:
 - **MOC template** → "Find orphaned notes to seed this MOC?"
 - **Folder refinement** → "Generate canvas map to verify connections?"
 - **QuickAdd workflow** → "Audit existing captures against this new workflow?"
+
+## Write Boundaries
+
+Before writing to any path in the vault, check whether it falls within your allowed zones.
+
+**How to check:** Read `${CLAUDE_PLUGIN_ROOT}/.local.md` and parse the `architect_write_zones:` field. This contains a comma-separated list of vault-relative directory paths. A write is allowed if the target path starts with any listed zone prefix. When multiple zones match, the most-specific (longest) prefix wins.
+
+**Allowed writes:** Template directories, Bases files, script directories, vault infrastructure files (`_vault-profile.md`, system guides), and any path listed in `architect_write_zones`.
+
+**Out-of-zone writes:** If the target path does not match any architect zone, **refuse the write** and suggest using vault-curator instead. Example: "This path is in a curator-managed zone. Use vault-curator to modify note content."
+
+**No zones configured:** If `.local.md` has no zone fields, all writes require user confirmation (existing Bounded Autonomy behavior). Offer to run vault profiling to discover and configure zones.
+
+**All writes require confirmation** — regardless of zone. The zone model determines *which skill* may write, not *whether* to confirm. Confirmation-free writes are deferred until hook-based enforcement is available.
+
+<!-- v2 note: In future versions, this skill may run as an isolated subagent with restricted tools. Write boundaries documented here will become the subagent's tool restrictions. -->
 
 ## Design Principles
 
