@@ -1,445 +1,180 @@
-# Helm 4 Evolution Reference
+# Helm Evolution Reference
 
-Comprehensive guide to Helm 4 features, changes, and migration from Helm 3.
+Guide to recent Helm 3.x features and Helm 4, including migration from Helm 3 to Helm 4.
 
-## Timeline and Versions
+## Release Timeline
 
-- **Helm 3.0**: Released November 2019
-- **Helm 3.8**: January 2022 - OCI support becomes stable
-- **Helm 3.12**: May 2023 - Latest 3.x stable as of October 2025
-- **Helm 4.0 Beta**: October 2025 (v4.0.0-beta.2)
-- **Helm 4.0 GA**: Expected November 2025
-- **Helm 3 Support**: Will continue for 12 months after Helm 4 GA
+| Version | Date | Highlights |
+|---------|------|------------|
+| 3.15.0 | 2024-05-15 | `--hide-secret` for dry-run |
+| 3.16.0 | 2024-09-11 | `sha512sum` function, `--skip-schema-validation` flag |
+| 3.17.0 | 2025-01-15 | OCI digest pull, `--take-ownership`, `toYamlPretty` |
+| 3.18.0 | 2025-05-19 | JSON Schema 2020-12, ORAS v2, mTLS proxy |
+| 3.19.0 | 2025-09-11 | Stabilization, `helm create` adds HTTPRoute |
+| 3.20.x | 2026-01-21 | Maintenance mode, k8s API v0.35.0 |
+| **4.0.0 GA** | **2025-11-12** | **Production-ready release** |
+| 4.1.x | 2026-01-21 | `--wait=hookOnly`, concurrent dep builds |
 
-## What's New in Helm 4
+Helm 3.x and 4.x are maintained in parallel. Next releases: 4.2.0 / 3.21.0 on May 13, 2026.
 
-### 1. Enhanced OCI Support
+## Recent Helm 3.x Features (3.15–3.20)
 
-#### Improved Performance
-- Faster chart push/pull operations
-- Better caching mechanisms
-- Optimized dependency resolution
-- Reduced network overhead
-
-#### Native OCI Features
+### 3.15: Secret Hiding
 ```bash
-# Direct registry operations
-helm registry list
-helm registry info oci://registry.example.com/charts/mychart
-
-# Improved authentication handling
-helm registry login registry.example.com --insecure-skip-tls-verify
-
-# Better error messages
-helm push mychart-1.0.0.tgz oci://registry.example.com/charts
-# Error: authentication required (401)
-# Hint: Run 'helm registry login registry.example.com' first
+# Hide secrets during dry-run
+helm install --dry-run --hide-secret myrelease mychart/
 ```
 
-#### OCI Annotations
-```yaml
-# Chart.yaml supports OCI-specific annotations
-annotations:
-  org.opencontainers.image.created: "2025-10-31T12:00:00Z"
-  org.opencontainers.image.authors: "John Doe <john@example.com>"
-  org.opencontainers.image.url: "https://example.com/mychart"
-  org.opencontainers.image.documentation: "https://docs.example.com/mychart"
-  org.opencontainers.image.source: "https://github.com/example/mychart"
-  org.opencontainers.image.version: "1.0.0"
-  org.opencontainers.image.revision: "abc123"
-  org.opencontainers.image.vendor: "Example Corp"
-  org.opencontainers.image.licenses: "Apache-2.0"
-  org.opencontainers.image.title: "My Chart"
-  org.opencontainers.image.description: "A Helm chart for Kubernetes"
-```
-
-### 2. Dependency Management Improvements
-
-#### Better Dependency Resolution
+### 3.16: Schema Control & sha512sum
 ```bash
-# Faster dependency updates
-helm dependency update mychart/  # Much faster in Helm 4
-
-# Better conflict resolution
-# Helm 4 provides clearer error messages when dependencies conflict
-
-# Dependency tree visualization
-helm dependency tree mychart/
+# Skip schema validation (useful for debugging)
+helm install myrelease mychart/ --skip-schema-validation
+helm lint mychart/ --skip-schema-validation
 ```
-
-#### Lock File Enhancements
 ```yaml
-# Chart.lock now includes more metadata
-dependencies:
-- name: postgresql
-  repository: oci://registry-1.docker.io/bitnamicharts
-  version: 12.1.0
-  digest: sha256:abc123...  # Added in Helm 4
-  resolved: oci://registry-1.docker.io/bitnamicharts/postgresql:12.1.0
-```
-
-### 3. Template Engine Improvements
-
-#### New Functions
-```yaml
-# randPassword - Generate cryptographically secure passwords
-password: {{ randPassword 32 | b64enc }}
-
-# toRawJson - Output JSON without escaping
-config: {{ .Values.config | toRawJson }}
-
-# sha512sum - Additional hash function
+# sha512sum template function
 checksum: {{ .Values.data | sha512sum }}
-
-# semver - Semantic version comparisons
-{{- if semverCompare ">=1.24.0" .Capabilities.KubeVersion.Version }}
-# Use v1 Ingress
-{{- end }}
-
-# compact - Remove nil/empty values from lists
-items: {{ list "a" "" "b" nil "c" | compact }}
-
-# mustRegexMatch - Required regex match
-{{- mustRegexMatch "^[a-z]+$" .Values.name }}
 ```
 
-#### Improved Error Messages
+### 3.17: OCI Digest & Resource Adoption
+```bash
+# Pull/install by OCI digest (immutable reference)
+helm pull oci://registry.example.com/charts/mychart@sha256:abc123...
+helm install myrelease oci://registry.example.com/charts/mychart@sha256:abc123...
+
+# Adopt existing cluster resources into a Helm release
+helm install myrelease mychart/ --take-ownership
+helm upgrade myrelease mychart/ --take-ownership
+```
 ```yaml
-# Helm 3
-Error: template: mychart/templates/deployment.yaml:10:14: executing "mychart/templates/deployment.yaml" at <.Values.undefined>: nil pointer evaluating interface {}.undefined
-
-# Helm 4
-Error: template: mychart/templates/deployment.yaml:10:14: undefined value
-  at: .Values.undefined
-  template: mychart/templates/deployment.yaml
-  line: 10
-  Hint: Check if 'undefined' is defined in values.yaml
+# toYamlPretty template function — formatted YAML output
+config: {{ .Values.config | toYamlPretty | nindent 2 }}
 ```
-
-### 4. CLI Enhancements
-
-#### Improved Commands
 ```bash
-# helm diff is now built-in (no plugin needed)
-helm diff upgrade my-release ./mychart
-
-# Better search
-helm search oci registry.example.com/charts --versions
-
-# Chart inspection improvements
-helm show all oci://registry.example.com/charts/mychart --version 1.0.0
-
-# Enhanced output formats
-helm list -o json | jq '.[] | select(.status == "deployed")'
-helm history my-release -o yaml
+# Auth flags on push and dependency commands
+helm push mychart-1.0.0.tgz oci://registry.example.com/charts --username user --password pass
+helm dependency update mychart/ --username user --password pass
 ```
 
-#### New Flags
+### 3.18: JSON Schema 2020 & ORAS v2
+- `values.schema.json` now supports JSON Schema 2020-12 draft (`$schema: "https://json-schema.org/draft/2020-12/schema"`)
+- Internal OCI library upgraded from ORAS v1 to v2
+- Automatic HTTP fallback for OCI registries
+- CPU and memory profiling support
+
+### 3.19: Gateway API & Stabilization
+- `helm create` scaffolded templates now include **HTTPRoute** from Gateway API
+- Fixed ORAS v2 regressions (OCI pull with `--password`, JSON Schema `$ref` URLs)
+- Fixed charts failing with redirect registries
+
+### 3.20: Maintenance Mode
+- Backports from Helm 4, bumped k8s API versions to v0.35.0
+- Fixed `helm uninstall --keep-history` not suspending previous deployed releases
+
+## Helm 4 — What's Actually New
+
+Helm 4.0.0 GA released November 12, 2025. Changes are less extensive than Helm 2→3.
+
+### Key New Features
+
+1. **WebAssembly (Wasm) Plugin System**: Plugins can now be written as Wasm modules in addition to traditional executables
+2. **Post-renderers are plugins**: The post-renderer interface is now part of the plugin system
+3. **Server-side apply**: Replaces client-side 3-way merge for more reliable resource updates
+4. **kstatus resource watching**: Improved wait/readiness detection using kstatus-based monitoring
+5. **Local content-based caching**: Charts cached by content hash for faster operations
+6. **Structured logging via slog**: SDK logging uses Go's structured logger
+7. **Reproducible chart builds**: `helm package` produces deterministic archives
+8. **Multiple chart API versions**: Experimental support for v3 chart API alongside v2
+
+### Backward Compatibility
+- **Charts with `apiVersion: v2` continue to work** in Helm 4 without changes
+- Existing charts should install/upgrade without modification
+- Helm 4 can manage releases created by Helm 3
+
+### Helm 4.1 Additions
 ```bash
-# --cascade option for upgrades
-helm upgrade my-release ./mychart --cascade=foreground
+# Wait strategy selection
+helm install myrelease mychart/ --wait=hookOnly
 
-# --create-namespace is now the default behavior
-helm install my-release ./mychart --namespace prod
-
-# --timeout improvements
-helm install my-release ./mychart --timeout 10m --wait
-
-# Better dry-run
-helm install my-release ./mychart --dry-run=server --validate
+# Scripting-friendly output
+helm repo list --no-headers
 ```
+- Concurrent dependency builds with atomic file writes
+- Improved logging: chart name in dependency logs, namespace in resource waiting logs
+- Confirmation message when all resources are ready
 
-### 5. Performance Improvements
+## Breaking Changes in Helm 4
 
-#### Faster Operations
-- Chart rendering: ~30% faster
-- Dependency resolution: ~50% faster
-- OCI operations: ~40% faster
-- Template compilation: ~25% faster
-
-#### Memory Usage
-- Reduced memory footprint for large charts
-- Better streaming for large values files
-- Optimized template caching
-
-### 6. Kubernetes API Updates
-
-#### Support for Latest K8s Versions
-```yaml
-# Helm 4 supports Kubernetes 1.24-1.30
-kubeVersion: ">=1.24.0-0 <1.31.0-0"
-
-# Better API version handling
-{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
-# Use v1 Ingress
-{{- else if .Capabilities.APIVersions.Has "networking.k8s.io/v1beta1/Ingress" }}
-# Use v1beta1 Ingress
-{{- end }}
-```
-
-#### Deprecated API Warnings
+### Classic Repositories Deprecated
 ```bash
-# Helm 4 warns about deprecated APIs
-helm install my-release ./mychart
-Warning: Chart uses deprecated API version extensions/v1beta1 for Deployment
-Recommendation: Update to apps/v1
-```
-
-### 7. Security Enhancements
-
-#### Built-in Verification
-```bash
-# Cosign verification built-in
-helm install my-release oci://registry.example.com/charts/mychart \
-  --verify-cosign \
-  --cosign-key cosign.pub
-
-# SBOM support
-helm show sbom oci://registry.example.com/charts/mychart
-```
-
-#### Provenance Improvements
-```bash
-# Enhanced provenance files
-helm package --sign --key 'My Key' --keyring ~/.gnupg/secring.gpg mychart/
-# Includes more metadata: build info, commit hash, build timestamp
-```
-
-## Breaking Changes
-
-### 1. Command Changes
-
-#### Removed Commands
-```bash
-# REMOVED in Helm 4
-helm repo index     # Use OCI registries instead
-
-# CHANGED
-helm install --name my-release ./mychart  # --name flag removed
-helm install my-release ./mychart         # Correct syntax
-```
-
-#### Changed Behavior
-```bash
-# Helm 3: Creates namespace if doesn't exist with --create-namespace
-helm install my-release ./mychart --namespace prod --create-namespace
-
-# Helm 4: Creates namespace by default
-helm install my-release ./mychart --namespace prod
-# Add --no-create-namespace to prevent creation
-```
-
-### 2. Repository Changes
-
-#### Classic Repositories Deprecated
-```bash
-# Helm 3: Classic HTTP repositories
+# Still works but issues deprecation warning
 helm repo add myrepo https://charts.example.com
-
-# Helm 4: Still supported but deprecated
 # Warning: Classic chart repositories are deprecated. Consider migrating to OCI.
 
-# Helm 4: Preferred OCI approach
-helm registry login registry.example.com
-helm install my-release oci://registry.example.com/charts/mychart
+# Preferred: OCI registries
+helm install myrelease oci://registry.example.com/charts/mychart
 ```
 
-#### Chart.yaml Changes
+### Chart.yaml Dependencies
 ```yaml
-# Helm 3
+# Deprecated (warning issued)
 dependencies:
   - name: postgresql
     version: "12.1.0"
     repository: "https://charts.bitnami.com/bitnami"
 
-# Helm 4: Still works but warning issued
-# Warning: Classic repository URLs are deprecated
-
-# Helm 4: Preferred
+# Preferred
 dependencies:
   - name: postgresql
     version: "12.1.0"
     repository: "oci://registry-1.docker.io/bitnamicharts"
 ```
 
-### 3. API Version Requirements
-
+### Stricter Validation
 ```yaml
-# Helm 3: apiVersion: v2 required
+# Chart.yaml type field now enforced
 apiVersion: v2
 name: mychart
 version: 1.0.0
-
-# Helm 4: apiVersion: v2 still required
-# No change, but validation is stricter
-apiVersion: v2
-name: mychart
-version: 1.0.0
-type: application  # Now enforced (application or library)
+type: application  # Must be "application" or "library"
 ```
 
-### 4. Go Template Changes
+## Migration Guide (Helm 3 → Helm 4)
 
-#### Stricter Validation
-```yaml
-# Helm 3: Silently ignores undefined values
-value: {{ .Values.undefined.key }}  # Returns empty string
-
-# Helm 4: Errors by default (can be configured)
-value: {{ .Values.undefined.key }}
-# Error: undefined value at .Values.undefined
-
-# Use default to prevent errors
-value: {{ .Values.undefined.key | default "" }}
-```
-
-### 5. Hook Changes
-
-```yaml
-# Helm 3: Hook weights as strings accepted
-annotations:
-  "helm.sh/hook-weight": "5"
-
-# Helm 4: Must be integers
-annotations:
-  "helm.sh/hook-weight": "5"  # Warning: use integer
-  "helm.sh/hook-weight": 5    # Correct
-```
-
-## Migration Guide
-
-### Step 1: Assess Current Charts
-
+### Step 1: Verify Compatibility
 ```bash
-# Check Helm version
-helm version
-
-# Lint charts with Helm 4 beta
-helm lint ./mychart --strict
-
-# Render templates to check for issues
-helm template test ./mychart --validate
-
-# Check for deprecated features
-helm template test ./mychart 2>&1 | grep -i "warning\|deprecated"
+helm version  # Check current version
+helm lint mychart/ --strict
+helm template test mychart/ --validate
 ```
 
-### Step 2: Update Chart.yaml
-
+### Step 2: Update Dependencies to OCI
 ```yaml
-# Before (Helm 3)
-apiVersion: v2
-name: mychart
-version: 1.0.0
-dependencies:
-  - name: redis
-    version: "17.0.0"
-    repository: "https://charts.bitnami.com/bitnami"
-
-# After (Helm 4 ready)
-apiVersion: v2
-name: mychart
-version: 2.0.0  # Bump major version for breaking changes
-type: application
+# Chart.yaml — switch to OCI repository URLs
 dependencies:
   - name: redis
     version: "17.0.0"
     repository: "oci://registry-1.docker.io/bitnamicharts"
-annotations:
-  org.opencontainers.image.source: "https://github.com/example/mychart"
 ```
-
-### Step 3: Update Templates
-
-#### Fix Undefined Value Access
-```yaml
-# Before
-env:
-- name: OPTIONAL_VAR
-  value: {{ .Values.optional.value }}
-
-# After - Use default
-env:
-- name: OPTIONAL_VAR
-  value: {{ .Values.optional.value | default "" }}
-
-# Or check existence
-{{- if .Values.optional }}
-- name: OPTIONAL_VAR
-  value: {{ .Values.optional.value }}
-{{- end }}
-```
-
-#### Update Deprecated APIs
-```yaml
-# Before (Helm 3)
-apiVersion: extensions/v1beta1
-kind: Ingress
-
-# After (Helm 4)
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-spec:
-  ingressClassName: nginx  # Required in v1
-```
-
-#### Fix Hook Annotations
-```yaml
-# Before
-annotations:
-  "helm.sh/hook-weight": "5"
-  "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
-
-# After
-annotations:
-  "helm.sh/hook-weight": 5  # Integer, not string
-  "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
-```
-
-### Step 4: Update Dependencies
-
 ```bash
-# Update Chart.yaml dependencies to OCI
-# Then update lock file
-helm dependency update ./mychart
-
-# Verify
-helm dependency list ./mychart
+helm dependency update mychart/
 ```
 
-### Step 5: Test with Helm 4 Beta
-
+### Step 3: Test with Helm 4
 ```bash
-# Install Helm 4 beta alongside Helm 3
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | bash
-
-# Test rendering
-helm4 template test ./mychart --validate
-
-# Test installation in test cluster
-helm4 install test ./mychart --dry-run --debug
-
-# Test upgrade
-helm4 upgrade test ./mychart --dry-run --debug
+# Install Helm 4 and test
+helm template test mychart/ --validate
+helm install test mychart/ --dry-run --debug
 ```
 
-### Step 6: Update CI/CD
-
-#### GitHub Actions
+### Step 4: Update CI/CD
 ```yaml
-# Before
+# GitHub Actions example
 - name: Set up Helm
   uses: azure/setup-helm@v3
   with:
-    version: v3.12.0
+    version: v4.1.3  # Latest stable
 
-# After
-- name: Set up Helm
-  uses: azure/setup-helm@v3
-  with:
-    version: v4.0.0
-
-# Add OCI login
 - name: Login to OCI registry
   run: |
     echo ${{ secrets.REGISTRY_PASSWORD }} | \
@@ -448,141 +183,42 @@ helm4 upgrade test ./mychart --dry-run --debug
       --password-stdin
 ```
 
-#### Migration Script
-```bash
-#!/bin/bash
-# migrate-to-helm4.sh
-
-set -e
-
-CHART_DIR="${1:-.}"
-
-echo "==> Checking Helm 4 compatibility..."
-
-# Check for classic repo URLs
-if grep -r "repository:.*https://" "$CHART_DIR/Chart.yaml"; then
-  echo "WARNING: Found classic repository URLs"
-  echo "Consider migrating to OCI registries"
-fi
-
-# Check for string hook weights
-if grep -r 'helm.sh/hook-weight.*:.*"' "$CHART_DIR/templates"; then
-  echo "WARNING: Found string hook weights"
-  echo "Convert to integers in Helm 4"
-fi
-
-# Check for deprecated APIs
-helm template test "$CHART_DIR" 2>&1 | grep -i "deprecated" || true
-
-# Test with Helm 4
-echo "==> Testing with Helm 4..."
-helm template test "$CHART_DIR" --validate
-
-echo "==> Migration check complete!"
-```
-
-### Step 7: Release Strategy
-
-#### Semantic Versioning
-```yaml
-# If breaking changes for users
-version: 2.0.0
-
-# If only internal Helm 4 compatibility
-version: 1.5.0
-
-# Document in CHANGELOG.md
-## [2.0.0] - 2025-11-15
-### Breaking Changes
-- Migrated to OCI dependencies (Helm 4 recommended)
-- Requires Helm 3.8+ or Helm 4+
-
-### Changed
-- Updated all dependencies to OCI format
-- Fixed hook weight types for Helm 4 compatibility
-```
-
 ## Compatibility Matrix
 
-| Feature | Helm 3.8+ | Helm 4 | Notes |
+| Feature | Helm 3.17+ | Helm 4.x | Notes |
 |---------|-----------|--------|-------|
-| OCI Charts | ✅ Stable | ✅ Enhanced | Helm 4 has better performance |
-| Classic Repos | ✅ Supported | ⚠️ Deprecated | Will be removed in Helm 5 |
-| Chart API v2 | ✅ Required | ✅ Required | No change |
-| GPG Signing | ✅ Supported | ✅ Supported | Enhanced in Helm 4 |
-| Cosign | 🔌 Plugin | ✅ Built-in | Native support in Helm 4 |
-| K8s 1.24-1.27 | ✅ Supported | ✅ Supported | Full support |
-| K8s 1.28-1.30 | ⚠️ Limited | ✅ Full | Better support in Helm 4 |
+| OCI Charts | Stable | Enhanced | Digest refs in 3.17+, caching in 4.x |
+| Classic Repos | Supported | Deprecated | Will be removed in future |
+| Chart API v2 | Required | Required | No change needed |
+| JSON Schema 2020 | 3.18+ | Yes | 2020-12 draft support |
+| Server-side Apply | No | Yes | Replaces 3-way merge |
+| Wasm Plugins | No | Yes | New plugin architecture |
+| GPG Signing | Supported | Supported | No change |
+| Gateway API (HTTPRoute) | 3.19+ scaffold | Yes | `helm create` includes it |
 
-## Testing Checklist
+## Migration Checklist
 
 ### Pre-Migration
 - [ ] All charts pass `helm lint --strict`
 - [ ] All charts have passing unit tests
 - [ ] Dependencies are pinned to specific versions
-- [ ] No deprecated Kubernetes APIs
+- [ ] No deprecated Kubernetes APIs in templates
 - [ ] Documentation is up to date
 
 ### During Migration
-- [ ] Chart.yaml updated to OCI dependencies
-- [ ] Hook weights converted to integers
-- [ ] Undefined value accesses use defaults
+- [ ] Chart.yaml dependencies updated to OCI URLs
+- [ ] Chart.yaml includes `type: application` or `type: library`
 - [ ] Templates validated with Helm 4
-- [ ] Integration tests pass with Helm 4
+- [ ] Unit tests pass with Helm 4
+- [ ] CI/CD updated for Helm 4
 
 ### Post-Migration
-- [ ] Charts work with both Helm 3.8+ and Helm 4
-- [ ] CI/CD updated for Helm 4
-- [ ] Documentation updated with Helm 4 requirements
+- [ ] Charts work with both Helm 3.17+ and Helm 4
 - [ ] Changelog includes migration notes
 - [ ] Users notified of changes
 
-## FAQ
-
-### Q: Do I need to upgrade immediately?
-**A:** No. Helm 3 will be supported for 12 months after Helm 4 GA. However, starting migration early is recommended.
-
-### Q: Will my Helm 3 charts work with Helm 4?
-**A:** Most charts will work without changes. Charts using classic repositories will get deprecation warnings.
-
-### Q: Should I migrate to OCI?
-**A:** Yes. OCI is the future of Helm charts. Classic repositories will be removed in Helm 5.
-
-### Q: Can I use Helm 3 and Helm 4 together?
-**A:** Yes. They can coexist. Releases are compatible between versions.
-
-### Q: What about Helm 2?
-**A:** Helm 2 reached end-of-life in November 2020. Migrate to Helm 3 or 4.
-
-### Q: Will Helm 4 break my existing releases?
-**A:** No. Helm 4 can manage releases created by Helm 3.
-
-### Q: How do I test Helm 4 compatibility?
-**A:** Install Helm 4 beta and run `helm template` and `helm lint` on your charts.
-
-### Q: When should I bump my chart version?
-**A:** Bump major version if you make breaking changes for users. Minor version for Helm 4 compatibility changes.
-
-## Resources
-
-### Official Documentation
-- Helm 4 Release Notes: https://github.com/helm/helm/releases/tag/v4.0.0
-- Migration Guide: https://helm.sh/docs/topics/v4_migration/
-- OCI Guide: https://helm.sh/docs/topics/registries/
-
-### Community
-- Helm Slack: #helm-users on Kubernetes Slack
-- GitHub Discussions: https://github.com/helm/helm/discussions
-- Stack Overflow: Tag `helm` and `helm4`
-
-### Tools
-- Helm Diff: Built-in to Helm 4
-- helm-unittest: https://github.com/helm-unittest/helm-unittest
-- chart-testing: https://github.com/helm/chart-testing
-- kubeconform: https://github.com/yannh/kubeconform
-
 ---
 
-**Last Updated**: October 31, 2025
-**Helm 4 Status**: Beta (v4.0.0-beta.2)
-**Helm 4 GA Expected**: November 2025
+**Last Updated**: March 30, 2026
+**Latest Helm 3.x**: 3.20.1 (March 12, 2026)
+**Latest Helm 4.x**: 4.1.3 (March 11, 2026)
