@@ -7,7 +7,7 @@ For full command reference, use the `obsidian-cli` skill from the [obsidian-skil
 **Use CLI** when you need Obsidian's index or app features:
 search, backlinks, links, tags, tasks, properties, bases, templates, outline, orphans, unresolved links
 
-**Use file tools** (Read/Write/Edit/Grep/Glob on `/Users/totally/Notes/`) for:
+**Use file tools** (Read/Write/Edit/Grep/Glob on `${VAULT_PATH}`) for:
 simple file read/write, bulk text replacement, grep across files — no app dependency
 
 Rule of thumb: if Obsidian's index adds value, use CLI. If it's plain text manipulation, use file tools.
@@ -55,4 +55,4 @@ Rule of thumb: if Obsidian's index adds value, use CLI. If it's plain text manip
 
 ## Fallback
 
-CLI requires Obsidian desktop app to be running. If unavailable, fall back to Grep/Glob/Read tools on vault files at `/Users/totally/Notes/`.
+CLI requires Obsidian desktop app to be running. If unavailable, fall back to Grep/Glob/Read tools on vault files at `${VAULT_PATH}`.

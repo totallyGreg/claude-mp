@@ -1,4 +1,4 @@
-# PKM Plugin
+# Archivist
 
 Personal Knowledge Management expert for Obsidian vaults with autonomous orchestration.
 
@@ -31,7 +31,7 @@ Progressive disclosure:
 
 ## Version
 
-1.6.0
+1.16.0
 
 ## License
 
@@ -41,16 +41,17 @@ MIT
 
 ### Current Metrics
 
-**Score: 99/100** (Excellent) — 2026-03-28
+**Score: 94/100** (Good) — 2026-03-31
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
-| 98 | 100 | 100 | 100 | 100 |
+| 80 | 90 | 100 | 100 | 100 |
 
 ### Version History
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.8.0 | 2026-03-31 | - | Add Vault Profiling workflow, Write Boundaries section, replace hardcoded vault path with ${VAULT_PATH} | 80 | 90 | 100 | 100 | 100 | 94 |
 | 1.7.0 | 2026-03-28 | - | Add Linter plugin config read to Vault Discovery; read .obsidian/plugins/obsidian-linter/data.json before writing notes | 98 | 100 | 100 | 100 | 100 | 99 |
 | 1.6.0 | 2026-03-28 | - | Add CLI delegation block to Vault Discovery naming obsidian-skills as source; document path= vs file= distinction and folder-note resolution | 98 | 100 | 100 | 100 | 100 | 99 |
 | 1.5.0 | 2026-03-26 | - | Reduce to 5 sections for full complexity score; merge Core Principles into intro, Resources into capabilities, Cross-Skill Handoff into Workflows; fix vault analysis to run CLI discovery before asking user | 98 | 100 | 100 | 100 | 100 | 99 |
@@ -67,16 +68,17 @@ MIT
 
 ### Current Metrics
 
-**Score: 97/100** (Excellent) — 2026-03-28
+**Score: 94/100** (Good) — 2026-03-31
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
-| 98 | 90 | 100 | 100 | 100 |
+| 80 | 90 | 100 | 100 | 100 |
 
 ### Version History
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.9.4 | 2026-03-31 | - | Add Write Boundaries section for vault-aware permission zones | 80 | 90 | 100 | 100 | 100 | 94 |
 | 1.9.3 | 2026-03-28 | - | Add Vault Write Quality Gate: frontmatter must start on line 1, Linter compliance check, bulk validation pointer | 98 | 90 | 100 | 100 | 100 | 97 |
 | 1.9.2 | 2026-03-28 | - | Name obsidian-skills as CLI source in delegation line; reference cli-patterns.md for error handling | 98 | 100 | 100 | 100 | 100 | 99 |
 | 1.9.1 | 2026-03-27 | - | Add vault write triggers ("update this note", "write to vault", "create a note from URL") to route content writes through curator | 98 | 100 | 100 | 100 | 100 | 99 |
