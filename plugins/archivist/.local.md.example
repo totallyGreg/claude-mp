@@ -4,3 +4,19 @@
 vault_path: /Users/username/Documents/MyVault
 daily_notes_path: Daily Notes
 templates_path: Templates
+
+<!-- Permission Zones -->
+<!-- These are discovered by vault-architect during vault profiling and confirmed by the user. -->
+<!-- Each zone is a comma-separated list of vault-relative directory paths (prefix-matched). -->
+<!-- The most-specific matching path wins when zones overlap. -->
+<!-- Both skills can read any file — zones restrict writes only. -->
+
+<!-- Directories where vault-architect may write (templates, schemas, infrastructure) -->
+architect_write_zones: 900 📐Templates/, _vault-profile.md
+
+<!-- Directories where vault-curator may write (notes, generated content) -->
+curator_write_zones: 700 Notes/, 800 Generated/, 500 ♽ Cycles/
+
+<!-- Directories intended for automated/generated output (forward compatibility — -->
+<!-- all writes still require confirmation until hook-based enforcement is available) -->
+designated_output_zones: 800 Generated/

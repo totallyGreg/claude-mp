@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.9.3"
+  version: "1.9.4"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -63,6 +63,22 @@ Before writing any note to the vault:
 1. **Frontmatter on line 1** — `---` must be the very first characters. A leading newline silently breaks Obsidian's property parsing and fileClass resolution. When using `obsidian append`, ensure content begins with `---` directly.
 2. **Linter compliance** — check `.obsidian/plugins/obsidian-linter/data.json` first (see vault-architect for key fields). Linter auto-reformats on save; non-compliant notes produce spurious git diffs.
 3. **Bulk validation**: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/validate_frontmatter.py ${VAULT_PATH}`
+
+## Write Boundaries
+
+Before writing to any path in the vault, check whether it falls within your allowed zones.
+
+**How to check:** Read `${CLAUDE_PLUGIN_ROOT}/.local.md` and parse the `curator_write_zones:` field. This contains a comma-separated list of vault-relative directory paths. A write is allowed if the target path starts with any listed zone prefix. When multiple zones match, the most-specific (longest) prefix wins.
+
+**Allowed writes:** Note content directories, generated output directory (canvas files, discovery views), existing note files for property updates, and any path listed in `curator_write_zones`.
+
+**Out-of-zone writes:** If the target path does not match any curator zone, **refuse the write** and suggest using vault-architect instead. Example: "This path is in an architect-managed zone. Use vault-architect to modify templates and infrastructure."
+
+**No zones configured:** If `.local.md` has no zone fields, all writes require user confirmation (existing Bounded Autonomy behavior). Offer to run vault profiling to discover and configure zones.
+
+**All writes require confirmation** — regardless of zone. The zone model determines *which skill* may write, not *whether* to confirm. Confirmation-free writes are deferred until hook-based enforcement is available.
+
+<!-- v2 note: In future versions, this skill may run as an isolated subagent with restricted tools. Write boundaries documented here will become the subagent's tool restrictions. -->
 
 ## Migration & Metadata Workflows
 
