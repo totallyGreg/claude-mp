@@ -1,11 +1,11 @@
 # terminal-guru
 
-Terminal diagnostics, configuration, and zsh development expert for Unix systems.
+Terminal diagnostics, configuration, zsh development, and environment composition expert for Unix systems.
 
 ## Components
 
 ### Agent: terminal-guru
-Diagnostic triage and cross-domain routing. Classifies symptoms and routes to the appropriate skill. Handles ambiguous problems and issues spanning both terminal display and shell configuration.
+Diagnostic triage and cross-domain routing. Classifies symptoms and routes to the appropriate skill. Handles ambiguous problems and issues spanning terminal display, shell configuration, system observability, and environment composition.
 
 ### Skill: terminal-emulation
 Terminal display diagnostics and configuration (~40% of content):
@@ -37,14 +37,41 @@ System observability and event-response:
 - macOS notifications (osascript, terminal-notifier)
 - `logwatch` — tmux pane with filtered live log stream
 
+### Skill: environment-composition
+Development environment composition using sesh, claude CLI, direnv, and git worktrees:
+- sesh.toml configuration (sessions, wildcards, windows, startup commands, picker integrations)
+- Claude CLI session management for environment composition (--continue, --resume, --worktree)
+- direnv integration patterns for sesh + claude CLI
+- Environment lifecycle workflows (setup, worktree composition, teardown, decay detection)
+- Lens framework (Selection, Arrangement, Purpose, Activation) as composition mental model
+
 ## Changelog
 
 | Version | Changes |
 |---------|---------|
+| 5.0.0 | Added environment-composition skill: sesh.toml config, claude CLI integration, direnv, worktree workflows, Lens framework |
 | 4.0.0 | Added signals-monitoring skill: unified logging, signals/trap, file watching, notifications |
 | 3.0.0 | Split monolithic skill into plugin with agent + two focused skills |
 | 2.1.0 | Added zsh function patterns, completion guide, Plugin Standard references |
 | 2.0.0 | Initial release with terminal diagnostics and zsh configuration |
+
+## Skill: environment-composition
+
+### Current Metrics
+
+**Score: 90/100** (Good) — 2026-04-01
+
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 100 | 80 | 80 | 100 | 100 |
+
+### Version History
+
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.0.0 | 2026-04-01 | - | Initial release: sesh.toml config, claude CLI composition, direnv integration, workflow patterns (setup/worktree/teardown/decay), Lens framework | 100 | 80 | 80 | 100 | 100 | 90 |
+
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
 
 ## Skill: signals-monitoring
 
