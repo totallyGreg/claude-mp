@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.9.4"
+  version: "1.10.0"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -52,11 +52,13 @@ obsidian search query="Docker" format=json
 
 **Edge cases:** Empty scope → inform and suggest broadening. Whole vault → warn and require confirmation. CLI unavailable → fall back to `tree` + Glob/Grep.
 
-**CLI delegation:** `obsidian-cli` (obsidian-skills marketplace), `obsidian-markdown` (content), `obsidian-bases` (`.base` files), `json-canvas` (`.canvas` files). To update note content, use `obsidian create path="..." overwrite content="..." silent` (`obsidian file` is read-only). See `references/cli-patterns.md` for bugs and error handling. Fallback: markdown-oxide LSP (if available via Neovim), then Grep/Glob/Read.
+**CLI delegation:** `obsidian-cli`, `obsidian-markdown`, `obsidian-bases`, `json-canvas`. See `references/cli-patterns.md` for command rules, Base File lookup, File Relocation, and error handling. Fallback: markdown-oxide LSP (if available via Neovim), then Grep/Glob/Read.
 
 **Opportunistic drift detection:** When frontmatter is sampled during any operation, watch for obvious inconsistencies — competing property names (`url`/`site`/`urls`), mixed-case `fileClass` values, YAML corruption artifacts. Offer: "I noticed schema drift in `<folder>` — run detection before continuing?"
 
-## Vault Write Quality Gate
+## Migration & Metadata Workflows
+
+### Vault Write Quality Gate
 
 Before writing any note to the vault:
 
@@ -64,7 +66,7 @@ Before writing any note to the vault:
 2. **Linter compliance** — check `.obsidian/plugins/obsidian-linter/data.json` first (see vault-architect for key fields). Linter auto-reformats on save; non-compliant notes produce spurious git diffs.
 3. **Bulk validation**: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/validate_frontmatter.py ${VAULT_PATH}`
 
-## Write Boundaries
+### Write Boundaries
 
 Before writing to any path in the vault, check whether it falls within your allowed zones.
 
@@ -72,15 +74,12 @@ Before writing to any path in the vault, check whether it falls within your allo
 
 **Allowed writes:** Note content directories, generated output directory (canvas files, discovery views), existing note files for property updates, and any path listed in `curator_write_zones`.
 
-**Out-of-zone writes:** If the target path does not match any curator zone, **refuse the write** and suggest using vault-architect instead. Example: "This path is in an architect-managed zone. Use vault-architect to modify templates and infrastructure."
+**Out-of-zone writes:** If the target path does not match any curator zone, **refuse the write** and suggest using vault-architect instead.
 
-**No zones configured:** If `.local.md` has no zone fields, all writes require user confirmation (existing Bounded Autonomy behavior). Offer to run vault profiling to discover and configure zones.
+**No zones configured:** If `.local.md` has no zone fields, all writes require user confirmation. Offer to run vault profiling to discover and configure zones.
 
-**All writes require confirmation** — regardless of zone. The zone model determines *which skill* may write, not *whether* to confirm. Confirmation-free writes are deferred until hook-based enforcement is available.
+**All writes require confirmation** — regardless of zone. The zone model determines *which skill* may write, not *whether* to confirm.
 
-<!-- v2 note: In future versions, this skill may run as an isolated subagent with restricted tools. Write boundaries documented here will become the subagent's tool restrictions. -->
-
-## Migration & Metadata Workflows
 
 ### Meeting Extraction from Logs
 
@@ -220,11 +219,7 @@ When asked "find related notes", "show connections", or "what links to this":
    uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/find_related.py \
      ${VAULT_PATH} "${NOTE_PATH}" --scope "${SCOPE_PATH}" --top 10
    ```
-3. **Present results** with explanations of why each note is related:
-   - Shared properties (fileClass, scope, project) — strongest signal
-   - Shared wikilink targets — indicates topical overlap
-   - Shared tags — broad topical connection
-   - Folder proximity — structural relationship
+3. **Present results** with relatedness rationale (shared properties, links, tags, proximity — see `references/available-scripts.md`)
 4. **Offer to add wikilinks** to connect related notes (with user confirmation)
 
 ### Progressive Discovery Views
@@ -276,9 +271,7 @@ When asked "show me a map", "generate canvas", "visualize my notes", or "show kn
 3. **Review dry-run output** — confirm node count, edge count, clustering
 4. **Execute** (remove `--dry-run`) to write `.canvas` file
 
-**Layout:** Grid layout with file nodes for each note. Edges represent wikilinks between notes in scope. Color-coded by `fileClass` (Meeting=orange, Person=cyan, Project=green, Company=purple, MOC=yellow).
-
-**Naming:** `_knowledge-map-YYYY-MM-DD.canvas` in the scoped directory. Numeric suffix appended if name exists. 50-node cap by default; folders with 4+ notes collapse into group nodes when exceeded. See `references/available-scripts.md` for `--output` and `--max-nodes` options.
+**See:** `references/available-scripts.md` for canvas layout, naming conventions, and `--output`/`--max-nodes` options.
 
 ### Pattern Detection
 
@@ -296,16 +289,6 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_collection_healt
   ${VAULT_PATH} [--scope "${SCOPE}"] [--folder "700 Notes/Workflows"]
 ```
 
-Output per collection:
-- `has_folder_note` — `<Folder>/<Folder>.md` exists
-- `folder_note_embeds_bases` — folder note contains `![[...base#...]]`
-- `has_bases_file` — `900 📐Templates/970 Bases/<Name>.base` exists
-- `dominant_fileclass` — most common `fileClass` among members
-- `schema_drift_issues` — count of drift issues (from drift analysis)
-- `health` — `healthy` | `partial` | `missing_infrastructure`
+Output fields: `has_folder_note`, `folder_note_embeds_bases`, `has_bases_file`, `dominant_fileclass`, `schema_drift_issues`, `health` — see `references/available-scripts.md` for field definitions.
 
-**After report, offer fixes in order:**
-1. Missing folder note → scaffold via vault-architect (New Collection Setup)
-2. Folder note missing Bases embed → add embed with confirmation
-3. Missing Bases file → scaffold via vault-architect
-4. Schema drift → run `detect_schema_drift.py --scope <folder>` and offer bulk fixes
+**After report, offer fixes in order:** missing folder note or Bases file → scaffold via vault-architect; folder note missing Bases embed → add with confirmation; schema drift → run `detect_schema_drift.py --scope <folder>`.

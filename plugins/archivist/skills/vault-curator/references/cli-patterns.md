@@ -38,6 +38,31 @@ Rule of thumb: if Obsidian's index adds value, use CLI. If it's plain text manip
 - **`create` with `template=` may ignore `path=`** — the file lands in the template's configured folder. Always verify the actual path with `obsidian search` or `obsidian files` after template-based creation
 - **`format=json matches`** returns `[{"file":"path","matches":[{"line":N,"text":"..."}]}]` — prefer this over plain `format=json` for programmatic search
 
+## Base Files
+
+**Always check `900 📐Templates/970 Bases/` before creating a new `.base` file.** If a base for that fileClass or topic already exists, add views to it — do not create a duplicate.
+
+All canonical base files live in `970 Bases/`. A base co-located with notes (e.g. inside a collection folder) is a sign something went wrong.
+
+**Base filter scoping:** Obsidian Bases defaults to the embedding note's folder when no explicit folder is set. Always use `or` with both an explicit folder path and a `fileClass` filter to ensure vault-wide results when embedded anywhere:
+
+```yaml
+filters:
+  or:
+    - file.folder == "700 Notes/Ideas💡"
+    - fileClass == "Idea"
+```
+
+## File Relocation
+
+**Always use `obsidian move` to relocate files** — never recreate + delete, never shell `mv`.
+
+`obsidian move` updates all wikilink references throughout the vault atomically. Recreate + delete leaves references stale. Shell `mv` bypasses Obsidian's index entirely.
+
+```bash
+obsidian move file="Note Title.md" to="New/Folder"
+```
+
 ## Safety Rules
 
 - **`create overwrite` is destructive** — replaces entire file. Never pipe shell-processed content into it (empty output = wiped note). For partial updates, use Read + Edit tools on the vault file directly.
