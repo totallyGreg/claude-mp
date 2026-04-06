@@ -429,6 +429,47 @@ def cmd_canvas_read(args):
                     raise
 
 
+def _test_canvas_api_availability(token):
+    """Silent test to verify canvases.create produces editable (non-quip) canvases.
+
+    Returns True if API is available and produces new-type canvases.
+    Returns False if workspace produces quip-type or API is unavailable.
+    """
+    try:
+        result = slack_post_json("canvases.create", token, {
+            "title": "__api_test__",
+            "document_content": {"type": "markdown", "markdown": "test"},
+        })
+        if not result.get("ok", False) and "canvas_id" not in result:
+            return False
+
+        canvas_id = result.get("canvas_id")
+        if not canvas_id:
+            return False
+
+        # Check if it's quip-type (which doesn't support edits)
+        info = slack_post("files.info", token, file=canvas_id)
+        filetype = info.get("file", {}).get("filetype", "")
+        is_quip = filetype == "quip"
+
+        # Clean up test canvas
+        try:
+            delete_url = "https://slack.com/api/files.delete"
+            delete_data = urllib.parse.urlencode({"file": canvas_id}).encode("utf-8")
+            delete_req = urllib.request.Request(
+                delete_url, data=delete_data,
+                headers={"Authorization": f"Bearer {token}",
+                         "Content-Type": "application/x-www-form-urlencoded"},
+            )
+            urllib.request.urlopen(delete_req)
+        except Exception:
+            pass
+
+        return not is_quip
+    except Exception:
+        return False
+
+
 def cmd_canvas_create(args):
     """Create a new canvas."""
     token = resolve_token("bot" if args.bot else "user")
@@ -445,6 +486,14 @@ def cmd_canvas_create(args):
     else:
         print("Error: Provide --content or --content-file.", file=sys.stderr)
         sys.exit(EXIT_USAGE)
+
+    # Test Canvas API availability to ensure editable canvases
+    if not _test_canvas_api_availability(token):
+        print(
+            "Warning: Canvas API test failed or workspace produces non-editable (quip) canvases. "
+            "Run 'canvas probe' to diagnose. Proceeding anyway.",
+            file=sys.stderr,
+        )
 
     # Create the canvas — try full content first, fall back to chunked
     max_create_size = 3000

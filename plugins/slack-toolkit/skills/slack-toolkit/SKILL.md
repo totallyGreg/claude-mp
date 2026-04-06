@@ -1,7 +1,7 @@
 ---
 name: slack-toolkit
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 compatibility: Requires python3 for slacker.py CLI execution
 license: MIT
 description: >-
@@ -11,7 +11,8 @@ description: >-
   slack canvas", "update slack canvas", "create slack canvas", "rewrite
   slack canvas", "add slack reaction", "remove slack reaction", "get slack
   thread", "slack channel history", "parse slack url", "slack without mcp",
-  "slack api curl".
+  "slack api curl". Do NOT use for channel/message operations when the Slack
+  MCP server is available — use the official MCP plugin instead.
 ---
 
 # Slack Toolkit
@@ -40,7 +41,7 @@ Slack has two incompatible canvas backends. The type is determined at the **work
 - **Quip-type** (`filetype: "quip"`): Legacy format. Read works (auto HTML→markdown). `canvases.edit` (append/replace) **does not work**. Content limited to ~4KB per create call. Inline comments not accessible via API.
 - **New Canvas API** (all other filetypes): Full CRUD via `canvases.create`/`canvases.edit`. Auto-chunked for large content.
 
-Run `canvas probe` to detect your workspace type before creating canvases. On quip workspaces, updating content requires creating a new canvas with the full content.
+The `canvas create` command automatically tests Canvas API availability before creating canvases. Run `canvas probe` to detect your workspace type. On quip workspaces, updating content requires creating a new canvas with the full content.
 
 ## CLI Reference
 
