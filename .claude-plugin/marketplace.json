@@ -36,7 +36,7 @@
       "name": "skillsmith",
       "description": "Guide for forging effective Claude skills with marketplace integration",
       "category": "development",
-      "version": "6.8.0",
+      "version": "6.9.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
@@ -58,7 +58,7 @@
       "name": "archivist",
       "description": "Personal Knowledge Management expert for Obsidian vaults with dual-skill architecture: vault-architect (create structures) and vault-curator (evolve content)",
       "category": "productivity",
-      "version": "1.17.0",
+      "version": "1.18.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
