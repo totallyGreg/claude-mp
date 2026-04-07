@@ -17,6 +17,24 @@ Check that `$ARGUMENTS` points to a directory containing `SKILL.md`. If not foun
 for hooks → plugin-dev:hook-development, for commands → plugin-dev:command-development.
 ```
 
+## Step 0a: Remap installed-cache paths to source
+
+Resolve `$ARGUMENTS` to a real absolute path, following any symlinks (`realpath` or Python `Path.resolve()` — not `abspath()`).
+
+Check whether the resolved path starts with `$HOME/.claude/plugins/`. If it does not, skip the rest of this step and continue with the resolved path.
+
+If it does start with `$HOME/.claude/plugins/`:
+
+1. Extract the **skill name** from the resolved path: it is the final path component (the leaf directory name). For example, from `~/.claude/plugins/marketplaces/totally-tools/plugins/skillsmith/skills/skillsmith/` the skill name is `skillsmith`.
+2. Read the repo's `.claude-plugin/marketplace.json`. For each plugin entry that has a local `source` field: check whether the file `<source>/skills/<skill-name>/SKILL.md` exists on disk. Collect all matching entries.
+3. If **exactly one** match is found:
+   - Notify the user: `Path remapped from installed cache to source: <source>/skills/<skill-name>/`
+   - Set the effective path to `<source>/skills/<skill-name>/` and continue
+4. If **zero** matches (third-party plugin not in this repo) or **multiple** matches (ambiguous):
+   - Abort with: `The path points to the installed cache — no unique source found in marketplace.json. Pass the source repo path manually.`
+
+After this step, all subsequent steps use the remapped source path.
+
 ## Step 0b: Auto-migrate IMPROVEMENT_PLAN.md (if present)
 
 If the skill directory contains `IMPROVEMENT_PLAN.md` and no `README.md`, migrate automatically:
@@ -82,7 +100,13 @@ Determine bump type:
 - **MINOR**: New capabilities, backward-compatible improvements
 - **MAJOR**: Breaking changes (remove flags, change output format)
 
-Update `metadata.version` in the skill's `SKILL.md` frontmatter and the plugin's `plugin.json`.
+**Pre-flight**: Before writing any version changes, verify that `../../.claude-plugin/plugin.json` exists relative to the skill directory (e.g., for a skill at `plugins/skillsmith/skills/skillsmith/`, the file is `plugins/skillsmith/.claude-plugin/plugin.json`). If the file is not found at that path, abort Step 5 with an advisory — do not modify SKILL.md until the file is confirmed present.
+
+Then update both files:
+1. Update `metadata.version` in the skill's `SKILL.md` frontmatter
+2. Update `"version"` in `../../.claude-plugin/plugin.json` — where `../../` is relative to the skill directory
+
+Verify both files show the same version string before proceeding to Step 6. (`scripts/sync.py` reads `plugin.json` first — if it is not updated, `marketplace.json` will not reflect the new version.)
 
 ## Step 6: Sync marketplace
 
