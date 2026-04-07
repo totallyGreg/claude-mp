@@ -193,6 +193,9 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 5. Apply approved changes with confirmation
 
 ### Visualization: Canvas Map Generation
+
+> **Canvas disambiguation:** Archivist handles **Obsidian JSON Canvas** files (`.canvas` in the vault) — visual knowledge maps showing note connections. These are NOT Slack Canvases, which are HTML/markdown documents handled by Slack tools.
+
 1. Run scope selection
 2. Dry-run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/generate_canvas.py ${VAULT_PATH} --scope "${SCOPE}" --dry-run`
 3. Review node/edge counts with user
@@ -293,14 +296,14 @@ Write only stable facts — not task state. Include: active fileClasses observed
 
 **Zone-based write tiers** (from `designated_output_zones`, `curator_write_zones`, `architect_write_zones` in `.local.md`):
 
-| Tier | Zone | Examples | Write Behavior |
-|------|------|----------|----------------|
-| **Generated** | `designated_output_zones` | `800 Generated/` | Write freely, no confirmation. Use for intermediate output, scratch files (add "scratch" to filename for ephemeral), and staging before move. |
-| **Content** | `curator_write_zones` | `700 Notes/`, `500 ♽ Cycles/` | Single-note: auto-proceed, show summary. Bulk (>10 files): require confirmation. |
-| **Structural** | `architect_write_zones` | `900 📐Templates/`, `.base` files, folder notes | Always dry-run preview + explicit confirmation. Show full diff. Never auto-apply. |
-| **Unknown** | not in any zone | Any other path | Refuse. Explain which zone covers it, or ask user to add it to `.local.md`. |
+| Tier | Zone | Examples | Create | Edit existing |
+|------|------|----------|--------|---------------|
+| **Generated** | `designated_output_zones` | `800 Generated/` | Free — no confirmation. Use for drafts, scratch files ("scratch" in filename = ephemeral). | Require confirmation. |
+| **Content** | `curator_write_zones` | `700 Notes/`, `500 ♽ Cycles/` | Auto-proceed, show summary. Bulk (>10): confirm. | Require confirmation. |
+| **Structural** | `architect_write_zones` | `900 📐Templates/`, `.base` files, folder notes | Dry-run preview + explicit confirmation. | Dry-run preview + explicit confirmation. |
+| **Unknown** | not in any zone | Any other path | Refuse — explain which zone covers it, or ask user to add it to `.local.md`. | Refuse. |
 
-**Generate-then-move pattern:** For content that belongs in a structural or content zone, generate first in `800 Generated/` (frictionless), then offer to move with a single confirmation. Never write directly into a structural zone without confirmation.
+**Generate-then-move pattern:** Draft new content in `800 Generated/` (free), then move to its final location without confirmation — unless a file already exists at the destination (name conflict), in which case ask how to resolve before proceeding.
 
 **`_vault-profile.md`:** Use section-based replacement only (see Session Learning). Never full-file overwrite.
 
