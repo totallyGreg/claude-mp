@@ -41,6 +41,7 @@ set -e
 if [ -f ".claude-plugin/marketplace.json" ]; then
     python3 scripts/validate.py --staged
     python3 scripts/sync.py
+    git add .claude-plugin/marketplace.json
 fi
 """
 
