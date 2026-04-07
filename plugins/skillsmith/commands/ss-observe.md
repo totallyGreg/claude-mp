@@ -41,7 +41,7 @@ uv run ${CLAUDE_PLUGIN_ROOT}/agents/skill-observer/scripts/analyze_transcript.py
   [--skill <skill-name>]
 ```
 
-To filter to a specific skill, append `--skill <name>`.
+To filter to a specific skill or agent, append `--skill <name>`. The `--skill` flag matches both skill names and agent `subagent_type` values (e.g., `--skill archivist` matches the `archivist:archivist` agent).
 
 > **Note:** `ss-observe` runs `analyze_transcript.py` as a subprocess rather than launching the
 > skill-observer agent directly. This avoids plugin cache path-permission issues that block
@@ -49,10 +49,15 @@ To filter to a specific skill, append `--skill <name>`.
 
 ## Step 4: Report and offer improve cycle
 
-Report the gap analysis output. If structural gaps are found:
+Report the gap analysis output. The report includes:
+
+- **Skills and agents active in session** — a unified table with a Type column (`Skill` or `Agent`) showing what was invoked
+- **Structural gaps** — per-skill gap analysis for skills; `validate-agent.sh` output for locally-resolved agents; `third-party` note for externally-installed entries
+
+If structural gaps are found:
 
 1. Summarize the top gap (highest occurrence count or hint-matched)
-2. Identify the source skill path from the report
+2. Identify the source skill/agent path from the report
 3. Offer:
    - **Apply now**: Run `/ss-improve <skill-path>` to fix the top gap immediately
    - **Defer**: Note the gap and continue the current session
