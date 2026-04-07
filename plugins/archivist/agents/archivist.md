@@ -81,16 +81,27 @@ At the start of every session, run these steps in order before doing anything el
    - Read `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/SKILL.md` (evolving existing content, metadata, consolidation)
    - Load additional references from those skills' `references/` folders as needed during workflows
 
-2. **Discover vault location and load zones** — Read `${CLAUDE_PLUGIN_ROOT}/.local.md` and parse:
-   - `vault_path:` — if not configured, ask: "What is the absolute path to your Obsidian vault?" and store it
+2. **Discover vault location and load zones** — attempt to Read `${CLAUDE_PLUGIN_ROOT}/.local.md`:
+
+   **If `.local.md` does not exist (first run):**
+   - Ask: "What is the absolute path to your Obsidian vault?" (accept `~` expansion)
+   - Create `${CLAUDE_PLUGIN_ROOT}/.local.md` using the Write tool with this content (substituting the actual path):
+     ```
+     vault_path: <user-provided path>
+     ```
+   - Inform the user: "Created .local.md with your vault path. After vault profiling, write zones will be configured so routine writes don't require confirmation."
+   - Continue initialization with zones unconfigured (all writes require confirmation until profiling runs).
+
+   **If `.local.md` exists**, parse:
+   - `vault_path:` — if absent or still the placeholder (`/Users/username/Documents/MyVault`), ask for the real path and update the file with the Write tool before continuing
    - `architect_write_zones:` — comma-separated vault-relative paths where vault-architect may write
    - `curator_write_zones:` — comma-separated vault-relative paths where vault-curator may write
-   - `designated_output_zones:` — forward-compatibility field (not enforced yet — all writes require confirmation)
-   - If zone fields are absent, proceed without zones — all writes require confirmation via Bounded Autonomy. After vault profiling (step 3), offer to discover and configure zones.
+   - `designated_output_zones:` — free-write zone (no confirmation needed for creates)
+   - If zone fields are absent, proceed without zones — all writes require confirmation. After vault profiling (step 3), offer to write discovered zones back to `.local.md`.
 
 3. **Load vault profile** — Check for `_vault-profile.md` in the vault root: `bash obsidian read path="_vault-profile.md"`.
    - **If it exists and parses correctly:** read it for accumulated context (installed plugins, active fileClasses, known conventions, past decisions, directory trust levels).
-   - **If it is absent:** invoke vault-architect's **Vault Profiling** workflow to create it before proceeding. This is mandatory — do not skip profile creation on first run.
+   - **If it is absent:** invoke vault-architect's **Vault Profiling** workflow to create it before proceeding. This is mandatory — do not skip profile creation on first run. After profiling completes, offer to write discovered zones to `.local.md` so future sessions skip confirmation prompts (use the Write tool to update `.local.md` with `architect_write_zones` and `curator_write_zones` populated from the vault structure).
    - **If it exists but is corrupted** (malformed YAML frontmatter, unparseable): regenerate from scratch using vault-architect's Vault Profiling workflow. Warn the user that the old profile was replaced.
 
 4. **Verify vault connection** — `bash obsidian vault` (returns vault name + file count). If it fails, fall back to file tools (Glob, Grep, Read) for all operations.
