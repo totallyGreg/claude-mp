@@ -383,50 +383,65 @@ def parse_slack_url(url):
 
 
 # ---------------------------------------------------------------------------
+# Canvas helpers
+# ---------------------------------------------------------------------------
+def _downgrade_headings(content):
+    """Downgrade H4+ headings to H3. Slack Canvas does not support H4+ (canvas_creation_failed)."""
+    if re.search(r"^#{4,}\s", content, flags=re.MULTILINE):
+        print(
+            "Warning: Markdown contains H4+ headings (####) which are not supported by Slack Canvas "
+            "(causes canvas_creation_failed). Downgrading H4+ to H3.",
+            file=sys.stderr,
+        )
+        content = re.sub(r"^#{4,}(\s)", r"###\1", content, flags=re.MULTILINE)
+    return content
+
+
+# ---------------------------------------------------------------------------
 # Commands: Canvas
 # ---------------------------------------------------------------------------
 def cmd_canvas_read(args):
-    """Read a canvas and output as markdown."""
+    """Read a canvas and output as markdown.
+
+    There is no official canvases.read API. Content is fetched via files.info → url_private,
+    which works reliably for quip-type canvases (HTML) and may work for new-type canvases
+    depending on workspace configuration. Content format is detected by inspection.
+    """
     token = resolve_token("bot" if args.bot else "user")
 
-    # Get file info to determine canvas type
     info = slack_post("files.info", token, file=args.canvas_id)
     file_data = info.get("file", {})
-    filetype = file_data.get("filetype", "")
+    filetype = file_data.get("filetype", "unknown")
+    url_private = file_data.get("url_private")
 
-    if filetype == "quip":
-        # Quip-type canvas: download HTML and convert to markdown
-        url_private = file_data.get("url_private")
-        if not url_private:
-            print("Error: No url_private in file info.", file=sys.stderr)
-            sys.exit(EXIT_API)
-        html_content = slack_download(url_private, token)
-        markdown = html_to_markdown(html_content)
-        print(markdown)
+    if not url_private:
+        print(
+            f"Error: Slack returned no url_private for this canvas (filetype: {filetype}). "
+            f"There is no official API to read new-type canvas content — "
+            f"canvas read is only reliably supported for quip-type canvases.",
+            file=sys.stderr,
+        )
+        print(json.dumps({
+            "canvas_id": args.canvas_id,
+            "title": file_data.get("title", ""),
+            "filetype": filetype,
+            "permalink": file_data.get("permalink", ""),
+        }))
+        sys.exit(EXIT_API)
+
+    raw = slack_download(url_private, token)
+
+    if raw.lstrip().startswith("<"):
+        # HTML content (quip canvas or equivalent) — convert to markdown
+        print(html_to_markdown(raw))
     else:
-        # New Canvas API type: use canvases.sections.lookup
-        try:
-            result = slack_post_json("canvases.sections.lookup", token, {
-                "canvas_id": args.canvas_id,
-                "criteria": {},
-            })
-            sections = result.get("sections", [])
-            if not sections:
-                print("(empty canvas)")
-                return
-            for section in sections:
-                content = section.get("markdown", section.get("content", ""))
-                if content:
-                    print(content)
-        except SystemExit as e:
-            if e.code == EXIT_API:
-                # Fallback: try reading as file with url_private
-                url_private = file_data.get("url_private")
-                if url_private:
-                    content = slack_download(url_private, token)
-                    print(content)
-                else:
-                    raise
+        # Unknown format — emit raw with an informational warning
+        if filetype != "quip":
+            print(
+                f"Note: Canvas filetype '{filetype}' returned non-HTML content. Emitting raw.",
+                file=sys.stderr,
+            )
+        print(raw)
 
 
 def _test_canvas_api_availability(token):
@@ -495,53 +510,16 @@ def cmd_canvas_create(args):
             file=sys.stderr,
         )
 
-    # Create the canvas — try full content first, fall back to chunked
-    max_create_size = 3000
-    content_bytes = len(content.encode("utf-8"))
+    # Pre-flight: Slack Canvas only supports up to H3 headings — H4+ cause canvas_creation_failed.
+    content = _downgrade_headings(content)
 
-    if content_bytes <= max_create_size:
-        result = slack_post_json("canvases.create", token, {
-            "title": args.title,
-            "document_content": {"type": "markdown", "markdown": content},
-        })
-        canvas_id = result.get("canvas_id", "unknown")
-        print(json.dumps({"canvas_id": canvas_id}))
-    else:
-        # Check if workspace supports chunked appends (non-quip)
-        # by creating with first chunk, checking type, then appending rest
-        split_pos = content.rfind("\n\n", 0, max_create_size)
-        if split_pos == -1:
-            split_pos = max_create_size
-        first_part = content[:split_pos]
-        rest = content[split_pos:].lstrip("\n")
-
-        result = slack_post_json("canvases.create", token, {
-            "title": args.title,
-            "document_content": {"type": "markdown", "markdown": first_part},
-        })
-        canvas_id = result.get("canvas_id", "unknown")
-
-        # Detect if workspace produces quip canvases
-        info = slack_post("files.info", token, file=canvas_id)
-        is_quip = info.get("file", {}).get("filetype") == "quip"
-
-        if is_quip and rest:
-            print(
-                f"Warning: Workspace produces quip-type canvases. "
-                f"Content was truncated to ~{max_create_size} bytes "
-                f"({content_bytes - len(rest.encode('utf-8'))}/{content_bytes}). "
-                f"canvases.edit is not supported on quip canvases.",
-                file=sys.stderr,
-            )
-            print(json.dumps({"canvas_id": canvas_id, "truncated": True,
-                               "bytes_written": content_bytes - len(rest.encode("utf-8")),
-                               "bytes_total": content_bytes}))
-        elif rest:
-            time.sleep(1)
-            chunks = _canvas_append_chunked(canvas_id, rest, token)
-            print(json.dumps({"canvas_id": canvas_id, "chunks": 1 + chunks}))
-        else:
-            print(json.dumps({"canvas_id": canvas_id}))
+    # Create the canvas in a single call — canvases.create handles large payloads (20KB+ tested).
+    result = slack_post_json("canvases.create", token, {
+        "title": args.title,
+        "document_content": {"type": "markdown", "markdown": content},
+    })
+    canvas_id = result.get("canvas_id", "unknown")
+    print(json.dumps({"canvas_id": canvas_id}))
 
 
 def _canvas_append_chunked(canvas_id, content, token, chunk_size=3000):
@@ -714,6 +692,92 @@ def cmd_canvas_rewrite(args):
 
 
 # ---------------------------------------------------------------------------
+# Commands: Canvas (continued)
+# ---------------------------------------------------------------------------
+def cmd_canvas_sections_lookup(args):
+    """Find section IDs within a canvas for use with canvas update --replace."""
+    token = resolve_token("bot" if args.bot else "user")
+    criteria = {}
+    if args.section_types:
+        criteria["section_types"] = args.section_types
+    if args.contains_text:
+        criteria["contains_text"] = args.contains_text
+    result = slack_post_json("canvases.sections.lookup", token, {
+        "canvas_id": args.canvas_id,
+        "criteria": criteria,
+    })
+    print(json.dumps(result))
+
+
+def cmd_canvas_delete(args):
+    """Permanently delete a canvas."""
+    token = resolve_token("bot" if args.bot else "user")
+    slack_post_json("canvases.delete", token, {"canvas_id": args.canvas_id})
+    print(json.dumps({"ok": True, "canvas_id": args.canvas_id}))
+
+
+def cmd_canvas_access_set(args):
+    """Grant or change canvas access for users or channels."""
+    token = resolve_token("bot" if args.bot else "user")
+    if not args.channel_ids and not args.user_ids:
+        print("Error: Provide --channel-ids or --user-ids.", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+    if args.channel_ids and args.user_ids:
+        print("Error: --channel-ids and --user-ids are mutually exclusive.", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+    payload = {"canvas_id": args.canvas_id, "access_level": args.access_level}
+    if args.channel_ids:
+        payload["channel_ids"] = args.channel_ids
+    else:
+        payload["user_ids"] = args.user_ids
+    slack_post_json("canvases.access.set", token, payload)
+    print(json.dumps({"ok": True}))
+
+
+def cmd_canvas_access_delete(args):
+    """Revoke canvas access from users or channels."""
+    token = resolve_token("bot" if args.bot else "user")
+    if not args.channel_ids and not args.user_ids:
+        print("Error: Provide --channel-ids or --user-ids.", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+    if args.channel_ids and args.user_ids:
+        print("Error: --channel-ids and --user-ids are mutually exclusive.", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+    payload = {"canvas_id": args.canvas_id}
+    if args.channel_ids:
+        payload["channel_ids"] = args.channel_ids
+    else:
+        payload["user_ids"] = args.user_ids
+    slack_post_json("canvases.access.delete", token, payload)
+    print(json.dumps({"ok": True}))
+
+
+def cmd_canvas_channel_create(args):
+    """Create a channel-pinned canvas tab (conversations.canvases.create)."""
+    token = resolve_token("bot" if args.bot else "user")
+    content = None
+    if args.content_file:
+        try:
+            with open(args.content_file, "r") as f:
+                content = f.read()
+        except OSError as e:
+            print(f"Error: Cannot read file — {e}", file=sys.stderr)
+            sys.exit(EXIT_USAGE)
+    elif args.content:
+        content = args.content
+    if content:
+        content = _downgrade_headings(content)
+    payload = {"channel_id": args.channel_id}
+    if content:
+        payload["document_content"] = {"type": "markdown", "markdown": content}
+    if args.title:
+        payload["title"] = args.title
+    result = slack_post_json("conversations.canvases.create", token, payload)
+    canvas_id = result.get("canvas_id", "unknown")
+    print(json.dumps({"canvas_id": canvas_id, "channel_id": args.channel_id}))
+
+
+# ---------------------------------------------------------------------------
 # Commands: Reactions
 # ---------------------------------------------------------------------------
 def cmd_react(args):
@@ -835,6 +899,50 @@ def build_parser():
     # canvas probe
     cp = canvas_sub.add_parser("probe", help="Detect if workspace produces quip or new-type canvases")
     cp.set_defaults(func=cmd_canvas_probe)
+
+    # canvas sections (subgroup)
+    cs = canvas_sub.add_parser("sections", help="Canvas section operations")
+    sections_sub = cs.add_subparsers(dest="sections_command", required=True)
+
+    # canvas sections lookup
+    csl = sections_sub.add_parser("lookup", help="Find section IDs by type or text (for targeted edits)")
+    csl.add_argument("canvas_id", help="Canvas file ID (F-prefixed)")
+    csl.add_argument("--section-types", nargs="+", choices=["h1", "h2", "h3", "any_header"],
+                     metavar="TYPE", help="Filter by section type: h1, h2, h3, any_header")
+    csl.add_argument("--contains-text", metavar="TEXT", help="Filter sections containing this text")
+    csl.set_defaults(func=cmd_canvas_sections_lookup)
+
+    # canvas delete
+    cd = canvas_sub.add_parser("delete", help="Permanently delete a canvas")
+    cd.add_argument("canvas_id", help="Canvas file ID (F-prefixed)")
+    cd.set_defaults(func=cmd_canvas_delete)
+
+    # canvas channel-create
+    ccc = canvas_sub.add_parser("channel-create", help="Create a channel-pinned canvas tab")
+    ccc.add_argument("channel_id", help="Channel ID to attach canvas to")
+    ccc.add_argument("--title", help="Canvas title")
+    ccc.add_argument("--content", help="Markdown content")
+    ccc.add_argument("--content-file", help="Path to markdown file")
+    ccc.set_defaults(func=cmd_canvas_channel_create)
+
+    # canvas access (subgroup)
+    ca = canvas_sub.add_parser("access", help="Canvas access management")
+    access_sub = ca.add_subparsers(dest="access_command", required=True)
+
+    # canvas access set
+    cas = access_sub.add_parser("set", help="Grant or change canvas access")
+    cas.add_argument("canvas_id", help="Canvas file ID (F-prefixed)")
+    cas.add_argument("access_level", choices=["read", "write", "owner"], help="Access level to grant")
+    cas.add_argument("--channel-ids", nargs="+", metavar="CHANNEL_ID", help="Channel IDs (mutually exclusive with --user-ids)")
+    cas.add_argument("--user-ids", nargs="+", metavar="USER_ID", help="User IDs (mutually exclusive with --channel-ids)")
+    cas.set_defaults(func=cmd_canvas_access_set)
+
+    # canvas access delete
+    cad = access_sub.add_parser("delete", help="Revoke canvas access")
+    cad.add_argument("canvas_id", help="Canvas file ID (F-prefixed)")
+    cad.add_argument("--channel-ids", nargs="+", metavar="CHANNEL_ID", help="Channel IDs to revoke")
+    cad.add_argument("--user-ids", nargs="+", metavar="USER_ID", help="User IDs to revoke")
+    cad.set_defaults(func=cmd_canvas_access_delete)
 
     # --- react ---
     react_parser = subparsers.add_parser("react", help="Add reaction to message")

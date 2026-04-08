@@ -1,7 +1,7 @@
 ---
 name: slack-toolkit
 metadata:
-  version: "1.2.0"
+  version: "1.5.0"
 compatibility: Requires python3 for slacker.py CLI execution
 license: MIT
 description: >-
@@ -50,21 +50,39 @@ All commands: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/slack-toolkit/scripts/slacke
 ### Canvas Operations (MCP gaps)
 
 ```bash
-# Read canvas (auto-detects quip vs new-type, outputs markdown)
+# Read canvas content via url_private (reliable for quip canvases; new-type support varies by workspace)
+# There is no official canvases.read API — content is fetched via files.info → url_private.
+# On failure, outputs JSON metadata (canvas_id, title, filetype, permalink) and exits non-zero.
 slacker.py canvas read <canvas_id>
 
-# Create standalone canvas (always new-type)
+# Create standalone canvas
 slacker.py canvas create <title> --content "# Markdown content"
 slacker.py canvas create <title> --content-file /path/to/file.md
+
+# Create channel-pinned canvas tab (one per channel; use read to find existing)
+slacker.py canvas channel-create <channel_id> --title "Title" --content-file /path/to/file.md
 
 # Update canvas — append from file (recommended for code blocks / large content)
 slacker.py canvas update <canvas_id> --append-file /path/to/content.md
 
-# Update canvas — append inline (small additions only)
-slacker.py canvas update <canvas_id> --append "## New Section\n\nContent here"
-
 # Update canvas — replace a section (requires section_id from read)
 slacker.py canvas update <canvas_id> --replace <section_id> --content-file /path/to/content.md
+
+# Find section IDs for targeted in-place edits (atomic edit workflow)
+slacker.py canvas sections lookup <canvas_id> --section-types h2 --contains-text "Status"
+# → {"sections": [{"id": "temp:C:abc123..."}]}
+
+# Then replace that section atomically (no canvas recreation needed)
+slacker.py canvas update <canvas_id> --replace temp:C:abc123... --content-file new-status.md
+
+# Delete a canvas permanently (irreversible)
+slacker.py canvas delete <canvas_id>
+
+# Manage canvas access
+slacker.py canvas access set <canvas_id> read|write|owner --channel-ids C1 C2
+slacker.py canvas access set <canvas_id> write --user-ids U1 U2
+slacker.py canvas access delete <canvas_id> --channel-ids C1
+slacker.py canvas access delete <canvas_id> --user-ids U1
 
 # Rewrite quip canvas as new-type (creates new canvas, outputs both IDs)
 slacker.py canvas rewrite <canvas_id>
@@ -73,7 +91,7 @@ slacker.py canvas rewrite <canvas_id>
 slacker.py canvas probe
 ```
 
-Canvas content uses markdown. On non-quip workspaces, auto-chunks content >3KB. On quip workspaces, large content is truncated with a warning. See `references/canvas-operations.md` for details.
+Canvas content uses markdown. `canvas create` and `canvas channel-create` send full content in one call (large payloads supported); H4+ headings are auto-downgraded to H3 with a warning. `canvas update --append-file` auto-chunks appends into ~4KB operations. On quip workspaces, create still works but append/replace does not. `--channel-ids` and `--user-ids` are mutually exclusive for access commands. See `references/canvas-operations.md` and `references/api-reference.md` for details.
 
 ### Reactions (MCP gap)
 
