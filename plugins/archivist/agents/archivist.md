@@ -141,6 +141,38 @@ Both skill files are loaded at initialization (see above). Use them as authorita
 - `migration-strategies.md` — Migration patterns
 - `consolidation-protocol.md` — Merge semantics, conflict resolution, rollback
 
+### Canvas Types
+
+The vault uses four canvas types. Recommend and generate the correct type based on what the user is trying to understand.
+
+**Impact Map** — "If I change X, what else breaks or needs updating?"
+- Nodes: vault resources (notes, templates, bases, canvases, external systems)
+- Edges: `embeds`, `sources from`, `scoped by`, `drives`, `created from`, `listed in`, `documents`
+- Recommend when: user changes a template, schema, base, or moves files
+- Example: `200 Canvases/Customer Note Architecture.canvas`
+
+**Workflow Map** — "How does this process work, and what composes it?"
+- Nodes: triggers, steps, tools, outputs, sub-workflows
+- Edges: `triggers`, `executes`, `produces`, `composed of`, `requires`
+- Recommend when: user is documenting a process or asking "how does X work"
+- Example: Customer Note creation flow (QuickAdd → template → properties → base views)
+
+**Architecture Map** — "How is this domain structured?"
+- Nodes: folders, collections, note types, relationships
+- Edges: `contains`, `inherits from`, `scoped to`, `indexes`
+- Recommend when: user wants an overview of a domain's structure; auto-generate during vault analysis
+- Example: A map of the `600 Projects` structure
+
+**Knowledge Map** — "What connects to what by topic?"
+- Nodes: notes and their wikilinks
+- Edges: `links to`, `referenced by`
+- Recommend when: user wants to explore a topic cluster; auto-generate via `generate_canvas.py`
+- Example: Output of `/canvas` command on a folder
+
+**Novel uses:** Canvas types can be layered. A workflow map may embed an impact map node; an architecture map may link to impact maps for each sub-collection. When a canvas serves two purposes, name it by its primary purpose and note the secondary purpose in a text node at the top.
+
+**See also:** `700 Notes/Notes/Canvas Types.md` in the vault for the full reference, including identification heuristics and naming conventions.
+
 ## Workflow Orchestration
 
 ### Scope Selection (Start Here for Intelligence Workflows)
@@ -213,6 +245,31 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 4. Execute (remove --dry-run) to write `.canvas` file
 5. Report canvas path and stats
 
+### Change Impact Map: Consult & Update
+
+A **change impact map** is a canvas (typically in `200 Canvases/`) where nodes are vault resources and edges carry labeled relationships. These answer: "If I change X, what else needs updating?"
+
+**Standard edge label vocabulary:**
+- `embeds` — one resource is embedded inside another
+- `sources from` — a property value comes from an external system
+- `scoped by` — a filter/view is controlled by another resource's context
+- `drives` — a field enables a capability
+- `created from` — a note is instantiated from a template
+- `listed in` — a note appears in a base/view
+- `documents` — a canvas or note describes another resource
+
+> A canvas with unlabeled edges is a diagram. A canvas with labeled edges is documentation.
+
+**Before any structural change** (template edit, schema change, base filter change, frontmatter property add/remove, file move):
+1. Glob `200 Canvases/*.canvas` to check for a relevant impact map
+2. Read the canvas JSON and identify edges touching the resource being changed
+3. Note all downstream dependencies — anything via `embeds`, `scoped by`, or `drives` may need updates
+
+**After completing structural changes:**
+1. Update the impact map canvas — add/update nodes and edges
+2. Ensure all new relationships use labels from the standard vocabulary
+3. If no impact map exists for the changed resource type, offer to create one
+
 ### Vault Analysis
 1. Run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/analyze_vault.py ${VAULT_PATH}`
 2. Run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/validate_frontmatter.py ${VAULT_PATH}`
@@ -280,6 +337,7 @@ Offer the complementary skill's next action to close the loop:
 | MOC template | "Find orphaned notes to seed this MOC?" |
 | Folder restructure | "Generate canvas map to verify connections?" |
 | QuickAdd workflow | "Audit existing captures against this workflow?" |
+| New template or schema created | "Create or update a workflow note documenting the creation or capture workflow for this note type?" |
 
 | Completed (curator) | Offer (architect) |
 |---------------------|-------------------|
@@ -288,6 +346,7 @@ Offer the complementary skill's next action to close the loop:
 | Duplicates merged | "Build a MOC template to prevent future fragmentation?" |
 | Orphans surfaced | "Design a capture workflow to keep notes connected?" |
 | Canvas generated | "Add a Chronos timeline view for temporal context?" |
+| Workflow note created or modified | "Update the impact map canvas that documents this workflow's dependencies?" |
 
 ### Session Learning
 

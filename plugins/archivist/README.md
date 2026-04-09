@@ -54,7 +54,7 @@ Progressive disclosure:
 
 ## Version
 
-1.17.0
+1.19.0
 
 ## License
 
