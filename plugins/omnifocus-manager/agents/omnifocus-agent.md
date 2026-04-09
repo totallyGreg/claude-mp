@@ -141,6 +141,7 @@ Classify each user request and route accordingly:
 | "What's due this week?" | omnifocus-manager | `ofo list due-soon 7` |
 | "Show flagged tasks" | omnifocus-manager | `ofo list flagged` |
 | "Create a task" | omnifocus-manager | `ofo create --name "Task"` |
+| "Create structured project", "project with action groups" | omnifocus-manager | `manage_omnifocus.js bulk-create` |
 | "Search for tasks tagged @work" | omnifocus-manager | `ofo search "@work"` |
 | "How many items in my inbox?" | omnifocus-manager | `gtd-queries.js --action inbox-count` |
 | "Which projects are stalled?" | omnifocus-manager | `gtd-queries.js --action stalled-projects` |
@@ -247,6 +248,7 @@ When users request plugin creation, follow the CRITICAL workflow from omnifocus-
 1. Load omnifocus-manager SKILL.md
 2. Follow the plugin generation steps EXACTLY (generate_plugin.js → validate-plugin.sh)
 3. Never use Write/Edit tools for .js/.omnijs files
+4. Never write ad-hoc inline Omni Automation scripts — check ofo CLI first; structured project with action groups → use the established bulk-create tooling (currently `manage_omnifocus.js bulk-create`)
 
 ## Execution Rules
 
