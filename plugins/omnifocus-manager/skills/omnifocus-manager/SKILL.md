@@ -6,7 +6,7 @@ description: |
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 license: MIT
 metadata:
-  version: 10.3.0
+  version: 10.4.1
   author: totally-tools
 compatibility:
   platforms: [macos]
@@ -104,6 +104,7 @@ scripts/ofo drop <id-or-omnifocus-url> --all # Drop all occurrences (stops repea
 scripts/ofo health                           # System health: inbox, overdue, flagged (single call)
 scripts/ofo create --name "Task" --project "Work" --due 2026-12-31
 scripts/ofo update <id> --name "New name" --flagged
+scripts/ofo update <id> --note "text"                # Replace task note entirely
 scripts/ofo update <id> --note-append "text"         # Append text to existing note
 scripts/ofo search "meeting"                 # Search by name/note
 scripts/ofo list inbox                       # List inbox tasks
