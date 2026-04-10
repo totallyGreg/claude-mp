@@ -1,7 +1,7 @@
 ---
 name: slack-toolkit
 metadata:
-  version: "1.5.0"
+  version: "1.5.1"
 compatibility: Requires python3 for slacker.py CLI execution
 license: MIT
 description: >-
@@ -125,8 +125,10 @@ slacker.py parse-url "https://workspace.slack.com/archives/C0123/p17682552897880
 ## Output Contract
 
 - **stdout**: JSON (compact, parseable) or markdown (canvas read)
-- **stderr**: Human-readable errors
+- **stderr**: Human-readable errors and pre-flight warnings (speculative — do not treat as failures)
 - **Exit codes**: 0=success, 1=usage, 2=auth, 3=API error, 4=rate limited
+
+**API response trust:** `{"ok": true}` is authoritative — no verification read needed. Pre-flight warnings on stderr (e.g., quip detection) are heuristics emitted *before* the call — if the call returns `ok: true`, the operation succeeded regardless.
 
 ## Thread URL Parsing
 

@@ -44,6 +44,10 @@ Slack has two incompatible canvas backends. The type is determined at the **work
 | Inline comments | Trapped in Quip's proprietary format — not accessible via API | Accessible as threaded messages |
 | Content size | Single `canvases.create` call — no reliable append | Auto-chunked via `canvases.edit` appends |
 
+### Quip Detection Reliability
+
+The `filetype: "quip"` check (via `files.info`) is a **pre-flight heuristic**, not a gate. Some canvases carry `filetype: "quip"` metadata but still accept `canvases.edit` calls successfully — particularly canvases created via `conversations.canvases.create` or through migration workflows. The CLI emits a warning *before* attempting the edit, not after. If the subsequent call returns `{"ok": true}`, the update succeeded regardless of the warning. Treat `{"ok": true}` as authoritative.
+
 ### Detecting Workspace Canvas Type
 
 Use `canvas probe` to determine what type of canvases your workspace produces **before** creating content:

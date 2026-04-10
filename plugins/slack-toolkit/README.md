@@ -47,6 +47,7 @@ python3 skills/slack-toolkit/scripts/slacker.py parse-url "https://workspace.sla
 
 | Version | Date | Overall | Conc | Comp | Spec | Disc | Desc | Changes |
 |---------|------|---------|------|------|------|------|------|---------|
+| 1.5.1 | 2026-04-10 | 98 | 100 | 90 | 100 | 100 | 100 | Add API response trust guidance; clarify quip detection is a pre-flight heuristic; no verification read needed after ok:true |
 | 1.5.0 | 2026-04-08 | 98 | 100 | 90 | 100 | 100 | 100 | Fix canvas read (remove broken sections.lookup path, unify on url_private); add canvas sections lookup |
 | 1.4.0 | 2026-04-08 | 98 | 100 | 90 | 100 | 100 | 100 | Add canvas delete, channel-create, access set/delete commands; comprehensive API reference |
 | 1.3.0 | 2026-04-08 | 98 | 100 | 90 | 100 | 100 | 100 | Remove 3KB create limit (API handles 20KB+); add H4+ heading downgrade pre-flight |
@@ -58,7 +59,7 @@ python3 skills/slack-toolkit/scripts/slacker.py parse-url "https://workspace.sla
 
 ### Current Metrics
 
-**Score: 98/100** (Excellent) — 2026-04-08
+**Score: 98/100** (Excellent) — 2026-04-10
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|

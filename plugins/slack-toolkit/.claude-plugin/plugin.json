@@ -1,6 +1,6 @@
 {
   "name": "slack-toolkit",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Slack Web API access via Python CLI for Canvas CRUD, reactions, threads, and history.",
   "author": {
     "name": "J. Greg Williams",

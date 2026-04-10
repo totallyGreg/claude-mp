@@ -99,6 +99,8 @@ Update content or rename an existing canvas.
 
 **Per-operation size limit:** ~4KB per `canvases.edit` call. The CLI auto-chunks large appends across multiple calls.
 
+**Response trust:** `{"ok": true}` is authoritative — the change was applied server-side. A verification read after a successful edit is unnecessary. Only read back if the call returned a non-ok response.
+
 ---
 
 ### `canvases.sections.lookup`
