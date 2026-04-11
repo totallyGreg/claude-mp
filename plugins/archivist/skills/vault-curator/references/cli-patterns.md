@@ -78,6 +78,26 @@ obsidian move file="Note Title.md" to="New/Folder"
 | "Unknown command" | CLI version too old | Run `obsidian help` to check available commands |
 | Empty results from search/tags | Vault index not ready | Wait a moment, retry, or use Grep as fallback |
 
+## Graph Traversal Commands
+
+Use these for authoring, discovery, and health workflows. They require Obsidian's index (CLI must be running).
+
+| Command | Returns |
+|---------|---------|
+| `obsidian backlinks file="<name>"` | All notes linking TO this file |
+| `obsidian links file="<name>"` | All outgoing links FROM this file |
+| `obsidian unresolved` | Broken wikilinks vault-wide (add `sources=true` for source files) |
+| `obsidian orphans` | Files with no incoming links — MOC candidates or deletable |
+| `obsidian deadends` | Files with no outgoing links — cross-referencing candidates |
+
+**When to use:**
+- **Before authoring** a note: `backlinks` to understand what already connects to a target
+- **After rename / `obsidian move`**: `unresolved sources=true` to catch any broken references
+- **Health check**: `orphans` for MOC gap analysis; `deadends` for under-connected notes
+- **Discovery**: `links` to map a note's connection footprint before consolidating or moving it
+
+See `references/linking-discipline.md` for the full linking rationale and decision table.
+
 ## Fallback
 
 CLI requires Obsidian desktop app to be running. If unavailable, fall back to Grep/Glob/Read tools on vault files at `${VAULT_PATH}`.

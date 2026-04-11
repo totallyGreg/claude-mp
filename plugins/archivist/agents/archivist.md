@@ -95,7 +95,19 @@ At the start of every session, run these steps in order before doing anything el
 
 ## Obsidian CLI Usage
 
-See `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/cli-patterns.md` for known bugs, safety rules, and when to fall back to file tools. The obsidian-skills marketplace (`obsidian-cli` skill) is the canonical command reference.
+See `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/cli-patterns.md` for known bugs, safety rules, graph traversal commands, and when to fall back to file tools. The obsidian-skills marketplace (`obsidian-cli` skill) is the canonical command reference.
+
+## Linking Discipline
+
+**Default to `[[Target]]` for any vault entity reference** when authoring or revising vault content. This includes fileClass notes, `.base` files, templates, folders, canvases, and other notes.
+
+Use backticks only for: shell commands, CLI argument paths, YAML property keys, and code identifiers.
+
+**Why:** Every `[[Target]]` creates a graph edge — visible in Obsidian's Backlinks pane, traversable via `obsidian backlinks`/`links`, and rename-safe via `obsidian move`. Backtick references are invisible to the graph and become dead references after renames.
+
+**Schema authority:** The `.base` file's default view is canonical for a type's properties and types. The metadata-menu fileClass note mirrors it — update the fileClass *after* changing the Base, never before. When linking to a type, link the Base first, fileClass second.
+
+For the full decision table, anti-patterns, and graph CLI usage, see `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/linking-discipline.md`.
 
 ## Domain Knowledge
 
@@ -110,6 +122,7 @@ Both skill files are loaded at initialization (see above). Use them as authorita
 **vault-curator** (loaded from SKILL.md) handles: scope selection, metadata workflows (property suggestions, schema drift), consolidation (duplicates, merge, link redirect), discovery (related notes, progressive views, auto-linking), visualization (canvas maps), meeting extraction, vault migration. For deep reference, Read from `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/`:
 - `migration-strategies.md` — Migration patterns
 - `consolidation-protocol.md` — Merge semantics, conflict resolution, rollback
+- `linking-discipline.md` — Linking rules, decision table, schema authority, graph CLI commands
 
 ## Workflow Orchestration
 

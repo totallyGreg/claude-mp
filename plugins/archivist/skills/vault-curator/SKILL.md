@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.10.0"
+  version: "1.11.0"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -65,6 +65,7 @@ Before writing any note to the vault:
 1. **Frontmatter on line 1** — `---` must be the very first characters. A leading newline silently breaks Obsidian's property parsing and fileClass resolution. When using `obsidian append`, ensure content begins with `---` directly.
 2. **Linter compliance** — check `.obsidian/plugins/obsidian-linter/data.json` first (see vault-architect for key fields). Linter auto-reformats on save; non-compliant notes produce spurious git diffs.
 3. **Bulk validation**: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/validate_frontmatter.py ${VAULT_PATH}`
+4. **Wikilinks over backticks** — every reference to another vault entity (note, fileClass, `.base` file, template, folder, canvas) uses `[[Target]]`. Backticks are for shell commands, CLI argument paths, property keys, YAML values, and code identifiers. See `references/linking-discipline.md`.
 
 ### Write Boundaries
 
