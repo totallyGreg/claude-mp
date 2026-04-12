@@ -4,11 +4,12 @@
 # dependencies = []
 # ///
 """
-analyze_transcript.py — Skill gap detector for Claude Code session transcripts.
+analyze_transcript.py — Skill and agent gap detector for Claude Code session transcripts.
 
-Reads a session JSONL file, extracts Skill tool call invocations, groups subsequent
-tool calls by active skill, resolves skill name → source SKILL.md via marketplace.json,
-and reports structural gaps (tool patterns not covered by the skill's SKILL.md).
+Reads a session JSONL file, extracts Skill and Agent tool call invocations, groups
+subsequent tool calls by active skill, resolves skill name → source SKILL.md (or
+agent subagent_type → agent .md) via marketplace.json, and reports structural gaps.
+Agent definitions are validated via validate-agent.sh from the plugin-dev plugin.
 
 Usage:
     uv run analyze_transcript.py [--session <session-id-or-path>] [--skill <name>] [--hint <text>] [--format json|markdown]
@@ -26,8 +27,9 @@ Examples:
     # Combine session ID with a hint
     uv run analyze_transcript.py --session abc123 --hint "missed the version bump step"
 
-    # Filter to a specific skill
+    # Filter to a specific skill or agent (matches subagent_type)
     uv run analyze_transcript.py --session abc123 --skill skillsmith
+    uv run analyze_transcript.py --session abc123 --skill archivist
 
     # JSON output
     uv run analyze_transcript.py --session abc123 --format json
@@ -37,6 +39,7 @@ import json
 import sys
 import os
 import glob
+import subprocess
 from pathlib import Path
 from collections import defaultdict
 
@@ -96,8 +99,14 @@ def parse_session(session_path: Path) -> list[dict]:
 
 def extract_skill_invocations(messages: list[dict]) -> list[dict]:
     """
-    Extract all Skill tool calls from assistant messages.
-    Returns list of {skill: str, message_idx: int, timestamp: str, tool_call_id: str}
+    Extract all Skill and Agent tool calls from assistant messages.
+
+    Returns unified list of:
+      {skill: str, invocation_type: 'skill'|'agent', message_idx: int, timestamp: str, tool_call_id: str}
+
+    For Skill calls: skill = the skill name (e.g. "skillsmith:skillsmith")
+    For Agent calls: skill = the subagent_type (e.g. "archivist:archivist")
+    Agent calls missing subagent_type are skipped.
     """
     invocations = []
     for idx, msg in enumerate(messages):
@@ -107,17 +116,31 @@ def extract_skill_invocations(messages: list[dict]) -> list[dict]:
         if not isinstance(content, list):
             continue
         for block in content:
-            if (isinstance(block, dict)
-                    and block.get('type') == 'tool_use'
-                    and block.get('name') == 'Skill'):
+            if not (isinstance(block, dict) and block.get('type') == 'tool_use'):
+                continue
+            name = block.get('name', '')
+            if name == 'Skill':
                 skill_input = block.get('input', {})
                 skill_name = skill_input.get('skill', '')
-                invocations.append({
-                    'skill': skill_name,
-                    'message_idx': idx,
-                    'timestamp': msg.get('timestamp', ''),
-                    'tool_call_id': block.get('id', ''),
-                })
+                if skill_name:
+                    invocations.append({
+                        'skill': skill_name,
+                        'invocation_type': 'skill',
+                        'message_idx': idx,
+                        'timestamp': msg.get('timestamp', ''),
+                        'tool_call_id': block.get('id', ''),
+                    })
+            elif name == 'Agent':
+                agent_input = block.get('input', {})
+                subagent_type = agent_input.get('subagent_type', '')
+                if subagent_type:
+                    invocations.append({
+                        'skill': subagent_type,
+                        'invocation_type': 'agent',
+                        'message_idx': idx,
+                        'timestamp': msg.get('timestamp', ''),
+                        'tool_call_id': block.get('id', ''),
+                    })
     return invocations
 
 
@@ -149,12 +172,12 @@ def group_tool_calls_by_skill(
     all_tool_calls: list[dict]
 ) -> dict[str, list[dict]]:
     """
-    Group tool calls by the skill that was active when they were made.
+    Group tool calls by the skill or agent that was active when they were made.
 
-    A skill is "active" from its invocation message until the next Skill invocation
+    A skill/agent is "active" from its invocation message until the next invocation
     or end of session. Tool calls within the invocation message itself are included.
 
-    Returns: {skill_name: [tool_call, ...]}
+    Returns: {skill_name_or_subagent_type: [tool_call, ...]}
     """
     if not skill_invocations:
         return {}
@@ -169,8 +192,8 @@ def group_tool_calls_by_skill(
         intervals.append((start, end, inv['skill']))
 
     for tc in all_tool_calls:
-        # Skip the Skill tool calls themselves
-        if tc['name'] == 'Skill':
+        # Skip Skill and Agent tool calls themselves
+        if tc['name'] in ('Skill', 'Agent'):
             continue
         for start, end, skill_name in intervals:
             if start <= tc['message_idx'] < end:
@@ -244,6 +267,66 @@ def resolve_skill_to_source(skill_name: str, marketplace: dict, repo_root: Path)
         if candidate.exists():
             return candidate.parent
 
+    return None
+
+
+def resolve_agent_to_source(subagent_type: str, marketplace: dict, repo_root: Path) -> Path | None:
+    """
+    Resolve a subagent_type string to the agent's .md definition file.
+
+    Resolution rule:
+      - First segment = plugin name
+      - Last segment  = agent filename (without .md)
+      - Middle segments (if any) = subdirectory path under agents/
+
+    Examples:
+      archivist:archivist                         → plugins/archivist/agents/archivist.md
+      compound-engineering:research:repo-research → plugins/.../agents/research/repo-research.md
+
+    Resolution order:
+      1. Local repo via marketplace.json source paths
+      2. Installed plugins under ~/.claude/plugins/
+    """
+    parts = subagent_type.split(':')
+    if not parts:
+        return None
+
+    plugin_name = parts[0]
+    agent_filename = parts[-1] + '.md'
+    subdirs = parts[1:-1]  # middle segments become subdirectory path
+
+    # Build relative path: agents/{...subdirs}/{filename}.md
+    agent_rel = Path('agents')
+    for sub in subdirs:
+        agent_rel = agent_rel / sub
+    agent_rel = agent_rel / agent_filename
+
+    # 1. Try local marketplace
+    if plugin_name in marketplace:
+        plugin = marketplace[plugin_name]
+        source_dir = (repo_root / plugin['source']).resolve()
+        candidate = source_dir / agent_rel
+        if candidate.exists():
+            return candidate
+
+    # 2. Search installed plugins under ~/.claude/plugins/
+    search_pattern = str(Path.home() / '.claude' / 'plugins' / '**' / plugin_name / agent_rel)
+    matches = glob.glob(search_pattern, recursive=True)
+    if matches:
+        return Path(matches[0])
+
+    return None
+
+
+def find_validate_agent_script() -> Path | None:
+    """Find validate-agent.sh from the plugin-dev marketplace plugin."""
+    pattern = str(
+        Path.home() / '.claude' / 'plugins' / '**' / 'plugin-dev'
+        / 'skills' / 'agent-development' / 'scripts' / 'validate-agent.sh'
+    )
+    matches = glob.glob(pattern, recursive=True)
+    if matches:
+        return Path(matches[0])
     return None
 
 
@@ -369,6 +452,72 @@ def analyze_tool_call_gaps(
     return gaps
 
 
+def validate_agent_definition(agent_path: Path, agent_name: str) -> list[dict]:
+    """
+    Run validate-agent.sh against an agent .md file and return gap entries.
+    Never gates on exit code (known SIGPIPE/pipefail false-positive in the script).
+    """
+    validate_script = find_validate_agent_script()
+    if not validate_script:
+        return [{
+            'type': 'agent_validation',
+            'tool': '-',
+            'count': 0,
+            'description': 'validate-agent.sh not found — install plugin-dev to enable agent validation',
+            'suggestion': 'Install the plugin-dev plugin from the marketplace',
+        }]
+
+    try:
+        proc = subprocess.run(
+            ['bash', str(validate_script), str(agent_path)],
+            capture_output=True, text=True, timeout=30
+        )
+        # Capture stdout; fall back to stderr if stdout is empty.
+        # Do NOT gate on exit code — known SIGPIPE/pipefail false-positive.
+        output = proc.stdout.strip() or proc.stderr.strip()
+        if output:
+            return [{
+                'type': 'agent_validation',
+                'tool': '-',
+                'count': 0,
+                'description': 'validate-agent.sh output',
+                'validation_output': output,
+                'suggestion': 'Review agent definition against validation findings above',
+            }]
+        return []
+    except subprocess.TimeoutExpired:
+        return [{
+            'type': 'agent_validation',
+            'tool': '-',
+            'count': 0,
+            'description': 'validate-agent.sh timed out after 30s',
+            'suggestion': 'Run validate-agent.sh manually to diagnose',
+        }]
+    except Exception as e:
+        return [{
+            'type': 'agent_validation',
+            'tool': '-',
+            'count': 0,
+            'description': f'validate-agent.sh error: {e}',
+            'suggestion': 'Check that validate-agent.sh is executable',
+        }]
+
+
+def _format_source(source_path: str | None) -> str:
+    """Format a source path for display, handling out-of-cwd paths gracefully."""
+    if not source_path:
+        return 'third-party'
+    p = Path(source_path)
+    try:
+        return str(p.relative_to(Path.cwd()))
+    except ValueError:
+        # Path is outside cwd (e.g. ~/.claude/plugins/) — show home-relative form
+        try:
+            return '~/' + str(p.relative_to(Path.home()))
+        except ValueError:
+            return str(p)
+
+
 # ============================================================================
 # Main Analysis
 # ============================================================================
@@ -393,7 +542,7 @@ def analyze(
             'session_path': str(session_path),
             'status': 'no_skills_detected',
             'hint': hint or '',
-            'message': 'No Skill tool calls found in this session. Skills must be invoked via the Skill tool to be tracked.',
+            'message': 'No Skill or Agent tool calls found in this session. Skills must be invoked via the Skill tool and agents via the Agent tool to be tracked.',
             'skills': [],
             'gaps': [],
         }
@@ -407,14 +556,14 @@ def analyze(
                 'session_path': str(session_path),
                 'status': 'skill_not_found',
                 'hint': hint or '',
-                'message': f'Skill "{skill_filter}" was not invoked in this session.',
+                'message': f'Skill or agent "{skill_filter}" was not invoked in this session.',
                 'skills': [],
                 'gaps': [],
             }
 
     grouped = group_tool_calls_by_skill(skill_invocations, all_tool_calls)
 
-    # Count invocations per skill
+    # Count invocations per skill/agent
     invocation_counts: dict[str, int] = defaultdict(int)
     for inv in skill_invocations:
         invocation_counts[inv['skill']] += 1
@@ -425,6 +574,8 @@ def analyze(
     seen_skills: set[str] = set()
     for inv in skill_invocations:
         skill_name: str = inv['skill']
+        inv_type: str = inv.get('invocation_type', 'skill')
+
         if skill_name in seen_skills:
             continue
         seen_skills.add(skill_name)
@@ -434,37 +585,73 @@ def analyze(
         for tc in tool_calls_for_skill:
             tool_count_by_type[tc['name']] += 1
 
-        # Resolve source
-        source_dir = resolve_skill_to_source(skill_name, marketplace, repo_root)
-        is_local = source_dir is not None
+        if inv_type == 'agent':
+            # Resolve agent .md source
+            source_path = resolve_agent_to_source(skill_name, marketplace, repo_root)
 
-        skill_entry = {
-            'skill': skill_name,
-            'invocations': invocation_counts[skill_name],
-            'tool_calls': len(tool_calls_for_skill),
-            'tool_breakdown': dict(tool_count_by_type),
-            'source_path': str(source_dir) if source_dir else None,
-            'is_local': is_local,
-        }
-        skills_report.append(skill_entry)
-
-        if is_local and tool_calls_for_skill:
-            skill_content = read_skill_content(source_dir)
-            gaps = analyze_tool_call_gaps(tool_calls_for_skill, skill_content, skill_name)
-            for g in gaps:
-                g['skill'] = skill_name
-                g['source_path'] = str(source_dir)
-            all_gaps.extend(gaps)
-        elif not is_local:
-            all_gaps.append({
+            skill_entry = {
                 'skill': skill_name,
-                'type': 'third_party',
-                'tool': '-',
-                'count': 0,
-                'description': 'No local source found — this skill is third-party and cannot be improved here.',
-                'suggestion': '-',
-                'source_path': None,
-            })
+                'invocation_type': 'agent',
+                'invocations': invocation_counts[skill_name],
+                'tool_calls': len(tool_calls_for_skill),
+                'tool_breakdown': dict(tool_count_by_type),
+                'source_path': str(source_path) if source_path else None,
+                'is_local': source_path is not None,
+            }
+            skills_report.append(skill_entry)
+
+            if source_path is not None:
+                gaps = validate_agent_definition(source_path, skill_name)
+                for g in gaps:
+                    g['skill'] = skill_name
+                    g['source_path'] = str(source_path)
+                all_gaps.extend(gaps)
+            else:
+                all_gaps.append({
+                    'skill': skill_name,
+                    'invocation_type': 'agent',
+                    'type': 'third_party',
+                    'tool': '-',
+                    'count': 0,
+                    'description': 'No local source found — this agent is third-party or installed externally.',
+                    'suggestion': '-',
+                    'source_path': None,
+                })
+
+        else:
+            # Existing skill flow
+            source_dir = resolve_skill_to_source(skill_name, marketplace, repo_root)
+
+            skill_entry = {
+                'skill': skill_name,
+                'invocation_type': 'skill',
+                'invocations': invocation_counts[skill_name],
+                'tool_calls': len(tool_calls_for_skill),
+                'tool_breakdown': dict(tool_count_by_type),
+                'source_path': str(source_dir) if source_dir else None,
+                'is_local': source_dir is not None,
+            }
+            skills_report.append(skill_entry)
+
+            if source_dir is not None and tool_calls_for_skill:
+                skill_content = read_skill_content(source_dir)
+                gaps = analyze_tool_call_gaps(tool_calls_for_skill, skill_content, skill_name)
+                for g in gaps:
+                    g['skill'] = skill_name
+                    g['invocation_type'] = 'skill'
+                    g['source_path'] = str(source_dir)
+                all_gaps.extend(gaps)
+            elif source_dir is None:
+                all_gaps.append({
+                    'skill': skill_name,
+                    'invocation_type': 'skill',
+                    'type': 'third_party',
+                    'tool': '-',
+                    'count': 0,
+                    'description': 'No local source found — this skill is third-party and cannot be improved here.',
+                    'suggestion': '-',
+                    'source_path': None,
+                })
 
     gaps_sorted = sorted(all_gaps, key=lambda g: g.get('count', 0), reverse=True)
 
@@ -514,13 +701,15 @@ def format_markdown(result: dict) -> str:
     lines.append(f"**Messages:** {result['total_messages']}  **Tool Calls:** {result['total_tool_calls']}")
     lines.append('')
 
-    lines.append('### Skills Active in Session')
+    lines.append('### Skills and Agents Active in Session')
     lines.append('')
-    lines.append('| Skill | Invocations | Tool Calls While Active | Source |')
-    lines.append('|-------|-------------|------------------------|--------|')
+    lines.append('| Type | Skill / Agent | Invocations | Tool Calls While Active | Source |')
+    lines.append('|------|---------------|-------------|------------------------|--------|')
     for s in result['skills']:
-        source = f"`{Path(s['source_path']).relative_to(Path.cwd()) if s['source_path'] else 'third-party'}`"
-        lines.append(f"| {s['skill']} | {s['invocations']} | {s['tool_calls']} | {source} |")
+        inv_type = s.get('invocation_type', 'skill')
+        type_label = 'Agent' if inv_type == 'agent' else 'Skill'
+        source = f"`{_format_source(s['source_path'])}`"
+        lines.append(f"| {type_label} | {s['skill']} | {s['invocations']} | {s['tool_calls']} | {source} |")
     lines.append('')
 
     if not result['gaps']:
@@ -537,24 +726,43 @@ def format_markdown(result: dict) -> str:
         by_skill[gap['skill']].append(gap)
 
     for skill_name, gaps in by_skill.items():
-        source = next((s['source_path'] for s in result['skills'] if s['skill'] == skill_name), None)
-        source_label = f" → `{source}`" if source else ' (third-party)'
-        lines.append(f"#### {skill_name}{source_label}")
+        skill_entry = next((s for s in result['skills'] if s['skill'] == skill_name), None)
+        inv_type = skill_entry.get('invocation_type', 'skill') if skill_entry else 'skill'
+        source = skill_entry['source_path'] if skill_entry else None
+        type_label = 'agent' if inv_type == 'agent' else 'skill'
+        source_label = f" → `{_format_source(source)}`" if source else ' (third-party)'
+        lines.append(f"#### {skill_name} ({type_label}){source_label}")
         lines.append('')
-        lines.append('| Gap | Tool | Occurrences | Suggested Fix |')
-        lines.append('|-----|------|-------------|---------------|')
-        for g in gaps:
-            desc = g['description'].replace('|', '\\|')
-            suggestion = g['suggestion'].replace('|', '\\|')
-            lines.append(f"| {desc} | {g['tool']} | {g.get('count', '-')} | {suggestion} |")
-        lines.append('')
+
+        # Agent validation output gets its own prose block, not a table row
+        validation_gaps = [g for g in gaps if g.get('type') == 'agent_validation' and 'validation_output' in g]
+        other_gaps = [g for g in gaps if not (g.get('type') == 'agent_validation' and 'validation_output' in g)]
+
+        for vg in validation_gaps:
+            lines.append('**validate-agent.sh output:**')
+            lines.append('')
+            lines.append('```')
+            lines.append(vg['validation_output'])
+            lines.append('```')
+            lines.append('')
+
+        if other_gaps:
+            lines.append('| Gap | Tool | Occurrences | Suggested Fix |')
+            lines.append('|-----|------|-------------|---------------|')
+            for g in other_gaps:
+                desc = g['description'].replace('|', '\\|')
+                suggestion = g['suggestion'].replace('|', '\\|')
+                lines.append(f"| {desc} | {g['tool']} | {g.get('count', '-')} | {suggestion} |")
+            lines.append('')
+        elif not validation_gaps:
+            lines.append('')
 
     lines.append('### Recommended Improvements')
     lines.append('')
     seen = set()
     rank = 1
     for gap in result['gaps']:
-        if gap['type'] == 'third_party':
+        if gap['type'] in ('third_party', 'agent_validation'):
             continue
         key = (gap['skill'], gap['type'], gap.get('tool', ''))
         if key in seen:

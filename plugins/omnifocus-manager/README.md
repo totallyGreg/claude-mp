@@ -58,7 +58,7 @@ GTD methodology coaching without OmniFocus automation:
 
 ### Current Metrics
 
-**Score: 94/100** (Good) — 2026-03-23
+**Score: 94/100** (Good) — 2026-04-09
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -68,6 +68,9 @@ GTD methodology coaching without OmniFocus automation:
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 10.4.1 | 2026-04-09 | - | Doc: add missing --note (replace) to ofo update command table; --note-append already documented | 83 | 90 | 100 | 100 | 100 | 94 |
+| 10.4.0 | 2026-04-09 | - | Agent: add inline-script RED FLAG (tool-agnostic wording) to Pillar 4, add structured-project → bulk-create intent row, make agent default entry point in CLAUDE.md |
+| 10.3.0 | 2026-04-09 | - | Add RED FLAG gate: inline Omni Automation script → STOP, check ofo CLI or use bulk-create for structured projects; strengthen STEP 1 classify to route structured-project creation explicitly | 83 | 90 | 100 | 100 | 100 | 94 |
 | 10.2.0 | 2026-03-23 | [#138](https://github.com/totallyGreg/claude-mp/issues/138) | Add ofo health single-call command (fixes pasteboard collision), document single-action pattern for slash commands | 83 | 90 | 100 | 100 | 100 | 94 |
 | 10.1.0 | 2026-03-23 | [#138](https://github.com/totallyGreg/claude-mp/issues/138) | Add ofo drop command, enrich OfoTask with repetitionCatchUp/repetitionScheduleType, Catch Up-aware health diagnostics, api_reference Catch Up docs | 83 | 90 | 100 | 100 | 100 | 94 |
 | 10.0.0 | 2026-03-23 | [#136](https://github.com/totallyGreg/claude-mp/issues/136) | Attache Plugin Consolidation: merge ofo-core into Attache (single plugin, one deploy), canonical 16-field normalizeTask with Date objects, all 10 libraries compiled from TypeScript, insightPatterns included, WAITING_PREFIXES unified, delete obsolete files/references | 83 | 90 | 100 | 100 | 100 | 94 |

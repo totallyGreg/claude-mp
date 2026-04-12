@@ -4,12 +4,35 @@ Personal Knowledge Management expert for Obsidian vaults with autonomous orchest
 
 ## Usage
 
-Ask Claude to help with Obsidian PKM tasks. The `archivist` agent will orchestrate vault analysis, template creation, and system optimization.
+Ask Claude to help with Obsidian PKM tasks. The `archivist` agent will orchestrate vault analysis, template creation, and content evolution.
 
-**Examples:**
+### Visualization
+
+- "Create a canvas showing me the entire release process for [project]"
+- "Generate a knowledge map of everything connected to [topic]"
+- "Show me how my project notes link to each other as a canvas"
+
+### Metadata & Schema
+
+- "What properties should this meeting note have?"
+- "Find all notes in my Projects folder with inconsistent frontmatter"
+- "Detect schema drift across my Customer fileClass"
+- "Suggest missing properties for this note based on similar notes"
+
+### Consolidation & Discovery
+
+- "Find duplicate notes in my [folder]"
+- "What notes are most related to this one?"
+- "Merge these two notes about [topic] and update all links"
+- "Find orphaned notes that aren't linked to anything"
+
+### Vault Structure
+
 - "Analyze my vault and suggest improvements"
 - "Create a customer meeting note template"
 - "Help me set up a temporal rollup system"
+- "Set up a collection folder for [repeating note type]"
+- "Run a health check on my vault"
 
 ## Configuration
 
@@ -31,7 +54,7 @@ Progressive disclosure:
 
 ## Version
 
-1.16.0
+1.19.0
 
 ## License
 

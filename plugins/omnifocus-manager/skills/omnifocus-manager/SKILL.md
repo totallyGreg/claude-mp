@@ -6,7 +6,7 @@ description: |
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 license: MIT
 metadata:
-  version: 10.2.0
+  version: 10.4.1
   author: totally-tools
 compatibility:
   platforms: [macos]
@@ -26,7 +26,8 @@ compatibility:
 ```
 Keywords in request → Classification:
 - "create plugin", "make plugin", "generate plugin" → PLUGIN GENERATION (continue to step 2)
-- "build JXA script", "write a script" → JXA COMPOSITION (compose from taskQuery.js/taskMutation.js, validate with validate-jxa-patterns.js)
+- "create structured project", "project with action groups", "bulk create" → manage_omnifocus.js bulk-create (NOT an inline script — see Quick Decision Tree §1)
+- "build JXA script", "write a script" → CHECK ofo CLI first; if covered → use ofo; if not → JXA COMPOSITION (compose from taskQuery.js/taskMutation.js); NEVER write ad-hoc inline scripts
 - "automate this", "recurring task" → CHANNEL SELECTION (see references/channel_selection.md)
 - "improve script", "fix script" → SCRIPT MODIFICATION (read existing, modify, validate)
 - "show me", "what tasks", "analyze" → QUERY/EXECUTION (use ofo CLI or gtd-queries.js, STOP)
@@ -45,6 +46,7 @@ Keywords in request → Classification:
 node scripts/generate_plugin.js --format <FORMAT> --name "<NAME>"
 ```
 **🚫 RED FLAG:** If about to use Write or Edit tool for .js/.omnijs files → STOP, use generator instead
+**🚫 RED FLAG:** If about to write an inline Omni Automation script → STOP. Check if ofo CLI covers it first. Structured project with action groups needed? → use `manage_omnifocus.js bulk-create`. Ad-hoc inline scripts require per-run OmniFocus approval and bypass the established safety model.
 
 ### STEP 4: VALIDATE (Always run)
 ```bash
@@ -102,6 +104,7 @@ scripts/ofo drop <id-or-omnifocus-url> --all # Drop all occurrences (stops repea
 scripts/ofo health                           # System health: inbox, overdue, flagged (single call)
 scripts/ofo create --name "Task" --project "Work" --due 2026-12-31
 scripts/ofo update <id> --name "New name" --flagged
+scripts/ofo update <id> --note "text"                # Replace task note entirely
 scripts/ofo update <id> --note-append "text"         # Append text to existing note
 scripts/ofo search "meeting"                 # Search by name/note
 scripts/ofo list inbox                       # List inbox tasks

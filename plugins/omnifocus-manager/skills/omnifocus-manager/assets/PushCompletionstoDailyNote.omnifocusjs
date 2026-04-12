@@ -1,0 +1,80 @@
+/*{
+	"type": "action",
+	"targets": ["omnifocus"],
+	"author": "totally-tools",
+	"identifier": "com.totallytools.omnifocus.pushcompletionstodailynote",
+	"version": "1.0",
+	"description": "Collects tasks and projects completed today, groups by project, and appends a formatted markdown section to the Obsidian daily note via Advanced URI.",
+	"label": "Push Completions to Daily Note",
+	"shortLabel": "Push Completions",
+	"mediumLabel": "Push Completions to Daily Note",
+	"paletteLabel": "Push Completions to Daily Note",
+	"image": "checkmark.circle"
+}*/
+(() => {
+	const action = new PlugIn.Action(function(selection: Selection, sender: MenuItem | ToolbarItem) {
+		try {
+			const today = new Date();
+
+			// Collect tasks completed today
+			const completedToday: Array<Task> = flattenedTasks.filter((task: Task) => {
+				if (!task.completionDate) return false;
+				const cd = task.completionDate;
+				return cd.getFullYear() === today.getFullYear() &&
+				       cd.getMonth() === today.getMonth() &&
+				       cd.getDate() === today.getDate();
+			});
+
+			if (completedToday.length === 0) {
+				const alert: Alert = new Alert("Push Completions to Daily Note", "No tasks completed today.");
+				alert.show();
+				return;
+			}
+
+			// Group by project name; tasks without a project go under "No Project"
+			const byProject: Map<string, string[]> = new Map();
+			for (const task of completedToday) {
+				const projectName: string = task.containingProject
+					? task.containingProject.name
+					: 'No Project';
+				if (!byProject.has(projectName)) {
+					byProject.set(projectName, []);
+				}
+				byProject.get(projectName)!.push(task.name);
+			}
+
+			// Sort project names alphabetically; "No Project" always last
+			const projectNames: string[] = Array.from(byProject.keys()).sort((a: string, b: string) => {
+				if (a === 'No Project') return 1;
+				if (b === 'No Project') return -1;
+				return a.localeCompare(b);
+			});
+
+			// Build markdown section
+			let markdown: string = '\n## Completed Today\n\n';
+			for (const projectName of projectNames) {
+				markdown += `### ${projectName}\n\n`;
+				for (const taskName of byProject.get(projectName)!) {
+					markdown += `- [x] ${taskName}\n`;
+				}
+				markdown += '\n';
+			}
+
+			// Append to Obsidian daily note via Advanced URI plugin
+			const encoded: string = encodeURIComponent(markdown);
+			const obsidianUrl: string = `obsidian://advanced-uri?vault=Notes&daily=true&mode=append&data=${encoded}`;
+			URL.fromString(obsidianUrl).open();
+
+		} catch (error) {
+			const err = error as Error;
+			const alert: Alert = new Alert("Error", err.message);
+			alert.show();
+		}
+	});
+
+	action.validate = function(selection: Selection, sender: MenuItem | ToolbarItem): boolean {
+		return true;
+	};
+
+	return action;
+})();

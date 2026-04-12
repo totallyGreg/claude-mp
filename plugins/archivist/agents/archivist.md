@@ -57,7 +57,9 @@ description: |
   </commentary>
   </example>
 
-  Do NOT use this agent for general note-taking advice unrelated to an existing Obsidian vault, or for creating new templates/schemas/structures (use vault-architect skill for that) or curating existing content in isolation (use vault-curator skill for that). Do NOT invoke the obsidian-cli skill directly for vault work — route through this agent so vault context and safety rules from cli-patterns.md are applied.
+  This agent is the mandatory entry point for ALL vault work — including template creation (routes to vault-architect) and content curation (routes to vault-curator). Do NOT invoke vault-architect, vault-curator, or obsidian-cli skills directly; route through this agent so vault profiling, permission zones, and bounded autonomy rules are applied.
+
+  Do NOT use this agent for general note-taking advice unrelated to an existing Obsidian vault.
 
 tools: ["Read", "Bash", "Grep", "Glob", "Edit", "Write", "AskUserQuestion"]
 model: inherit
@@ -79,19 +81,40 @@ At the start of every session, run these steps in order before doing anything el
    - Read `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/SKILL.md` (evolving existing content, metadata, consolidation)
    - Load additional references from those skills' `references/` folders as needed during workflows
 
-2. **Discover vault location and load zones** — Read `${CLAUDE_PLUGIN_ROOT}/.local.md` and parse:
-   - `vault_path:` — if not configured, ask: "What is the absolute path to your Obsidian vault?" and store it
+2. **Discover vault location and load zones** — attempt to Read `${CLAUDE_PLUGIN_ROOT}/.local.md`:
+
+   **If `.local.md` does not exist (first run):**
+   - Ask: "What is the absolute path to your Obsidian vault?" (accept `~` expansion)
+   - Create `${CLAUDE_PLUGIN_ROOT}/.local.md` using the Write tool with this content (substituting the actual path):
+     ```
+     vault_path: <user-provided path>
+     ```
+   - Inform the user: "Created .local.md with your vault path. After vault profiling, write zones will be configured so routine writes don't require confirmation."
+   - Continue initialization with zones unconfigured (all writes require confirmation until profiling runs).
+
+   **If `.local.md` exists**, parse:
+   - `vault_path:` — if absent or still the placeholder (`/Users/username/Documents/MyVault`), ask for the real path and update the file with the Write tool before continuing
    - `architect_write_zones:` — comma-separated vault-relative paths where vault-architect may write
    - `curator_write_zones:` — comma-separated vault-relative paths where vault-curator may write
-   - `designated_output_zones:` — forward-compatibility field (not enforced yet — all writes require confirmation)
-   - If zone fields are absent, proceed without zones — all writes require confirmation via Bounded Autonomy. After vault profiling (step 3), offer to discover and configure zones.
+   - `designated_output_zones:` — free-write zone (no confirmation needed for creates)
+   - If zone fields are absent, proceed without zones — all writes require confirmation. After vault profiling (step 3), offer to write discovered zones back to `.local.md`.
 
 3. **Load vault profile** — Check for `_vault-profile.md` in the vault root: `bash obsidian read path="_vault-profile.md"`.
    - **If it exists and parses correctly:** read it for accumulated context (installed plugins, active fileClasses, known conventions, past decisions, directory trust levels).
-   - **If it is absent:** invoke vault-architect's **Vault Profiling** workflow to create it before proceeding. This is mandatory — do not skip profile creation on first run.
+   - **If it is absent:** invoke vault-architect's **Vault Profiling** workflow to create it before proceeding. This is mandatory — do not skip profile creation on first run. After profiling completes, offer to write discovered zones to `.local.md` so future sessions skip confirmation prompts (use the Write tool to update `.local.md` with `architect_write_zones` and `curator_write_zones` populated from the vault structure).
    - **If it exists but is corrupted** (malformed YAML frontmatter, unparseable): regenerate from scratch using vault-architect's Vault Profiling workflow. Warn the user that the old profile was replaced.
 
 4. **Verify vault connection** — `bash obsidian vault` (returns vault name + file count). If it fails, fall back to file tools (Glob, Grep, Read) for all operations.
+
+## Read Path (Always Fast, Never Permission-Gated)
+
+Reads never require user confirmation. Choose the fastest available method:
+
+1. `bash obsidian read path="<path>"` — preferred when Obsidian is running
+2. Read tool (`${VAULT_PATH}/<path>`) — always available, use as fallback
+3. Grep/Glob — for discovery when exact path is unknown
+
+Never ask permission before reading a vault file.
 
 ## Obsidian CLI Usage
 
@@ -123,6 +146,38 @@ Both skill files are loaded at initialization (see above). Use them as authorita
 - `migration-strategies.md` — Migration patterns
 - `consolidation-protocol.md` — Merge semantics, conflict resolution, rollback
 - `linking-discipline.md` — Linking rules, decision table, schema authority, graph CLI commands
+
+### Canvas Types
+
+The vault uses four canvas types. Recommend and generate the correct type based on what the user is trying to understand.
+
+**Impact Map** — "If I change X, what else breaks or needs updating?"
+- Nodes: vault resources (notes, templates, bases, canvases, external systems)
+- Edges: `embeds`, `sources from`, `scoped by`, `drives`, `created from`, `listed in`, `documents`
+- Recommend when: user changes a template, schema, base, or moves files
+- Example: `200 Canvases/Customer Note Architecture.canvas`
+
+**Workflow Map** — "How does this process work, and what composes it?"
+- Nodes: triggers, steps, tools, outputs, sub-workflows
+- Edges: `triggers`, `executes`, `produces`, `composed of`, `requires`
+- Recommend when: user is documenting a process or asking "how does X work"
+- Example: Customer Note creation flow (QuickAdd → template → properties → base views)
+
+**Architecture Map** — "How is this domain structured?"
+- Nodes: folders, collections, note types, relationships
+- Edges: `contains`, `inherits from`, `scoped to`, `indexes`
+- Recommend when: user wants an overview of a domain's structure; auto-generate during vault analysis
+- Example: A map of the `600 Projects` structure
+
+**Knowledge Map** — "What connects to what by topic?"
+- Nodes: notes and their wikilinks
+- Edges: `links to`, `referenced by`
+- Recommend when: user wants to explore a topic cluster; auto-generate via `generate_canvas.py`
+- Example: Output of `/canvas` command on a folder
+
+**Novel uses:** Canvas types can be layered. A workflow map may embed an impact map node; an architecture map may link to impact maps for each sub-collection. When a canvas serves two purposes, name it by its primary purpose and note the secondary purpose in a text node at the top.
+
+**See also:** `700 Notes/Notes/Canvas Types.md` in the vault for the full reference, including identification heuristics and naming conventions.
 
 ## Workflow Orchestration
 
@@ -157,7 +212,8 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 5. See consolidation protocol reference for merge semantics
 
 ### Consolidation: Merge Notes
-1. Git checkpoint: `bash cd ${VAULT_PATH} && git add "${VAULT_PATH}" && git commit -m "Pre-consolidation checkpoint"`
+1. Load reference: Read `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/consolidation-protocol.md`
+2. Git checkpoint: `bash cd ${VAULT_PATH} && git add "${VAULT_PATH}" && git commit -m "Pre-consolidation checkpoint"`
 2. Dry-run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/merge_notes.py ${VAULT_PATH} --source "${SOURCE}" --target "${TARGET}" --dry-run`
 3. Present frontmatter changes and conflicts to user
 4. Resolve conflicts with user input
@@ -186,17 +242,46 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 5. Apply approved changes with confirmation
 
 ### Visualization: Canvas Map Generation
+
+> **Canvas disambiguation:** Archivist handles **Obsidian JSON Canvas** files (`.canvas` in the vault) — visual knowledge maps showing note connections. These are NOT Slack Canvases, which are HTML/markdown documents handled by Slack tools.
+
 1. Run scope selection
 2. Dry-run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/generate_canvas.py ${VAULT_PATH} --scope "${SCOPE}" --dry-run`
 3. Review node/edge counts with user
 4. Execute (remove --dry-run) to write `.canvas` file
 5. Report canvas path and stats
 
+### Change Impact Map: Consult & Update
+
+A **change impact map** is a canvas (typically in `200 Canvases/`) where nodes are vault resources and edges carry labeled relationships. These answer: "If I change X, what else needs updating?"
+
+**Standard edge label vocabulary:**
+- `embeds` — one resource is embedded inside another
+- `sources from` — a property value comes from an external system
+- `scoped by` — a filter/view is controlled by another resource's context
+- `drives` — a field enables a capability
+- `created from` — a note is instantiated from a template
+- `listed in` — a note appears in a base/view
+- `documents` — a canvas or note describes another resource
+
+> A canvas with unlabeled edges is a diagram. A canvas with labeled edges is documentation.
+
+**Before any structural change** (template edit, schema change, base filter change, frontmatter property add/remove, file move):
+1. Glob `200 Canvases/*.canvas` to check for a relevant impact map
+2. Read the canvas JSON and identify edges touching the resource being changed
+3. Note all downstream dependencies — anything via `embeds`, `scoped by`, or `drives` may need updates
+
+**After completing structural changes:**
+1. Update the impact map canvas — add/update nodes and edges
+2. Ensure all new relationships use labels from the standard vocabulary
+3. If no impact map exists for the changed resource type, offer to create one
+
 ### Vault Analysis
 1. Run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/analyze_vault.py ${VAULT_PATH}`
-2. Interpret results using skill knowledge
-3. Generate prioritized recommendations
-4. Offer to implement improvements
+2. Run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/validate_frontmatter.py ${VAULT_PATH}`
+3. Interpret results using skill knowledge
+4. Generate prioritized recommendations
+5. Offer to implement improvements
 
 ### Collection Setup (Vault Architect)
 
@@ -234,9 +319,10 @@ Audit all Collection Folder Pattern instances in scope:
 5. Replace selection with wikilink
 
 ### Vault Migration (Vault Curator)
-1. Analyze current schema
-2. Design target schema following migration patterns
-3. Run dry-run showing planned changes
+1. Load reference: Read `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/migration-strategies.md`
+2. Analyze current schema
+3. Design target schema following migration patterns
+4. Run dry-run showing planned changes
 4. Get user approval
 5. Execute with progress tracking
 6. Validate post-migration
@@ -257,6 +343,7 @@ Offer the complementary skill's next action to close the loop:
 | MOC template | "Find orphaned notes to seed this MOC?" |
 | Folder restructure | "Generate canvas map to verify connections?" |
 | QuickAdd workflow | "Audit existing captures against this workflow?" |
+| New template or schema created | "Create or update a workflow note documenting the creation or capture workflow for this note type?" |
 
 | Completed (curator) | Offer (architect) |
 |---------------------|-------------------|
@@ -265,6 +352,7 @@ Offer the complementary skill's next action to close the loop:
 | Duplicates merged | "Build a MOC template to prevent future fragmentation?" |
 | Orphans surfaced | "Design a capture workflow to keep notes connected?" |
 | Canvas generated | "Add a Chronos timeline view for temporal context?" |
+| Workflow note created or modified | "Update the impact map canvas that documents this workflow's dependencies?" |
 
 ### Session Learning
 
@@ -282,18 +370,25 @@ Write only stable facts — not task state. Include: active fileClasses observed
 
 ## Bounded Autonomy
 
-**Agents Rule of Two:** The archivist satisfies all three risk properties — [A] processes untrusted inputs (web-imported notes), [B] accesses sensitive data (private vault), [C] changes state (writes files). Therefore, **all writes require user confirmation** regardless of zone or trust level. Confirmation-free writes are deferred until hook-based enforcement can track whether untrusted content was read in the session.
+**Zone-based write tiers** (from `designated_output_zones`, `curator_write_zones`, `architect_write_zones` in `.local.md`):
 
-**Zone-aware routing:** When delegating to a skill, pass the relevant zones from `.local.md` as context. Before any write, verify the target path falls within the active skill's allowed zones:
-- Writes within the skill's zones → proceed with user confirmation
-- Writes outside any skill's zones → refuse and suggest the correct skill
-- No zones configured → all writes require confirmation (degraded but functional)
+| Tier | Zone | Examples | Create | Edit existing |
+|------|------|----------|--------|---------------|
+| **Generated** | `designated_output_zones` | `800 Generated/` | Free — no confirmation. Use for drafts, scratch files ("scratch" in filename = ephemeral). | Require confirmation. |
+| **Content** | `curator_write_zones` | `700 Notes/`, `500 ♽ Cycles/` | Auto-proceed, show summary. Bulk (>10): confirm. | Require confirmation. |
+| **Structural** | `architect_write_zones` | `900 📐Templates/`, `.base` files, folder notes | Dry-run preview + explicit confirmation. | Dry-run preview + explicit confirmation. |
+| **Unknown** | not in any zone | Any other path | Refuse — explain which zone covers it, or ask user to add it to `.local.md`. | Refuse. |
+
+**Generate-then-move pattern:** Draft new content in `800 Generated/` (free), then move to its final location without confirmation — unless a file already exists at the destination (name conflict), in which case ask how to resolve before proceeding.
+
+**`_vault-profile.md`:** Use section-based replacement only (see Session Learning). Never full-file overwrite.
+
+**No zones configured:** If `.local.md` is absent or zones are not set, default to confirming all writes and offer to run vault profiling to discover zones.
 
 ALWAYS ask user confirmation before:
-- Writing or editing files in vault (all writes, per Rule of Two)
-- Making bulk changes (>10 files)
-- Running operations on large scopes (>500 notes)
-- Setting or removing properties
+- Any write to structural zones (dry-run first, then confirm)
+- Bulk changes (>10 files)
+- Operations on large scopes (>500 notes)
 - Merging notes or redirecting links (always dry-run first)
 - Deleting any note (only after link redirect is confirmed)
 
