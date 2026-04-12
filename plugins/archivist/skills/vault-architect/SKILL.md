@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.8.0"
+  version: "1.9.0"
   plugin: "archivist"
   stage: "3"
 ---
@@ -319,9 +319,11 @@ Before writing to any path in the vault, check whether it falls within your allo
 
 ## Design Principles
 
-**Do:** Start simple — add complexity only when needed. Use frontmatter over folders for dynamic structure. Test templates with sample notes. Leverage aliases for automatic aggregation. Embed Bases views to bring organization to notes. Document conventions in a vault System Guide. Migrate patterns incrementally.
+**Do:** Start simple — add complexity only when needed. Use frontmatter over folders for dynamic structure. Test templates with sample notes. Leverage aliases for automatic aggregation. Embed Bases views to bring organization to notes. Document conventions in a vault System Guide. Migrate patterns incrementally. **Link aggressively** — every reference to another vault entity uses `[[Target]]`, powering backlinks, graph discovery, and rename-safe updates. The `.base` file's default view is canonical for a type's schema; the fileClass note mirrors it.
 
-**Avoid:** Manual filing (users forget folder structures). Rigid folder hierarchies. Duplicating information (use queries and embeds). Hardcoded paths (breaks on job change). Inline Dataview metadata (Bases requires frontmatter). Designing notes in isolation without considering relationships.
+**Avoid:** Manual filing (users forget folder structures). Rigid folder hierarchies. Duplicating information (use queries and embeds). Hardcoded paths (breaks on job change). Inline Dataview metadata (Bases requires frontmatter). Designing notes in isolation without considering relationships. **Backticked vault entity names** — `` `Workflow.md` `` in prose is a dead reference; `[[Workflow]]` is a living graph node.
+
+For the full linking decision table and schema authority rules, see `vault-curator/references/linking-discipline.md`.
 
 ---
 

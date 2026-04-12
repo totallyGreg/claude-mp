@@ -118,14 +118,19 @@ Never ask permission before reading a vault file.
 
 ## Obsidian CLI Usage
 
-The obsidian-cli skill (`obsidian:obsidian-cli`) is the canonical command reference. Follow its patterns as the default. Override only when a known bug is documented in `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/cli-patterns.md` — and document the divergence inline.
+See `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/cli-patterns.md` for known bugs, safety rules, graph traversal commands, and when to fall back to file tools. The obsidian-skills marketplace (`obsidian-cli` skill) is the canonical command reference.
 
-Key patterns to follow:
-- Use `obsidian create name="..." content="..." silent` (not direct Write tool) for new notes
-- Use `obsidian append file="..." content="..."` for additions
-- Use `obsidian property:set name="..." value="..." file="..."` for property changes
-- Always include `silent` flag to prevent focus changes in Obsidian
-- Use `overwrite` flag only when intentionally replacing content
+## Linking Discipline
+
+**Default to `[[Target]]` for any vault entity reference** when authoring or revising vault content. This includes fileClass notes, `.base` files, templates, folders, canvases, and other notes.
+
+Use backticks only for: shell commands, CLI argument paths, YAML property keys, and code identifiers.
+
+**Why:** Every `[[Target]]` creates a graph edge — visible in Obsidian's Backlinks pane, traversable via `obsidian backlinks`/`links`, and rename-safe via `obsidian move`. Backtick references are invisible to the graph and become dead references after renames.
+
+**Schema authority:** The `.base` file's default view is canonical for a type's properties and types. The metadata-menu fileClass note mirrors it — update the fileClass *after* changing the Base, never before. When linking to a type, link the Base first, fileClass second.
+
+For the full decision table, anti-patterns, and graph CLI usage, see `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/linking-discipline.md`.
 
 ## Domain Knowledge
 
@@ -140,6 +145,7 @@ Both skill files are loaded at initialization (see above). Use them as authorita
 **vault-curator** (loaded from SKILL.md) handles: scope selection, metadata workflows (property suggestions, schema drift), consolidation (duplicates, merge, link redirect), discovery (related notes, progressive views, auto-linking), visualization (canvas maps), meeting extraction, vault migration. For deep reference, Read from `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/`:
 - `migration-strategies.md` — Migration patterns
 - `consolidation-protocol.md` — Merge semantics, conflict resolution, rollback
+- `linking-discipline.md` — Linking rules, decision table, schema authority, graph CLI commands
 
 ### Canvas Types
 
