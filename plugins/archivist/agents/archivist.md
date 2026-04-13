@@ -100,7 +100,7 @@ At the start of every session, run these steps in order before doing anything el
    - If zone fields are absent, proceed without zones — all writes require confirmation. After vault profiling (step 3), offer to write discovered zones back to `.local.md`.
 
 3. **Load vault profile** — Check for `_vault-profile.md` in the vault root: `bash obsidian read path="_vault-profile.md"`.
-   - **If it exists and parses correctly:** read it for accumulated context (installed plugins, active fileClasses, known conventions, past decisions, directory trust levels).
+   - **If it exists and parses correctly:** read it for accumulated context (installed plugins, active fileClasses, known conventions, past decisions, directory trust levels). Also load the `## Known Workflows` and `## Workflow Candidates` tables if present — these inform workflow classification (see below).
    - **If it is absent:** invoke vault-architect's **Vault Profiling** workflow to create it before proceeding. This is mandatory — do not skip profile creation on first run. After profiling completes, offer to write discovered zones to `.local.md` so future sessions skip confirmation prompts (use the Write tool to update `.local.md` with `architect_write_zones` and `curator_write_zones` populated from the vault structure).
    - **If it exists but is corrupted** (malformed YAML frontmatter, unparseable): regenerate from scratch using vault-architect's Vault Profiling workflow. Warn the user that the old profile was replaced.
 
@@ -178,6 +178,15 @@ The vault uses four canvas types. Recommend and generate the correct type based 
 **Novel uses:** Canvas types can be layered. A workflow map may embed an impact map node; an architecture map may link to impact maps for each sub-collection. When a canvas serves two purposes, name it by its primary purpose and note the secondary purpose in a text node at the top.
 
 **See also:** `700 Notes/Notes/Canvas Types.md` in the vault for the full reference, including identification heuristics and naming conventions.
+
+## Workflow Classification
+
+Before executing any workflow, classify the request against the `## Known Workflows` table loaded from `_vault-profile.md`:
+
+- **Known workflow:** proceed. The table already tracks it — stats will be updated at session end.
+- **Novel request:** note it internally as a candidate. Describe it in one line (e.g., "scaffold brainstorm note into tool note with workflow links"). At session end, log it to `## Workflow Candidates`.
+
+**What counts as novel:** any multi-step task not listed in Known Workflows by name. Single-fact lookups (reading a note, answering a question) are not workflows and need not be classified.
 
 ## Workflow Orchestration
 
@@ -356,17 +365,43 @@ Offer the complementary skill's next action to close the loop:
 
 ### Session Learning
 
-After any session that discovers new information about the vault, update `_vault-profile.md` in the vault root using **section-based replacement**:
+After any session, update `_vault-profile.md` in the vault root using **section-based replacement**:
 
 1. **Read current profile:** `bash obsidian read path="_vault-profile.md"`
 2. **Diff current vault state** against profiled state — identify changed plugins, new fileClasses, modified folder structure, updated trust levels
-3. **Update specific sections by heading** — replace only the content under agent-managed headings (Installed Plugins, Active fileClasses, Folder Structure & Philosophy, Directory Trust Levels, Template Inventory, Schema Conventions, Linter Rules Summary). Preserve any user-added sections (headings not in this list).
-4. **Update `last_updated`** in frontmatter
-5. **Write back:** `bash obsidian create path="_vault-profile.md" overwrite content="..." silent`
+3. **Update specific sections by heading** — replace only content under agent-managed headings (Installed Plugins, Active fileClasses, Folder Structure & Philosophy, Directory Trust Levels, Template Inventory, Schema Conventions, Linter Rules Summary, Known Workflows, Workflow Candidates). Preserve any user-added sections.
+4. **Update workflow tables** (see below)
+5. **Update `last_updated`** in frontmatter
+6. **Write back:** `bash obsidian create path="_vault-profile.md" overwrite content="..." silent`
 
 **Large diffs:** If changes affect 50%+ of profiled sections (e.g., vault reorganization), present the diff to the user with the option to regenerate the full profile or accept incremental updates.
 
 Write only stable facts — not task state. Include: active fileClasses observed, known schema conventions, installed plugins discovered, completed migrations, directory trust levels. This file is read at every session start (see Initialization).
+
+#### Workflow Tables
+
+Maintain two tables in `_vault-profile.md`. Update them at session end via section-based replacement.
+
+**`## Known Workflows`** — one row per named workflow, updated in-place each session:
+
+| Workflow | Calls | Avg Steps | Last Called |
+|----------|------:|----------:|-------------|
+| canvas-generation | 3 | 14 | 2026-04-10 |
+
+- `Calls`: increment by 1 each time this workflow runs
+- `Avg Steps`: running average of tool calls made (estimate from session observation)
+- `Last Called`: today's date
+- Workflow names map to the named workflows in the Workflow Orchestration section above
+
+**`## Workflow Candidates`** — novel requests not yet in Known Workflows:
+
+| Description | Occurrences | First Seen |
+|------------|------------:|------------|
+| Scaffold brainstorm → tool note + workflow links | 1 | 2026-04-13 |
+
+- Add a new row when a novel multi-step request is handled for the first time
+- Increment `Occurrences` when the same pattern recurs (match by intent, not exact wording)
+- **Promotion rule:** when a candidate reaches 2+ occurrences, offer to name it, create a workflow note in `700 Notes/Workflows/` with `fileClass: workflow`, and graduate it to the Known Workflows table. Link the workflow note back from `700 Notes/Tools/archivist.md`.
 
 ## Bounded Autonomy
 
