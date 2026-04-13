@@ -54,11 +54,35 @@ Progressive disclosure:
 
 ## Version
 
-1.19.0
+1.20.0
 
 ## License
 
 MIT
+
+## Agent: archivist
+
+### Agent-Native Audit — 2026-04-13
+
+Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/160))
+
+| Principle | Score | % | Status |
+|-----------|-------|---|--------|
+| Action Parity | 6/6 | 100% | ✅ |
+| Capability Discovery | 6.5/7 | 93% | ✅ |
+| Shared Workspace | 7/8 | 87.5% | ✅ |
+| Tools as Primitives | 9/12 | 75% | ⚠️ |
+| UI Integration | 5/8 | 62.5% | ⚠️ |
+| CRUD Completeness | 7/12 | 58% | ⚠️ |
+| Context Injection | 12/22 | 54.5% | ⚠️ |
+| Prompt-Native Features | 8/20 | 40% | ❌ |
+
+### Version History
+
+| Version | Date | Issue | Summary |
+|---------|------|-------|---------|
+| 1.20.0 | 2026-04-13 | [#160](https://github.com/totallyGreg/claude-mp/issues/160) | Add workflow classification (known vs novel detection) and session learning tables (Known Workflows + Workflow Candidates) to _vault-profile.md; promotion rule graduates 2+ occurrence candidates to workflow notes |
+| 1.19.0 | 2026-04-09 | - | Add Canvas Types taxonomy (Impact/Workflow/Architecture/Knowledge Maps) and Change Impact Map workflow |
 
 ## Skill: vault-architect
 
