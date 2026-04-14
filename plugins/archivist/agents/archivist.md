@@ -223,13 +223,22 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 ### Consolidation: Merge Notes
 1. Load reference: Read `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/consolidation-protocol.md`
 2. Git checkpoint: `bash cd ${VAULT_PATH} && git add "${VAULT_PATH}" && git commit -m "Pre-consolidation checkpoint"`
-2. Dry-run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/merge_notes.py ${VAULT_PATH} --source "${SOURCE}" --target "${TARGET}" --dry-run`
-3. Present frontmatter changes and conflicts to user
-4. Resolve conflicts with user input
-5. Execute merge (remove --dry-run)
-6. Run link redirect: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/redirect_links.py ${VAULT_PATH} --old "${OLD_NAME}" --new "${NEW_NAME}" --dry-run`
-7. Show affected files, get confirmation, execute redirect
-8. Delete source note after confirmed redirect
+3. Dry-run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/merge_notes.py ${VAULT_PATH} --source "${SOURCE}" --target "${TARGET}" --dry-run`
+4. Present frontmatter changes and conflicts to user
+5. Resolve conflicts with user input
+6. Get merged content: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/merge_notes.py ${VAULT_PATH} --source "${SOURCE}" --target "${TARGET}" --no-write`
+7. If result has errors, stop and report. Apply any user-resolved conflicts to `target_content` string.
+8. Write merged target with Write tool: write `result.target_content` to `${VAULT_PATH}/${TARGET}`
+9. `# Trigger Obsidian index refresh — resolves backlink latency after write`
+   `bash obsidian search query="${TARGET_STEM}" format=json limit=1`
+10. Run link redirect: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/redirect_links.py ${VAULT_PATH} --old "${OLD_NAME}" --new "${NEW_NAME}" --dry-run`
+11. Show affected files, get confirmation
+12. Apply redirects: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/redirect_links.py ${VAULT_PATH} --old "${OLD_NAME}" --new "${NEW_NAME}" --no-write`
+    - If `status: too_many` (>50 files): get explicit user approval, then run without `--no-write`
+    - Otherwise: apply each `affected_files[].content_after` with Edit tool
+13. `# Trigger Obsidian index refresh after link redirects`
+    `bash obsidian search query="${NEW_NAME}" format=json limit=1`
+14. Delete source note after confirmed redirect
 
 ### Discovery: Find Related Notes
 1. Run scope selection (or use the target note's folder)
@@ -257,8 +266,11 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 1. Run scope selection
 2. Dry-run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/generate_canvas.py ${VAULT_PATH} --scope "${SCOPE}" --dry-run`
 3. Review node/edge counts with user
-4. Execute (remove --dry-run) to write `.canvas` file
-5. Report canvas path and stats
+4. Generate canvas data: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/generate_canvas.py ${VAULT_PATH} --scope "${SCOPE}" --no-write`
+5. If result has errors, stop and report. Otherwise, write canvas file with Write tool: write `json.dumps(result.canvas_data)` to `${VAULT_PATH}/${result.canvas_path}`
+6. `# Trigger Obsidian index refresh — resolves backlink latency after write`
+   `bash obsidian search query="${CANVAS_STEM}" format=json limit=1`
+7. Report canvas path and stats
 
 ### Change Impact Map: Consult & Update
 
