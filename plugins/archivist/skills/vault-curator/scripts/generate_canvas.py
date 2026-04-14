@@ -255,13 +255,16 @@ def grid_layout(count: int, node_width: int, node_height: int) -> list[tuple[int
 def fileclass_color(file_class: str) -> str | None:
     """Map fileClass to a canvas preset color for visual distinction."""
     mapping = {
-        'meeting': '2',    # Orange
-        'person': '5',     # Cyan
-        'project': '4',    # Green
-        'company': '6',    # Purple
-        'moc': '3',        # Yellow
-        'log': '1',        # Red
-        'cluster': '6',    # Purple for clusters
+        'meeting': '2',     # Orange
+        'person': '5',      # Cyan
+        'project': '4',     # Green
+        'company': '6',     # Purple
+        'moc': '3',         # Yellow
+        'log': '1',         # Red
+        'cluster': '6',     # Purple for clusters
+        'workflow': '3',    # Yellow
+        'capture': '2',     # Orange
+        'template': '5',    # Cyan
     }
     return mapping.get(file_class.lower()) if file_class else None
 
@@ -339,7 +342,47 @@ def generate_canvas(
                 node["color"] = color
             nodes.append(node)
 
-    # Generate edges
+    # Generate fileClass group nodes (overlay groups around file nodes by fileClass)
+    fileclass_to_node_ids: dict[str, list[str]] = defaultdict(list)
+    for note, node_id in zip(notes, node_ids):
+        if not note.get("_is_cluster"):
+            fc = note.get("file_class", "").strip()
+            group_key = fc if fc else "Uncategorized"
+            fileclass_to_node_ids[group_key].append(node_id)
+
+    # Build a map from node_id to its (x, y, width, height) for group sizing
+    node_bounds: dict[str, tuple[int, int, int, int]] = {}
+    for node in nodes:
+        if node.get("type") == "file":
+            node_bounds[node["id"]] = (node["x"], node["y"], node["width"], node["height"])
+
+    for fc_label, member_ids in fileclass_to_node_ids.items():
+        member_rects = [node_bounds[nid] for nid in member_ids if nid in node_bounds]
+        if not member_rects:
+            continue
+        xs = [r[0] for r in member_rects]
+        ys = [r[1] for r in member_rects]
+        x2s = [r[0] + r[2] for r in member_rects]
+        y2s = [r[1] + r[3] for r in member_rects]
+        gx = min(xs) - GROUP_PADDING
+        gy = min(ys) - GROUP_PADDING - GROUP_LABEL_HEIGHT
+        gw = max(x2s) - min(xs) + GROUP_PADDING * 2
+        gh = max(y2s) - min(ys) + GROUP_PADDING * 2 + GROUP_LABEL_HEIGHT
+        group_node: dict = {
+            "id": gen_id(),
+            "type": "group",
+            "x": gx,
+            "y": gy,
+            "width": max(gw, node_width + GROUP_PADDING * 2),
+            "height": max(gh, node_height + GROUP_PADDING * 2 + GROUP_LABEL_HEIGHT),
+            "label": fc_label,
+        }
+        color = fileclass_color(fc_label)
+        if color:
+            group_node["color"] = color
+        nodes.append(group_node)
+
+    # Generate edges with direction markers
     canvas_edges = []
     for src, dst in edges:
         if src < len(node_ids) and dst < len(node_ids):
@@ -347,8 +390,10 @@ def generate_canvas(
                 "id": gen_id(),
                 "fromNode": node_ids[src],
                 "fromSide": "right",
+                "fromEnd": "none",
                 "toNode": node_ids[dst],
                 "toSide": "left",
+                "toEnd": "arrow",
             })
 
     return {"nodes": nodes, "edges": canvas_edges}
