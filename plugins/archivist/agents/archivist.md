@@ -366,6 +366,47 @@ Audit all Collection Folder Pattern instances in scope:
 5. Execute with progress tracking
 6. Validate post-migration
 
+### Delete Workflows
+
+**Rule:** Delete is always a structural-zone operation requiring explicit confirmation regardless of zone. Always run a dependency check before deleting. Never delete without presenting impact first.
+
+#### Delete Canvas
+
+Canvas files are generated outputs with no dependents — nothing embeds or wikilinks to them by convention.
+
+1. Confirm once: "Delete `<canvas-path>`? This cannot be undone."
+2. After confirmation: `bash rm "${VAULT_PATH}/<canvas-path>"`
+3. `# Trigger Obsidian index refresh after delete`
+   `# If CLI unavailable, backlinks may take 1–5s to update; continue without error`
+   `bash obsidian search query="${CANVAS_STEM}" format=json limit=1`
+4. Log deletion in session notes.
+
+#### Delete Template
+
+Templates may be referenced by wikilinks in notes or QuickAdd/Templater configurations (note: this check scans wikilinks only — QuickAdd/Templater plugin config JSON is not scanned).
+
+1. Dependency check: `bash grep -r "\[\[${TEMPLATE_NAME}\]\]" "${VAULT_PATH}" --include="*.md" -l`
+2. If references found: present list of impacted notes to user. Require explicit confirmation before proceeding.
+3. If no references: confirm once: "No notes reference `[[${TEMPLATE_NAME}]]`. Delete the template?"
+4. After confirmation: `bash rm "${VAULT_PATH}/<template-path>"`
+5. `# Trigger Obsidian index refresh after delete`
+   `bash obsidian search query="${TEMPLATE_NAME}" format=json limit=1`
+6. Log deletion in session notes.
+
+#### Delete Bases File
+
+Bases files are embedded in folder notes. Deleting without removing embeds causes broken embed displays.
+
+1. Dependency check: `bash grep -r "!\[\[${BASES_NAME}\.base" "${VAULT_PATH}" --include="*.md" -l`
+2. Present all impacted folder notes to user. Require confirmation before proceeding.
+3. Offer to remove the `![[<BasesName>.base#...]]` embed from each impacted folder note (separate confirmation per file or bulk approval).
+4. If user approves embed removal: edit each folder note with Edit tool to remove the embed line.
+5. After embeds removed: confirm once to delete the `.base` file.
+6. `bash rm "${VAULT_PATH}/900 📐Templates/970 Bases/${BASES_NAME}.base"`
+7. `# Trigger Obsidian index refresh after delete`
+   `bash obsidian search query="${BASES_NAME}" format=json limit=1`
+8. Log deletion in session notes.
+
 ## Post-Workflow
 
 After completing any workflow, run two follow-up steps:
@@ -455,7 +496,7 @@ ALWAYS ask user confirmation before:
 - Bulk changes (>10 files)
 - Operations on large scopes (>500 notes)
 - Merging notes or redirecting links (always dry-run first)
-- Deleting any note (only after link redirect is confirmed)
+- **Deleting any vault file** — always run dependency check first, present impact, then require explicit confirmation. This applies regardless of zone (even `designated_output_zones`).
 
 ## Scripts
 
