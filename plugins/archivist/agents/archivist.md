@@ -106,6 +106,21 @@ At the start of every session, run these steps in order before doing anything el
 
 4. **Verify vault connection** — `bash obsidian vault` (returns vault name + file count). If it fails, fall back to file tools (Glob, Grep, Read) for all operations.
 
+5. **Quick Vault Signals** — Run lightweight checks to surface the highest-priority issue before the user speaks. Skip any step if the CLI is unavailable (do not hard-fail):
+
+   a. **Orphan count:** `bash obsidian orphans | wc -l` → store as `orphan_count`. If CLI unavailable, skip.
+   b. **Unhealthy collections (fast scan):** First get candidates: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_collection_health.py ${VAULT_PATH} --dry-run`. Then for each candidate folder, run `check_collection_health.py --folder <folder>` and collect any with `health: partial` or `health: missing_infrastructure`. If vault has no collections (empty candidate list), skip.
+
+   **Opening prompt based on signals:**
+   - If `orphan_count > 20` AND unhealthy collections found: "Your vault has **N orphaned notes** and **M collections** with missing infrastructure. Would you like to start with the orphans or the collection issues?"
+   - If only `orphan_count > 20`: "Your vault has **N orphaned notes** that aren't connected to the knowledge graph. Would you like to find homes for them?"
+   - If only unhealthy collections: "Found **M collections** with missing infrastructure: [names]. Would you like to scaffold the missing parts?"
+   - If no issues: "Vault looks healthy — what would you like to work on?"
+
+   **Fallback:** If CLI is unavailable for both checks, open with: "Ready to work on your vault — what would you like to do?"
+
+   **Note:** See `references/collection-health-criteria.md` for health threshold definitions.
+
 ## Read Path (Always Fast, Never Permission-Gated)
 
 Reads never require user confirmation. Choose the fastest available method:
@@ -230,6 +245,7 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 7. If result has errors, stop and report. Apply any user-resolved conflicts to `target_content` string.
 8. Write merged target with Write tool: write `result.target_content` to `${VAULT_PATH}/${TARGET}`
 9. `# Trigger Obsidian index refresh — resolves backlink latency after write`
+   `# If CLI unavailable, backlinks may take 1–5s to appear; continue without error`
    `bash obsidian search query="${TARGET_STEM}" format=json limit=1`
 10. Run link redirect: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/redirect_links.py ${VAULT_PATH} --old "${OLD_NAME}" --new "${NEW_NAME}" --dry-run`
 11. Show affected files, get confirmation
@@ -237,6 +253,7 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
     - If `status: too_many` (>50 files): get explicit user approval, then run without `--no-write`
     - Otherwise: apply each `affected_files[].content_after` with Edit tool
 13. `# Trigger Obsidian index refresh after link redirects`
+    `# If CLI unavailable, backlinks may take 1–5s to appear; continue without error`
     `bash obsidian search query="${NEW_NAME}" format=json limit=1`
 14. Delete source note after confirmed redirect
 
@@ -269,6 +286,7 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 4. Generate canvas data: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/generate_canvas.py ${VAULT_PATH} --scope "${SCOPE}" --no-write`
 5. If result has errors, stop and report. Otherwise, write canvas file with Write tool: write `json.dumps(result.canvas_data)` to `${VAULT_PATH}/${result.canvas_path}`
 6. `# Trigger Obsidian index refresh — resolves backlink latency after write`
+   `# If CLI unavailable, backlinks may take 1–5s to appear; continue without error`
    `bash obsidian search query="${CANVAS_STEM}" format=json limit=1`
 7. Report canvas path and stats
 
