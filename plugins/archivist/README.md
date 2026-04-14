@@ -62,20 +62,20 @@ MIT
 
 ## Agent: archivist
 
-### Agent-Native Audit — 2026-04-13
+### Agent-Native Audit — 2026-04-14
 
 Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/160))
 
 | Principle | Score | % | Status |
 |-----------|-------|---|--------|
-| Action Parity | 6/6 | 100% | ✅ |
+| Shared Workspace | 7.5/8 | 94% | ✅ |
 | Capability Discovery | 6.5/7 | 93% | ✅ |
-| Shared Workspace | 7/8 | 87.5% | ✅ |
-| Tools as Primitives | 9/12 | 75% | ⚠️ |
-| UI Integration | 5/8 | 62.5% | ⚠️ |
-| CRUD Completeness | 7/12 | 58% | ⚠️ |
-| Context Injection | 12/22 | 54.5% | ⚠️ |
-| Prompt-Native Features | 8/20 | 40% | ❌ |
+| Prompt-Native Features | 28/32 | 88% | ✅ |
+| Tools as Primitives | 8/10 | 80% | ✅ |
+| Context Injection | 5/7 | 71% | ⚠️ |
+| CRUD Completeness | 4/7 | 57% | ⚠️ |
+| Action Parity | 12/24 | 50% | ⚠️ |
+| UI Integration | 6/17 | 35% | ❌ |
 
 ### Version History
 
