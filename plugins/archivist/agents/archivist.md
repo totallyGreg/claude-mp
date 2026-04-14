@@ -440,10 +440,10 @@ ALWAYS ask user confirmation before:
 | `suggest_properties.py` | `<vault-path> <note-path> [--min-confidence <pct>]` |
 | `detect_schema_drift.py` | `<vault-path> --file-class <class> [--scope <path>] [--dry-run]` |
 | `find_related.py` | `<vault-path> <note-path> [--scope <path>] [--top <n>]` |
-| `generate_canvas.py` | `<vault-path> --scope <path> [--output <name>] [--max-nodes <n>] [--dry-run]` |
+| `generate_canvas.py` | `<vault-path> --scope <path> [--output <name>] [--max-nodes <n>] [--node-width <px>] [--node-height <px>] [--no-write] [--dry-run]` |
 | `find_similar_notes.py` | `<vault-path> --scope <path> [--min-similarity <pct>] [--max-groups <n>] [--dry-run]` |
-| `merge_notes.py` | `<vault-path> --source <path> --target <path> [--dry-run]` |
-| `redirect_links.py` | `<vault-path> --old <name> --new <name> [--scope <path>] [--dry-run]` |
-| `check_collection_health.py` | `<vault-path> [--scope <path>] [--folder <path>] [--dry-run]` |
+| `merge_notes.py` | `<vault-path> --source <path> --target <path> [--no-write] [--dry-run]` |
+| `redirect_links.py` | `<vault-path> --old <name> --new <name> [--scope <path>] [--no-write] [--dry-run]` |
+| `check_collection_health.py` | `<vault-path> [--scope <path>] [--folder <path>] [--coverage-threshold <pct>] [--dry-run]` |
 
 Run via: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/<script> <args>`

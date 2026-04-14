@@ -21,6 +21,9 @@ Options:
     --scope <path>       Vault-relative folder to scan (required)
     --output <name>      Output filename (default: _knowledge-map-YYYY-MM-DD.canvas)
     --max-nodes <n>      Maximum nodes before clustering (default: 50)
+    --node-width <px>    Width of each file node in pixels (default: 300)
+    --node-height <px>   Height of each file node in pixels (default: 120)
+    --no-write           Return JSON without writing any file (agent controls write)
     --dry-run            Show what would be generated without writing
 
 Returns:
@@ -30,7 +33,8 @@ Returns:
         "canvas_path": "Work/Projects/_knowledge-map-2026-02-16.canvas",
         "nodes": 35,
         "edges": 42,
-        "clusters": 0
+        "clusters": 0,
+        "total_notes_scanned": 42
     }
 """
 
@@ -47,9 +51,7 @@ from collections import defaultdict
 import frontmatter
 
 
-# --- Layout constants ---
-NODE_WIDTH = 300
-NODE_HEIGHT = 120
+# --- Layout constants (spacing/padding are internal; width/height are user-facing via CLI args) ---
 NODE_SPACING_X = 80
 NODE_SPACING_Y = 60
 GROUP_PADDING = 30
@@ -232,7 +234,7 @@ def cluster_notes(
     return top_notes, top_edges, clusters
 
 
-def grid_layout(count: int) -> list[tuple[int, int]]:
+def grid_layout(count: int, node_width: int, node_height: int) -> list[tuple[int, int]]:
     """Calculate grid positions for n nodes. Returns list of (x, y) tuples."""
     if count == 0:
         return []
@@ -243,8 +245,8 @@ def grid_layout(count: int) -> list[tuple[int, int]]:
     for i in range(count):
         row = i // cols
         col = i % cols
-        x = col * (NODE_WIDTH + NODE_SPACING_X)
-        y = row * (NODE_HEIGHT + NODE_SPACING_Y)
+        x = col * (node_width + NODE_SPACING_X)
+        y = row * (node_height + NODE_SPACING_Y)
         positions.append((x, y))
 
     return positions
@@ -268,9 +270,11 @@ def generate_canvas(
     notes: list[dict],
     edges: list[tuple[int, int]],
     clusters: list[dict],
+    node_width: int = 300,
+    node_height: int = 120,
 ) -> dict:
     """Generate JSON Canvas data structure."""
-    positions = grid_layout(len(notes))
+    positions = grid_layout(len(notes), node_width, node_height)
     nodes = []
     node_ids = []
 
@@ -285,16 +289,16 @@ def generate_canvas(
             # Size group to roughly contain sub-notes
             sub_cols = math.ceil(math.sqrt(sub_count))
             sub_rows = math.ceil(sub_count / max(sub_cols, 1))
-            group_w = sub_cols * (NODE_WIDTH + NODE_SPACING_X) + GROUP_PADDING * 2
-            group_h = sub_rows * (NODE_HEIGHT + NODE_SPACING_Y) + GROUP_PADDING * 2 + GROUP_LABEL_HEIGHT
+            group_w = sub_cols * (node_width + NODE_SPACING_X) + GROUP_PADDING * 2
+            group_h = sub_rows * (node_height + NODE_SPACING_Y) + GROUP_PADDING * 2 + GROUP_LABEL_HEIGHT
 
             group_node = {
                 "id": node_id,
                 "type": "group",
                 "x": x,
                 "y": y,
-                "width": max(group_w, NODE_WIDTH + GROUP_PADDING * 2),
-                "height": max(group_h, NODE_HEIGHT + GROUP_PADDING * 2 + GROUP_LABEL_HEIGHT),
+                "width": max(group_w, node_width + GROUP_PADDING * 2),
+                "height": max(group_h, node_height + GROUP_PADDING * 2 + GROUP_LABEL_HEIGHT),
                 "label": cluster["label"],
             }
             color = fileclass_color("cluster")
@@ -303,7 +307,7 @@ def generate_canvas(
             nodes.append(group_node)
 
             # Add sub-notes inside the group
-            sub_positions = grid_layout(sub_count)
+            sub_positions = grid_layout(sub_count, node_width, node_height)
             for sub_note, (sx, sy) in zip(cluster["notes"], sub_positions):
                 sub_id = gen_id()
                 sub_node = {
@@ -311,8 +315,8 @@ def generate_canvas(
                     "type": "file",
                     "x": x + GROUP_PADDING + sx,
                     "y": y + GROUP_PADDING + GROUP_LABEL_HEIGHT + sy,
-                    "width": NODE_WIDTH,
-                    "height": NODE_HEIGHT,
+                    "width": node_width,
+                    "height": node_height,
                     "file": sub_note["path"],
                 }
                 color = fileclass_color(sub_note.get("file_class", ""))
@@ -326,8 +330,8 @@ def generate_canvas(
                 "type": "file",
                 "x": x,
                 "y": y,
-                "width": NODE_WIDTH,
-                "height": NODE_HEIGHT,
+                "width": node_width,
+                "height": node_height,
                 "file": note["path"],
             }
             color = fileclass_color(note.get("file_class", ""))
@@ -365,7 +369,10 @@ def main():
     scope = None
     output_name = None
     max_nodes = 50
+    node_width = 300
+    node_height = 120
     dry_run = False
+    no_write = False
 
     # Parse args
     i = 1
@@ -379,6 +386,15 @@ def main():
         elif args[i] == "--max-nodes" and i + 1 < len(args):
             max_nodes = int(args[i + 1])
             i += 2
+        elif args[i] == "--node-width" and i + 1 < len(args):
+            node_width = int(args[i + 1])
+            i += 2
+        elif args[i] == "--node-height" and i + 1 < len(args):
+            node_height = int(args[i + 1])
+            i += 2
+        elif args[i] == "--no-write":
+            no_write = True
+            i += 1
         elif args[i] == "--dry-run":
             dry_run = True
             i += 1
@@ -390,6 +406,14 @@ def main():
             "status": "error",
             "error": "Must specify --scope <path>",
         }))
+        sys.exit(1)
+
+    if node_width <= 0:
+        print(json.dumps({"status": "error", "error": "node-width must be > 0"}))
+        sys.exit(1)
+
+    if node_height <= 0:
+        print(json.dumps({"status": "error", "error": "node-height must be > 0"}))
         sys.exit(1)
 
     try:
@@ -433,29 +457,11 @@ def main():
 
         edges = build_edges(notes)
 
-        if not edges and len(notes) > 1:
-            # No wikilinks between notes — still generate but note it
-            pass
-
         # Cluster if needed
         top_notes, top_edges, clusters = cluster_notes(notes, edges, max_nodes)
 
-        # Generate canvas
-        canvas_data = generate_canvas(top_notes, top_edges, clusters)
-
-        # Handle existing canvas
-        if output_path.exists():
-            # Append date suffix to avoid overwrite
-            stem = output_path.stem
-            suffix = 1
-            while output_path.exists():
-                output_path = output_path.parent / f"{stem}-{suffix}.canvas"
-                suffix += 1
-            rel_output = str(output_path.relative_to(vault_path))
-
-        # Write canvas file
-        with open(output_path, 'w') as f:
-            json.dump(canvas_data, f, indent=2)
+        # Generate canvas data
+        canvas_data = generate_canvas(top_notes, top_edges, clusters, node_width, node_height)
 
         result = {
             "status": "success",
@@ -466,6 +472,31 @@ def main():
             "clusters": len(clusters),
             "total_notes_scanned": len(notes),
         }
+
+        if no_write:
+            # Return full canvas data without writing — agent controls write decision
+            result["canvas_data"] = canvas_data
+            if not edges:
+                result["message"] = "No wikilinks found between notes in scope. Canvas shows notes without connections."
+            if clusters:
+                result["message"] = f"Large scope ({len(notes)} notes) clustered into {len(clusters)} group(s) to stay under {max_nodes}-node cap."
+            print(json.dumps(result, indent=2, default=str))
+            return
+
+        # Handle existing canvas
+        if output_path.exists():
+            # Append date suffix to avoid overwrite
+            stem = output_path.stem
+            suffix = 1
+            while output_path.exists():
+                output_path = output_path.parent / f"{stem}-{suffix}.canvas"
+                suffix += 1
+            rel_output = str(output_path.relative_to(vault_path))
+            result["canvas_path"] = rel_output
+
+        # Write canvas file
+        with open(output_path, 'w') as f:
+            json.dump(canvas_data, f, indent=2)
 
         if not edges:
             result["message"] = "No wikilinks found between notes in scope. Canvas shows notes without connections. Consider adding [[wikilinks]] to connect related notes."
