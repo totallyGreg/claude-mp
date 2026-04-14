@@ -18,6 +18,7 @@ Options:
     --old <name>       Old note name (without .md extension)
     --new <name>       New note name (without .md extension)
     --scope <path>     Limit scan to vault-relative folder (default: entire vault)
+    --no-write         Return affected file content as JSON without writing (capped at 50 files)
     --dry-run          Show affected files without writing
 
 Returns:
@@ -32,6 +33,14 @@ Returns:
         ],
         "total_replacements": 15,
         "total_files": 5
+    }
+
+    With --no-write, affected_files entries also include "content_after".
+    If >50 files would be affected, returns:
+    {
+        "status": "too_many",
+        "affected_count": N,
+        "message": "Too many files to return inline. Use script-controlled mode (omit --no-write) with explicit approval."
     }
 """
 
@@ -77,12 +86,16 @@ def build_link_patterns(old_name: str) -> list[tuple[re.Pattern, str]]:
     ]
 
 
+NO_WRITE_FILE_CAP = 50
+
+
 def scan_and_replace(
     vault_path: Path,
     old_name: str,
     new_name: str,
     scope: str | None,
     dry_run: bool,
+    no_write: bool = False,
 ) -> dict:
     """Scan vault for wikilinks and replace them."""
     search_root = vault_path / scope if scope else vault_path
@@ -110,14 +123,29 @@ def scan_and_replace(
 
         if file_replacements > 0:
             rel_path = str(md_file.relative_to(vault_path))
-            affected_files.append({
+            entry: dict = {
                 "path": rel_path,
                 "replacements": file_replacements,
-            })
+            }
+            if no_write or dry_run:
+                # Include computed content for agent to apply with Edit tool
+                entry["content_after"] = new_content
+            affected_files.append(entry)
             total_replacements += file_replacements
 
-            if not dry_run:
+            if not dry_run and not no_write:
                 md_file.write_text(new_content, encoding='utf-8')
+
+    if no_write and len(affected_files) > NO_WRITE_FILE_CAP:
+        return {
+            "status": "too_many",
+            "affected_count": len(affected_files),
+            "total_replacements": total_replacements,
+            "message": (
+                f"Too many files ({len(affected_files)}) to return inline. "
+                "Use script-controlled mode (omit --no-write) with explicit user approval."
+            ),
+        }
 
     return {
         "affected_files": affected_files,
@@ -142,6 +170,7 @@ def main():
     new_name = None
     scope = None
     dry_run = False
+    no_write = False
 
     # Parse args
     i = 1
@@ -155,6 +184,9 @@ def main():
         elif args[i] == "--scope" and i + 1 < len(args):
             scope = args[i + 1]
             i += 2
+        elif args[i] == "--no-write":
+            no_write = True
+            i += 1
         elif args[i] == "--dry-run":
             dry_run = True
             i += 1
@@ -178,7 +210,10 @@ def main():
     try:
         vault_path = validate_vault_path(vault_path_str)
 
-        result = scan_and_replace(vault_path, old_name, new_name, scope, dry_run)
+        result = scan_and_replace(vault_path, old_name, new_name, scope, dry_run, no_write)
+        if result.get("status") == "too_many":
+            print(json.dumps(result, indent=2))
+            return
         result["status"] = "dry_run" if dry_run else "success"
         result["old_name"] = old_name
         result["new_name"] = new_name

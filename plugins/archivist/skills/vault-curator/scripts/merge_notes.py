@@ -20,6 +20,7 @@ Usage:
 Options:
     --source <path>    Source note path (relative to vault) — will be absorbed
     --target <path>    Target note path (relative to vault) — will survive
+    --no-write         Return merged content as JSON without writing (agent controls write)
     --dry-run          Show planned merge without writing
 
 Returns:
@@ -33,7 +34,8 @@ Returns:
             "conflicts": [{"property": "type", "source": "meeting", "target": "standup"}],
             "merged_lists": {"tags": ["a", "b", "c"]}
         },
-        "content_appended": true
+        "content_appended": true,
+        "target_content": "---\n..."  // only present with --no-write; full merged markdown
     }
 """
 
@@ -165,6 +167,7 @@ def main():
     source_path = None
     target_path = None
     dry_run = False
+    no_write = False
 
     # Parse args
     i = 1
@@ -175,6 +178,9 @@ def main():
         elif args[i] == "--target" and i + 1 < len(args):
             target_path = args[i + 1]
             i += 2
+        elif args[i] == "--no-write":
+            no_write = True
+            i += 1
         elif args[i] == "--dry-run":
             dry_run = True
             i += 1
@@ -238,21 +244,28 @@ def main():
             result["has_conflicts"] = True
             result["message"] = f"{len(fm_changes['conflicts'])} property conflict(s) require user resolution"
 
-        if not dry_run:
-            # Apply frontmatter changes
-            for key, val in fm_changes["added"].items():
-                target_post.metadata[key] = val
-            for key, val in fm_changes["merged_lists"].items():
-                target_post.metadata[key] = val
+        if dry_run:
+            print(json.dumps(result, indent=2, default=str))
+            return
 
-            # Apply content merge
-            target_post.content = merged_content
+        # Apply frontmatter changes to get the final merged state
+        for key, val in fm_changes["added"].items():
+            target_post.metadata[key] = val
+        for key, val in fm_changes["merged_lists"].items():
+            target_post.metadata[key] = val
+        target_post.content = merged_content
+        merged_text = frontmatter.dumps(target_post)
 
-            # Write target
-            with open(target_file, 'w', encoding='utf-8') as f:
-                f.write(frontmatter.dumps(target_post))
+        if no_write:
+            # Return merged content without writing — agent controls write decision
+            result["target_content"] = merged_text
+            print(json.dumps(result, indent=2, default=str))
+            return
 
-            result["written"] = str(target_file.relative_to(vault_path))
+        # Write target
+        with open(target_file, 'w', encoding='utf-8') as f:
+            f.write(merged_text)
+        result["written"] = str(target_file.relative_to(vault_path))
 
         print(json.dumps(result, indent=2, default=str))
 

@@ -54,7 +54,7 @@ Progressive disclosure:
 
 ## Version
 
-1.20.0
+1.21.0
 
 ## License
 
@@ -62,25 +62,26 @@ MIT
 
 ## Agent: archivist
 
-### Agent-Native Audit — 2026-04-13
+### Agent-Native Audit — 2026-04-14
 
 Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/160))
 
 | Principle | Score | % | Status |
 |-----------|-------|---|--------|
-| Action Parity | 6/6 | 100% | ✅ |
+| Shared Workspace | 7.5/8 | 94% | ✅ |
 | Capability Discovery | 6.5/7 | 93% | ✅ |
-| Shared Workspace | 7/8 | 87.5% | ✅ |
-| Tools as Primitives | 9/12 | 75% | ⚠️ |
-| UI Integration | 5/8 | 62.5% | ⚠️ |
-| CRUD Completeness | 7/12 | 58% | ⚠️ |
-| Context Injection | 12/22 | 54.5% | ⚠️ |
-| Prompt-Native Features | 8/20 | 40% | ❌ |
+| Prompt-Native Features | 28/32 | 88% | ✅ |
+| Tools as Primitives | 8/10 | 80% | ✅ |
+| Context Injection | 5/7 | 71% | ⚠️ |
+| CRUD Completeness | 4/7 | 57% | ⚠️ |
+| Action Parity | 12/24 | 50% | ⚠️ |
+| UI Integration | 6/17 | 35% | ❌ |
 
 ### Version History
 
 | Version | Date | Issue | Summary |
 |---------|------|-------|---------|
+| 1.21.0 | 2026-04-14 | [#160](https://github.com/totallyGreg/claude-mp/issues/160) | Agent-native improvements: init vault signals (Context Injection), delete workflows (CRUD), multi-vault .local.md (Shared Workspace), --no-write primitives (Tools as Primitives), index refresh after writes (UI Integration), /help + /workflows commands (Capability Discovery + Action Parity) |
 | 1.20.0 | 2026-04-13 | [#160](https://github.com/totallyGreg/claude-mp/issues/160) | Add workflow classification (known vs novel detection) and session learning tables (Known Workflows + Workflow Candidates) to _vault-profile.md; promotion rule graduates 2+ occurrence candidates to workflow notes |
 | 1.19.0 | 2026-04-09 | - | Add Canvas Types taxonomy (Impact/Workflow/Architecture/Knowledge Maps) and Change Impact Map workflow |
 
@@ -88,7 +89,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 ### Current Metrics
 
-**Score: 93/100** (Good) — 2026-04-11
+**Score: 93/100** (Good) — 2026-04-14
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -98,6 +99,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.10.0 | 2026-04-14 | [#160](https://github.com/totallyGreg/claude-mp/issues/160) | Add vault-analysis-checks.md (analyze_vault.py check reference) and frontmatter-schema-reference.md (validate_frontmatter.py fields, severity, violations); update SKILL.md to reference both | 79 | 90 | 100 | 100 | 100 | 93 |
 | 1.9.0 | 2026-04-11 | - | Add linking discipline to Design Principles: link aggressively, no backticked vault entities; schema authority: .base default view is canonical, fileClass mirrors it; pointer to linking-discipline.md | 79 | 90 | 100 | 100 | 100 | 93 |
 | 1.8.0 | 2026-03-31 | - | Add Vault Profiling workflow, Write Boundaries section, replace hardcoded vault path with ${VAULT_PATH} | 80 | 90 | 100 | 100 | 100 | 94 |
 | 1.7.0 | 2026-03-28 | - | Add Linter plugin config read to Vault Discovery; read .obsidian/plugins/obsidian-linter/data.json before writing notes | 98 | 100 | 100 | 100 | 100 | 99 |
@@ -116,7 +118,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 ### Current Metrics
 
-**Score: 96/100** (Excellent) — 2026-04-11
+**Score: 96/100** (Excellent) — 2026-04-14
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -126,6 +128,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.12.0 | 2026-04-14 | [#160](https://github.com/totallyGreg/claude-mp/issues/160) | Add collection-health-criteria.md reference; add --no-write to generate_canvas.py, merge_notes.py, redirect_links.py (50-file cap on redirect); add --node-width/--node-height/--coverage-threshold CLI args; add fileClass group nodes + edge direction markers to canvas | 83 | 100 | 100 | 100 | 100 | 96 |
 | 1.11.0 | 2026-04-11 | - | Add Wikilinks over backticks rule to Write Quality Gate; graph traversal commands to cli-patterns.md; create linking-discipline.md reference (decision table, schema authority, graph CLI commands) | 83 | 100 | 100 | 100 | 100 | 96 |
 | 1.10.0 | 2026-04-01 | - | Demote Write Boundaries to H3; add Base Files and File Relocation rules to cli-patterns.md; offload verbose docs to references/ | 98 | 100 | 100 | 100 | 100 | 99 |
 | 1.9.4 | 2026-03-31 | - | Add Write Boundaries section for vault-aware permission zones | 80 | 90 | 100 | 100 | 100 | 94 |

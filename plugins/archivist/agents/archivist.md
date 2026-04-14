@@ -93,7 +93,19 @@ At the start of every session, run these steps in order before doing anything el
    - Continue initialization with zones unconfigured (all writes require confirmation until profiling runs).
 
    **If `.local.md` exists**, parse:
+
+   *Multi-vault detection:* Check if the file contains a `vaults:` key with 2+ named vault profiles.
+   - If `vaults:` is present and has **1 entry**: auto-select it without prompting.
+   - If `vaults:` is present and has **2+ entries**:
+     - Expand `~` in each vault's `path:` field.
+     - Check if `$PWD` starts with any vault's path. If exactly one matches → auto-select it silently.
+     - If no match (or multiple matches): use AskUserQuestion to present the vault names and ask which to use.
+   - If both `vaults:` and a flat `vault_path:` are present: use `vaults:` and warn the user about the redundant `vault_path:` key.
+
+   *Single-vault (legacy format):*
    - `vault_path:` — if absent or still the placeholder (`/Users/username/Documents/MyVault`), ask for the real path and update the file with the Write tool before continuing
+
+   *After vault is selected, load its zones:*
    - `architect_write_zones:` — comma-separated vault-relative paths where vault-architect may write
    - `curator_write_zones:` — comma-separated vault-relative paths where vault-curator may write
    - `designated_output_zones:` — free-write zone (no confirmation needed for creates)
@@ -105,6 +117,21 @@ At the start of every session, run these steps in order before doing anything el
    - **If it exists but is corrupted** (malformed YAML frontmatter, unparseable): regenerate from scratch using vault-architect's Vault Profiling workflow. Warn the user that the old profile was replaced.
 
 4. **Verify vault connection** — `bash obsidian vault` (returns vault name + file count). If it fails, fall back to file tools (Glob, Grep, Read) for all operations.
+
+5. **Quick Vault Signals** — Run lightweight checks to surface the highest-priority issue before the user speaks. Skip any step if the CLI is unavailable (do not hard-fail):
+
+   a. **Orphan count:** `bash obsidian orphans | wc -l` → store as `orphan_count`. If CLI unavailable, skip.
+   b. **Unhealthy collections (fast scan):** First get candidates: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_collection_health.py ${VAULT_PATH} --dry-run`. Then for each candidate folder, run `check_collection_health.py --folder <folder>` and collect any with `health: partial` or `health: missing_infrastructure`. If vault has no collections (empty candidate list), skip.
+
+   **Opening prompt based on signals:**
+   - If `orphan_count > 20` AND unhealthy collections found: "Your vault has **N orphaned notes** and **M collections** with missing infrastructure. Would you like to start with the orphans or the collection issues?"
+   - If only `orphan_count > 20`: "Your vault has **N orphaned notes** that aren't connected to the knowledge graph. Would you like to find homes for them?"
+   - If only unhealthy collections: "Found **M collections** with missing infrastructure: [names]. Would you like to scaffold the missing parts?"
+   - If no issues: "Vault looks healthy — what would you like to work on?"
+
+   **Fallback:** If CLI is unavailable for both checks, open with: "Ready to work on your vault — what would you like to do?"
+
+   **Note:** See `references/collection-health-criteria.md` for health threshold definitions.
 
 ## Read Path (Always Fast, Never Permission-Gated)
 
@@ -223,13 +250,24 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 ### Consolidation: Merge Notes
 1. Load reference: Read `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/consolidation-protocol.md`
 2. Git checkpoint: `bash cd ${VAULT_PATH} && git add "${VAULT_PATH}" && git commit -m "Pre-consolidation checkpoint"`
-2. Dry-run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/merge_notes.py ${VAULT_PATH} --source "${SOURCE}" --target "${TARGET}" --dry-run`
-3. Present frontmatter changes and conflicts to user
-4. Resolve conflicts with user input
-5. Execute merge (remove --dry-run)
-6. Run link redirect: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/redirect_links.py ${VAULT_PATH} --old "${OLD_NAME}" --new "${NEW_NAME}" --dry-run`
-7. Show affected files, get confirmation, execute redirect
-8. Delete source note after confirmed redirect
+3. Dry-run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/merge_notes.py ${VAULT_PATH} --source "${SOURCE}" --target "${TARGET}" --dry-run`
+4. Present frontmatter changes and conflicts to user
+5. Resolve conflicts with user input
+6. Get merged content: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/merge_notes.py ${VAULT_PATH} --source "${SOURCE}" --target "${TARGET}" --no-write`
+7. If result has errors, stop and report. Apply any user-resolved conflicts to `target_content` string.
+8. Write merged target with Write tool: write `result.target_content` to `${VAULT_PATH}/${TARGET}`
+9. `# Trigger Obsidian index refresh — resolves backlink latency after write`
+   `# If CLI unavailable, backlinks may take 1–5s to appear; continue without error`
+   `bash obsidian search query="${TARGET_STEM}" format=json limit=1`
+10. Run link redirect: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/redirect_links.py ${VAULT_PATH} --old "${OLD_NAME}" --new "${NEW_NAME}" --dry-run`
+11. Show affected files, get confirmation
+12. Apply redirects: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/redirect_links.py ${VAULT_PATH} --old "${OLD_NAME}" --new "${NEW_NAME}" --no-write`
+    - If `status: too_many` (>50 files): get explicit user approval, then run without `--no-write`
+    - Otherwise: apply each `affected_files[].content_after` with Edit tool
+13. `# Trigger Obsidian index refresh after link redirects`
+    `# If CLI unavailable, backlinks may take 1–5s to appear; continue without error`
+    `bash obsidian search query="${NEW_NAME}" format=json limit=1`
+14. Delete source note after confirmed redirect
 
 ### Discovery: Find Related Notes
 1. Run scope selection (or use the target note's folder)
@@ -257,8 +295,12 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 1. Run scope selection
 2. Dry-run: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/generate_canvas.py ${VAULT_PATH} --scope "${SCOPE}" --dry-run`
 3. Review node/edge counts with user
-4. Execute (remove --dry-run) to write `.canvas` file
-5. Report canvas path and stats
+4. Generate canvas data: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/generate_canvas.py ${VAULT_PATH} --scope "${SCOPE}" --no-write`
+5. If result has errors, stop and report. Otherwise, write canvas file with Write tool: write `json.dumps(result.canvas_data)` to `${VAULT_PATH}/${result.canvas_path}`
+6. `# Trigger Obsidian index refresh — resolves backlink latency after write`
+   `# If CLI unavailable, backlinks may take 1–5s to appear; continue without error`
+   `bash obsidian search query="${CANVAS_STEM}" format=json limit=1`
+7. Report canvas path and stats
 
 ### Change Impact Map: Consult & Update
 
@@ -335,6 +377,47 @@ Audit all Collection Folder Pattern instances in scope:
 4. Get user approval
 5. Execute with progress tracking
 6. Validate post-migration
+
+### Delete Workflows
+
+**Rule:** Delete is always a structural-zone operation requiring explicit confirmation regardless of zone. Always run a dependency check before deleting. Never delete without presenting impact first.
+
+#### Delete Canvas
+
+Canvas files are generated outputs with no dependents — nothing embeds or wikilinks to them by convention.
+
+1. Confirm once: "Delete `<canvas-path>`? This cannot be undone."
+2. After confirmation: `bash rm "${VAULT_PATH}/<canvas-path>"`
+3. `# Trigger Obsidian index refresh after delete`
+   `# If CLI unavailable, backlinks may take 1–5s to update; continue without error`
+   `bash obsidian search query="${CANVAS_STEM}" format=json limit=1`
+4. Log deletion in session notes.
+
+#### Delete Template
+
+Templates may be referenced by wikilinks in notes or QuickAdd/Templater configurations (note: this check scans wikilinks only — QuickAdd/Templater plugin config JSON is not scanned).
+
+1. Dependency check: `bash grep -r "\[\[${TEMPLATE_NAME}\]\]" "${VAULT_PATH}" --include="*.md" -l`
+2. If references found: present list of impacted notes to user. Require explicit confirmation before proceeding.
+3. If no references: confirm once: "No notes reference `[[${TEMPLATE_NAME}]]`. Delete the template?"
+4. After confirmation: `bash rm "${VAULT_PATH}/<template-path>"`
+5. `# Trigger Obsidian index refresh after delete`
+   `bash obsidian search query="${TEMPLATE_NAME}" format=json limit=1`
+6. Log deletion in session notes.
+
+#### Delete Bases File
+
+Bases files are embedded in folder notes. Deleting without removing embeds causes broken embed displays.
+
+1. Dependency check: `bash grep -r "!\[\[${BASES_NAME}\.base" "${VAULT_PATH}" --include="*.md" -l`
+2. Present all impacted folder notes to user. Require confirmation before proceeding.
+3. Offer to remove the `![[<BasesName>.base#...]]` embed from each impacted folder note (separate confirmation per file or bulk approval).
+4. If user approves embed removal: edit each folder note with Edit tool to remove the embed line.
+5. After embeds removed: confirm once to delete the `.base` file.
+6. `bash rm "${VAULT_PATH}/900 📐Templates/970 Bases/${BASES_NAME}.base"`
+7. `# Trigger Obsidian index refresh after delete`
+   `bash obsidian search query="${BASES_NAME}" format=json limit=1`
+8. Log deletion in session notes.
 
 ## Post-Workflow
 
@@ -425,7 +508,7 @@ ALWAYS ask user confirmation before:
 - Bulk changes (>10 files)
 - Operations on large scopes (>500 notes)
 - Merging notes or redirecting links (always dry-run first)
-- Deleting any note (only after link redirect is confirmed)
+- **Deleting any vault file** — always run dependency check first, present impact, then require explicit confirmation. This applies regardless of zone (even `designated_output_zones`).
 
 ## Scripts
 
@@ -440,10 +523,10 @@ ALWAYS ask user confirmation before:
 | `suggest_properties.py` | `<vault-path> <note-path> [--min-confidence <pct>]` |
 | `detect_schema_drift.py` | `<vault-path> --file-class <class> [--scope <path>] [--dry-run]` |
 | `find_related.py` | `<vault-path> <note-path> [--scope <path>] [--top <n>]` |
-| `generate_canvas.py` | `<vault-path> --scope <path> [--output <name>] [--max-nodes <n>] [--dry-run]` |
+| `generate_canvas.py` | `<vault-path> --scope <path> [--output <name>] [--max-nodes <n>] [--node-width <px>] [--node-height <px>] [--no-write] [--dry-run]` |
 | `find_similar_notes.py` | `<vault-path> --scope <path> [--min-similarity <pct>] [--max-groups <n>] [--dry-run]` |
-| `merge_notes.py` | `<vault-path> --source <path> --target <path> [--dry-run]` |
-| `redirect_links.py` | `<vault-path> --old <name> --new <name> [--scope <path>] [--dry-run]` |
-| `check_collection_health.py` | `<vault-path> [--scope <path>] [--folder <path>] [--dry-run]` |
+| `merge_notes.py` | `<vault-path> --source <path> --target <path> [--no-write] [--dry-run]` |
+| `redirect_links.py` | `<vault-path> --old <name> --new <name> [--scope <path>] [--no-write] [--dry-run]` |
+| `check_collection_health.py` | `<vault-path> [--scope <path>] [--folder <path>] [--coverage-threshold <pct>] [--dry-run]` |
 
 Run via: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/<script> <args>`

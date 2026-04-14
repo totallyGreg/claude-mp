@@ -74,6 +74,9 @@ When asked to analyze a vault or suggest improvements:
 2. **Analyze for Issues** - Use `scripts/analyze_vault.py` to find untagged notes, orphans, inconsistent frontmatter, duplicate titles, missing temporal links
 3. **Provide Actionable Recommendations** - Suggest frontmatter improvements, Bases queries, template consolidation, folder refinements
 
+**References:**
+- `references/vault-analysis-checks.md` - Each check's detection logic, output fields, interpretation, and remediation
+
 ### 2. Template Creation with Templater
 
 Create templates that prompt for input, rename/move files automatically, set frontmatter, embed Bases views, and position the cursor.
@@ -102,6 +105,7 @@ Validate schemas with `scripts/validate_frontmatter.py`. Document conventions in
 
 **References:**
 - `references/excalibrain-metadata.md` - Complete semantic field documentation
+- `references/frontmatter-schema-reference.md` - Fields checked by validate_frontmatter.py, severity levels, canonical field names, common violations
 
 ### 5. Timeline Visualization with Chronos
 

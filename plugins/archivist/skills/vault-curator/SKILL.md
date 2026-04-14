@@ -290,6 +290,6 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_collection_healt
   ${VAULT_PATH} [--scope "${SCOPE}"] [--folder "700 Notes/Workflows"]
 ```
 
-Output fields: `has_folder_note`, `folder_note_embeds_bases`, `has_bases_file`, `dominant_fileclass`, `schema_drift_issues`, `health` — see `references/available-scripts.md` for field definitions.
+Output fields: `has_folder_note`, `folder_note_embeds_bases`, `has_bases_file`, `dominant_fileclass`, `schema_drift_issues`, `health` — see `references/collection-health-criteria.md` for field definitions, health thresholds, and fix priority order.
 
 **After report, offer fixes in order:** missing folder note or Bases file → scaffold via vault-architect; folder note missing Bases embed → add with confirmation; schema drift → run `detect_schema_drift.py --scope <folder>`.

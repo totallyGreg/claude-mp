@@ -22,9 +22,10 @@ Usage:
     uv run check_collection_health.py <vault-path> [options]
 
 Options:
-    --scope <path>     Limit scan to vault-relative folder (e.g. "700 Notes")
-    --folder <path>    Check a single specific folder (vault-relative)
-    --dry-run          Show candidate folders without running health checks
+    --scope <path>              Limit scan to vault-relative folder (e.g. "700 Notes")
+    --folder <path>             Check a single specific folder (vault-relative)
+    --coverage-threshold <pct>  Minimum fileClass coverage % for density-based detection (default: 60)
+    --dry-run                   Show candidate folders without running health checks
 
 Returns:
     JSON list of collection health reports:
@@ -207,8 +208,8 @@ def check_collection(
     }
 
 
-def is_candidate_collection(folder: Path) -> bool:
-    """A folder is a candidate collection if it has a folder note OR ≥5 notes with ≥60% sharing a fileClass."""
+def is_candidate_collection(folder: Path, coverage_threshold: float = 60.0) -> bool:
+    """A folder is a candidate collection if it has a folder note OR ≥5 notes with ≥coverage_threshold% sharing a fileClass."""
     name = folder.name
 
     # Skip hidden, template, or system folders
@@ -237,17 +238,17 @@ def is_candidate_collection(folder: Path) -> bool:
         return False
     counter = Counter(fileclasses)
     top_count = counter.most_common(1)[0][1]
-    return (top_count / len(notes)) >= 0.6
+    return (top_count / len(notes)) >= (coverage_threshold / 100.0)
 
 
-def find_candidate_collections(vault_path: Path, scope: str | None) -> list[Path]:
+def find_candidate_collections(vault_path: Path, scope: str | None, coverage_threshold: float = 60.0) -> list[Path]:
     search_root = vault_path / scope if scope else vault_path
     if not search_root.exists():
         raise ValueError(f"Scope path does not exist: {search_root}")
 
     candidates = []
     for folder in sorted(search_root.iterdir()):
-        if folder.is_dir() and is_candidate_collection(folder):
+        if folder.is_dir() and is_candidate_collection(folder, coverage_threshold):
             candidates.append(folder)
     return candidates
 
@@ -264,6 +265,7 @@ def main():
     vault_path_str = args[0]
     scope = None
     target_folder = None
+    coverage_threshold = 60.0
     dry_run = False
 
     i = 1
@@ -273,6 +275,9 @@ def main():
             i += 2
         elif args[i] == "--folder" and i + 1 < len(args):
             target_folder = args[i + 1]
+            i += 2
+        elif args[i] == "--coverage-threshold" and i + 1 < len(args):
+            coverage_threshold = float(args[i + 1])
             i += 2
         elif args[i] == "--dry-run":
             dry_run = True
@@ -286,7 +291,7 @@ def main():
         if target_folder:
             candidates = [vault_path / target_folder]
         else:
-            candidates = find_candidate_collections(vault_path, scope)
+            candidates = find_candidate_collections(vault_path, scope, coverage_threshold)
 
         if dry_run:
             print(json.dumps({
