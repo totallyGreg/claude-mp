@@ -93,7 +93,19 @@ At the start of every session, run these steps in order before doing anything el
    - Continue initialization with zones unconfigured (all writes require confirmation until profiling runs).
 
    **If `.local.md` exists**, parse:
+
+   *Multi-vault detection:* Check if the file contains a `vaults:` key with 2+ named vault profiles.
+   - If `vaults:` is present and has **1 entry**: auto-select it without prompting.
+   - If `vaults:` is present and has **2+ entries**:
+     - Expand `~` in each vault's `path:` field.
+     - Check if `$PWD` starts with any vault's path. If exactly one matches → auto-select it silently.
+     - If no match (or multiple matches): use AskUserQuestion to present the vault names and ask which to use.
+   - If both `vaults:` and a flat `vault_path:` are present: use `vaults:` and warn the user about the redundant `vault_path:` key.
+
+   *Single-vault (legacy format):*
    - `vault_path:` — if absent or still the placeholder (`/Users/username/Documents/MyVault`), ask for the real path and update the file with the Write tool before continuing
+
+   *After vault is selected, load its zones:*
    - `architect_write_zones:` — comma-separated vault-relative paths where vault-architect may write
    - `curator_write_zones:` — comma-separated vault-relative paths where vault-curator may write
    - `designated_output_zones:` — free-write zone (no confirmation needed for creates)

@@ -1,6 +1,10 @@
 <!-- PKM Plugin Configuration -->
 <!-- Copy this file to .local.md and customize for your vault -->
 
+<!-- ============================================================ -->
+<!-- OPTION A: Single vault (legacy format — always supported)    -->
+<!-- ============================================================ -->
+
 vault_path: /Users/username/Documents/MyVault
 daily_notes_path: Daily Notes
 templates_path: Templates
@@ -20,3 +24,29 @@ curator_write_zones: 700 Notes/, 800 Generated/, 500 ♽ Cycles/
 <!-- Directories intended for automated/generated output (forward compatibility — -->
 <!-- all writes still require confirmation until hook-based enforcement is available) -->
 designated_output_zones: 800 Generated/
+
+
+<!-- ============================================================ -->
+<!-- OPTION B: Multiple vaults (named-profile format)             -->
+<!-- Use this instead of the flat vault_path: key above.          -->
+<!-- The vaults: key takes precedence if both are present.        -->
+<!-- ============================================================ -->
+
+# vaults:
+#   personal:
+#     path: /Users/username/Documents/PersonalVault
+#     architect_write_zones: 900 📐Templates/, _vault-profile.md
+#     curator_write_zones: 700 Notes/, 800 Generated/
+#     designated_output_zones: 800 Generated/
+#
+#   work:
+#     path: /Users/username/Documents/WorkVault
+#     architect_write_zones: Templates/, _vault-profile.md
+#     curator_write_zones: Notes/, Generated/
+#     designated_output_zones: Generated/
+
+<!-- Multi-vault selection logic (when vaults: is defined):          -->
+<!--   1. If $PWD is inside one vault's path → auto-select that vault -->
+<!--   2. If $PWD matches no vault → present named choices via prompt  -->
+<!--   3. If only one vault is defined → auto-select without prompt    -->
+<!-- Vault paths support ~ expansion.                                  -->
