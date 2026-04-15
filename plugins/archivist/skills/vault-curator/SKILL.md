@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.11.0"
+  version: "1.12.0"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -52,9 +52,9 @@ obsidian search query="Docker" format=json
 
 **Edge cases:** Empty scope → inform and suggest broadening. Whole vault → warn and require confirmation. CLI unavailable → fall back to `tree` + Glob/Grep.
 
-**CLI delegation:** `obsidian-cli`, `obsidian-markdown`, `obsidian-bases`, `json-canvas`. See `references/cli-patterns.md` for command rules, Base File lookup, File Relocation, and error handling. Fallback: markdown-oxide LSP (if available via Neovim), then Grep/Glob/Read.
+**CLI delegation:** `obsidian-cli`, `obsidian-markdown`, `obsidian-bases`, `json-canvas`. See `references/cli-patterns.md` for command rules, error handling, and fallback strategy.
 
-**Opportunistic drift detection:** When frontmatter is sampled during any operation, watch for obvious inconsistencies — competing property names (`url`/`site`/`urls`), mixed-case `fileClass` values, YAML corruption artifacts. Offer: "I noticed schema drift in `<folder>` — run detection before continuing?"
+**Opportunistic drift detection:** When frontmatter is sampled, watch for competing property names, mixed-case `fileClass`, or YAML corruption. Offer drift detection before continuing.
 
 ## Migration & Metadata Workflows
 
@@ -62,24 +62,17 @@ obsidian search query="Docker" format=json
 
 Before writing any note to the vault:
 
-1. **Frontmatter on line 1** — `---` must be the very first characters. A leading newline silently breaks Obsidian's property parsing and fileClass resolution. When using `obsidian append`, ensure content begins with `---` directly.
-2. **Linter compliance** — check `.obsidian/plugins/obsidian-linter/data.json` first (see vault-architect for key fields). Linter auto-reformats on save; non-compliant notes produce spurious git diffs.
-3. **Bulk validation**: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/validate_frontmatter.py ${VAULT_PATH}`
-4. **Wikilinks over backticks** — every reference to another vault entity (note, fileClass, `.base` file, template, folder, canvas) uses `[[Target]]`. Backticks are for shell commands, CLI argument paths, property keys, YAML values, and code identifiers. See `references/linking-discipline.md`.
+1. **Frontmatter on line 1** — `---` must be the very first characters; a leading newline silently breaks Obsidian's property parsing.
+2. **Linter compliance** — non-compliant notes produce spurious git diffs. Bulk validate: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/validate_frontmatter.py ${VAULT_PATH}`
+3. **Wikilinks over backticks** — use `[[Target]]` for all vault entity references. See `references/linking-discipline.md`.
 
 ### Write Boundaries
 
-Before writing to any path in the vault, check whether it falls within your allowed zones.
+Check `curator_write_zones:` in `${CLAUDE_PLUGIN_ROOT}/.local.md` before any write. A write is allowed if the target path starts with a listed zone prefix. Canvas files and discovery views are always allowed as generated output regardless of zone.
 
-**How to check:** Read `${CLAUDE_PLUGIN_ROOT}/.local.md` and parse the `curator_write_zones:` field. This contains a comma-separated list of vault-relative directory paths. A write is allowed if the target path starts with any listed zone prefix. When multiple zones match, the most-specific (longest) prefix wins.
+**Out-of-zone:** refuse and suggest vault-architect. **No zones configured:** confirm all writes and offer to run vault profiling.
 
-**Allowed writes:** Note content directories, generated output directory (canvas files, discovery views), existing note files for property updates, and any path listed in `curator_write_zones`.
-
-**Out-of-zone writes:** If the target path does not match any curator zone, **refuse the write** and suggest using vault-architect instead.
-
-**No zones configured:** If `.local.md` has no zone fields, all writes require user confirmation. Offer to run vault profiling to discover and configure zones.
-
-**All writes require confirmation** — regardless of zone. The zone model determines *which skill* may write, not *whether* to confirm.
+**All writes require confirmation** — the zone model determines *which skill* may write, not *whether* to confirm.
 
 
 ### Meeting Extraction from Logs
@@ -220,7 +213,7 @@ When asked "find related notes", "show connections", or "what links to this":
    uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/find_related.py \
      ${VAULT_PATH} "${NOTE_PATH}" --scope "${SCOPE_PATH}" --top 10
    ```
-3. **Present results** with relatedness rationale (shared properties, links, tags, proximity — see `references/available-scripts.md`)
+3. **Present results** with relatedness rationale — see `references/available-scripts.md`
 4. **Offer to add wikilinks** to connect related notes (with user confirmation)
 
 ### Progressive Discovery Views
@@ -232,16 +225,8 @@ When asked "show discovery view" or "organize notes by depth":
    - **Entry points**: Notes with `noteType: MOC` or `fileClass: MOC` (Maps of Content, overviews)
    - **Detailed notes**: Notes with specific `fileClass` values (Meeting, Project, Person, etc.)
    - **Raw captures**: Notes without `fileClass`/`noteType`, or with `fileClass: Capture`/`Log`
-3. **Generate `.base` file** using obsidian-bases skill knowledge:
-   ```json
-   {
-     "name": "Discovery View - [Scope]",
-     "filters": [{"property": "file.folder", "op": "starts-with", "value": "[scope]"}],
-     "groups": [{"property": "noteType", "direction": "asc"}],
-     "columns": ["file", "noteType", "fileClass", "tags", "file.ctime"]
-   }
-   ```
-4. **Save `.base` file** in the scoped directory (e.g., `_discovery-view.base`)
+3. **Generate `.base` file** — filter by `file.folder starts-with [scope]`, group by `noteType`, columns: `file`, `noteType`, `fileClass`, `tags`, `file.ctime`
+4. **Save** as `_discovery-view.base` in the scoped directory
 5. **Document the hierarchy model**: explain what each tier means for the user's vault
 
 ### Auto-Linking Suggestions
@@ -273,6 +258,20 @@ When asked "show me a map", "generate canvas", "visualize my notes", or "show kn
 4. **Execute** (remove `--dry-run`) to write `.canvas` file
 
 **See:** `references/available-scripts.md` for canvas layout, naming conventions, and `--output`/`--max-nodes` options.
+
+### Canvas: Edit Existing
+
+When asked to update, reorganize, add nodes to, or redesign an existing `.canvas` file:
+
+1. **Read** the current canvas JSON with the Read tool
+2. **Plan changes** — identify nodes/edges to add, remove, or modify using `json-canvas` skill knowledge (node types, edge anchors, color presets, layout guidelines)
+3. **Construct updated JSON** — generate unique 16-char hex IDs for new nodes; verify all `fromNode`/`toNode` references resolve to existing node IDs
+4. **Write** the updated canvas with the Write tool to `${VAULT_PATH}/<canvas-path>`
+5. **Verify** — immediately read the file back and confirm the content matches what was written
+
+**Critical:** Do NOT use `obsidian create`, `obsidian write`, or any CLI command to write `.canvas` files — the CLI does not handle JSON canvas format reliably and silently drops writes. Always use the Write tool directly.
+
+**See:** `json-canvas` skill for node types, edge spec, color presets, ID generation, and validation checklist.
 
 ### Pattern Detection
 
