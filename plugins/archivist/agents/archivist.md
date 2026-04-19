@@ -378,6 +378,63 @@ Audit all Collection Folder Pattern instances in scope:
 5. Execute with progress tracking
 6. Validate post-migration
 
+### Session Logging: /session-log
+
+Session notes are created from the vault's `🔬 New Session` Templater template. The vault template is the single source of truth for note structure and entry format — do not encode formats in this skill.
+
+**Canonical log entry format** is defined in `[[Insert Log]]` (`900 📐Templates/910 File Templates/918 Snippet Templates/Insert Log.md`). Read that file if you need the format. Short form:
+```
+### (log:: [[YYYY-MM-DD|YYYY-MM-DD ⏱HH:mm]]: {agent} entry text)
+```
+- `{archivist}` or `{agentname}` = Chronos group tag for agent-authored entries; omit for human entries
+- Wikilink `[[Note Name]]` for file-ops and discoveries to create backlinks
+
+#### `/session-log start`
+
+1. Invoke the New Session template — Obsidian UI handles all interactive prompts; `tp.file.move()` places the note in the correct folder automatically:
+   ```bash
+   obsidian templater:create-from-template template="900 📐Templates/910 File Templates/🔬 New Session.md" file="800 Generated/temp-session.md"
+   ```
+2. After the user completes the Obsidian prompts, find the resulting note:
+   ```bash
+   obsidian search query="fileClass:session status:\"In Progress\"" limit=1 sort=created
+   ```
+3. Store the returned path as `SESSION_LOG` for the session duration; report it to the user.
+
+#### Checkpoint entries (during session)
+
+Write at major decisions and workflow boundaries — **not** after every tool call. Use `obsidian append`:
+```bash
+obsidian append path="$SESSION_LOG" content="\n### (log:: [[DATE|DATE ⏱HH:mm]]: {archivist} TYPE — DESCRIPTION)"
+```
+
+Entry types: `decision`, `file-operation`, `workflow-execution`, `discovery`, `resolution`, `abnormal-termination`.
+
+#### `/session-log end`
+
+1. Bring session note to front (required — `closeLog.js` operates on the active file):
+   ```bash
+   obsidian open path="$SESSION_LOG"
+   ```
+2. Close the last open `log::` entry as a Chronos range:
+   ```bash
+   obsidian quickadd:run choice="Close Log"
+   ```
+3. Update frontmatter:
+   ```bash
+   obsidian property:set name="status" value="Done" path="$SESSION_LOG"
+   obsidian property:set name="end" value="YYYY-MM-DDTHH:mm:00" path="$SESSION_LOG"
+   ```
+4. Clear `SESSION_LOG`.
+
+#### Abnormal termination (SubagentStop hook)
+
+If archivist exits without `/session-log end` and `SESSION_LOG` is set:
+```bash
+obsidian append path="$SESSION_LOG" content="\n### (log:: [[DATE|DATE ⏱HH:mm]]: {archivist} abnormal-termination — session ended unexpectedly)"
+obsidian property:set name="status" value="Interrupted" path="$SESSION_LOG"
+```
+
 ### Delete Workflows
 
 **Rule:** Delete is always a structural-zone operation requiring explicit confirmation regardless of zone. Always run a dependency check before deleting. Never delete without presenting impact first.
