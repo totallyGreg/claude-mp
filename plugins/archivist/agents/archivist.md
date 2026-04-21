@@ -380,7 +380,7 @@ Audit all Collection Folder Pattern instances in scope:
 
 ### Session Logging: /session-log
 
-Session notes are created from the vault's `🔬 New Session` Templater template. The vault template is the single source of truth for note structure and entry format — do not encode formats in this skill.
+The vault template is the single source of truth for note structure and entry format — do not encode formats in this skill.
 
 **Canonical log entry format** is defined in `[[Insert Log]]` (`900 📐Templates/910 File Templates/918 Snippet Templates/Insert Log.md`). Read that file if you need the format. Short form:
 ```
@@ -391,6 +391,19 @@ Session notes are created from the vault's `🔬 New Session` Templater template
 
 #### `/session-log start`
 
+**Default (no project mentioned):** Use today's daily note as the session log.
+1. Find today's daily note:
+   ```bash
+   obsidian search query="fileClass:journal" limit=1 sort=created
+   ```
+   If no result, open today's note by date so Obsidian creates it from the daily note template.
+2. Store the returned path as `SESSION_LOG`; report it to the user.
+3. Append a session-start entry to the `## Notes 📓` section of the daily note:
+   ```bash
+   obsidian append path="$SESSION_LOG" content="\n### (log:: [[YYYY-MM-DD|YYYY-MM-DD ⏱HH:mm]]: {archivist} workflow-execution — Session started)"
+   ```
+
+**With project mentioned:** Create a dedicated session note.
 1. Invoke the New Session template — Obsidian UI handles all interactive prompts; `tp.file.move()` places the note in the correct folder automatically:
    ```bash
    obsidian templater:create-from-template template="900 📐Templates/910 File Templates/🔬 New Session.md" file="800 Generated/temp-session.md"
@@ -399,7 +412,7 @@ Session notes are created from the vault's `🔬 New Session` Templater template
    ```bash
    obsidian search query="fileClass:session status:\"In Progress\"" limit=1 sort=created
    ```
-3. Store the returned path as `SESSION_LOG` for the session duration; report it to the user.
+3. Store the returned path as `SESSION_LOG`; report it to the user.
 
 #### Checkpoint entries (during session)
 
@@ -409,6 +422,14 @@ obsidian append path="$SESSION_LOG" content="\n### (log:: [[DATE|DATE ⏱HH:mm]]
 ```
 
 Entry types: `decision`, `file-operation`, `workflow-execution`, `discovery`, `resolution`, `abnormal-termination`.
+
+#### `/session-log recap`
+
+When the user runs `/recap` in Claude Code (manually or automatically), capture the recap output and append it as bullets under the current open `log::` entry:
+```bash
+obsidian append path="$SESSION_LOG" content="\n- BULLET_1\n- BULLET_2"
+```
+Show the appended bullets to the user and offer to edit before finalizing.
 
 #### `/session-log end`
 
@@ -420,11 +441,12 @@ Entry types: `decision`, `file-operation`, `workflow-execution`, `discovery`, `r
    ```bash
    obsidian quickadd:run choice="Close Log"
    ```
-3. Update frontmatter:
+3. If `SESSION_LOG` is a session note (fileClass:session), update frontmatter:
    ```bash
    obsidian property:set name="status" value="Done" path="$SESSION_LOG"
    obsidian property:set name="end" value="YYYY-MM-DDTHH:mm:00" path="$SESSION_LOG"
    ```
+   Skip frontmatter updates for daily notes (fileClass:journal).
 4. Clear `SESSION_LOG`.
 
 #### Abnormal termination (SubagentStop hook)
@@ -432,6 +454,9 @@ Entry types: `decision`, `file-operation`, `workflow-execution`, `discovery`, `r
 If archivist exits without `/session-log end` and `SESSION_LOG` is set:
 ```bash
 obsidian append path="$SESSION_LOG" content="\n### (log:: [[DATE|DATE ⏱HH:mm]]: {archivist} abnormal-termination — session ended unexpectedly)"
+```
+If `SESSION_LOG` is a session note (fileClass:session), also set:
+```bash
 obsidian property:set name="status" value="Interrupted" path="$SESSION_LOG"
 ```
 
