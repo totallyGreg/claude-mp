@@ -507,20 +507,31 @@ Rolls up work-so-far for cold re-engagement. Session stays `In Progress`.
 
 Full session close — synthesize everything and finalize.
 
+**Close Log mechanics:** "Close Log" is a QuickAdd Macro wrapping a single UserScript (`900 📐Templates/Scripts/closeLog.js`). It has no configurable QuickAdd settings — all logic is in the JS. It scans the **active file** for the last open `log::` entry (one with `⏱HH:mm` but no `~HH:mm`) and appends the current time: `⏱HH:mm` → `⏱HH:mm~HH:mm`. If no open entry is found it shows a Notice and exits silently. The active-file requirement is why step 1 is mandatory.
+
 1. **Close** the open entry.
 2. **Read** all entries.
 3. **Bulk enrich** unenriched entries (same as pause).
 4. **Close all** remaining open entries.
-5. **Synthesize** — write definitive Goal, Findings, Outcome, Next Steps (replaces pause rough notes).
-6. **Update frontmatter:**
-   ```bash
+
+1. Bring session note to front (required — `closeLog.js` uses `getActiveFile()`):
+    ```bash
+   obsidian open path="$SESSION_LOG"
+    ```
+2. Close the last open `log::` entry as a Chronos range:
+    ```bash
+   obsidian quickadd:run choice="Close Log"
+    ```
+3. If `SESSION_LOG` is a session note (fileClass:session), update frontmatter:
+    ```bash
    obsidian property:set name="status" value="Done" path="$SESSION_LOG"
    obsidian property:set name="end" value="YYYY-MM-DDTHH:mm:00" path="$SESSION_LOG"
    obsidian property:set name="summary" value="<final one-line summary>" path="$SESSION_LOG"
-   ```
+    ```
    Skip frontmatter updates for daily notes (fileClass:journal).
-7. **Create** a session-end entry: `"subject":"resolution — Session end — <summary>"`.
-8. Report the closed session path, then clear `SESSION_LOG`.
+5. **Synthesize** — write definitive Goal, Findings, Outcome, Next Steps (replaces pause rough notes).
+6. **Create** a session-end entry: `"subject":"resolution — Session end — <summary>"`.
+7. Report the closed session path, then clear `SESSION_LOG`.
 
 #### Abnormal termination (SubagentStop hook)
 

@@ -139,6 +139,7 @@ Pause rolls up work-so-far for cold re-engagement. The session stays `In Progres
 
 **If the argument is `end`:**
 
+
 End is the full session close — synthesize everything and finalize.
 
 1. **Close the open entry** (same as pause step 1).
@@ -147,30 +148,31 @@ End is the full session close — synthesize everything and finalize.
 
 3. **Bulk enrich** all unenriched entries (same as pause step 3).
 
-4. **Close all remaining open entries** — repeat until no open entries remain:
-   ```bash
-   obsidian quickadd:run choice="logEntries" vars='{"action":"close","path":"$SESSION_LOG"}'
-   ```
+4. Close the last open `log::` entry as a Chronos range — repeat until no open entries remain:
+   Close Log is a QuickAdd UserScript (`closeLog.js`) that calls `getActiveFile()`, so the correct note must be focused first:
+     ```bash
+    obsidian quickadd:run choice="logEntries" vars='{"action":"close","path":"$SESSION_LOG"}'
+     ```
    Run multiple times if needed — each call closes one open entry.
 
 5. **Synthesize structured sections** — review ALL entries and write definitive content to the note sections above the Log (replaces any rough notes from pause):
-   - **Goal** — from session start context and early entries
-   - **Findings** — from discovery/resolution entries (permanent learnings)
-   - **Outcome** — what was achieved, shipped, decided
-   - **Next Steps** — outstanding work, follow-ups, open questions
+     - **Goal** — from session start context and early entries
+     - **Findings** — from discovery/resolution entries (permanent learnings)
+     - **Outcome** — what was achieved, shipped, decided
+     - **Next Steps** — outstanding work, follow-ups, open questions
 
-6. **Update frontmatter:**
-   ```bash
-   obsidian property:set name="status" value="Done" path="$SESSION_LOG"
-   obsidian property:set name="end" value="YYYY-MM-DDTHH:mm:00" path="$SESSION_LOG"
-   obsidian property:set name="summary" value="<final one-line summary>" path="$SESSION_LOG"
-   ```
+6. Update frontmatter — set status to "Done" and the current time:
+     ```bash
+    obsidian property:set name="status" value="Done" path="$SESSION_LOG"
+    obsidian property:set name="end" value="YYYY-MM-DDTHH:mm:00" path="$SESSION_LOG"
+    obsidian property:set name="summary" value="<final one-line summary>" path="$SESSION_LOG"
+     ```
    Skip frontmatter updates for daily notes (fileClass:journal).
 
 7. **Create a session-end entry:**
-   ```bash
-   obsidian quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"resolution — Session end — <summary>"}'
-   ```
+     ```bash
+    obsidian quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"resolution — Session end — <summary>"}'
+     ```
 
 8. Report the closed session path, then clear `SESSION_LOG`.
 
