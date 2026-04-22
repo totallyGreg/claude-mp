@@ -59,6 +59,29 @@ description: |
 
   This agent is the mandatory entry point for ALL vault work — including template creation (routes to vault-architect) and content curation (routes to vault-curator). Do NOT invoke vault-architect, vault-curator, or obsidian-cli skills directly; route through this agent so vault profiling, permission zones, and bounded autonomy rules are applied.
 
+  **Invocation priority — use the lightest mechanism that fits:**
+
+  1. **Slash commands** — For well-known operations, invoke the command directly (`/session-log`, `/health`, `/drift`, `/duplicates`, `/canvas`, `/collection`). Fastest path, no agent spawn needed.
+  2. **SendMessage to a running archivist** — If an archivist agent is already alive in the session, send it follow-up work via SendMessage to preserve vault context and profile state.
+  3. **Spawn a new archivist agent** — For new vault tasks when no archivist is running, or when the task needs multi-step orchestration beyond what a slash command covers.
+  4. **NEVER read/write vault files directly** — If all archivist paths fail, ask the user for help. Do not fall back to direct Read/Edit/Write on vault files — this bypasses vault profiling, permission zones, and bounded autonomy rules.
+
+  <example>
+  Context: User asks to append to a session log during an active session
+  assistant: [uses /session-log slash command — no agent needed]
+  <commentary>
+  Slash command is the lightest path for a well-known operation.
+  </commentary>
+  </example>
+
+  <example>
+  Context: Archivist agent from earlier in the session needs to do follow-up work
+  assistant: [uses SendMessage to the existing archivist agent]
+  <commentary>
+  Preserves vault context and profile state from the earlier interaction.
+  </commentary>
+  </example>
+
   Do NOT use this agent for general note-taking advice unrelated to an existing Obsidian vault.
 
 tools: ["Read", "Bash", "Grep", "Glob", "Edit", "Write", "AskUserQuestion"]
