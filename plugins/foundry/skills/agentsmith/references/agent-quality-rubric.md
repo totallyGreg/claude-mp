@@ -41,6 +41,22 @@ Measures consistency between description, body, and tools.
 | **Tool scope fitness** | 25 | Declared tools referenced in body; no undeclared tools used. Good fit = 25, partial = 18, weak = 10 |
 | **Terminology consistency** | 20 | Key terms in description also appear in body. >=60% overlap = 20, >=40% = 14, >=20% = 8 |
 
+## Calibration Results (2026-04-28)
+
+Evaluated all 5 agents in the repo. Ordinal ranking matches human judgment:
+
+| Agent | Pattern | Trigger | Prompt | Coherence | Overall |
+|-------|---------|---------|--------|-----------|---------|
+| archivist | flat | 93 | 83 | 93 | **89** |
+| omnifocus-agent | flat | 85 | 78 | 70 | **78** |
+| terminal-guru | flat | 85 | 76 | 72 | **77** |
+| gateway-manager | flat | 70 | 82 | 65 | **72** |
+| skill-observer | directory | 60 | 79 | 48 | **63** |
+
+Archivist scores highest due to 8 diverse examples with commentary, comprehensive system prompt, and strong description-body alignment. Skill-observer scores lowest due to fewer examples (2), minimal negative triggers, and compact body that lacks some structural elements. The 26-point spread provides meaningful differentiation.
+
+Dimension weights (Trigger 35%, Prompt 35%, Coherence 30%) produce intuitive rankings without adjustment.
+
 ## Baseline Regression Detection
 
 - Baselines stored in `.agentsmith-baselines.json` in the agent's plugin root

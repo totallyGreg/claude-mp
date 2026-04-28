@@ -1,5 +1,6 @@
 ---
 name: gateway-manager
+model: inherit
 description: |
   Use this agent when managing kgateway and agentgateway resources on Kubernetes:
   "add an Anthropic backend", "set up Vertex AI routing", "check gateway versions",
