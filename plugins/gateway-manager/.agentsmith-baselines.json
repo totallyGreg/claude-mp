@@ -1,0 +1,9 @@
+{
+  "gateway-manager": {
+    "overall_score": 72,
+    "trigger_effectiveness": 70,
+    "system_prompt_quality": 82,
+    "coherence": 65,
+    "last_evaluated": "2026-04-28"
+  }
+}
