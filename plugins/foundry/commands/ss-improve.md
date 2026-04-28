@@ -13,7 +13,7 @@ If no skill path provided, ask the user for it before proceeding.
 Check that `$ARGUMENTS` points to a directory containing `SKILL.md`. If not found, output:
 
 ```
-/ss-improve targets skills only. For agents → plugin-dev:agent-development,
+/ss-improve targets skills only. For agents → /as-improve,
 for hooks → plugin-dev:hook-development, for commands → plugin-dev:command-development.
 ```
 
@@ -110,4 +110,8 @@ Verify both files show the same version string before proceeding to Step 6. (`sc
 
 ## Step 6: Sync marketplace
 
-Invoke `marketplace-manager` to sync `marketplace.json` with the new version.
+Sync `marketplace.json` with the updated plugin version:
+
+```bash
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/repo/sync.py .claude-plugin/marketplace.json
+```
