@@ -1,0 +1,19 @@
+{
+  "name": "foundry",
+  "version": "1.0.0",
+  "description": "Plugin development lifecycle toolkit — evaluate, improve, and publish skills and agents. Consolidates skillsmith (skill quality), marketplace-manager (distribution/versioning), and agentsmith (agent quality) into a single plugin.",
+  "author": {
+    "name": "J. Greg Williams",
+    "email": "283704+totallyGreg@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "agents",
+    "evaluation",
+    "marketplace",
+    "development",
+    "quality",
+    "claude-code"
+  ]
+}

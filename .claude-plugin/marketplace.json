@@ -33,15 +33,15 @@
       "source": "./skills/helm-chart-developer"
     },
     {
-      "name": "skillsmith",
-      "description": "Guide for forging effective Claude skills with marketplace integration",
+      "name": "foundry",
+      "description": "Plugin development lifecycle toolkit — evaluate, improve, and publish skills and agents. Consolidates skillsmith, marketplace-manager, and agentsmith.",
       "category": "development",
-      "version": "6.9.0",
+      "version": "1.0.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
-      "source": "./plugins/skillsmith"
+      "source": "./plugins/foundry"
     },
     {
       "name": "swift-dev",
@@ -75,17 +75,6 @@
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
       "source": "./plugins/omnifocus-manager"
-    },
-    {
-      "name": "marketplace-manager",
-      "description": "Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance",
-      "category": "development",
-      "version": "4.0.0",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/marketplace-manager"
     },
     {
       "name": "ai-risk-mapper",

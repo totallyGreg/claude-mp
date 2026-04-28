@@ -70,6 +70,37 @@ def _parse_frontmatter_stdlib(raw: str) -> dict:
 
 # -- Version resolution ------------------------------------------------------
 
+def _parse_semver(version_str: str) -> tuple[int, ...]:
+    """Parse a semver string into a comparable tuple."""
+    parts = version_str.split(".")
+    result = []
+    for part in parts[:3]:
+        try:
+            result.append(int(part))
+        except ValueError:
+            result.append(0)
+    while len(result) < 3:
+        result.append(0)
+    return tuple(result)
+
+
+def _extract_skill_version(skill_md: Path) -> str | None:
+    """Extract version from a SKILL.md frontmatter."""
+    try:
+        text = skill_md.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    fm = parse_frontmatter(text)
+    version = fm.get("version")
+    if not version:
+        metadata = fm.get("metadata")
+        if isinstance(metadata, dict):
+            version = metadata.get("version")
+
+    return str(version) if version else None
+
+
 def resolve_version(plugin_dir: Path) -> tuple[str | None, str]:
     """Resolve the authoritative version for a plugin directory.
 
@@ -78,7 +109,7 @@ def resolve_version(plugin_dir: Path) -> tuple[str | None, str]:
 
     Priority:
     1. .claude-plugin/plugin.json "version" field
-    2. Single skill SKILL.md frontmatter "version" field
+    2. Highest SKILL.md version across all skills (handles multi-skill plugins)
     """
     # Try plugin.json first
     plugin_json = plugin_dir / ".claude-plugin" / "plugin.json"
@@ -92,7 +123,7 @@ def resolve_version(plugin_dir: Path) -> tuple[str | None, str]:
         except (json.JSONDecodeError, OSError):
             pass
 
-    # Fall back to SKILL.md frontmatter
+    # Fall back to SKILL.md frontmatter — use highest version across all skills
     skills_dir = plugin_dir / "skills"
     if not skills_dir.is_dir():
         return None, "no source"
@@ -106,27 +137,24 @@ def resolve_version(plugin_dir: Path) -> tuple[str | None, str]:
     if len(skill_dirs) == 0:
         return None, "no skills found"
 
-    if len(skill_dirs) > 1:
-        return None, "multi-skill (ambiguous)"
+    skill_versions = []
+    for skill_dir in skill_dirs:
+        version = _extract_skill_version(skill_dir / "SKILL.md")
+        if version:
+            skill_versions.append((skill_dir.name, version))
 
-    # Single skill -- extract version from frontmatter
-    skill_md = skill_dirs[0] / "SKILL.md"
-    try:
-        text = skill_md.read_text(encoding="utf-8")
-    except OSError:
-        return None, "read error"
+    if not skill_versions:
+        return None, "SKILL.md (no version)"
 
-    fm = parse_frontmatter(text)
-    version = fm.get("version")
-    if not version:
-        # Check metadata.version (nested frontmatter)
-        metadata = fm.get("metadata")
-        if isinstance(metadata, dict):
-            version = metadata.get("version")
+    if len(skill_versions) == 1:
+        name, version = skill_versions[0]
+        return version, f"SKILL.md ({name})"
 
-    if version:
-        return str(version), f"SKILL.md ({skill_dirs[0].name})"
-    return None, "SKILL.md (no version)"
+    # Multi-skill: select highest version
+    highest_name, highest_version = max(
+        skill_versions, key=lambda nv: _parse_semver(nv[1])
+    )
+    return highest_version, f"SKILL.md ({highest_name}, highest of {len(skill_versions)})"
 
 
 # -- Sync logic --------------------------------------------------------------

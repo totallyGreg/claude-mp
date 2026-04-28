@@ -19,7 +19,7 @@ Common arguments:
 Examples:
 ```
 /ss-research skills/my-skill
-/ss-research plugins/skillsmith/skills/skillsmith
+/ss-research plugins/foundry/skills/skillsmith
 ```
 
 Research analyzes:

@@ -154,5 +154,5 @@ These are different APIs — don't mix syntax:
 
 1. **Plugin validator**: `bash scripts/validate-plugin.sh build/Attache.omnifocusjs/`
 2. **JXA validator**: `node scripts/validate-jxa-patterns.js scripts/libraries/jxa/taskQuery.js`
-3. **Skillsmith eval**: `uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager`
+3. **Skillsmith eval**: `uv run plugins/foundry/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager`
 4. **Manual E2E**: Run `ofo info <id>`, `ofo list inbox`, `ofo search test`
