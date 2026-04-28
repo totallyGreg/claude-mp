@@ -37,7 +37,7 @@ docs/lessons/         →  docs/plans/           →  GitHub Issues      →  RE
 
 **IMPORTANT**: When modifying any skill (SKILL.md, scripts, references), run skillsmith evaluation before committing:
 ```bash
-uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py <skill-path>
+uv run plugins/foundry/skills/skillsmith/scripts/evaluate_skill.py <skill-path>
 ```
 Record the eval score in the plugin-level README.md version history entry (under `## Skill: <name>`).
 

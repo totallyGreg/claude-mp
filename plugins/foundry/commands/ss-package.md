@@ -35,7 +35,7 @@ mv /tmp/<skill-name>.zip "<chosen-path>"
 
 ```
 /ss-package skills/my-skill
-/ss-package plugins/skillsmith/skills/skillsmith --dry-run
+/ss-package plugins/foundry/skills/skillsmith --dry-run
 ```
 
 ## Packager behaviour

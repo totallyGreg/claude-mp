@@ -25,7 +25,7 @@ Check whether the resolved path starts with `$HOME/.claude/plugins/`. If it does
 
 If it does start with `$HOME/.claude/plugins/`:
 
-1. Extract the **skill name** from the resolved path: it is the final path component (the leaf directory name). For example, from `~/.claude/plugins/marketplaces/totally-tools/plugins/skillsmith/skills/skillsmith/` the skill name is `skillsmith`.
+1. Extract the **skill name** from the resolved path: it is the final path component (the leaf directory name). For example, from `~/.claude/plugins/marketplaces/totally-tools/plugins/foundry/skills/skillsmith/` the skill name is `skillsmith`.
 2. Read the repo's `.claude-plugin/marketplace.json`. For each plugin entry that has a local `source` field: check whether the file `<source>/skills/<skill-name>/SKILL.md` exists on disk. Collect all matching entries.
 3. If **exactly one** match is found:
    - Notify the user: `Path remapped from installed cache to source: <source>/skills/<skill-name>/`
@@ -100,7 +100,7 @@ Determine bump type:
 - **MINOR**: New capabilities, backward-compatible improvements
 - **MAJOR**: Breaking changes (remove flags, change output format)
 
-**Pre-flight**: Before writing any version changes, verify that `../../.claude-plugin/plugin.json` exists relative to the skill directory (e.g., for a skill at `plugins/skillsmith/skills/skillsmith/`, the file is `plugins/skillsmith/.claude-plugin/plugin.json`). If the file is not found at that path, abort Step 5 with an advisory — do not modify SKILL.md until the file is confirmed present.
+**Pre-flight**: Before writing any version changes, verify that `../../.claude-plugin/plugin.json` exists relative to the skill directory (e.g., for a skill at `plugins/foundry/skills/skillsmith/`, the file is `plugins/foundry/.claude-plugin/plugin.json`). If the file is not found at that path, abort Step 5 with an advisory — do not modify SKILL.md until the file is confirmed present.
 
 Then update both files:
 1. Update `metadata.version` in the skill's `SKILL.md` frontmatter

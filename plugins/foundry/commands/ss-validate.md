@@ -14,7 +14,7 @@ Examples:
 ```
 /ss-validate skills/my-skill
 /ss-validate ./my-skill --strict
-/ss-validate plugins/skillsmith/skills/skillsmith --strict
+/ss-validate plugins/foundry/skills/skillsmith --strict
 ```
 
 The validator checks:

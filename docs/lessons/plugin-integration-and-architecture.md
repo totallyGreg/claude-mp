@@ -465,3 +465,15 @@ Your plugin ecosystem has a **clean, intentional architecture** with clear separ
 The integration between skillsmith and marketplace-manager is **complementary, not overlapping**. They should remain separate, but their integration can be strengthened with better orchestration (proposed `/ss-publish` command or bridge agent).
 
 The decision framework (SKILL vs SCRIPT vs COMMAND vs AGENT) applies consistently across your entire ecosystem and can guide future plugin development.
+
+---
+
+## Addendum: Consolidation Decision Revisited (2026-04-27)
+
+The original analysis above recommended keeping skillsmith and marketplace-manager separate. This recommendation was overridden when creating the **foundry** plugin, which consolidates skillsmith, marketplace-manager, and a new agentsmith capability into a single plugin.
+
+**Rationale for override:** These three tools serve the same person (the plugin developer) during the same workflow (build → evaluate → improve → publish). The friction of three separate installs and cross-plugin invocation outweighed the theoretical benefits of separation. The user validated this insight directly.
+
+**What was preserved:** Each skill retains its identity, command namespace (`ss-*`, `mp-*`, `as-*`), and individual SKILL.md version within the merged plugin. The architectural principle of orchestration over replication still applies — agentsmith delegates skill evaluation to skillsmith and version sync to marketplace-manager rather than reimplementing their capabilities.
+
+**The original analysis was not wrong.** Concern separation is a sound principle. The override was based on practical workflow friction that became clear only after living with the separate-plugin architecture for several months. The decision framework (SKILL vs SCRIPT vs COMMAND vs AGENT) remains valid.

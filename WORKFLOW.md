@@ -161,7 +161,7 @@ git commit -m "feat(skill-name): Final changes (#123)"
 
 ```bash
 # Sync marketplace before committing release
-uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py
+uv run plugins/foundry/skills/marketplace-manager/scripts/repo/sync.py .claude-plugin/marketplace.json
 
 git add plugins/plugin-name/README.md \
         plugins/plugin-name/skills/skill-name/SKILL.md \
@@ -319,10 +319,10 @@ After any skill version bump, marketplace.json must be updated to reflect the ne
 **During development (before PR):**
 ```bash
 # Check for version drift
-uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py --dry-run
+uv run plugins/foundry/skills/marketplace-manager/scripts/repo/sync.py .claude-plugin/marketplace.json --dry-run
 
 # Apply sync (include marketplace.json in PR)
-uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py
+uv run plugins/foundry/skills/marketplace-manager/scripts/repo/sync.py .claude-plugin/marketplace.json
 ```
 
 **Or use the slash command:**
@@ -339,7 +339,7 @@ uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marke
 
 **Automation:** Install the pre-commit hook to auto-sync on every commit:
 ```bash
-bash plugins/marketplace-manager/skills/marketplace-manager/scripts/install_hook.sh
+bash plugins/foundry/skills/marketplace-manager/scripts/setup.py install-hook
 ```
 
 ### Skill Release Checklist
@@ -348,7 +348,7 @@ Run these steps before the release commit for any skill modification:
 
 ```bash
 # 1. Run strict validation (skillsmith) — required by CLAUDE.md before every commit
-uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py \
+uv run plugins/foundry/skills/skillsmith/scripts/evaluate_skill.py \
   plugins/<plugin-name>/skills/<skill-name> --quick --strict
 
 # 2. If issues found:
@@ -356,14 +356,14 @@ uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py \
 #    Option B: Create GitHub issue and document deferral
 
 # 3. Full evaluation for metrics (used in README.md row)
-uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py \
+uv run plugins/foundry/skills/skillsmith/scripts/evaluate_skill.py \
   plugins/<plugin-name>/skills/<skill-name> --export-table-row
 
 # 4. Update plugin README.md — add version row to Changelog (under ## Skill: <name>) with metrics from step 3
 # 5. Bump version in SKILL.md metadata.version (PATCH/MINOR/MAJOR)
 # 6. Bump version in plugin.json to match (always required for plugin-based skills)
 # 7. Sync marketplace versions
-uv run plugins/marketplace-manager/skills/marketplace-manager/scripts/sync_marketplace_versions.py
+uv run plugins/foundry/skills/marketplace-manager/scripts/repo/sync.py .claude-plugin/marketplace.json
 # 8. Create release commit including SKILL.md, plugin.json, plugin README.md, marketplace.json
 # 9. Push to remote
 git push origin main
@@ -461,7 +461,7 @@ gh issue create --title "omnifocus-manager: Add task filtering" \
 git commit -m "feat(omnifocus-manager): Add task filtering (#125)"
 
 # 4. Release with metrics
-# Run: uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager --export-table-row
+# Run: uv run plugins/foundry/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager --export-table-row
 # Copy output to plugin README.md Changelog table (under ## Skill: omnifocus-manager)
 # Remove from Active Work section
 git commit -m "chore: Release omnifocus-manager v2.1.0
@@ -504,7 +504,7 @@ git commit -m "feat(omnifocus-manager): Add TS compiler integration (#126)"
 git commit -m "feat(omnifocus-manager): Validate plugins on execution (#126)"
 
 # 6. Release with metrics
-# Run: uv run plugins/skillsmith/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager --export-table-row
+# Run: uv run plugins/foundry/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager --export-table-row
 # Add row to plugin README.md Changelog table (under ## Skill: omnifocus-manager)
 # Remove from Active Work section
 git commit -m "chore: Release omnifocus-manager v2.2.0
