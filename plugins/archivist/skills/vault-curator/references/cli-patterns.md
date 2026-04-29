@@ -1,3 +1,12 @@
+---
+last_verified: 2026-04-29
+sources:
+  - type: github
+    repo: "kepano/obsidian-skills"
+    paths: ["skills/obsidian-cli/"]
+    description: "Obsidian CLI plugin — command reference, new capabilities"
+---
+
 # CLI Gotchas for Vault Curator
 
 For full command reference, use the `obsidian-cli` skill from the [obsidian-skills](https://github.com/kepano/obsidian-skills) marketplace. These are vault-specific bugs, caveats, and decision rules.

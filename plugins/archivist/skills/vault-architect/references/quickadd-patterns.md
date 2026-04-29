@@ -1,3 +1,15 @@
+---
+last_verified: 2026-04-29
+sources:
+  - type: github
+    repo: "chhoumann/quickadd"
+    paths: ["src/"]
+    description: "QuickAdd plugin source — choice types, macros, API"
+  - type: web
+    url: "https://quickadd.obsidian.guide"
+    description: "Official QuickAdd documentation"
+---
+
 # QuickAdd Reference (v2.12.0)
 
 Comprehensive reference for the QuickAdd Obsidian plugin. QuickAdd provides four choice types — Template, Capture, Macro, and Multi — that combine into powerful note creation and capture workflows.

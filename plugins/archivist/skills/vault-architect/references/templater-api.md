@@ -1,3 +1,15 @@
+---
+last_verified: 2026-04-29
+sources:
+  - type: github
+    repo: "SilentVoid13/Templater"
+    paths: ["src/"]
+    description: "Templater plugin source — internal functions and API"
+  - type: web
+    url: "https://silentvoid13.github.io/Templater/"
+    description: "Official Templater documentation"
+---
+
 # Templater API Reference
 
 Complete reference for Templater plugin internal functions and patterns.

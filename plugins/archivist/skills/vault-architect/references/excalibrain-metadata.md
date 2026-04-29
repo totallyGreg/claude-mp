@@ -1,3 +1,12 @@
+---
+last_verified: 2026-04-29
+sources:
+  - type: github
+    repo: "zsviczian/excalibrain"
+    paths: ["src/"]
+    description: "ExcaliBrain plugin source — metadata schema, relationship types"
+---
+
 # Excalibrain Metadata Guide
 
 Excalibrain is an Obsidian plugin that creates visual graph representations of notes based on semantic relationships defined in frontmatter. This guide covers the metadata structure Excalibrain uses.

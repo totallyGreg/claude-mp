@@ -1,3 +1,12 @@
+---
+last_verified: 2026-04-29
+sources:
+  - type: github
+    repo: "clairefro/obsidian-plugin-chronos"
+    paths: ["src/"]
+    description: "Chronos Timeline plugin source — event syntax, rendering"
+---
+
 # Chronos Timeline Syntax Reference
 
 > **📝 TODO:** This reference needs to be completed with content from official Chronos Timeline documentation.

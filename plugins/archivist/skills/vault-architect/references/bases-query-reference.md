@@ -1,3 +1,11 @@
+---
+last_verified: 2026-04-29
+sources:
+  - type: web
+    url: "https://help.obsidian.md/bases/syntax"
+    description: "Official Obsidian Bases query syntax documentation"
+---
+
 # Bases Query Reference
 
 Complete reference for Obsidian Bases plugin query syntax, filters, and view configuration.

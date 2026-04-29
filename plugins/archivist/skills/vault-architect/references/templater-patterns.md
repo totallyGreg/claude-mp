@@ -1,3 +1,12 @@
+---
+last_verified: 2026-04-29
+sources:
+  - type: github
+    repo: "SilentVoid13/Templater"
+    paths: ["src/"]
+    description: "Templater plugin source — pattern validation"
+---
+
 # Templater Patterns and Examples
 
 This document provides common Templater patterns and code snippets for creating dynamic Obsidian templates.
