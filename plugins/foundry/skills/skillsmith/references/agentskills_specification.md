@@ -1,5 +1,5 @@
 ---
-last_verified: 2026-04-28
+last_verified: 2026-04-29
 sources:
   - type: github
     repo: "agentskills/agentskills"
@@ -87,10 +87,11 @@ Every SKILL.md must begin with YAML frontmatter containing two required fields:
 - Maximum 500 characters
 - Indicates environment requirements
 - Examples: intended product, system packages, network access, Python version, etc.
-- Example: `Requires python3 and PyPDF2 package`
+- Examples: `Requires python3 and PyPDF2 package`, `Requires Python 3.14+ and uv`
 
 **`metadata`**:
-- Arbitrary key-value pairs for custom properties
+- A map from string keys to string values for additional properties
+- Key names should be reasonably unique to avoid accidental conflicts
 - Commonly used fields:
   - `author`: Skill creator name
   - `version`: Semantic version (e.g., "1.0.0")
@@ -104,9 +105,9 @@ Every SKILL.md must begin with YAML frontmatter containing two required fields:
   ```
 
 **`allowed-tools`** (experimental):
-- Space-delimited list of pre-approved tools
-- Allows skills to specify which tools agents can use
-- Example: `allowed-tools: read write bash grep`
+- Space-separated string of pre-approved tools the skill may use
+- Support may vary between agent implementations
+- Example: `allowed-tools: Bash(git:*) Bash(jq:*) Read`
 - Status: Experimental feature, may change
 
 ### Complete Frontmatter Example

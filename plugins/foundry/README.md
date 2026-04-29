@@ -56,6 +56,7 @@ Analyzes saved Claude Code session transcripts to identify where a skill failed 
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 6.9.1 | 2026-04-28 | - | Refresh agentskills_specification.md via /ss-refresh: allowed-tools example, compatibility examples, metadata key uniqueness guidance from upstream | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.9.0 | 2026-04-28 | [#165](https://github.com/totallyGreg/claude-mp/issues/165) | Reference provenance tracking: provenance spec in agentskills_specification.md, check_freshness.py generic script, Reference Currency 6th evaluation dimension, /ss-refresh command, ss-improve/ss-research freshness integration, init_skill.py templates | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.8.0 | 2026-03-25 | [#148](https://github.com/totallyGreg/claude-mp/issues/148) | Migrate skill README to plugin level: plugin-root discovery, scoped section replacement, auto-migration, compact metrics display, clearer column headers, validate_skill_name(), rename readme_template | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.7.0 | 2026-03-25 | [#146](https://github.com/totallyGreg/claude-mp/issues/146) | Anthropic guide alignment: use-case definition template, description formula + bad examples, body structure template, 5 skill patterns reference, 3-area testing guide, negative trigger coaching, over/undertrigger --explain signals | 100 | 100 | 100 | 100 | 100 | 100 |
