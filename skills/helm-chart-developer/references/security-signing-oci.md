@@ -429,6 +429,8 @@ helm install my-release mychart-1.0.0.tgz --verify
 helm install my-release myrepo/mychart --verify
 ```
 
+> **Security Advisory (v4.1.4, 2026-04-09):** Prior to v4.1.4/v3.20.2, plugin verification failed open when the `.prov` file was missing (GHSA-q5jf-9vfq-h4h7), allowing unsigned plugin installation. Upgrade Helm to ensure `--verify` is enforced.
+
 ### CI/CD Signing
 
 #### GitHub Actions

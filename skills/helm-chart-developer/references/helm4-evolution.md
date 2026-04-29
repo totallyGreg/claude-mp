@@ -25,9 +25,23 @@ Guide to recent Helm 3.x features and Helm 4, including migration from Helm 3 to
 | 3.19.0 | 2025-09-11 | Stabilization, `helm create` adds HTTPRoute |
 | 3.20.x | 2026-01-21 | Maintenance mode, k8s API v0.35.0 |
 | **4.0.0 GA** | **2025-11-12** | **Production-ready release** |
-| 4.1.x | 2026-01-21 | `--wait=hookOnly`, concurrent dep builds |
+| 4.1.1 | 2026-01-21 | `--wait=hookOnly`, concurrent dep builds |
+| 4.1.3 | 2026-03-11 | Fix `--dry-run=server` not respecting `generateName` |
+| 3.20.1 | 2026-03-12 | Patch release |
+| **4.1.4** | **2026-04-09** | **Security: 3 CVEs — chart extraction path traversal, plugin `.prov` verification bypass, plugin metadata path traversal** |
+| 3.20.2 | 2026-04-09 | Security patch (same CVEs backported) |
 
 Helm 3.x and 4.x are maintained in parallel. Next releases: 4.2.0 / 3.21.0 on May 13, 2026.
+
+### Security Advisory: v4.1.4 / v3.20.2 (2026-04-09)
+
+Three CVEs fixed — upgrade immediately:
+
+| CVE | Severity | Description |
+|-----|----------|-------------|
+| GHSA-hr2v-4r36-88hr | High | Chart extraction path traversal via `Chart.yaml` name dot-segment |
+| GHSA-q5jf-9vfq-h4h7 | Medium | Plugin verification fails open when `.prov` file is missing |
+| GHSA-vmx8-mqv2-9gmg | High | Plugin metadata version enables arbitrary file write outside plugin directory |
 
 ## Recent Helm 3.x Features (3.15–3.20)
 
