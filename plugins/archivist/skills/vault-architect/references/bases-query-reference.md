@@ -562,14 +562,41 @@ filters:
 
 ### Formulas (Calculated Columns)
 
-**Coming soon** - Bases will support formulas for calculated values:
+Bases supports formulas for calculated values including date math:
 
 ```yaml
 views:
   - name: Projects with Progress
-    order: [file.name, progress]
+    order: [file.name, progress, days_old]
     formulas:
       progress: (completedTasks / totalTasks) * 100
+      days_old: '(now() - file.ctime).days'
+      days_until_due: '(due - now()).days'
+```
+
+**Available formula functions:**
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `now()` | `now(): date` | Current date/time |
+| `duration()` | `duration(string): duration` | Parse duration string |
+| `file()` | `file(path): file` | Get file object |
+| `link()` | `link(path, display?): Link` | Create a link |
+
+### Duration Type
+
+When subtracting two dates, the result is a **Duration** type (not a number).
+
+**Duration fields:** `.days`, `.hours`, `.minutes`, `.seconds`, `.milliseconds`
+
+**IMPORTANT:** Duration does NOT support `.round()`, `.floor()`, `.ceil()` directly. Access a numeric field first (like `.days`), then apply number functions.
+
+```yaml
+# CORRECT: access .days first, then use the number
+days_old: '(now() - file.ctime).days'
+
+# WRONG: .round() on Duration will error
+days_old: '(now() - file.ctime).round()'
 ```
 
 ## View Types

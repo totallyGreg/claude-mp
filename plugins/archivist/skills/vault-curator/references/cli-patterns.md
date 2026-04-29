@@ -46,6 +46,8 @@ Rule of thumb: if Obsidian's index adds value, use CLI. If it's plain text manip
 - **`create` doesn't auto-create directories** — use `mkdir -p` via Bash first if the parent folder doesn't exist
 - **`create` with `template=` may ignore `path=`** — the file lands in the template's configured folder. Always verify the actual path with `obsidian search` or `obsidian files` after template-based creation
 - **`format=json matches`** returns `[{"file":"path","matches":[{"line":N,"text":"..."}]}]` — prefer this over plain `format=json` for programmatic search
+- **Canvas newline pitfall:** In JSON canvas text nodes, use `\n` for line breaks. Do NOT use the literal `\\n` — Obsidian renders that as the characters `\` and `n`, not a line break
+- **Defuddle skips `.md` URLs:** `defuddle parse` will skip URLs ending in `.md` since they're already markdown. Use WebFetch directly for raw markdown URLs
 
 ## Base Files
 
