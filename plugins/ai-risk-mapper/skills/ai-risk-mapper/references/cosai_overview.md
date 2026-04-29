@@ -1,3 +1,12 @@
+---
+last_verified: 2026-04-28
+sources:
+  - type: github
+    repo: "cosai-oasis/secure-ai-tooling"
+    paths: ["risk-map/"]
+    description: "CoSAI Risk Map framework — components, risks, controls, personas"
+---
+
 # CoSAI Risk Map Framework Overview
 
 ## What is CoSAI?

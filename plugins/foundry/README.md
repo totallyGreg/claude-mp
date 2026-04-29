@@ -46,7 +46,7 @@ Analyzes saved Claude Code session transcripts to identify where a skill failed 
 
 ### Current Metrics
 
-**Score: 100/100** (Excellent) — 2026-03-25
+**Score: 100/100** (Excellent) — 2026-04-28
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -56,6 +56,7 @@ Analyzes saved Claude Code session transcripts to identify where a skill failed 
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 6.9.0 | 2026-04-28 | [#165](https://github.com/totallyGreg/claude-mp/issues/165) | Reference provenance tracking: provenance spec in agentskills_specification.md, check_freshness.py generic script, Reference Currency 6th evaluation dimension, /ss-refresh command, ss-improve/ss-research freshness integration, init_skill.py templates | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.8.0 | 2026-03-25 | [#148](https://github.com/totallyGreg/claude-mp/issues/148) | Migrate skill README to plugin level: plugin-root discovery, scoped section replacement, auto-migration, compact metrics display, clearer column headers, validate_skill_name(), rename readme_template | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.7.0 | 2026-03-25 | [#146](https://github.com/totallyGreg/claude-mp/issues/146) | Anthropic guide alignment: use-case definition template, description formula + bad examples, body structure template, 5 skill patterns reference, 3-area testing guide, negative trigger coaching, over/undertrigger --explain signals | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.6.0 | 2026-03-22 | [#96](https://github.com/totallyGreg/claude-mp/issues/96), [#115](https://github.com/totallyGreg/claude-mp/issues/115), [#81](https://github.com/totallyGreg/claude-mp/issues/81), [#82](https://github.com/totallyGreg/claude-mp/issues/82), [#108](https://github.com/totallyGreg/claude-mp/issues/108), [#110](https://github.com/totallyGreg/claude-mp/issues/110) | Qualitative conciseness checks; context-aware ss-observe with --hint; orphan regex fix; IMPROVEMENT_PLAN.md migration; frontmatter auto-patch; commit-gate doc | 100 | 100 | 100 | 100 | 100 | 100 |
@@ -84,5 +85,21 @@ Analyzes saved Claude Code session transcripts to identify where a skill failed 
 | 2.9.0 | 2026-03-23 | [#139](https://github.com/totallyGreg/claude-mp/issues/139) | Multi-plugin structure detection, CI mode, advisory hook warning | 100 | 87 | 100 | 100 | 100 | 97 |
 | 2.0.0 | 2026-02-03 | - | Standalone plugin migration | - | - | - | - | - | - |
 | 1.0.0 | 2025-12-21 | - | Initial release | - | - | - | - | - | - |
+
+## Skill: agentsmith
+
+### Current Metrics
+
+**Score: 93/100** (Good) — 2026-04-28
+
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 100 | 80 | 100 | 85 | 100 |
+
+### Version History
+
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.0.0 | 2026-04-28 | - | Initial release — agent evaluation with 3 quality dimensions | 100 | 80 | 100 | 85 | 100 | 93 |
 
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)

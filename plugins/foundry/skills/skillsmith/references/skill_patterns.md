@@ -1,3 +1,11 @@
+---
+last_verified: 2026-04-28
+sources:
+  - type: web
+    url: "https://www.anthropic.com/engineering/claude-code-best-practices"
+    description: "Anthropic's Complete Guide to Building Skills for Claude"
+---
+
 # Skill Patterns
 
 Five proven behavioral patterns from Anthropic's "Complete Guide to Building Skills for Claude." Use these to choose the right architectural shape for a skill before writing SKILL.md.

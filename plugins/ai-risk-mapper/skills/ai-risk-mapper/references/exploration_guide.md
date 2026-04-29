@@ -1,3 +1,12 @@
+---
+last_verified: 2026-04-28
+sources:
+  - type: github
+    repo: "cosai-oasis/secure-ai-tooling"
+    paths: ["risk-map/"]
+    description: "CoSAI Risk Map — risk IDs, persona IDs, framework mappings from upstream YAML"
+---
+
 # Interactive Exploration Guide
 
 This guide covers interactive exploration of the CoSAI Risk Map framework using CLI commands and the core analyzer API. Use these tools for ad-hoc queries, threat modeling sessions, and compliance mapping.

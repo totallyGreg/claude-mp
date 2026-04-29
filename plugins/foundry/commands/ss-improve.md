@@ -67,6 +67,18 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/skillsmith/scripts/evaluate_skill.py $ARGUME
 
 Report scores and the top-3 improvements identified.
 
+## Step 1b: Check reference freshness (if provenance exists)
+
+If the evaluation output shows a Reference Currency score (indicating the skill has provenance-tracked references), run:
+
+```bash
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/skillsmith/scripts/check_freshness.py $ARGUMENTS --verbose
+```
+
+If stale references are found, note: "Reference X hasn't been verified in N days. Run `/ss-refresh` to check for upstream changes." This is informational — do not auto-refresh during improvement. Focus on the structural improvements from `--explain`.
+
+If no Reference Currency score appears in the evaluation, skip this step silently.
+
 ## Step 2: Apply improvements
 
 Work through the top-3 improvements from `--explain` output. For structural guidance (skill anatomy, writing style), invoke `plugin-dev:skill-development`.

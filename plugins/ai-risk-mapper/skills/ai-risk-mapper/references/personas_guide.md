@@ -1,3 +1,12 @@
+---
+last_verified: 2026-04-28
+sources:
+  - type: github
+    repo: "cosai-oasis/secure-ai-tooling"
+    paths: ["risk-map/personas.yaml"]
+    description: "CoSAI persona definitions — roles, responsibilities, ISO 22989 mappings"
+---
+
 # CoSAI Personas Guide
 
 The CoSAI Risk Map framework defines ten personas (8 active, 2 deprecated) aligned with ISO/IEC 22989 AI actor terminology. These personas identify who is impacted by risks and who is responsible for enacting controls across the AI ecosystem.

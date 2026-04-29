@@ -271,6 +271,29 @@ Example real reference docs from other skills:
 - product-management/references/context_building.md - Deep-dive on gathering context
 - bigquery/references/ - API references and query examples
 
+## Provenance Tracking (Optional)
+
+If this reference derives from an external source (API docs, GitHub repo, web page),
+add provenance frontmatter to enable automated freshness detection:
+
+```yaml
+---
+last_verified: 2026-01-01
+sources:
+  - type: web
+    url: "https://docs.example.com/api"
+    description: "Official API documentation"
+  - type: github
+    repo: "org/repo-name"
+    paths: ["src/api/"]
+    description: "Source code definitions"
+---
+```
+
+Supported source types: web, github, gitlab, slack, plugin.
+Run `/ss-refresh` to check for upstream changes. See agentskills_specification.md
+for the full provenance spec.
+
 ## When Reference Docs Are Useful
 
 Reference docs are ideal for:

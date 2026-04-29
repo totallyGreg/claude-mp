@@ -3,7 +3,7 @@ name: skillsmith
 description: This skill should be used when users ask to "create a skill", "validate a skill for quality", "evaluate skill improvements", "improve my skill", "update my skill", "fix skill", "iterate on skill", "optimize skill", "skill quality", "skill performance", "skill isn't working", "analyze skill metrics", "init a new skill", "check skill compliance", or "sync skill to marketplace". Provides comprehensive skill development with automated validation, metrics tracking, and improvement workflows.
 metadata:
   author: J. Greg Williams
-  version: "6.8.0"
+  version: "6.9.0"
 compatibility: Requires python3 and uv for script execution and validation
 license: Complete terms in LICENSE.txt
 ---
@@ -74,6 +74,7 @@ uv run scripts/evaluate_skill.py <skill-path> --explain
 | Spec Compliance | Required and recommended frontmatter fields | Add `metadata.version`, `compatibility`, `license` |
 | Progressive Disclosure | Use of references alongside SKILL.md | Create `references/` for skills >200 lines |
 | Description Quality | Trigger phrase format and specificity | Use action verb phrases ("create X", "fix Y") |
+| Reference Currency | % of provenance-tracked references within staleness threshold | Update stale references, add `last_verified` frontmatter |
 
 See `references/validation_tools_guide.md` for the complete flag reference.
 

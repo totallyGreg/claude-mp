@@ -27,5 +27,14 @@ Research analyzes:
 - Top-3 improvements with estimated score impact
 - Reference file utilization and coverage gaps
 - Description quality and trigger phrase effectiveness
+- Reference freshness status (if provenance-tracked references exist)
+
+After running the evaluation, check if the skill has provenance-tracked references:
+
+```bash
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/skillsmith/scripts/check_freshness.py $ARGUMENTS --verbose
+```
+
+If provenance exists, include the freshness status in the research output alongside the evaluation metrics. If no provenance exists, skip silently.
 
 Report the findings with specific recommendations for improvement.
