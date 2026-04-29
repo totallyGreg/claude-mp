@@ -91,16 +91,17 @@ Analyzes saved Claude Code session transcripts to identify where a skill failed 
 
 ### Current Metrics
 
-**Score: 93/100** (Good) — 2026-04-28
+**Score: 98/100** (Excellent) — 2026-04-28
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
-| 100 | 80 | 100 | 85 | 100 |
+| 100 | 90 | 100 | 100 | 100 |
 
 ### Version History
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.1.0 | 2026-04-28 | - | Add code examples, agent-improvement-guide.md reference with delegation model and improvement patterns | 100 | 90 | 100 | 100 | 100 | 98 |
 | 1.0.0 | 2026-04-28 | - | Initial release — agent evaluation with 3 quality dimensions | 100 | 80 | 100 | 85 | 100 | 93 |
 
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)

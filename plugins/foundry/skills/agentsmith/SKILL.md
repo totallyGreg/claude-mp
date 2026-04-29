@@ -3,7 +3,7 @@ name: agentsmith
 description: This skill should be used when users ask to "evaluate my agent", "improve agent quality", "agent metrics", "check agent description", "agent isn't triggering", "validate agent", "agent score", "as-evaluate", "as-improve", "agent quality", "fix agent description", or "why isn't my agent triggering". Provides agent quality evaluation with 3 scored dimensions and an improvement loop that orchestrates skillsmith and marketplace-manager. Do NOT use for skill evaluation — route to skillsmith instead. Do NOT use for agent creation — route to plugin-dev:agent-development instead.
 metadata:
   author: J. Greg Williams
-  version: "1.0.0"
+  version: "1.1.0"
 compatibility: Requires python3 and uv for script execution
 license: MIT
 ---
@@ -42,6 +42,16 @@ Three quality dimensions, weighted to produce an overall 0-100 score:
 | `/as-evaluate <agent-path>` | One-shot quality evaluation with dimension scores |
 | `/as-improve <agent-path>` | Full improvement loop: evaluate → fix → re-evaluate → version bump → sync |
 
+```bash
+# Evaluate an agent with per-dimension coaching
+uv run scripts/evaluate_agent.py agents/my-agent.md --explain
+```
+
+```bash
+# Evaluate with baseline regression detection
+uv run scripts/evaluate_agent.py agents/my-agent.md
+```
+
 ## Improvement Loop (`/as-improve`)
 
 1. **Verify target** — redirect skills to `/ss-improve`, non-agent files to plugin-dev
@@ -69,4 +79,4 @@ Agentsmith evaluates **quality** — the dimensions that no other tool covers. I
 - Agent creation guidance → plugin-dev:agent-development
 - Version cascade → marketplace-manager sync.py
 
-See `references/agent-quality-rubric.md` for the full scoring rubric with sub-metrics.
+See `references/agent-quality-rubric.md` for the full scoring rubric with sub-metrics and `references/agent-improvement-guide.md` for the delegation model and common improvement patterns.
