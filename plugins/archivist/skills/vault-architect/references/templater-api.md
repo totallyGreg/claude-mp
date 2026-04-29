@@ -1,5 +1,5 @@
 ---
-last_verified: 2026-04-29
+last_verified: 2026-04-28
 sources:
   - type: github
     repo: "SilentVoid13/Templater"
@@ -105,6 +105,8 @@ const filename = `${date} ${title}`;
 await tp.file.create_new("Meeting Template", filename, true, "Meetings");
 %>
 ```
+
+**Setting: Ignore folders on file creation** (added in PR #1710): Under "Trigger Templater on new file creation" settings, you can specify folders where Templater's `on_file_creation` handler is skipped entirely. Files created in these folders (and subfolders) won't have Templater syntax processed. Useful when other plugins or automation create files that shouldn't be template-processed.
 
 ### tp.file.cursor(order?)
 

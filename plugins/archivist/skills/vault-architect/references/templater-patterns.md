@@ -1,5 +1,5 @@
 ---
-last_verified: 2026-04-29
+last_verified: 2026-04-28
 sources:
   - type: github
     repo: "SilentVoid13/Templater"
