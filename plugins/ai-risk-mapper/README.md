@@ -53,7 +53,7 @@ The skill runs automated assessments and generates comprehensive reports aligned
 
 ### Current Metrics
 
-**Score: 97/100** (Excellent) — 2026-03-22
+**Score: 97/100** (Excellent) — 2026-04-28
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -63,6 +63,7 @@ The skill runs automated assessments and generates comprehensive reports aligned
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 5.1.1 | 2026-04-28 | [#165](https://github.com/totallyGreg/claude-mp/issues/165) | Refresh references via /ss-refresh: risk IDs migrated to camelCase (28 total, 2 new), provenance frontmatter added, last_verified updated | 100 | 88 | 100 | 100 | 100 | 97 |
 | 5.1.0 | 2026-03-05 | [#85](https://github.com/totallyGreg/claude-mp/issues/85) | Sync upstream: bundle 3 YAML enum files + riskmap.schema.json (9+11), fix deprecated persona refs in docs, add deprecation warning in CLI, add commit-hash README | 98 | 88 | 100 | 100 | - | 97 |
 | 5.0.0 | 2026-02-25 | [#56](https://github.com/totallyGreg/claude-mp/issues/56) | Refresh CoSAI upstream data: 8-persona model (ISO 22989), fix lifecycle/impact parsing bugs, add frameworks.yaml, rewrite exploration guide and personas guide | 98 | 88 | 100 | 100 | - | 93 |
 | 4.0.1 | 2026-02-04 | - | Fix: use absolute paths with ${CLAUDE_PLUGIN_ROOT} in SKILL.md | 98 | 88 | 100 | 100 | - | 97 |

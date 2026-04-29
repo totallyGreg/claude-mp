@@ -1,5 +1,5 @@
 ---
-last_verified: 2026-04-28
+last_verified: 2026-04-29
 sources:
   - type: github
     repo: "cosai-oasis/secure-ai-tooling"
@@ -23,8 +23,8 @@ This document describes the JSON schema structures used in the CoSAI Risk Map fr
 ### Risk Object Structure
 
 **Required Fields:**
-- `id` (enum): One of 25 valid risk codes:
-  - ASSC, ADI, COV, DMS, DP, EBM, EDH, EDW, FLP, IIC, IMO, ISD, MDT, MEV, MLD, MRE, MST, MXF, ORH, PCP, PIJ, RA, RVP, SDD, UTD, EDH-I
+- `id` (enum): One of 28 valid risk codes (camelCase format):
+  - riskDataPoisoning, riskUnauthorizedTrainingData, riskModelSourceTampering, riskExcessiveDataHandling, riskExcessiveDataHandlingDuringInference, riskModelExfiltration, riskModelDeploymentTampering, riskDenialOfMLService, riskModelReverseEngineering, riskInsecureIntegratedComponent, riskPromptInjection, riskModelEvasion, riskSensitiveDataDisclosure, riskInferredSensitiveData, riskInsecureModelOutput, riskRogueActions, riskAcceleratorAndSystemSideChannels, riskEconomicDenialOfWallet, riskFederatedDistributedTrainingPrivacy, riskAdapterPEFTInjection, riskToolRegistryTampering, riskOrchestratorRouteHijacking, riskEvaluationBenchmarkManipulation, riskCovertChannelsInModelOutputs, riskMaliciousLoaderDeserialization, riskToolSourceProvenance, riskPromptResponseCachePoisoning, riskRetrievalVectorStorePoisoning
 - `title` (string): Risk name
 - `shortDescription` (text): Brief overview
 - `longDescription` (text): Detailed explanation

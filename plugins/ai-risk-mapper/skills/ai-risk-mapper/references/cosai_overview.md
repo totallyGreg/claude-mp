@@ -1,5 +1,5 @@
 ---
-last_verified: 2026-04-28
+last_verified: 2026-04-29
 sources:
   - type: github
     repo: "cosai-oasis/secure-ai-tooling"
@@ -51,14 +51,16 @@ The Risk Map organizes AI development into **four primary lifecycle domains**:
 ### Components (19 total)
 Fundamental building blocks of AI systems organized into Infrastructure, Model, and Application categories. Components form a directed acyclic graph showing data flow and dependencies.
 
-### Risks (25+ identified)
-Catalog of potential security threats including:
-- Data Poisoning (DP)
-- Model Exfiltration (MXF)
-- Prompt Injection (PIJ)
-- Sensitive Data Disclosure (SDD)
-- Model Evasion (MEV)
-- And 20+ additional risks
+### Risks (28 identified)
+Catalog of potential security threats using camelCase IDs (migrated from uppercase abbreviations in April 2026):
+- Data Poisoning (riskDataPoisoning)
+- Model Exfiltration (riskModelExfiltration)
+- Prompt Injection (riskPromptInjection)
+- Sensitive Data Disclosure (riskSensitiveDataDisclosure)
+- Model Evasion (riskModelEvasion)
+- Tool Registry Tampering (riskToolRegistryTampering) — new
+- Tool Source Provenance (riskToolSourceProvenance) — new
+- And 21 additional risks
 
 ### Controls (30+ available)
 Security measures addressing identified risks across six categories:

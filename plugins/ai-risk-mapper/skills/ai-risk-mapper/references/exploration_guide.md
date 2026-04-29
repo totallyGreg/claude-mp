@@ -1,5 +1,5 @@
 ---
-last_verified: 2026-04-28
+last_verified: 2026-04-29
 sources:
   - type: github
     repo: "cosai-oasis/secure-ai-tooling"
@@ -15,35 +15,37 @@ This guide covers interactive exploration of the CoSAI Risk Map framework using 
 
 ### Entity IDs
 
-**Risks (26 total):**
+**Risks (28 total):**
 | ID | Title | Category |
 |----|-------|----------|
-| `DP` | Data Poisoning | Supply Chain & Development |
-| `UTD` | Unauthorized Training Data | Supply Chain & Development |
-| `MST` | Model Source Tampering | Supply Chain & Development |
-| `EDH` | Excessive Data Handling | Supply Chain & Development |
-| `EDH-I` | Excessive Data Handling During Inference | Runtime Data Security |
-| `MXF` | Model Exfiltration | Model Security |
-| `MDT` | Model Deployment Tampering | Model Security |
-| `DMS` | Denial of ML Service | Infrastructure |
-| `MRE` | Model Reverse Engineering | Model Security |
-| `IIC` | Insecure Integrated Component | Application Security |
-| `PIJ` | Prompt Injection | Application Security |
-| `MEV` | Model Evasion | Model Security |
-| `SDD` | Sensitive Data Disclosure | Data Security |
-| `ISD` | Inferred Sensitive Data | Privacy |
-| `IMO` | Insecure Model Output | Application Security |
-| `RA` | Rogue Actions | Application Security |
-| `ASSC` | Accelerator and System Side-channels | Deployment & Infrastructure |
-| `EDW` | Economic Denial of Wallet | Infrastructure |
-| `FLP` | Federated/Distributed Training Privacy | Privacy |
-| `ADI` | Adapter/PEFT Injection | Supply Chain & Development |
-| `ORH` | Orchestrator/Route Hijack | Application Security |
-| `EBM` | Evaluation/Benchmark Manipulation | Assurance |
-| `COV` | Covert Channels in Model Outputs | Data Security |
-| `MLD` | Malicious Loader/Deserialization | Supply Chain & Development |
-| `PCP` | Prompt/Response Cache Poisoning | Application Security |
-| `RVP` | Retrieval/Vector Store Poisoning | Application Security |
+| `riskDataPoisoning` | Data Poisoning | Supply Chain & Development |
+| `riskUnauthorizedTrainingData` | Unauthorized Training Data | Supply Chain & Development |
+| `riskModelSourceTampering` | Model Source Tampering | Supply Chain & Development |
+| `riskExcessiveDataHandling` | Excessive Data Handling | Supply Chain & Development |
+| `riskExcessiveDataHandlingDuringInference` | Excessive Data Handling During Inference | Runtime Data Security |
+| `riskModelExfiltration` | Model Exfiltration | Model Security |
+| `riskModelDeploymentTampering` | Model Deployment Tampering | Model Security |
+| `riskDenialOfMLService` | Denial of ML Service | Infrastructure |
+| `riskModelReverseEngineering` | Model Reverse Engineering | Model Security |
+| `riskInsecureIntegratedComponent` | Insecure Integrated Component | Application Security |
+| `riskPromptInjection` | Prompt Injection | Application Security |
+| `riskModelEvasion` | Model Evasion | Model Security |
+| `riskSensitiveDataDisclosure` | Sensitive Data Disclosure | Data Security |
+| `riskInferredSensitiveData` | Inferred Sensitive Data | Privacy |
+| `riskInsecureModelOutput` | Insecure Model Output | Application Security |
+| `riskRogueActions` | Rogue Actions | Application Security |
+| `riskAcceleratorAndSystemSideChannels` | Accelerator and System Side-channels | Deployment & Infrastructure |
+| `riskEconomicDenialOfWallet` | Economic Denial of Wallet | Infrastructure |
+| `riskFederatedDistributedTrainingPrivacy` | Federated/Distributed Training Privacy | Privacy |
+| `riskAdapterPEFTInjection` | Adapter/PEFT Injection | Supply Chain & Development |
+| `riskToolRegistryTampering` | Tool Registry Tampering | Application Security |
+| `riskOrchestratorRouteHijacking` | Orchestrator/Route Hijacking | Application Security |
+| `riskEvaluationBenchmarkManipulation` | Evaluation/Benchmark Manipulation | Assurance |
+| `riskCovertChannelsInModelOutputs` | Covert Channels in Model Outputs | Data Security |
+| `riskMaliciousLoaderDeserialization` | Malicious Loader/Deserialization | Supply Chain & Development |
+| `riskToolSourceProvenance` | Tool Source Provenance | Supply Chain & Development |
+| `riskPromptResponseCachePoisoning` | Prompt/Response Cache Poisoning | Application Security |
+| `riskRetrievalVectorStorePoisoning` | Retrieval/Vector Store Poisoning | Application Security |
 
 **Personas (10: 8 active + 2 deprecated):**
 | ID | Title | Status |
