@@ -86,4 +86,20 @@ Analyzes saved Claude Code session transcripts to identify where a skill failed 
 | 2.0.0 | 2026-02-03 | - | Standalone plugin migration | - | - | - | - | - | - |
 | 1.0.0 | 2025-12-21 | - | Initial release | - | - | - | - | - | - |
 
+## Skill: agentsmith
+
+### Current Metrics
+
+**Score: 93/100** (Good) — 2026-04-28
+
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 100 | 80 | 100 | 85 | 100 |
+
+### Version History
+
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.0.0 | 2026-04-28 | - | Initial release — agent evaluation with 3 quality dimensions | 100 | 80 | 100 | 85 | 100 | 93 |
+
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
