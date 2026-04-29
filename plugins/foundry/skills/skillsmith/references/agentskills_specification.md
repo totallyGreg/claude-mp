@@ -1,3 +1,15 @@
+---
+last_verified: 2026-04-28
+sources:
+  - type: github
+    repo: "agentskills/agentskills"
+    paths: ["docs/specification.mdx"]
+    description: "Official AgentSkills specification source"
+  - type: web
+    url: "https://agentskills.io/specification"
+    description: "AgentSkills specification web page"
+---
+
 # AgentSkills Specification
 
 This document contains the official AgentSkills specification that defines the structure, requirements, and best practices for creating skills.
@@ -280,6 +292,125 @@ See `references/advanced/subsystem/details.md`
 - Use descriptive, lowercase names with hyphens
 - Match directory structure to purpose
 - Keep filenames concise but clear
+
+## Reference Provenance (Optional)
+
+Reference files can optionally declare where their content originates using YAML frontmatter. This enables automated freshness detection — tools can check whether upstream sources have changed since the reference was last verified.
+
+Provenance is **opt-in**. References without provenance frontmatter are valid and not penalized by evaluation tools.
+
+### Frontmatter Schema
+
+```yaml
+---
+last_verified: 2026-04-28
+sources:
+  - type: web
+    url: "https://docs.example.com/api"
+    description: "Official API documentation"
+  - type: github
+    repo: "org/repo-name"
+    paths: ["src/constants.ts", "docs/"]
+    description: "Source code definitions"
+  - type: gitlab
+    project_id: 12345
+    paths: ["apps/api/routers/v1/"]
+    description: "Engineering API routers"
+  - type: slack
+    channel_id: "C0EXAMPLE"
+    description: "Release announcements channel"
+  - type: plugin
+    name: "obsidian"
+    known_version: "2.1.0"
+    description: "Obsidian CLI plugin capabilities"
+---
+```
+
+### Field Reference
+
+**`last_verified`** (date, required for provenance):
+- ISO 8601 date (`YYYY-MM-DD`) when the reference content was last confirmed accurate against its sources
+- Updated only through the `/ss-refresh` workflow, not manually
+- References older than 90 days (default threshold) are flagged as stale
+
+**`sources`** (list, required for provenance):
+- Each entry has a `type` discriminator and type-specific fields
+- Multiple sources per reference are supported (e.g., a reference summarizing content from both a GitHub repo and a web page)
+
+### Source Types
+
+| Type | Required Fields | Optional Fields | What It Checks |
+|------|----------------|-----------------|----------------|
+| `web` | `url` | `description` | HTTP HEAD status code; URL still reachable |
+| `github` | `repo` | `paths`, `description` | Commits since `last_verified` via `gh api` |
+| `gitlab` | `project_id` | `paths`, `description` | Commits since `last_verified` via `glab api` |
+| `slack` | `channel_id` | `description` | Messages since `last_verified` via Slack API |
+| `plugin` | `name` | `known_version`, `description` | Installed plugin version vs `known_version`; CHANGELOG for new entries |
+
+**`paths`** (for `github` and `gitlab`):
+- List of repository paths to monitor for commits
+- Enables path-level tracking for structured data repos (e.g., tracking `risk-map/schemas/` in a large monorepo)
+- When omitted, checks repo-level commit activity
+
+**`known_version`** (for `plugin`):
+- The plugin version at the time the reference was last verified
+- When the installed plugin version exceeds `known_version`, drift is reported
+
+### Examples
+
+**Web documentation source:**
+```yaml
+---
+last_verified: 2026-04-28
+sources:
+  - type: web
+    url: "https://docs.paloaltonetworks.com/ai-runtime-security"
+    description: "AIRS product documentation"
+---
+```
+
+**GitHub structured data repo:**
+```yaml
+---
+last_verified: 2026-04-28
+sources:
+  - type: github
+    repo: "cosai-oasis/secure-ai-tooling"
+    paths: ["risk-map/schemas/", "risk-map/personas.yaml"]
+    description: "CoSAI Risk Map framework schemas and data"
+---
+```
+
+**Cross-plugin dependency:**
+```yaml
+---
+last_verified: 2026-04-28
+sources:
+  - type: plugin
+    name: "obsidian"
+    known_version: "2.1.0"
+    description: "Obsidian CLI and vault management capabilities"
+---
+```
+
+**Multiple sources on one reference:**
+```yaml
+---
+last_verified: 2026-04-28
+sources:
+  - type: github
+    repo: "cdot65/prisma-airs-sdk"
+    paths: ["src/constants.ts"]
+    description: "SDK API path definitions"
+  - type: web
+    url: "https://docs.paloaltonetworks.com/ai-runtime-security"
+    description: "Product documentation"
+  - type: gitlab
+    project_id: 22949
+    paths: ["apps/data-plane/src/data_plane/api/routers/v1/"]
+    description: "Engineering API routers"
+---
+```
 
 ## Validation
 

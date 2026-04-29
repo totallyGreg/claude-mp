@@ -1,3 +1,11 @@
+---
+last_verified: 2026-04-28
+sources:
+  - type: web
+    url: "https://www.anthropic.com/engineering/claude-code-best-practices"
+    description: "Anthropic's Complete Guide to Building Skills for Claude"
+---
+
 # Skill Testing Methodology
 
 Three testing areas defined by Anthropic's "Complete Guide to Building Skills for Claude," adapted for use with skillsmith's automated tooling.
