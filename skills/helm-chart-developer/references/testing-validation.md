@@ -1,3 +1,15 @@
+---
+last_verified: 2026-04-29
+sources:
+  - type: web
+    url: "https://helm.sh/docs/chart_tests/"
+    description: "Helm chart tests documentation"
+  - type: github
+    repo: "helm-unittest/helm-unittest"
+    paths: ["pkg/"]
+    description: "helm-unittest plugin source"
+---
+
 # Testing and Validation Reference
 
 Comprehensive guide to testing Helm charts with various tools and strategies.

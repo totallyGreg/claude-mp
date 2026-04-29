@@ -1,3 +1,15 @@
+---
+last_verified: 2026-04-29
+sources:
+  - type: github
+    repo: "helm/helm"
+    paths: ["cmd/", "pkg/"]
+    description: "Helm CLI source — releases, new features, breaking changes"
+  - type: web
+    url: "https://helm.sh/blog/"
+    description: "Helm blog — release announcements and migration guides"
+---
+
 # Helm Evolution Reference
 
 Guide to recent Helm 3.x features and Helm 4, including migration from Helm 3 to Helm 4.

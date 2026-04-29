@@ -1,3 +1,15 @@
+---
+last_verified: 2026-04-29
+sources:
+  - type: web
+    url: "https://helm.sh/docs/chart_best_practices/"
+    description: "Official Helm chart best practices documentation"
+  - type: github
+    repo: "helm/helm-www"
+    paths: ["content/en/docs/chart_best_practices/"]
+    description: "Helm documentation source for best practices"
+---
+
 # Helm Best Practices Reference
 
 Comprehensive guide to Helm chart development best practices, template functions, patterns, and versioning.

@@ -1,3 +1,14 @@
+---
+last_verified: 2026-04-29
+sources:
+  - type: web
+    url: "https://helm.sh/docs/topics/provenance/"
+    description: "Helm provenance and integrity documentation"
+  - type: web
+    url: "https://helm.sh/docs/topics/registries/"
+    description: "Helm OCI registry documentation"
+---
+
 # Security, Signing, and OCI Registry Reference
 
 Complete guide to securing Helm charts, GPG signing, and working with OCI registries.
