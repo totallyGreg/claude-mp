@@ -90,7 +90,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 ### Current Metrics
 
-**Score: 93/100** (Good) — 2026-04-14
+**Score: 94/100** (Good) — 2026-04-28
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -119,7 +119,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 ### Current Metrics
 
-**Score: 96/100** (Excellent) — 2026-04-14
+**Score: 96/100** (Excellent) — 2026-04-28
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
