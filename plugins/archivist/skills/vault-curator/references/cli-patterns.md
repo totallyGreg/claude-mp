@@ -1,10 +1,10 @@
 ---
-last_verified: 2026-04-29
+last_verified: 2026-04-28
 sources:
   - type: github
     repo: "kepano/obsidian-skills"
-    paths: ["skills/obsidian-cli/"]
-    description: "Obsidian CLI plugin — command reference, new capabilities"
+    paths: ["skills/obsidian-cli/", "skills/obsidian-markdown/", "skills/obsidian-bases/", "skills/json-canvas/", "skills/defuddle/"]
+    description: "All 5 obsidian-skills the archivist delegates to — track for new capabilities"
 ---
 
 # CLI Gotchas for Vault Curator

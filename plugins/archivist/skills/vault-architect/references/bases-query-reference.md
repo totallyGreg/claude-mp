@@ -1,9 +1,13 @@
 ---
-last_verified: 2026-04-29
+last_verified: 2026-04-28
 sources:
   - type: web
     url: "https://help.obsidian.md/bases/syntax"
     description: "Official Obsidian Bases query syntax documentation"
+  - type: github
+    repo: "kepano/obsidian-skills"
+    paths: ["skills/obsidian-bases/"]
+    description: "obsidian-bases skill — Bases query patterns and capabilities"
 ---
 
 # Bases Query Reference
