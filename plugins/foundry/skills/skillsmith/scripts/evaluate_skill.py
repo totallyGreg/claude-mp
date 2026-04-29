@@ -1111,7 +1111,62 @@ def validate_description_quality(frontmatter_dict):
     }
 
 
-def calculate_overall_score(conciseness, complexity, spec_compliance, progressive, description_quality=None):
+def calculate_reference_currency_score(skill_path):
+    """Calculate Reference Currency score by running check_freshness.py.
+
+    Opt-in: returns score 100 (neutral) if no provenance-tracked references exist.
+    """
+    skill_path = Path(skill_path)
+    refs_dir = skill_path / 'references'
+    if not refs_dir.is_dir():
+        return {'score': 100, 'details': 'no references/ directory', 'tracked': 0, 'stale': 0}
+
+    # Check if any reference has provenance frontmatter
+    has_provenance = False
+    for ref_path in refs_dir.glob('*.md'):
+        try:
+            text = ref_path.read_text()
+            if text.startswith('---') and 'last_verified' in text[:500]:
+                has_provenance = True
+                break
+        except (OSError, UnicodeDecodeError):
+            continue
+
+    if not has_provenance:
+        return {'score': 100, 'details': 'no provenance-tracked references (opt-in neutral)',
+                'tracked': 0, 'stale': 0}
+
+    # Run check_freshness.py as subprocess
+    script_dir = Path(__file__).parent
+    freshness_script = script_dir / 'check_freshness.py'
+    if not freshness_script.exists():
+        return {'score': 100, 'details': 'check_freshness.py not found (fallback neutral)',
+                'tracked': 0, 'stale': 0}
+
+    try:
+        result = subprocess.run(
+            [sys.executable, str(freshness_script), str(skill_path), '--format', 'json'],
+            capture_output=True, text=True, timeout=60,
+        )
+        if result.returncode != 0:
+            return {'score': 100, 'details': 'freshness check failed (fallback neutral)',
+                    'tracked': 0, 'stale': 0}
+
+        data = json.loads(result.stdout)
+        return {
+            'score': data.get('score', 100),
+            'details': f"{data.get('tracked_references', 0)} tracked, "
+                       f"{data.get('stale_count', 0)} stale",
+            'tracked': data.get('tracked_references', 0),
+            'stale': data.get('stale_count', 0),
+        }
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, Exception):
+        return {'score': 100, 'details': 'freshness check error (fallback neutral)',
+                'tracked': 0, 'stale': 0}
+
+
+def calculate_overall_score(conciseness, complexity, spec_compliance, progressive,
+                            description_quality=None, reference_currency=None):
     """Calculate weighted overall score
 
     Weights without description quality:
@@ -1126,8 +1181,25 @@ def calculate_overall_score(conciseness, complexity, spec_compliance, progressiv
     - Spec Compliance: 0.30
     - Progressive Disclosure: 0.20
     - Description Quality: 0.10
+
+    Weights with description quality + reference currency:
+    - Conciseness: 0.18
+    - Complexity: 0.18
+    - Spec Compliance: 0.27
+    - Progressive Disclosure: 0.18
+    - Description Quality: 0.09
+    - Reference Currency: 0.10
     """
-    if description_quality:
+    if description_quality and reference_currency and reference_currency.get('tracked', 0) > 0:
+        overall = (
+            conciseness['score'] * 0.18 +
+            complexity['score'] * 0.18 +
+            spec_compliance['score'] * 0.27 +
+            progressive['score'] * 0.18 +
+            description_quality['score'] * 0.09 +
+            reference_currency['score'] * 0.10
+        )
+    elif description_quality:
         overall = (
             conciseness['score'] * 0.20 +
             complexity['score'] * 0.20 +
@@ -2122,6 +2194,8 @@ def store_metrics_in_metadata(skill_path, metrics):
         'overall': metrics['overall_score'],
         'last_evaluated': datetime.now().strftime('%Y-%m-%d')
     }
+    if 'reference_currency' in metrics and metrics['reference_currency'].get('tracked', 0) > 0:
+        metrics_data['reference_currency'] = metrics['reference_currency']['score']
 
     # Build new frontmatter (preserve existing fields)
     new_frontmatter_lines = []
@@ -2196,9 +2270,11 @@ def calculate_all_metrics(skill_path):
         )
     progressive = calculate_progressive_disclosure_score(basic)
     description_quality = validate_description_quality(frontmatter_dict)
-    overall = calculate_overall_score(conciseness, complexity, spec_compliance, progressive, description_quality)
+    reference_currency = calculate_reference_currency_score(skill_path)
+    overall = calculate_overall_score(conciseness, complexity, spec_compliance, progressive,
+                                     description_quality, reference_currency)
 
-    return {
+    result = {
         'skill_name': frontmatter_dict.get('name', skill_path.name),
         'basic_metrics': basic,
         'conciseness': conciseness,
@@ -2206,8 +2282,10 @@ def calculate_all_metrics(skill_path):
         'spec_compliance': spec_compliance,
         'progressive_disclosure': progressive,
         'description_quality': description_quality,
+        'reference_currency': reference_currency,
         'overall_score': overall
     }
+    return result
 
 
 def evaluate_skill(skill_path, compare_with=None, validate_func=False, store_metrics=False, quiet=False):
@@ -2392,6 +2470,8 @@ def print_explain_output(evaluation):
     print(f"  Progressive:     {format_score_bar(metrics['progressive_disclosure']['score'])}")
     if 'description_quality' in metrics:
         print(f"  Description:     {format_score_bar(metrics['description_quality']['score'])}")
+    if 'reference_currency' in metrics and metrics['reference_currency'].get('tracked', 0) > 0:
+        print(f"  Ref Currency:    {format_score_bar(metrics['reference_currency']['score'])}")
     print(f"  Overall:         {format_score_bar(overall)}")
     print()
 
@@ -2634,6 +2714,33 @@ def print_explain_output(evaluation):
                 print("  ✓ Nothing to improve — already at 100")
         print()
 
+    # ── REFERENCE CURRENCY ────────────────────────────────────────────────────
+    if 'reference_currency' in metrics and metrics['reference_currency'].get('tracked', 0) > 0:
+        rc = metrics['reference_currency']
+        rc_score = rc['score']
+        print(f"Reference Currency Score: {rc_score}/100\n")
+        print("  Why:")
+        print(f"    Provenance-tracked references: {rc['tracked']}")
+        print(f"    Stale references: {rc['stale']}")
+        if rc_score == 100:
+            print("    All tracked references are within the staleness threshold")
+        else:
+            print(f"    {rc['stale']} reference(s) exceed the staleness threshold")
+        print()
+        rc_gap = 100 - rc_score
+        if rc_gap > 0:
+            print("  To improve:")
+            print("    - Run /ss-refresh to update stale references from upstream sources")
+            print("    - Update last_verified dates after verifying reference accuracy")
+            print()
+            print("  See: references/validation_tools_guide.md for freshness check details")
+            delta = int(rc_gap * 0.10)
+            if delta > 0:
+                improvements.append((delta, f"Refresh stale references → +{delta} overall"))
+        else:
+            print("  ✓ Nothing to improve — all references fresh")
+        print()
+
     # ── TOP-3 SUMMARY ─────────────────────────────────────────────────────────
     improvements.sort(reverse=True)
     print(f"{'='*60}")
@@ -2673,6 +2780,8 @@ def print_evaluation_text(evaluation):
     print(f"  Progressive:     {format_score_bar(metrics['progressive_disclosure']['score'])}")
     if 'description_quality' in metrics:
         print(f"  Description:     {format_score_bar(metrics['description_quality']['score'])}")
+    if 'reference_currency' in metrics and metrics['reference_currency'].get('tracked', 0) > 0:
+        print(f"  Ref Currency:    {format_score_bar(metrics['reference_currency']['score'])}")
     print(f"  Overall:         {format_score_bar(metrics['overall_score'])}")
     print()
 
@@ -2896,6 +3005,7 @@ def main():
     validate_func = False
     store_metrics_flag = False
     export_table_row = False
+    check_freshness = False
     version_number = None
     issue_number = None
     output_format = 'text'
@@ -2934,6 +3044,9 @@ def main():
             i += 1
         elif arg == '--store-metrics':
             store_metrics_flag = True
+            i += 1
+        elif arg == '--check-freshness':
+            check_freshness = True
             i += 1
         elif arg == '--export-table-row':
             export_table_row = True

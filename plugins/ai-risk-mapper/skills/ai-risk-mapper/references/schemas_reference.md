@@ -1,3 +1,12 @@
+---
+last_verified: 2026-04-28
+sources:
+  - type: github
+    repo: "cosai-oasis/secure-ai-tooling"
+    paths: ["risk-map/schemas/"]
+    description: "CoSAI JSON schema definitions for validation and automation"
+---
+
 # CoSAI Schema Reference
 
 This document describes the JSON schema structures used in the CoSAI Risk Map framework for validation and automation.

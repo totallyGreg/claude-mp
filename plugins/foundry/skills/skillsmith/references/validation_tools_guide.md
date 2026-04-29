@@ -819,6 +819,91 @@ Description Quality is weighted at 0.10 (10%) in the overall score calculation:
 
 ---
 
+## Reference Currency Score (Opt-in)
+
+Reference Currency is the sixth quality dimension, measuring whether provenance-tracked references are up-to-date with their upstream sources.
+
+### How It Works
+
+- References with YAML frontmatter containing `last_verified` and `sources` are tracked
+- Skills without provenance frontmatter score **100 (neutral)** — no penalty for opting out
+- Score = percentage of tracked references within the staleness threshold (default: 90 days)
+
+### Scoring Model
+
+| Condition | Score |
+|-----------|-------|
+| No provenance frontmatter on any reference | 100 (neutral) |
+| All tracked references within threshold | 100 |
+| Some stale | Proportional reduction |
+| All stale | 0 |
+
+### Weight Distribution (with Reference Currency)
+
+When provenance-tracked references exist, weights are redistributed proportionally:
+
+| Metric | Without Ref Currency | With Ref Currency |
+|--------|---------------------|-------------------|
+| Conciseness | 0.20 | 0.18 |
+| Complexity | 0.20 | 0.18 |
+| Spec Compliance | 0.30 | 0.27 |
+| Progressive Disclosure | 0.20 | 0.18 |
+| Description Quality | 0.10 | 0.09 |
+| Reference Currency | — | 0.10 |
+
+### check_freshness.py
+
+Standalone freshness detection script. Scans `references/` for provenance frontmatter and checks each source for activity since `last_verified`.
+
+```bash
+# Basic freshness report
+uv run scripts/check_freshness.py <skill-path>
+
+# Full audit with all source details
+uv run scripts/check_freshness.py <skill-path> --full-audit --probe --verbose
+
+# Machine-readable JSON output (used by evaluate_skill.py internally)
+uv run scripts/check_freshness.py <skill-path> --format json
+
+# Custom staleness threshold
+uv run scripts/check_freshness.py <skill-path> --threshold-days 60
+```
+
+**Flags:**
+- `--probe` — HTTP-check web source URLs
+- `--full-audit` — Show all source activity regardless of `last_verified` cutoff
+- `--threshold-days N` — Days before a reference is stale (default: 90)
+- `--format json` — Machine-readable JSON output
+- `--since DATE` — Override `last_verified` with a specific date
+- `--verbose` — Detailed per-source check results
+
+### evaluate_skill.py Integration
+
+Reference Currency is calculated automatically when provenance frontmatter is detected:
+
+```bash
+# Included automatically in comprehensive evaluation
+uv run scripts/evaluate_skill.py <skill-path>
+
+# Explicit flag (same result as auto-detection)
+uv run scripts/evaluate_skill.py <skill-path> --check-freshness
+
+# Explain mode shows freshness coaching
+uv run scripts/evaluate_skill.py <skill-path> --explain
+```
+
+### /ss-refresh Command
+
+Guides reference updates for any skill with provenance-tracked references:
+
+```bash
+/ss-refresh <skill-path>
+```
+
+The command runs the freshness checker, presents a report, and on confirmation guides updating stale references from their upstream sources.
+
+---
+
 ## Related References
 
 - `research_guide.md` - Detailed research phase documentation
