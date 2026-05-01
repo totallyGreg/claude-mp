@@ -14,7 +14,7 @@
       "name": "terminal-guru",
       "description": "Terminal diagnostics, configuration, and zsh development expert with triage agent and three focused skills",
       "category": "development",
-      "version": "5.0.0",
+      "version": "5.1.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"

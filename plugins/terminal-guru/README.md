@@ -5,7 +5,11 @@ Terminal diagnostics, configuration, zsh development, and environment compositio
 ## Components
 
 ### Agent: terminal-guru
-Diagnostic triage and cross-domain routing. Classifies symptoms and routes to the appropriate skill. Handles ambiguous problems and issues spanning terminal display, shell configuration, system observability, and environment composition.
+Diagnostic triage and cross-domain routing. Classifies symptoms and routes to the appropriate skill. Handles ambiguous problems spanning the terminal stack: zsh → tmux → sesh sessions → git → command capture → mise tasks.
+
+| Version | Date | Trigger | Prompt | Coherence | Overall |
+|---------|------|---------|--------|-----------|---------|
+| 5.1.0 | 2026-05-01 | 100 | 90 | 80 | 90 |
 
 ### Skill: terminal-emulation
 Terminal display diagnostics and configuration (~40% of content):
@@ -38,17 +42,25 @@ System observability and event-response:
 - `logwatch` — tmux pane with filtered live log stream
 
 ### Skill: environment-composition
-Development environment composition using sesh, claude CLI, direnv, and git worktrees:
+Development environment composition using sesh, claude CLI, and git worktrees:
 - sesh.toml configuration (sessions, wildcards, windows, startup commands, picker integrations)
 - Claude CLI session management for environment composition (--continue, --resume, --worktree)
-- direnv integration patterns for sesh + claude CLI
 - Environment lifecycle workflows (setup, worktree composition, teardown, decay detection)
 - Lens framework (Selection, Arrangement, Purpose, Activation) as composition mental model
+
+### Skill: mise-tooling
+mise (jdx/mise) configuration, task automation, and environment management:
+- Configuration hierarchy, profiles, and multi-tenant credential patterns
+- Task system (inline, included files, file-based), DRY patterns via shared shell functions
+- Environment variables with exec() for dynamic secrets (keychainctl, vault)
+- task_config.includes behavior and gotchas
+- Tool version management
 
 ## Changelog
 
 | Version | Changes |
 |---------|---------|
+| 5.1.0 | Added mise-tooling skill: config, tasks, includes, DRY patterns, multi-tenant credentials. Agent updated with terminal stack model and quality standards. Replaced direnv with mise as primary env manager. |
 | 5.0.0 | Added environment-composition skill: sesh.toml config, claude CLI integration, direnv, worktree workflows, Lens framework |
 | 4.0.0 | Added signals-monitoring skill: unified logging, signals/trap, file watching, notifications |
 | 3.0.0 | Split monolithic skill into plugin with agent + two focused skills |
