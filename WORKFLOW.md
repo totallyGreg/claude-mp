@@ -417,7 +417,7 @@ Is it a typo or small fix?
 Is this improvement specific to ONE skill?
 ├─ YES → Create GitHub Issue with label "enhancement"
 │        Title format: "skill-name: Feature description"
-│        Example: "omnifocus-manager: Add TypeScript validation"
+│        Example: "attache: Add TypeScript validation"
 │        Update: plugins/plugin-name/README.md (under `## Skill: skill-name`)
 │
 └─ NO → Does it affect multiple skills OR repo structure?
@@ -443,7 +443,7 @@ Is this improvement specific to ONE skill?
 
 ```bash
 # 1. Create issue
-gh issue create --title "omnifocus-manager: Add task filtering" \
+gh issue create --title "attache: Add task filtering" \
   --label "enhancement" \
   --body "**Goal**: Filter tasks by project
 
@@ -458,13 +458,13 @@ gh issue create --title "omnifocus-manager: Add task filtering" \
 # - [#125](link): Add task filtering (Planning)
 
 # 3. Implement
-git commit -m "feat(omnifocus-manager): Add task filtering (#125)"
+git commit -m "feat(attache): Add task filtering (#125)"
 
 # 4. Release with metrics
-# Run: uv run plugins/foundry/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager --export-table-row
-# Copy output to plugin README.md Changelog table (under ## Skill: omnifocus-manager)
+# Run: uv run plugins/foundry/skills/skillsmith/scripts/evaluate_skill.py plugins/attache/skills/attache --export-table-row
+# Copy output to plugin README.md Changelog table (under ## Skill: attache)
 # Remove from Active Work section
-git commit -m "chore: Release omnifocus-manager v2.1.0
+git commit -m "chore: Release attache v2.1.0
 
 Closes #125"
 ```
@@ -481,7 +481,7 @@ git add docs/plans/2026-01-20-typescript-validation.md
 git commit -m "docs: Add TypeScript validation plan"
 
 # 3. Create issue referencing plan
-gh issue create --title "omnifocus-manager: Add TypeScript validation" \
+gh issue create --title "attache: Add TypeScript validation" \
   --label "enhancement" \
   --body "**Goal**: Validate plugin code before execution
 
@@ -500,14 +500,14 @@ gh issue create --title "omnifocus-manager: Add TypeScript validation" \
 # - [#126](link): TypeScript validation (Planning)
 
 # 5. Implement with multiple commits
-git commit -m "feat(omnifocus-manager): Add TS compiler integration (#126)"
-git commit -m "feat(omnifocus-manager): Validate plugins on execution (#126)"
+git commit -m "feat(attache): Add TS compiler integration (#126)"
+git commit -m "feat(attache): Validate plugins on execution (#126)"
 
 # 6. Release with metrics
-# Run: uv run plugins/foundry/skills/skillsmith/scripts/evaluate_skill.py plugins/omnifocus-manager/skills/omnifocus-manager --export-table-row
-# Add row to plugin README.md Changelog table (under ## Skill: omnifocus-manager)
+# Run: uv run plugins/foundry/skills/skillsmith/scripts/evaluate_skill.py plugins/attache/skills/attache --export-table-row
+# Add row to plugin README.md Changelog table (under ## Skill: attache)
 # Remove from Active Work section
-git commit -m "chore: Release omnifocus-manager v2.2.0
+git commit -m "chore: Release attache v2.2.0
 
 Closes #126"
 
