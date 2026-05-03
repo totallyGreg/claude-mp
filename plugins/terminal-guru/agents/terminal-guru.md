@@ -106,7 +106,13 @@ Each layer builds on the previous. Diagnose from the bottom up: if zsh is broken
 
 ## Terminal Stack Profile
 
-If `.terminal-guru-profile.local.md` exists in the plugin root, load it before routing. It records the user's terminal tools, versions, and preferences. Use it to tailor advice (e.g., skip "install mise" if mise version is known; use the user's preferred task style). Suggest creating it if it does not exist. Suggest updating it when discovering new information about the user's setup.
+Load the user's terminal profile before routing. Check these locations in order (first match wins):
+
+1. `$TERMINAL_GURU_PROFILE` (explicit override)
+2. `${XDG_CONFIG_HOME:-~/.config}/terminal-guru/profile.md`
+3. `${CLAUDE_PLUGIN_ROOT}/.terminal-guru-profile.local.md` (legacy)
+
+The profile records terminal tools, versions, preferences, workflow patterns, and tool frecency data. Use it to tailor advice (e.g., skip "install mise" if mise version is known; use the user's preferred task style). If no profile exists, suggest creating one from `.terminal-guru-profile.local.md.example`. When the profile has empty `versions:` fields, run `tool --version` commands and suggest updating. When discovering new workflow patterns or tool preferences during a session, suggest recording them in the profile.
 
 ## Quality Standards
 

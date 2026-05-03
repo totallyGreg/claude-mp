@@ -1,0 +1,57 @@
+---
+terminal_stack:
+  shell: zsh                          # bash, fish, nushell
+  terminal: ghostty                   # kitty, alacritty, wezterm, iterm2
+  multiplexer: tmux                   # zellij, screen, none
+  session_manager: sesh               # tmuxinator, tmuxp, none
+  env_manager: mise                   # direnv, none
+  version_manager: mise               # asdf, nvm, pyenv, rbenv
+  secret_store: keychainctl           # 1password-cli, bitwarden-cli, pass
+  package_managers: [homebrew, uv, npm]
+
+preferences:
+  default_task_runner: mise           # make, just, task
+  function_location: ~/.zsh/functions
+  mise_task_style: included_files     # included_files | inline | toml_tasks
+  credential_pattern: multi_tenant    # multi_tenant | single_env | keychain_only
+
+versions:
+  mise: ""
+  tmux: ""
+  sesh: ""
+  zsh: ""
+
+workflow_patterns:
+  # Populated by agent during sessions or via /workflow-discover
+  # Each entry tracks a repeated command sequence and its graduation status.
+  #
+  # example_pattern:
+  #   commands: ["git pull", "mise run lint", "mise run test"]
+  #   frequency: 12
+  #   suggested_graduation: "mise_task"    # function | mise_task | sesh_template
+  #   status: observed                     # observed | suggested | graduated
+
+tool_preferences:
+  # Frecency data from /workflow-discover history analysis.
+  # Tracks which tools the user actively uses and what for.
+  #
+  # fzf:
+  #   use_count: 87
+  #   last_used: "2026-05-01"
+  #   preferred_for: ["branch selection", "file search"]
+---
+
+## Notes
+
+Terminal stack profile for terminal-guru. The agent reads this to tailor advice
+without re-asking about the user's setup. Update versions and preferences as
+they change.
+
+Copy this file to create your profile:
+  cp .terminal-guru-profile.local.md.example .terminal-guru-profile.local.md
+
+Or place it in XDG config for visibility:
+  mkdir -p ${XDG_CONFIG_HOME:-~/.config}/terminal-guru
+  cp .terminal-guru-profile.local.md.example ${XDG_CONFIG_HOME:-~/.config}/terminal-guru/profile.md
+
+Metrics and patterns only — secrets belong in keychainctl or your secret store.
