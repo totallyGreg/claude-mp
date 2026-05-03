@@ -1,3 +1,15 @@
+---
+last_verified: 2026-05-03
+sources:
+  - type: web
+    url: "https://mise.jdx.dev/configuration/"
+    description: "Official mise configuration documentation"
+  - type: github
+    repo: "jdx/mise"
+    paths: ["docs/configuration/"]
+    description: "mise documentation source for configuration"
+---
+
 # Mise Configuration Guide
 
 ## Configuration Hierarchy
@@ -100,14 +112,103 @@ python = ["3.11", "3.12"]
 node = { version = "22", postinstall = "corepack enable" }
 ```
 
-## Settings
+## Lifecycle Hooks
 
-Global settings go in `~/.config/mise/config.toml`:
+Hooks trigger at workspace lifecycle events:
+
+```toml
+[hooks.enter]
+run = "echo 'Welcome to the project'"
+
+[hooks.leave]
+run = "echo 'Goodbye'"
+
+[hooks.cd]
+run = "echo 'Changed to {{cwd}}'"
+```
+
+Available hook points:
+- **`enter`** — triggered when entering the workspace directory
+- **`leave`** — triggered when leaving the workspace
+- **`cd`** — triggered on every directory change within the workspace
+- **`watch`** — file watch listeners that activate when tracked paths update
+
+Hooks run in the shell context with full access to `[env]` variables. The `{{cwd}}` template resolves to the current working directory at hook execution time.
+
+## Monorepo Support
+
+mise supports multi-directory projects with special path syntax:
+
+```toml
+# Reference tasks from monorepo root
+[tasks.build-all]
+depends = ["//frontend:build", "//backend:build"]
+run = "echo 'All packages built'"
+
+# Declare sub-project config locations
+[monorepo]
+config_roots = ["packages/*", "apps/*"]
+```
+
+- **`//` prefix** — resolves from monorepo root, not current directory
+- **`:` separator** — `//projects/frontend:build` targets a specific sub-project task
+- **`*` wildcards** — match across directories and task names
+- **`config_roots`** — declares where mise should discover sub-project configs
+- **Subdirectory scripts** — auto-prefix with directory path (e.g., `web:test`)
+
+## Secret Handling
 
 ```toml
 [settings]
+# Mask sensitive variable names in logs (supports globs)
+redactions = ["*_SECRET", "*_KEY", "*_TOKEN", "CREDENTIALS_*"]
+```
+
+Individual env vars can also be redacted:
+
+```toml
+[env]
+API_KEY = { value = "secret123", redact = true }
+```
+
+The `redactions` setting works with patterns — any env var matching the glob is masked in `mise env` output and logs.
+
+## Task-Related Settings
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `task.jobs` | 4 | Max concurrent workers for parallel task execution |
+| `task.output` | `"prefix"` | Log format: `prefix`, `interleave`, or custom |
+| `task.timeout` | — | Default timeout for all tasks (seconds) |
+| `task_timing` | false | Show timing for every task by default |
+| `task_auto_install` | true | Auto-install tools needed by tasks before running |
+
+Configure globally in `~/.config/mise/config.toml` or per-project in `mise.toml`:
+
+```toml
+[settings]
+task_timing = true
 color = true
 color_theme = "default"  # default/charm (dark), base16 (light), catppuccin, dracula
 ```
 
-The `color_theme` setting controls the interactive TUI picker (`mise run` with no args). The `color = false` setting only affects CLI output, not the interactive picker.
+## Watch Mode
+
+Continuous file watching for rebuild-on-change workflows:
+
+```bash
+mise watch build -w src -w Cargo.toml    # rebuild when files change
+mise watch build --restart               # restart long-running process on change
+mise watch test -w "src/**/*.py"         # glob pattern for watched paths
+```
+
+Requires the `watchexec` utility. For simpler file watching needs (single command, no task DAG), consider `entr` or `fswatch` via the signals-monitoring skill.
+
+## Diagnostics
+
+```bash
+mise cfg        # show loaded config files and precedence
+mise env        # show resolved environment variables
+mise doctor     # comprehensive health check
+mise trust      # trust a config file (required for untrusted sources)
+```

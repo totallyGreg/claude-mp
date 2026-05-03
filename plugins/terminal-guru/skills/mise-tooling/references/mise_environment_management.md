@@ -1,3 +1,15 @@
+---
+last_verified: 2026-05-03
+sources:
+  - type: web
+    url: "https://mise.jdx.dev/environments/"
+    description: "Official mise environments documentation"
+  - type: github
+    repo: "jdx/mise"
+    paths: ["docs/environments/"]
+    description: "mise documentation source for environments"
+---
+
 # Mise Environment Management
 
 ## Multi-Tenant Credential Pattern
