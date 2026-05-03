@@ -1,14 +1,15 @@
 # terminal-guru
 
-Terminal diagnostics, configuration, zsh development, and environment composition expert for Unix systems.
+Terminal diagnostics, tool composition, workflow discovery, and environment expert for Unix systems.
 
 ## Components
 
 ### Agent: terminal-guru
-Diagnostic triage and cross-domain routing. Classifies symptoms and routes to the appropriate skill. Handles ambiguous problems spanning the terminal stack: zsh → tmux → sesh sessions → git → command capture → mise tasks.
+Terminal and shell expert that diagnoses problems, composes tools into workflows, and discovers usage patterns. Routes to 5 skills across the terminal stack: zsh → tmux → sesh → git → command capture → mise tasks.
 
 | Version | Date | Trigger | Prompt | Coherence | Overall |
 |---------|------|---------|--------|-----------|---------|
+| 5.3.0 | 2026-05-03 | 100 | 90 | 100 | 96 |
 | 5.2.0 | 2026-05-03 | 100 | 90 | 80 | 90 |
 | 5.1.0 | 2026-05-01 | 100 | 90 | 80 | 90 |
 
@@ -43,11 +44,14 @@ System observability and event-response:
 - `logwatch` — tmux pane with filtered live log stream
 
 ### Skill: environment-composition
-Development environment composition using sesh, claude CLI, and git worktrees:
-- sesh.toml configuration (sessions, wildcards, windows, startup commands, picker integrations)
-- Claude CLI session management for environment composition (--continue, --resume, --worktree)
-- Environment lifecycle workflows (setup, worktree composition, teardown, decay detection)
-- Lens framework (Selection, Arrangement, Purpose, Activation) as composition mental model
+Tool composition engine and workflow discovery:
+- Composition philosophy (Unix principles, Pattern Graduation Pipeline)
+- fzf composition patterns (source | fzf --preview | action, recipes, alternatives)
+- Workflow discovery (command history, brew inventory, XDG configs, zoxide, git log)
+- sesh.toml configuration (sessions, wildcards, windows, startup commands)
+- Claude CLI session management (--continue, --resume, --worktree)
+- Environment lifecycle workflows (setup, teardown, decay detection)
+- Lens framework (Selection, Arrangement, Purpose, Activation)
 
 ### Skill: mise-tooling
 mise (jdx/mise) configuration, task automation, and environment management:
@@ -82,6 +86,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Changes |
 |---------|---------|
+| 5.3.0 | Evolved environment-composition (v2.0.0) into composition engine: composition philosophy, fzf patterns, workflow discovery. Added /workflow-discover command. Agent gains composition routing, workflow discovery, and tool references (96/100). Profile moved to XDG-configurable location with .example template. |
 | 5.2.0 | Enriched mise-tooling (v2.0.0): DAG model, task templates, file-based discovery, hooks, monorepo, watch, CLI reference, use case patterns. Added zsh-vs-mise routing decision table. Reference freshness metadata (check_freshness.py compatible). Terminal stack profile for self-improvement. |
 | 5.1.0 | Added mise-tooling skill: config, tasks, includes, DRY patterns, multi-tenant credentials. Agent updated with terminal stack model and quality standards. Replaced direnv with mise as primary env manager. |
 | 5.0.0 | Added environment-composition skill: sesh.toml config, claude CLI integration, direnv, worktree workflows, Lens framework |
@@ -94,7 +99,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 ### Current Metrics
 
-**Score: 90/100** (Good) — 2026-04-01
+**Score: 90/100** (Good) — 2026-05-03
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -104,6 +109,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 2.0.0 | 2026-05-03 | - | Evolved into composition engine: composition philosophy, fzf patterns, workflow discovery script, tool landscape analysis. Expanded from sesh-specific to general tool composition. | 100 | 80 | 80 | 100 | 100 | 90 |
 | 1.0.0 | 2026-04-01 | - | Initial release: sesh.toml config, claude CLI composition, direnv integration, workflow patterns (setup/worktree/teardown/decay), Lens framework | 100 | 80 | 80 | 100 | 100 | 90 |
 
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)

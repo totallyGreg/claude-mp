@@ -1,7 +1,7 @@
 {
   "name": "terminal-guru",
-  "version": "5.2.0",
-  "description": "Terminal diagnostics, configuration, zsh development, system observability, environment composition, and mise tooling expert for macOS/Unix systems. Includes an orchestrator agent for diagnostic triage and five focused skills: terminal-emulation (terminfo, Unicode, display), zsh-dev (autoload functions, fpath, testing, performance), signals-monitoring (macOS logging, Unix signals, file watching, notifications), environment-composition (sesh.toml config, claude CLI integration, worktree workflows), and mise-tooling (mise.toml config, task automation, multi-tenant credentials, tool versioning).",
+  "version": "5.3.0",
+  "description": "Terminal diagnostics, tool composition, workflow discovery, and environment expert for macOS/Unix systems. Includes an orchestrator agent that diagnoses problems, composes tools into workflows, and discovers usage patterns. Five focused skills: terminal-emulation (terminfo, Unicode, display), zsh-dev (autoload functions, fpath, testing, performance), signals-monitoring (macOS logging, Unix signals, file watching, notifications), environment-composition (tool composition engine, fzf patterns, workflow discovery, sesh config), and mise-tooling (mise.toml config, task automation, multi-tenant credentials, tool versioning).",
   "author": {
     "name": "J. Greg Williams",
     "email": "283704+totallyGreg@users.noreply.github.com"

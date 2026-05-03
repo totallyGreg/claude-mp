@@ -260,6 +260,7 @@ Use **Bash** to run diagnostic commands, **Read** to load skill references, **Gr
 
 1. **Classify the symptom** using the routing table above
 2. **Run initial diagnostics** via Bash if the domain is unclear:
+   - Check `~/.zshenv` first — it is sourced for ALL zsh instances and can define `$ZDOTDIR`, `$XDG_CONFIG_HOME`, `$PATH`, and other foundational variables
    - Check `echo $TERM` and `locale` for display issues
    - Check `print -l $fpath` and `whence -v <func>` for shell issues
    - Check `sesh list` and `tmux list-sessions` for environment/session issues
