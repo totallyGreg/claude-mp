@@ -54,7 +54,7 @@ Progressive disclosure:
 
 ## Version
 
-1.24.2
+1.25.0
 
 ## License
 
@@ -81,6 +81,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary |
 |---------|------|-------|---------|
+| 1.25.0 | 2026-05-03 | - | Safety hardening: Write Path (read-prepare-write protocol), Issue Learning, Fast Init, anti-cascade principle, Drift Triage in curator (mechanical vs semantic). Body trim 4955→3033 words (session-logging + canvas-types moved to references). Agent eval 89→92 (Role:3→15, Prompt:83→91). |
 | 1.24.2 | 2026-04-24 | - | Refactor session-log to dispatch through logEntries.js; add resume/pause subcommands; entry enrichment with phase/outcome; linking conventions; progressive frontmatter updates |
 | 1.21.0 | 2026-04-14 | [#160](https://github.com/totallyGreg/claude-mp/issues/160) | Agent-native improvements: init vault signals (Context Injection), delete workflows (CRUD), multi-vault .local.md (Shared Workspace), --no-write primitives (Tools as Primitives), index refresh after writes (UI Integration), /help + /workflows commands (Capability Discovery + Action Parity) |
 | 1.20.0 | 2026-04-13 | [#160](https://github.com/totallyGreg/claude-mp/issues/160) | Add workflow classification (known vs novel detection) and session learning tables (Known Workflows + Workflow Candidates) to _vault-profile.md; promotion rule graduates 2+ occurrence candidates to workflow notes |
@@ -119,16 +120,17 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 ### Current Metrics
 
-**Score: 96/100** (Excellent) — 2026-04-28
+**Score: 96/100** (Excellent) — 2026-05-03
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
-| 83 | 100 | 100 | 100 | 100 |
+| 80 | 100 | 100 | 100 | 100 |
 
 ### Version History
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.13.0 | 2026-05-03 | - | Add Write Quality Gate rule #5 (read before write), Drift Triage protocol (mechanical vs semantic), session-logging.md reference | 80 | 100 | 100 | 100 | 100 | 96 |
 | 1.12.0 | 2026-04-14 | [#160](https://github.com/totallyGreg/claude-mp/issues/160) | Add collection-health-criteria.md reference; add --no-write to generate_canvas.py, merge_notes.py, redirect_links.py (50-file cap on redirect); add --node-width/--node-height/--coverage-threshold CLI args; add fileClass group nodes + edge direction markers to canvas | 83 | 100 | 100 | 100 | 100 | 96 |
 | 1.11.0 | 2026-04-11 | - | Add Wikilinks over backticks rule to Write Quality Gate; graph traversal commands to cli-patterns.md; create linking-discipline.md reference (decision table, schema authority, graph CLI commands) | 83 | 100 | 100 | 100 | 100 | 96 |
 | 1.10.0 | 2026-04-01 | - | Demote Write Boundaries to H3; add Base Files and File Relocation rules to cli-patterns.md; offload verbose docs to references/ | 98 | 100 | 100 | 100 | 100 | 99 |
