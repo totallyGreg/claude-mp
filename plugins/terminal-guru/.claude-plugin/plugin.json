@@ -26,6 +26,9 @@
     "worktree",
     "mise",
     "task-runner",
-    "version-manager"
+    "version-manager",
+    "fzf",
+    "workflow-discovery",
+    "tool-composition"
   ]
 }
