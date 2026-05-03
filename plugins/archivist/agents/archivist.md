@@ -170,6 +170,8 @@ Never ask permission before reading a vault file.
 
 See `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/cli-patterns.md` for known bugs, safety rules, graph traversal commands, and when to fall back to file tools. The obsidian-skills marketplace (`obsidian-cli` skill) is the canonical command reference.
 
+**Destructive command safety:** NEVER use `obsidian create overwrite` with placeholder or partial content (e.g., "test"). It is atomic and destructive — replaces the entire note instantly. Always prepare full content before writing. To probe write permissions, use `obsidian property:set` instead — it is additive.
+
 ## Linking Discipline
 
 **Default to `[[Target]]` for any vault entity reference** when authoring or revising vault content. This includes fileClass notes, `.base` files, templates, folders, canvases, and other notes.

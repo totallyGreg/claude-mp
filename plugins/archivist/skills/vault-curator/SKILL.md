@@ -65,6 +65,7 @@ Before writing any note to the vault:
 1. **Frontmatter on line 1** — `---` must be the very first characters; a leading newline silently breaks Obsidian's property parsing.
 2. **Linter compliance** — non-compliant notes produce spurious git diffs. Bulk validate: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/validate_frontmatter.py ${VAULT_PATH}`
 3. **Wikilinks over backticks** — use `[[Target]]` for all vault entity references. See `references/linking-discipline.md`.
+4. **NEVER use `obsidian create overwrite` with placeholder content** — the command is destructive and atomic; it replaces the entire note body instantly. Always prepare the FULL content first, then write in one operation. To test write permissions, use `obsidian property:set` on a non-critical property — it is additive, not destructive. Never write "test", empty strings, or partial content to existing notes.
 
 ### Write Boundaries
 
