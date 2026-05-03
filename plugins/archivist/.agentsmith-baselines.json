@@ -1,9 +1,9 @@
 {
   "archivist": {
-    "overall_score": 89,
+    "overall_score": 92,
     "trigger_effectiveness": 93,
-    "system_prompt_quality": 83,
+    "system_prompt_quality": 91,
     "coherence": 93,
-    "last_evaluated": "2026-04-28"
+    "last_evaluated": "2026-05-03"
   }
 }
