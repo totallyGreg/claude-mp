@@ -1,88 +1,121 @@
 ---
 name: environment-composition
-description: This skill should be used when the user asks to "configure sesh.toml", "create a dev environment", "build a session template", "set up sesh config", "add a sesh wildcard", "configure startup command", "create workspace with sesh", "clean up worktrees", "resume my session", "debug environment decay", or needs help composing development environments from sesh, claude CLI, direnv, and git worktrees. Also trigger on mentions of sesh.toml, environment composition, session templates, sesh wildcards, or teardown patterns. Do NOT use for general tmux session management, display issues, or keybindings (use terminal-emulation instead). Do NOT use for worktree lifecycle management (use chronicle instead). Do NOT use for signal handling or system logging (use signals-monitoring instead).
+description: This skill should be used when the user asks to "compose tools", "automate this workflow", "make this repeatable", "what patterns do you see", "pipe through fzf", "what tools am I using", "configure sesh.toml", "create a dev environment", "build a session template", "set up sesh config", "clean up worktrees", "resume my session", "should this be a function or a task", or needs help composing workflows from existing CLI tools. Also trigger on fzf composition, workflow discovery, pattern graduation, tool landscape, or sesh wildcards. Do NOT use for tmux display or keybindings (use terminal-emulation). Do NOT use for worktree lifecycle (use chronicle). Do NOT use for signals or logging (use signals-monitoring). Do NOT use for mise config or tasks (use mise-tooling).
 metadata:
-  version: "1.0.0"
+  version: "2.0.0"
 ---
 
 # Environment Composition
 
 ## Overview
 
-Compose development environments by combining sesh (tmux session manager), claude CLI, direnv, and git worktrees. Sesh's config system (`sesh.toml`) is the foundation layer — it already implements most of the composition pattern natively through session declarations, wildcard templates, reusable windows, and startup commands.
+Compose workflows and development environments by combining existing CLI tools. This skill is the **composition engine** — pull it in when the goal is to BUILD something from known tools, not just diagnose or configure a single tool.
 
-When suggesting compositions, use the Lens framework as a mental checklist: **Selection** (which project/directory/worktree), **Arrangement** (tmux windows, startup commands, claude session), **Purpose** (what task this environment serves), **Activation** (how to trigger it — sesh wildcard, picker, zoxide). Favor sesh-native solutions — output `sesh.toml` config snippets that users add to their own config.
+The core principle: **compose existing tools before creating new ones**. Discover what the user has (brew, XDG configs, history), then compose from that inventory. Follow the Pattern Graduation Pipeline to promote ad-hoc commands into reusable automation at the right level.
+
+Sesh + claude CLI + worktrees are one common composition target, but any combination of installed tools is in scope. fzf is the universal composition glue — it turns any list into an interactive workflow.
 
 ## When to Use This Skill
 
-- Composing multi-tool development environments (sesh + claude + direnv + worktrees)
-- Writing or modifying `sesh.toml` configurations (sessions, wildcards, windows, startup commands)
-- Setting up paired sesh + claude CLI sessions for a project
-- Creating worktree-per-session isolation for parallel feature work
-- Graceful teardown of environments (preserving state, cleaning up)
-- Detecting environment decay (stale sessions, orphaned worktrees)
-- Choosing and configuring sesh picker integrations (fzf, television, gum, built-in)
+- Composing CLI tools into workflows (fzf pipelines, tool chains, automation)
+- Discovering the user's tool landscape and usage patterns (`/workflow-discover`)
+- Graduating patterns: ad-hoc commands → zsh functions → mise tasks
+- Building multi-tool development environments (sesh + claude + worktrees)
+- Writing or modifying `sesh.toml` configurations
+- Setting up paired sesh + claude CLI sessions
+- Graceful teardown and decay detection for environments
+- fzf composition patterns (preview, multi-select, keybindings)
 
 ## Core Capabilities
 
-### 1. Sesh Config System
+### 1. Tool Composition Philosophy
 
-Sesh's `sesh.toml` is the primary tool for defining and managing development environments. It supports named sessions, wildcard patterns for project categories, reusable window definitions, startup commands, config imports, and multiple picker integrations.
+Compose from the user's existing tool landscape. Discover what's installed (brew), what's configured (XDG), and what's frequently used (history) before suggesting compositions. Prefer the Unix pattern — small tools piped together — but recognize when multi-tasking tools (mise, sesh) absorb pipeline complexity.
 
-See `references/sesh_config_guide.md` for the complete config reference including all `sesh.toml` sections, subcommands, picker integrations, and naming strategies.
+See `references/composition_philosophy.md` for the full philosophy, Pattern Graduation Pipeline, and composition heuristics.
 
-### 2. Claude CLI Integration
+### 2. fzf Composition Patterns
 
-The `claude --continue` flag resumes the most recent conversation in the current directory — this naturally pairs with sesh's directory-based session creation. Combined with `--worktree --tmux` for native worktree+session creation, claude CLI integrates directly into the sesh workflow.
+fzf is the universal composition glue: `source | fzf [--preview] | action`. Master the pattern for git branches, brew packages, mise tasks, file operations, and process management. Know when to use alternatives (tv for file search, gum for confirmations).
 
-See `references/claude_cli_composition.md` for session management flags, project configuration (`CLAUDE.md`, `.claude/`, MCP), worktree integration, and direnv patterns.
+See `references/fzf_composition.md` for the complete pattern library, power features, and comparison with tv and gum.
 
-### 3. Environment Workflows
+### 3. Workflow Discovery
 
-Four workflow categories cover the full environment lifecycle:
-- **Setup and Resume**: Pair sesh sessions with claude context via `--continue` or `startup_command`
-- **Worktree Composition**: One sesh session per git worktree for isolated parallel work
-- **Teardown**: Graceful shutdown preserving claude session state
-- **Decay Detection**: Identify stale sessions, orphaned worktrees, outdated configs
+Scan multiple signal sources — command history, zoxide frecency, homebrew inventory, XDG configs, git log — to build a picture of how the user works. Surface patterns ripe for graduation and tool preferences.
+
+See `references/workflow_discovery.md` for signal sources, output format, and profile integration. The discovery script lives at `scripts/workflow-discover.sh`.
+
+### 4. Sesh Config System
+
+Sesh's `sesh.toml` is one of several composition targets. It supports named sessions, wildcard patterns, reusable windows, startup commands, config imports, and picker integrations.
+
+See `references/sesh_config_guide.md` for the complete config reference.
+
+### 5. Claude CLI Integration
+
+The `claude --continue` flag resumes context scoped to the current directory — pairs naturally with sesh sessions and worktrees.
+
+See `references/claude_cli_composition.md` for session management, project config, and worktree integration.
+
+### 6. Environment Workflows
+
+Four lifecycle categories: setup/resume, worktree composition, teardown, and decay detection.
 
 See `references/workflow_patterns.md` for patterns, commands, and diagnostic checklists.
 
-### 4. sesh.toml as Local State
-
-Users' `sesh.toml` (at `~/.config/sesh/sesh.toml`) naturally serves as local state for environment composition. The agent suggests config snippets — `[[session]]`, `[[wildcard]]`, `startup_command` entries — that users add to their own config. No separate state file needed. Proven patterns can graduate to skill references.
-
 ## Common Use Cases
 
-### "I want to set up a project environment"
-1. Create or navigate to the project directory
-2. Add a `[[session]]` or `[[wildcard]]` entry in `sesh.toml` with `startup_command` and `windows`
-3. `sesh connect <project>` to create the session
-4. `claude --continue` to resume AI context
+### "I keep running the same commands, can this be simpler?"
 
-### "I want parallel feature branches"
-1. Create worktrees: `git worktree add ../project-feat feat-branch`
-2. `sesh connect` to each worktree directory (auto-named by sesh)
-3. Each session gets its own `claude --continue` context
-4. Navigate between them with `sesh` picker or `sesh connect --root`
+1. Run `/workflow-discover` to identify the repeated pattern
+2. Apply the Pattern Graduation Pipeline (see `composition_philosophy.md`)
+3. If the pattern needs shell context → create a zsh function
+4. If the pattern is project-scoped or team-shared → create a mise task
+5. If the pattern involves interactive selection → wrap with fzf
 
-### "I want to clean up old environments"
+### "Pipe something through fzf"
+
+1. Identify the source (what list to filter)
+2. Add preview (`--preview 'command {}'`) for context
+3. Define the action (what to do with the selection)
+4. See `fzf_composition.md` for recipes and power features
+
+### "What tools am I using?"
+
+1. Run `/workflow-discover` for the full landscape
+2. Review brew inventory, XDG configs, and history frequency
+3. Identify tools that are installed but unconfigured (or configured but unused)
+4. Suggest compositions that leverage the existing landscape
+
+### "Set up a project environment"
+
+1. Suggest a `[[session]]` or `[[wildcard]]` in `sesh.toml` with startup_command and windows
+2. `sesh connect <project>` to create the session
+3. `claude --continue` to resume AI context
+
+### "Clean up old environments"
+
 1. Check for stale sessions: `tmux list-sessions`
-2. Check for orphaned worktrees: `git worktree list` + branch verification
-3. Review unused sesh configs: `sesh list -c` against actual directories
-4. See `references/workflow_patterns.md` for the full decay detection checklist
-
-### "I want to clone a repo and start working immediately"
-1. `sesh clone git@github.com:org/repo.git` — clones and creates session
-2. Wildcard configs in `sesh.toml` automatically apply startup commands and windows
-3. `claude --continue` to start AI-assisted work in the new project
+2. Check for orphaned worktrees: `git worktree list`
+3. Review unused sesh configs: `sesh list -c`
+4. See `workflow_patterns.md` for the full decay detection checklist
 
 ## Resources
 
 ### references/
+- **`composition_philosophy.md`** — Unix composition principle, Pattern Graduation Pipeline, tool landscape discovery, fzf as composition glue, composition heuristics
+- **`fzf_composition.md`** — fzf patterns, preview, multi-select, keybindings, recipes for git/brew/mise/files/processes, comparison with tv and gum
+- **`workflow_discovery.md`** — Signal sources (history, zoxide, brew, XDG, git), output format, profile integration, version auto-detection
 - **`sesh_config_guide.md`** — Comprehensive sesh v2.24+ reference: config system, subcommands, picker integrations, naming strategy
-- **`claude_cli_composition.md`** — Claude CLI features for environment composition: session management, project config, worktree integration, direnv patterns
+- **`claude_cli_composition.md`** — Claude CLI features for environment composition: session management, project config, worktree integration
 - **`workflow_patterns.md`** — Environment lifecycle patterns: setup, worktree composition, teardown, decay detection
+
+### scripts/
+- **`workflow-discover.sh`** — Multi-source workflow discovery script (referenced by `/workflow-discover` command)
 
 ### Cross-references
 - **terminal-emulation** `tmux_session_management.md` — General tmux keybindings, pane logging, session persistence
-- **chronicle** `worktrees-experiments.md` — Git worktree lifecycle patterns (create, evaluate, cleanup)
+- **chronicle** `worktrees-experiments.md` — Git worktree lifecycle patterns
+- **zsh-dev** `zsh_function_patterns.md` — Function templates for graduating patterns
+- **mise-tooling** `mise_task_patterns.md` — Task creation for graduating patterns to mise

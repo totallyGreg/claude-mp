@@ -41,3 +41,6 @@ htmlcov/
 # Claude Code local settings
 .claude/settings.local.json
 .claude/omnifocus-maps/
+
+# Plugin local state (machine-specific, never ship)
+*.local.md

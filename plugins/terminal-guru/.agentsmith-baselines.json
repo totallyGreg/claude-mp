@@ -1,9 +1,9 @@
 {
   "terminal-guru": {
-    "overall_score": 90,
+    "overall_score": 96,
     "trigger_effectiveness": 100,
     "system_prompt_quality": 90,
-    "coherence": 80,
+    "coherence": 100,
     "last_evaluated": "2026-05-03"
   }
 }
