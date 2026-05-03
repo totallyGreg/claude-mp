@@ -9,6 +9,7 @@ Diagnostic triage and cross-domain routing. Classifies symptoms and routes to th
 
 | Version | Date | Trigger | Prompt | Coherence | Overall |
 |---------|------|---------|--------|-----------|---------|
+| 5.2.0 | 2026-05-03 | 100 | 90 | 80 | 90 |
 | 5.1.0 | 2026-05-01 | 100 | 90 | 80 | 90 |
 
 ### Skill: terminal-emulation
@@ -50,16 +51,38 @@ Development environment composition using sesh, claude CLI, and git worktrees:
 
 ### Skill: mise-tooling
 mise (jdx/mise) configuration, task automation, and environment management:
-- Configuration hierarchy, profiles, and multi-tenant credential patterns
-- Task system (inline, included files, file-based), DRY patterns via shared shell functions
+- Configuration hierarchy, profiles, lifecycle hooks, monorepo support
+- Task system (inline, included files, file-based), DAG execution, task templates
+- DRY patterns via shared shell functions and task inheritance
 - Environment variables with exec() for dynamic secrets (keychainctl, vault)
-- task_config.includes behavior and gotchas
-- Tool version management
+- task_config.includes behavior and gotchas, cross-project sharing
+- Tool version management, watch mode, CLI reference
+- Use case patterns: milestone aggregation, confirmation, cleanup, CI/CD
+
+## Skill: mise-tooling
+
+### Current Metrics
+
+**Score: 91/100** (Good) — 2026-05-03
+
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 100 | 80 | 80 | 100 | 100 |
+
+### Version History
+
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 2.0.0 | 2026-05-03 | - | Enriched references: DAG model, task templates, file-based discovery, hooks, monorepo, watch, CLI reference, use case patterns. Freshness metadata on all references. | 100 | 80 | 80 | 100 | 100 | 91 |
+| 1.0.0 | 2026-05-01 | - | Initial release: config hierarchy, task patterns, DRY, multi-tenant credentials, tool versioning | - | - | - | - | - | 90 |
+
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
 
 ## Changelog
 
 | Version | Changes |
 |---------|---------|
+| 5.2.0 | Enriched mise-tooling (v2.0.0): DAG model, task templates, file-based discovery, hooks, monorepo, watch, CLI reference, use case patterns. Added zsh-vs-mise routing decision table. Reference freshness metadata (check_freshness.py compatible). Terminal stack profile for self-improvement. |
 | 5.1.0 | Added mise-tooling skill: config, tasks, includes, DRY patterns, multi-tenant credentials. Agent updated with terminal stack model and quality standards. Replaced direnv with mise as primary env manager. |
 | 5.0.0 | Added environment-composition skill: sesh.toml config, claude CLI integration, direnv, worktree workflows, Lens framework |
 | 4.0.0 | Added signals-monitoring skill: unified logging, signals/trap, file watching, notifications |

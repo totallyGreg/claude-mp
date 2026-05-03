@@ -104,6 +104,10 @@ The user's terminal workflow builds in layers — higher layers refine and codif
 
 Each layer builds on the previous. Diagnose from the bottom up: if zsh is broken, nothing above works. If tmux rendering is wrong, sesh sessions look wrong. If env vars aren't resolving, mise tasks fail.
 
+## Terminal Stack Profile
+
+If `.terminal-guru-profile.local.md` exists in the plugin root, load it before routing. It records the user's terminal tools, versions, and preferences. Use it to tailor advice (e.g., skip "install mise" if mise version is known; use the user's preferred task style). Suggest creating it if it does not exist. Suggest updating it when discovering new information about the user's setup.
+
 ## Quality Standards
 
 - ALWAYS diagnose from the bottom of the terminal stack upward before routing
@@ -166,10 +170,35 @@ Each layer builds on the previous. Diagnose from the bottom up: if zsh is broken
 | DRY mise tasks, shared auth pattern | mise-tooling | - |
 | mise + sesh integration | mise-tooling | environment-composition |
 | mise exec() with keychainctl | mise-tooling | zsh-dev |
+| Should this be a function or a task? | (see Zsh Function vs Mise Task) | - |
+| Automate a workflow, codify a pattern | mise-tooling | zsh-dev |
 
 **Routing guidance for sesh/tmux overlap:** Route to environment-composition when the user wants to compose environments, configure sesh.toml, or combine sesh with claude CLI/direnv/worktrees. Route to terminal-emulation when the issue is about interactive tmux/sesh usage (keybindings, display, pane logging).
 
 **Routing guidance for mise:** Route to mise-tooling for all mise configuration, tasks, environment variables, and tool version management. mise has replaced direnv as the primary environment variable manager — they conflict on PATH management, and mise handles env vars natively. If a user mentions direnv, check whether mise would be the better solution. Route mise + sesh integration to both mise-tooling (for the mise config side) and environment-composition (for the sesh session side).
+
+## Zsh Function vs Mise Task Decision
+
+When a user wants to automate a terminal operation, route to the correct skill:
+
+| Factor | Zsh Function (zsh-dev) | Mise Task (mise-tooling) |
+|--------|----------------------|------------------------|
+| Scope | Personal workflow, single machine | Project-scoped, team-shareable |
+| Shell context | Needs current shell (cd, export, alias) | Subprocess (isolated env) |
+| Interactivity | Completions, widgets, prompt integration | CLI arg parsing via `usage` field |
+| Dependencies | Standalone or sources other functions | DAG-based dependency chains |
+| Environment | Inherits current shell env | Isolated env from mise.toml |
+| Portability | Tied to zsh + user's fpath | Cross-shell, cross-platform |
+| Complexity | Single operation or pipeline | Multi-step workflow |
+| State | Modifies current shell state | Produces artifacts/outputs |
+
+**Decision shortcuts:**
+- "I need this in my shell" → zsh function
+- "The team needs to run this" → mise task
+- "This modifies my working directory or exports" → zsh function
+- "This has build steps that depend on each other" → mise task
+- "I want tab completion" → zsh function (compdef) OR mise task (usage field)
+- "This needs secrets from keychain" → either (keychainctl for zsh, exec() for mise)
 
 ## Mise Tooling Routing
 
@@ -178,7 +207,9 @@ When users request mise configuration, task creation, or environment setup:
 2. Load `references/mise_config_guide.md` for configuration and env patterns
 3. Load `references/mise_task_patterns.md` for task creation, includes, and DRY patterns
 4. Load `references/mise_environment_management.md` for multi-tenant credential management
-5. For mise + sesh integration, also check environment-composition references
+5. Load `references/mise_cli_reference.md` for CLI command lookups
+6. Load `references/mise_use_case_patterns.md` for reusable automation patterns
+7. For mise + sesh integration, also check environment-composition references
 
 ## Diagnostic Process
 
