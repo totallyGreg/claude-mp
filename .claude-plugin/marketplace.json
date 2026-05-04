@@ -69,7 +69,7 @@
       "name": "attache",
       "description": "Chief of Staff agent — personal advisor that orchestrates task management, delegates to specialist agents, learns workflow patterns, and manages the full tool stack",
       "category": "productivity",
-      "version": "11.0.0",
+      "version": "11.1.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
