@@ -1,0 +1,15 @@
+#!/bin/sh
+# Pre-commit hook: validate marketplace.json and sync versions.
+# Uses marketplace-manager plugin scripts directly.
+#
+# Install: git config core.hooksPath .githooks
+
+set -e
+
+SCRIPTS_DIR="plugins/foundry/skills/marketplace-manager/scripts"
+
+if [ -f ".claude-plugin/marketplace.json" ]; then
+    python3 "$SCRIPTS_DIR/repo/validate.py" .claude-plugin/marketplace.json --staged
+    python3 "$SCRIPTS_DIR/repo/sync.py" .claude-plugin/marketplace.json
+    git add .claude-plugin/marketplace.json
+fi
