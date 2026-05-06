@@ -1,3 +1,12 @@
+---
+last_verified: 2026-05-06
+sources:
+  - type: github
+    repo: "cosai-oasis/secure-ai-tooling"
+    paths: ["risk-map/yaml/self-assessment.yaml"]
+    description: "CoSAI self-assessment questionnaire structure and risk documentation forms"
+---
+
 # AI Risk Mapper Forms
 
 This document contains structured forms for collecting information during AI security risk assessments.

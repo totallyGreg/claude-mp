@@ -1,3 +1,12 @@
+---
+last_verified: 2026-05-06
+sources:
+  - type: github
+    repo: "cosai-oasis/secure-ai-tooling"
+    paths: ["risk-map/docs/"]
+    description: "CoSAI Risk Map workflow procedures, assessment phases, control categories"
+---
+
 # AI Risk Mapper - Detailed Workflow Guide
 
 Reference for advanced procedures, customization, and detailed orchestrator workflow patterns.

@@ -1,5 +1,5 @@
 ---
-last_verified: 2026-04-29
+last_verified: 2026-05-06
 sources:
   - type: github
     repo: "cosai-oasis/secure-ai-tooling"
@@ -96,6 +96,12 @@ CoSAI provides cross-references to established security standards:
 - **NIST AI RMF**: AI Risk Management Framework
 - **STRIDE**: Microsoft's threat modeling approach
 - **OWASP Top 10 for LLM**: Web application security for language models
+- **ISO 22989**: AI concepts and terminology (persona alignment)
+- **EU AI Act**: European Union AI regulation
+
+Mappings for `mitre-atlas`, `iso-22989`, and `eu-ai-act` use per-framework strict validation patterns; `stride`, `nist-ai-rmf`, and `owasp-top10-llm` use a loose catch-all.
+
+Risks, controls, components, and personas also support `externalReferences` for linking to external URLs.
 
 These mappings enable organizations to align CoSAI guidance with existing compliance requirements.
 

@@ -1,5 +1,5 @@
 ---
-last_verified: 2026-04-29
+last_verified: 2026-05-06
 sources:
   - type: github
     repo: "cosai-oasis/secure-ai-tooling"
@@ -44,7 +44,8 @@ This document describes the JSON schema structures used in the CoSAI Risk Map fr
   - `mitigated` (text)
 - `examples` (text): Real-world cases
 - `relevantQuestions` (array of strings): Assessment questions
-- `mappings` (object): Cross-references to security frameworks (keys must match framework IDs)
+- `mappings` (object): Cross-references to security frameworks. `mitre-atlas`, `iso-22989`, and `eu-ai-act` use per-framework strict patterns via `$ref` to `frameworks.schema.json`; `stride`, `nist-ai-rmf`, and `owasp-top10-llm` use a loose catch-all. Keys must match framework IDs.
+- `externalReferences` (object): External URL references via `$ref` to `external-references.schema.json`
 - `lifecycleStage` (array or enum): Stage identifiers, or "all"/"none"
 - `impactType` (array or enum): Impact category identifiers, or "all"/"none"
 - `actorAccess` (array or enum): Access level identifiers, or "all"/"none"
@@ -77,7 +78,8 @@ This document describes the JSON schema structures used in the CoSAI Risk Map fr
 
 **Optional Fields:**
 - `id` (enum): One of 30 predefined control identifiers
-- `mappings` (object): Framework cross-references (framework IDs as keys, arrays of framework-specific identifiers as values)
+- `mappings` (object): Framework cross-references. `mitre-atlas`, `iso-22989`, and `eu-ai-act` use per-framework strict patterns; others use loose catch-all.
+- `externalReferences` (object): External URL references via `$ref` to `external-references.schema.json`
 - `lifecycleStage` (array or enum): Stage identifiers, or "all"/"none"
 - `impactType` (array or enum): Impact category identifiers, or "all"/"none"
 - `actorAccess` (array or enum): Access level identifiers, or "all"/"none"
@@ -112,6 +114,8 @@ This document describes the JSON schema structures used in the CoSAI Risk Map fr
   - componentsModelTraining
   - componentsData
   - (two additional values)
+- `mappings` (object): Cross-references to external security frameworks (same per-framework strict/loose pattern as risks and controls)
+- `externalReferences` (object): External URL references via `$ref` to `external-references.schema.json`
 
 ### Edges Structure
 
@@ -130,6 +134,7 @@ Defines personas with:
 - `responsibilities` (array): Specific responsibilities for this persona
 - `mappings` (object): ISO 22989 and other framework mappings
 - `identificationQuestions` (array): Questions to identify this persona
+- `externalReferences` (object): External URL references
 - `deprecated` (boolean): Whether this persona is deprecated
 
 ### Defined Personas (10: 8 active + 2 deprecated)
@@ -144,6 +149,16 @@ Defines personas with:
 8. **AI System Users** (`personaEndUser`): End users
 9. ~~Model Creator~~ (`personaModelCreator`): _deprecated_
 10. ~~Model Consumer~~ (`personaModelConsumer`): _deprecated_
+
+## Lifecycle Stage Schema (lifecycle-stage.schema.json)
+
+- `order` (integer): Sequential order in the lifecycle, constrained to range 1–8
+
+## Riskmap Meta-Schema (riskmap.schema.json)
+
+Shared definitions used across schemas:
+- `prose` (array): Flexible text content (strings or nested arrays)
+- `prose-strict` (array): Validated prose content — strings or nested string arrays, all non-empty (`minLength: 1`)
 
 ## Validation Rules
 

@@ -1,5 +1,5 @@
 ---
-last_verified: 2026-04-29
+last_verified: 2026-05-06
 sources:
   - type: github
     repo: "cosai-oasis/secure-ai-tooling"
@@ -62,11 +62,12 @@ This guide covers interactive exploration of the CoSAI Risk Map framework using 
 | `personaModelConsumer` | Model Consumer (Legacy) | Deprecated |
 
 **Framework Mappings:**
-- `mitre-atlas` - MITRE ATLAS attack framework
-- `nist-ai-rmf` - NIST AI Risk Management Framework
-- `stride` - STRIDE threat modeling
-- `owasp-top10-llm` - OWASP Top 10 for LLM Applications
-- `iso-22989` - ISO/IEC 22989 AI concepts and terminology
+- `mitre-atlas` - MITRE ATLAS attack framework (strict validation)
+- `iso-22989` - ISO/IEC 22989 AI concepts and terminology (strict validation)
+- `eu-ai-act` - European Union AI Act (strict validation)
+- `nist-ai-rmf` - NIST AI Risk Management Framework (loose catch-all)
+- `stride` - STRIDE threat modeling (loose catch-all)
+- `owasp-top10-llm` - OWASP Top 10 for LLM Applications (loose catch-all)
 
 ## Slash Commands
 
