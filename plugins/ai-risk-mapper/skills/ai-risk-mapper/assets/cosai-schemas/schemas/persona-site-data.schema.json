@@ -1,0 +1,245 @@
+{
+  "$id": "persona-site-data.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CoSAI-RM Persona Site Data Schema",
+  "description": "Schema describing the JSON output produced by scripts/build_persona_site_data.py for the CoSAI-RM persona Pages experience.",
+  "definitions": {
+    "prose": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "type": "string" },
+          {
+            "type": "object",
+            "description": "Intra-document sentinel resolution: {{idXxx}} expands to a typed reference.",
+            "required": ["type", "id", "title"],
+            "additionalProperties": false,
+            "properties": {
+              "type": { "type": "string", "const": "ref" },
+              "id": { "type": "string", "minLength": 1 },
+              "title": { "type": "string", "minLength": 1 }
+            }
+          },
+          {
+            "type": "object",
+            "description": "External sentinel resolution: {{ref:identifier}} expands to a URL from matching externalReferences entry.",
+            "required": ["type", "title", "url"],
+            "additionalProperties": false,
+            "properties": {
+              "type": { "type": "string", "const": "link" },
+              "title": { "type": "string", "minLength": 1 },
+              "url": { "type": "string", "pattern": "^https://" }
+            }
+          },
+          {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                { "type": "string" },
+                {
+                  "type": "object",
+                  "required": ["type", "id", "title"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": { "type": "string", "const": "ref" },
+                    "id": { "type": "string", "minLength": 1 },
+                    "title": { "type": "string", "minLength": 1 }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": ["type", "title", "url"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": { "type": "string", "const": "link" },
+                    "title": { "type": "string", "minLength": 1 },
+                    "url": { "type": "string", "pattern": "^https://" }
+                  }
+                }
+              ]
+            },
+            "minItems": 1
+          }
+        ]
+      }
+    }
+  },
+  "type": "object",
+  "required": [
+    "personas",
+    "questions",
+    "manualFallbackPersonaIds",
+    "riskCategories",
+    "controlCategories",
+    "risks",
+    "controls"
+  ],
+  "properties": {
+    "personas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "description",
+          "responsibilities",
+          "identificationQuestions",
+          "questionIds",
+          "questionCount",
+          "matchMode",
+          "riskIds",
+          "controlIds",
+          "riskCount",
+          "controlCount"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "$ref": "#/definitions/prose" },
+          "responsibilities": { "$ref": "#/definitions/prose" },
+          "identificationQuestions": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "questionIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "questionCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "matchMode": {
+            "type": "string",
+            "enum": ["guided", "manual"]
+          },
+          "riskIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "controlIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "riskCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "controlCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "externalReferences": {
+            "$ref": "external-references.schema.json#/definitions/externalReferences"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "personaId", "personaTitle", "prompt"],
+        "properties": {
+          "id": { "type": "string" },
+          "personaId": { "type": "string" },
+          "personaTitle": { "type": "string" },
+          "prompt": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "manualFallbackPersonaIds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "riskCategories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "controlCategories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "category",
+          "shortDescription",
+          "longDescription",
+          "examples",
+          "controlIds",
+          "personaIds"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "category": { "type": "string" },
+          "shortDescription": { "$ref": "#/definitions/prose" },
+          "longDescription": { "$ref": "#/definitions/prose" },
+          "examples": { "$ref": "#/definitions/prose" },
+          "controlIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "personaIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "externalReferences": {
+            "$ref": "external-references.schema.json#/definitions/externalReferences"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "controls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "category", "description", "personaIds", "riskIds"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "category": { "type": "string" },
+          "description": { "$ref": "#/definitions/prose" },
+          "personaIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "riskIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "externalReferences": {
+            "$ref": "external-references.schema.json#/definitions/externalReferences"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

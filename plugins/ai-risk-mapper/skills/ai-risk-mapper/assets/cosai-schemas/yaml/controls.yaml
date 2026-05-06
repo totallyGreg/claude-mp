@@ -51,8 +51,8 @@ controls:
       - componentModelTrainingTuning
       - componentModelEvaluation
     risks:
-      - SDD
-      - FLP
+      - riskSensitiveDataDisclosure
+      - riskFederatedDistributedTrainingPrivacy
   - id: controlRuntimePrivacyEnhancingTechnologies
     title: Privacy Enhancing Technologies for Inference
     description:
@@ -73,8 +73,8 @@ controls:
       - componentOutputHandling
       - componentModelServing
     risks:
-      - SDD
-      - FLP
+      - riskSensitiveDataDisclosure
+      - riskFederatedDistributedTrainingPrivacy
   - id: controlTrainingDataManagement
     title: Training Data Management
     description:
@@ -92,9 +92,9 @@ controls:
       - componentModelTrainingTuning
       - componentModelEvaluation
     risks:
-      - ISD
-      - UTD
-      - EDH
+      - riskInferredSensitiveData
+      - riskUnauthorizedTrainingData
+      - riskExcessiveDataHandling
   - id: controlTrainingDataSanitization
     title: Training Data Sanitization
     description:
@@ -108,9 +108,9 @@ controls:
     components:
       - componentDataFilteringAndProcessing
     risks:
-      - DP
-      - UTD
-      - RVP
+      - riskDataPoisoning
+      - riskUnauthorizedTrainingData
+      - riskRetrievalVectorStorePoisoning
     mappings:
       mitre-atlas:
         - AML.M0007
@@ -143,9 +143,9 @@ controls:
     components:
       - componentDataStorage
     risks:
-      - SDD
-      - PCP
-      - EDH-I
+      - riskSensitiveDataDisclosure
+      - riskPromptResponseCachePoisoning
+      - riskExcessiveDataHandlingDuringInference
   - id: controlModelAndDataInventoryManagement
     title: Model and Data Inventory Management
     description:
@@ -164,9 +164,9 @@ controls:
       - componentModelTrainingTuning
       - componentModelStorage
     risks:
-      - DP
-      - MST
-      - MXF
+      - riskDataPoisoning
+      - riskModelSourceTampering
+      - riskModelExfiltration
   - id: controlModelAndDataAccessControls
     title: Model and Data Access Controls
     description:
@@ -186,14 +186,14 @@ controls:
       - componentModelTrainingTuning
       - componentModelStorage
     risks:
-      - DP
-      - MST
-      - MXF
-      - ASSC
-      - ADI
-      - ORH
-      - MLD
-      - PCP
+      - riskDataPoisoning
+      - riskModelSourceTampering
+      - riskModelExfiltration
+      - riskAcceleratorAndSystemSideChannels
+      - riskAdapterPEFTInjection
+      - riskOrchestratorRouteHijacking
+      - riskMaliciousLoaderDeserialization
+      - riskPromptResponseCachePoisoning
   - id: controlModelAndDataIntegrityManagement
     title: Model and Data Integrity Management
     description:
@@ -217,17 +217,18 @@ controls:
       - componentModelTrainingTuning
       - componentModelStorage
     risks:
-      - ADI
-      - COV
-      - DP
-      - EBM
-      - FLP
-      - MLD
-      - MST
-      - MXF
-      - ORH
-      - PCP
-      - RVP
+      - riskAdapterPEFTInjection
+      - riskCovertChannelsInModelOutputs
+      - riskDataPoisoning
+      - riskEvaluationBenchmarkManipulation
+      - riskFederatedDistributedTrainingPrivacy
+      - riskMaliciousLoaderDeserialization
+      - riskModelSourceTampering
+      - riskModelExfiltration
+      - riskOrchestratorRouteHijacking
+      - riskPromptResponseCachePoisoning
+      - riskRetrievalVectorStorePoisoning
+      - riskToolSourceProvenance
     mappings:
       mitre-atlas:
         - AML.M0013
@@ -270,11 +271,11 @@ controls:
       - componentModelStorage
       - componentTheModel
     risks:
-      - ADI
-      - IIC
-      - MDT
-      - MLD
-      - MST
+      - riskAdapterPEFTInjection
+      - riskInsecureIntegratedComponent
+      - riskModelDeploymentTampering
+      - riskMaliciousLoaderDeserialization
+      - riskModelSourceTampering
   - id: controlSecureByDefaultMLTooling
     title: Secure-by-Default ML Tooling
     description:
@@ -285,6 +286,7 @@ controls:
     category: controlsInfrastructure
     personas:
       - personaPlatformProvider
+      - personaModelServing
       - personaAgenticProvider
       - personaApplicationDeveloper
       - personaModelCreator
@@ -295,15 +297,16 @@ controls:
       - componentModelEvaluation
       - componentModelStorage
     risks:
-      - DP
-      - MST
-      - MXF
-      - MDT
-      - ASSC
-      - FLP
-      - ADI
-      - ORH
-      - MLD
+      - riskDataPoisoning
+      - riskModelSourceTampering
+      - riskModelExfiltration
+      - riskModelDeploymentTampering
+      - riskAcceleratorAndSystemSideChannels
+      - riskFederatedDistributedTrainingPrivacy
+      - riskAdapterPEFTInjection
+      - riskOrchestratorRouteHijacking
+      - riskMaliciousLoaderDeserialization
+      - riskToolSourceProvenance
     mappings:
       mitre-atlas:
         - AML.M0011
@@ -336,10 +339,10 @@ controls:
       - componentAgentInputHandling
       - componentOrchestrationInputHandling
     risks:
-      - PIJ
-      - MLD
-      - PCP
-      - RVP
+      - riskPromptInjection
+      - riskMaliciousLoaderDeserialization
+      - riskPromptResponseCachePoisoning
+      - riskRetrievalVectorStorePoisoning
     mappings:
       mitre-atlas:
         - AML.M0010
@@ -375,14 +378,14 @@ controls:
       - componentAgentOutputHandling
       - componentOrchestrationOutputHandling
     risks:
-      - PIJ
-      - RA
-      - SDD
-      - ISD
-      - COV
-      - PCP
-      - IMO
-      - RVP
+      - riskPromptInjection
+      - riskRogueActions
+      - riskSensitiveDataDisclosure
+      - riskInferredSensitiveData
+      - riskCovertChannelsInModelOutputs
+      - riskPromptResponseCachePoisoning
+      - riskInsecureModelOutput
+      - riskRetrievalVectorStorePoisoning
     mappings:
       mitre-atlas:
         - AML.M0020
@@ -417,11 +420,11 @@ controls:
     components:
       - componentTheModel
     risks:
-      - MEV
-      - PIJ
-      - SDD
-      - ISD
-      - IMO
+      - riskModelEvasion
+      - riskPromptInjection
+      - riskSensitiveDataDisclosure
+      - riskInferredSensitiveData
+      - riskInsecureModelOutput
     mappings:
       mitre-atlas:
         - AML.M0003
@@ -460,9 +463,9 @@ controls:
     components:
       - componentApplication
     risks:
-      - DMS
-      - EDW
-      - MRE
+      - riskDenialOfMLService
+      - riskEconomicDenialOfWallet
+      - riskModelReverseEngineering
     mappings:
       mitre-atlas:
         - AML.M0019
@@ -492,9 +495,9 @@ controls:
     components:
       - componentApplication
     risks:
-      - SDD
-      - EDH
-      - EDH-I
+      - riskSensitiveDataDisclosure
+      - riskExcessiveDataHandling
+      - riskExcessiveDataHandlingDuringInference
   - id: controlAgentPluginUserControl
     title: Agent User Control
     description:
@@ -510,8 +513,8 @@ controls:
     components:
       - componentReasoningCore
     risks:
-      - SDD
-      - RA
+      - riskSensitiveDataDisclosure
+      - riskRogueActions
   - id: controlAgentPluginPermissions
     title: Agent Permissions
     description:
@@ -535,9 +538,10 @@ controls:
       - componentRAGContent
       - componentMemory
     risks:
-      - IIC
-      - SDD
-      - RA
+      - riskInsecureIntegratedComponent
+      - riskSensitiveDataDisclosure
+      - riskRogueActions
+      - riskToolSourceProvenance
     mappings:
       mitre-atlas:
         - AML.M0028
@@ -609,6 +613,7 @@ controls:
       - personaModelProvider
       - personaDataProvider
       - personaPlatformProvider
+      - personaModelServing
       - personaAgenticProvider
       - personaApplicationDeveloper
       - personaGovernance
@@ -630,8 +635,8 @@ controls:
       - personaModelConsumer
     components: none
     risks:
-      - SDD
-      - IIC
+      - riskSensitiveDataDisclosure
+      - riskInsecureIntegratedComponent
   - id: controlInternalPoliciesAndEducation
     title: Internal Policies and Education
     description:
@@ -689,8 +694,9 @@ controls:
       - componentAgentOutputHandling
       - componentReasoningCore
     risks:
-      - SDD
-      - RA
+      - riskSensitiveDataDisclosure
+      - riskRogueActions
+      - riskToolRegistryTampering
   - id: controlIsolatedConfidentialComputing
     title: Isolated and Confidential Computing
     description:
@@ -715,11 +721,11 @@ controls:
       - componentMemory
       - componentReasoningCore
     risks:
-      - ASSC
-      - MST
-      - MXF
-      - MDT
-      - ORH
+      - riskAcceleratorAndSystemSideChannels
+      - riskModelSourceTampering
+      - riskModelExfiltration
+      - riskModelDeploymentTampering
+      - riskOrchestratorRouteHijacking
   - id: controlRetrievalAndVectorSystemIntegrity
     title: Retrieval and Vector System Integrity Management
     description:
@@ -739,7 +745,7 @@ controls:
       - componentDataStorage
       - componentDataFilteringAndProcessing
     risks:
-      - RVP
+      - riskRetrievalVectorStorePoisoning
   - id: controlOrchestratorAndRouteIntegrity
     title: Orchestrator and Route Integrity
     description:
@@ -759,5 +765,6 @@ controls:
       - componentModelServing
       - componentApplication
     risks:
-      - ORH
-      - MDT
+      - riskOrchestratorRouteHijacking
+      - riskModelDeploymentTampering
+      - riskToolRegistryTampering

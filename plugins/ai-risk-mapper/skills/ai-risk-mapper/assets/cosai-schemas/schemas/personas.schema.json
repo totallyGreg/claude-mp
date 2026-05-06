@@ -67,6 +67,9 @@
           "type": "array",
           "description": "Questions to help identify if this persona applies",
           "items": { "type": "string", "minLength": 1 }
+        },
+        "externalReferences": {
+          "$ref": "external-references.schema.json#/definitions/externalReferences"
         }
       },
       "required": ["id", "title", "description"]

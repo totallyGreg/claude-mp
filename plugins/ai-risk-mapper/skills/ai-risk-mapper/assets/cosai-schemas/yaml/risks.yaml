@@ -30,7 +30,7 @@ description:
     parties, across the AI development lifecycle.
   - For a complete list of controls, see the Control descriptions.
 risks:
-  - id: DP
+  - id: riskDataPoisoning
     title: Data Poisoning
     shortDescription:
       - >
@@ -123,7 +123,7 @@ risks:
       - privileged
       - service-provider
       - infrastructure-provider
-  - id: UTD
+  - id: riskUnauthorizedTrainingData
     title: Unauthorized Training Data
     shortDescription:
       - >
@@ -182,7 +182,7 @@ risks:
     actorAccess:
       - supply-chain
       - service-provider
-  - id: MST
+  - id: riskModelSourceTampering
     title: Model Source Tampering
     shortDescription:
       - >
@@ -270,7 +270,7 @@ risks:
       - privileged
       - infrastructure-provider
       - physical
-  - id: EDH
+  - id: riskExcessiveDataHandling
     title: Excessive Data Handling
     shortDescription:
       - >
@@ -330,7 +330,7 @@ risks:
     actorAccess:
       - privileged
       - service-provider
-  - id: EDH-I
+  - id: riskExcessiveDataHandlingDuringInference
     title: Excessive Data Handling During Inference
     shortDescription:
       - >
@@ -394,7 +394,7 @@ risks:
     actorAccess:
       - privileged
       - service-provider
-  - id: MXF
+  - id: riskModelExfiltration
     title: Model Exfiltration
     shortDescription:
       - >
@@ -417,7 +417,7 @@ risks:
       - >
         These risks also extend to on-device models, where an attacker has access to
         hardware.
-      - This risk is distinct from the related <a href="#MRE">Model Reverse Engineering</a>.
+      - This risk is distinct from the related <a href="#riskModelReverseEngineering">Model Reverse Engineering</a>.
     category: risksDeploymentAndInfrastructure
     personas:
       - personaModelProvider
@@ -471,7 +471,7 @@ risks:
       - infrastructure-provider
       - physical
       - api
-  - id: MDT
+  - id: riskModelDeploymentTampering
     title: Model Deployment Tampering
     shortDescription:
       - >
@@ -552,7 +552,7 @@ risks:
       - infrastructure-provider
       - api
       - user
-  - id: DMS
+  - id: riskDenialOfMLService
     title: Denial of ML Service
     shortDescription:
       - >
@@ -623,7 +623,7 @@ risks:
       - external
       - api
       - user
-  - id: MRE
+  - id: riskModelReverseEngineering
     title: Model Reverse Engineering
     shortDescription:
       - >
@@ -644,7 +644,7 @@ risks:
         original foundation model.
       - >
         These risks also extend to on-device models, where an attacker has access to
-        hardware. See also <a href="#MXF">Model Exfiltration</a>.
+        hardware. See also <a href="#riskModelExfiltration">Model Exfiltration</a>.
     category: risksDeploymentAndInfrastructure
     personas:
       - personaModelProvider
@@ -686,7 +686,7 @@ risks:
     actorAccess:
       - api
       - user
-  - id: IIC
+  - id: riskInsecureIntegratedComponent
     title: Insecure Integrated Component
     shortDescription:
       - >
@@ -720,7 +720,7 @@ risks:
           integrated application that calls another service and uses content from that
           service to construct an input to a model.
       - >
-        Insecure Integrated Component is related to <a href="#PIJ">Prompt Injection</a>
+        Insecure Integrated Component is related to <a href="#riskPromptInjection">Prompt Injection</a>
         but these are different. Although attacks exploiting an Insecure Integrated
         Component often involve prompt injection, those could be also done via other
         means such as Poisoning and Evasion. In addition, prompt injection is possible
@@ -742,6 +742,14 @@ risks:
         By uploading a malicious Alexa skill / Google action (plugins), <a href="https://www.theverge.com/2019/10/21/20924886/alexa-google-home-security-vulnerability-srlabs-phishing-eavesdropping"
         target="_blank" rel="noopener">attackers were able to eavesdrop on user conversations</a>
         that occurred near Alexa / Google Home devices.
+      - >
+        A <a href="https://blog.gitguardian.com/breaking-mcp-server-hosting/"
+        target="_blank" rel="noopener">path traversal vulnerability</a>
+        in Smithery.ai's MCP server hosting platform (October 2025) exposed
+        3,000+ hosted MCP servers and thousands of downstream API keys
+        through a tenant isolation failure in the Docker build configuration.
+        An attacker with this access could modify hosted tool definitions
+        or intercept credentials used by AI agents connecting to those servers.
     tourContent:
       introduced:
         - >
@@ -782,7 +790,7 @@ risks:
       - api
       - agent
       - user
-  - id: PIJ
+  - id: riskPromptInjection
     title: Prompt Injection
     shortDescription:
       - >
@@ -806,8 +814,8 @@ risks:
         Injections</a> generally cause the LLM to execute malicious “injected”
         instructions as part of data that were not meant to be executed by the LLM.
         The blast radius of such attacks can become much bigger in the presence of
-        other risks such as <a href="#IIC">Insecure Integrated Component</a> and
-        <a href="#RA">Rogue Actions</a>.
+        other risks such as <a href="#riskInsecureIntegratedComponent">Insecure Integrated Component</a> and
+        <a href="#riskRogueActions">Rogue Actions</a>.
       - >
         With foundation models becoming multi-modal, multi-modal prompt injection has
         also become possible. These attacks use injection inputs other than text to
@@ -864,7 +872,7 @@ risks:
       - external
       - api
       - user
-  - id: MEV
+  - id: riskModelEvasion
     title: Model Evasion
     shortDescription:
       - >
@@ -888,7 +896,7 @@ risks:
         In some cases, an attacker might gain clues about how to perturb inputs by discovering
         the underlying foundation model’s family, i.e., by knowing the particular
         architecture and evolution of a specific model. In other situations, an attacker
-        might repeatedly probe the model (see <a href="#MRE">Model Reverse Engineering</a>)
+        might repeatedly probe the model (see <a href="#riskModelReverseEngineering">Model Reverse Engineering</a>)
         to figure out inference patterns in order to craft examples that evade those
         inferences. Adversarial examples might be constructed by perturbations to inputs
         that will provide the output the attacker wants while looking unaltered otherwise.
@@ -949,7 +957,7 @@ risks:
       - external
       - api
       - user
-  - id: SDD
+  - id: riskSensitiveDataDisclosure
     title: Sensitive Data Disclosure
     shortDescription:
       - >
@@ -1080,7 +1088,7 @@ risks:
       - agent
       - privileged
       - infrastructure-provider
-  - id: ISD
+  - id: riskInferredSensitiveData
     title: Inferred Sensitive Data
     shortDescription:
       - >
@@ -1103,7 +1111,7 @@ risks:
         may be alarmed if a model infers sensitive data about them, and that one user
         may use a model to infer sensitive data about someone else.
       - >
-        This risk differs from <a href="#SDD">Sensitive Data Disclosure</a> which involves
+        This risk differs from <a href="#riskSensitiveDataDisclosure">Sensitive Data Disclosure</a> which involves
         sensitive data specifically from training, tuning or prompt data.
     category: risksRuntimeDataSecurity
     personas:
@@ -1156,7 +1164,7 @@ risks:
       - external
       - api
       - user
-  - id: IMO
+  - id: riskInsecureModelOutput
     title: Insecure Model Output
     shortDescription:
       - >
@@ -1218,7 +1226,7 @@ risks:
       - external
       - api
       - user
-  - id: RA
+  - id: riskRogueActions
     title: Rogue Actions
     shortDescription:
       - >
@@ -1316,7 +1324,7 @@ risks:
       - api
       - user
       - agent
-  - id: ASSC
+  - id: riskAcceleratorAndSystemSideChannels
     title: Accelerator and System Side-channels
     shortDescription:
       - >
@@ -1362,10 +1370,10 @@ risks:
         rel="noopener">GPU side-channel attacks</a> that can extract neural network
         weights and training data from co-located processes on shared GPU hardware.
       - >
-        Security researchers have shown <a href="https://arxiv.org/abs/2108.11021"
+        Security researchers have shown <a href="https://arxiv.org/abs/2505.06738"
         target="_blank" rel="noopener">cache-based side-channel attacks</a> on
-        machine learning accelerators that can leak model parameters and intermediate
-        computations.
+        local LLM inference that can leak sensitive input and output text by
+        exploiting hardware cache access patterns.
     tourContent:
       introduced:
         - >
@@ -1389,7 +1397,7 @@ risks:
           page-table isolation, retpolines), using secure scheduling algorithms, applying
           noise injection or randomization techniques, and monitoring for anomalous
           access patterns indicative of side-channel attacks.
-  - id: EDW
+  - id: riskEconomicDenialOfWallet
     title: Economic Denial of Wallet
     shortDescription:
       - >
@@ -1431,13 +1439,15 @@ risks:
       - controlApplicationAccessManagement
     examples:
       - >
-        Research has shown <a href="https://arxiv.org/abs/2401.07464" target="_blank"
-        rel="noopener">prompt injection attacks that cause excessive token generation</a>
-        leading to unexpected billing charges for AI service users.
+        Research has shown <a href="https://arxiv.org/abs/2410.10760" target="_blank"
+        rel="noopener">denial-of-service poisoning attacks</a> where injecting a
+        single malicious training sample via a fine-tuning API can force LLMs to
+        generate maximum-length outputs, amplifying inference costs.
       - >
-        Security studies demonstrate <a href="https://arxiv.org/abs/2310.12739" target="_blank"
-        rel="noopener">resource exhaustion attacks on LLM APIs</a> where malicious
-        prompts are designed to maximize computational costs and processing time.
+        Security studies demonstrate <a href="https://arxiv.org/abs/2512.07086" target="_blank"
+        rel="noopener">resource exhaustion attacks on LLM APIs</a> where crafted
+        prompts cause infinite generation loops, achieving 100x latency increases
+        and reducing throughput to 1% of normal capacity.
     tourContent:
       introduced:
         - >
@@ -1456,7 +1466,7 @@ risks:
           rate limiting and usage monitoring, anomaly detection for unusual
           consumption patterns, and access controls to prevent unauthorized
           or excessive resource usage.
-  - id: FLP
+  - id: riskFederatedDistributedTrainingPrivacy
     title: Federated/Distributed Training Privacy
     shortDescription:
       - >
@@ -1504,9 +1514,10 @@ risks:
         rel="noopener">gradient inversion attacks</a> that can reconstruct private
         training images from gradient updates in federated learning systems.
       - >
-        Studies show <a href="https://arxiv.org/abs/2003.10595" target="_blank"
+        Studies show <a href="https://arxiv.org/abs/2402.06289" target="_blank"
         rel="noopener">membership inference attacks on federated learning</a>
-        where attackers can determine if specific data points were used in training.
+        where attackers can determine if specific data points were used in a
+        target client's training set by exploiting updates from all participants.
     tourContent:
       introduced:
         - >
@@ -1526,7 +1537,7 @@ risks:
           multi-party computation for aggregation, robust participant authentication,
           gradient compression and noise injection, and monitoring for anomalous
           client behavior during training.
-  - id: ADI
+  - id: riskAdapterPEFTInjection
     title: Adapter/PEFT Injection
     shortDescription:
       - >
@@ -1572,13 +1583,14 @@ risks:
       - controlSecureByDefaultMLTooling
     examples:
       - >
-        Research demonstrates <a href="https://arxiv.org/abs/2311.03262" target="_blank"
+        Research demonstrates <a href="https://arxiv.org/abs/2403.00108" target="_blank"
         rel="noopener">backdoor attacks on LoRA adapters</a> where malicious
         fine-tuning components can compromise model behavior while appearing benign.
       - >
-        Security studies show <a href="https://arxiv.org/abs/2401.13025" target="_blank"
-        rel="noopener">supply chain attacks on adapter repositories</a> where
-        trojaned PEFT modules are distributed to unsuspecting users.
+        Security studies show <a href="https://arxiv.org/abs/2310.00648" target="_blank"
+        rel="noopener">trojan attacks targeting parameter-efficient fine-tuning</a>
+        where compromised model weights propagate backdoors through downstream
+        PEFT adaptation.
     tourContent:
       introduced:
         - >
@@ -1598,7 +1610,116 @@ risks:
           integrity, secure adapter repositories with provenance tracking, runtime
           monitoring for anomalous behavior, sandboxed adapter loading processes,
           and comprehensive testing of adapter functionality before deployment.
-  - id: ORH
+  - id: riskToolRegistryTampering
+    title: Tool Registry Tampering
+    shortDescription:
+      - >
+        Compromise of previously vetted tool registries, MCP server manifests,
+        or tool metadata, causing agents to select and invoke unintended tools
+        through altered descriptions, schemas, or shadowed tool names.
+    longDescription:
+      - >
+        Even when tool registries and MCP server manifests have been properly
+        vetted and approved, they remain targets for post-vetting compromise.
+        Attackers who gain access to a trusted registry can alter tool
+        descriptions, modify schemas, or inject shadowed tool entries that
+        redirect agent tool selection.
+      - >
+        This risk is distinct from <a href="#riskToolSourceProvenance">Tool Source Provenance</a>,
+        which addresses the use of unvetted sources. riskToolRegistryTampering assumes the source
+        was properly vetted but was subsequently compromised. The trust model
+        is different: riskToolSourceProvenance is a failure to verify, while riskToolRegistryTampering is a failure of
+        ongoing integrity assurance.
+      - >
+        riskToolRegistryTampering is structurally related to <a href="#riskOrchestratorRouteHijacking">Orchestrator/Route
+        Hijack</a>, which targets model routing configuration. Both involve
+        tampering with metadata that directs system behavior, but riskOrchestratorRouteHijacking
+        operates on model routing infrastructure while riskToolRegistryTampering operates on tool
+        discovery and selection mechanisms. A successful riskToolRegistryTampering exploit
+        typically manifests as <a href="#riskRogueActions">Rogue Actions</a>.
+      - >
+        The attack surface includes tool registry databases, MCP server
+        manifest files, schema definition endpoints, and discovery service
+        APIs. Compromise may be persistent (modified registry entries) or
+        transient (man-in-the-middle on discovery endpoints). Detection
+        requires runtime integrity monitoring of tool metadata against
+        known-good baselines.
+      - >
+        <a href="#riskInsecureIntegratedComponent">Insecure Integrated Component</a> addresses
+        vulnerabilities in the tools themselves. riskToolRegistryTampering is complementary:
+        it addresses the metadata that causes the agent to select a
+        particular tool, regardless of whether the selected tool is
+        itself secure.
+    category: risksDeploymentAndInfrastructure
+    personas:
+      - personaAgenticProvider
+      - personaApplicationDeveloper
+      - personaPlatformProvider
+      - personaModelServing
+    controls:
+      - controlOrchestratorAndRouteIntegrity
+      - controlAgentObservability
+    examples:
+      - >
+        <a href="https://www.paloaltonetworks.com/blog/cloud-security/model-context-protocol-mcp-a-security-overview/"
+        target="_blank" rel="noopener">Palo Alto Networks</a> identified MCP
+        security risks including prompt injection through compromised servers,
+        credential exposure, and unverified third-party tool adoption.
+      - >
+        <a href="https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks"
+        target="_blank" rel="noopener">Invariant Labs demonstrated</a>
+        (April 2025) that MCP servers can silently modify tool descriptions
+        after initial user approval, exfiltrating SSH keys and MCP
+        credentials from Claude Desktop and Cursor without triggering
+        re-approval prompts.
+      - >
+        A <a href="https://blog.gitguardian.com/breaking-mcp-server-hosting/"
+        target="_blank" rel="noopener">tenant isolation failure</a>
+        in the Smithery.ai MCP server hosting platform (October 2025)
+        demonstrated that infrastructure compromise of a trusted registry
+        can enable modification of hosted tool definitions across 3,000+
+        MCP servers, allowing attackers to redirect agent tool selection
+        at scale on a previously vetted platform.
+    relevantQuestions:
+      - Could a previously vetted tool registry or MCP server manifest be modified without triggering an integrity alert?
+      - Do you monitor for unauthorized changes to tool descriptions, schemas, or metadata after initial registration?
+      - Can tools in your system update their own descriptions or capabilities without explicit re-approval?
+    tourContent:
+      introduced:
+        - >
+          Tool Registry Tampering risk is introduced when vetted tool
+          registries, MCP server manifests, or discovery endpoints lack
+          ongoing integrity monitoring and tamper detection.
+      exposed:
+        - >
+          This risk is exposed at deployment and runtime when compromised
+          tool metadata redirects agent tool selection, causing invocation
+          of unintended or malicious tools despite prior vetting.
+      mitigated:
+        - >
+          Mitigation involves runtime integrity monitoring of tool metadata
+          against known-good baselines, configuration integrity verification,
+          anomalous tool selection detection, and vulnerability management
+          for registry infrastructure.
+    mappings:
+      mitre-atlas:
+        - AML.T0010.004
+      stride:
+        - tampering
+      owasp-top10-llm:
+        - LLM06
+    lifecycleStage:
+      - deployment
+      - runtime
+    impactType:
+      - confidentiality
+      - integrity
+      - safety
+    actorAccess:
+      - external
+      - agent
+      - privileged
+  - id: riskOrchestratorRouteHijacking
     title: Orchestrator/Route Hijack
     shortDescription:
       - >
@@ -1643,13 +1764,15 @@ risks:
       - controlOrchestratorAndRouteIntegrity
     examples:
       - >
-        Security research shows <a href="https://arxiv.org/abs/2402.14020" target="_blank"
+        Security research shows <a href="https://arxiv.org/abs/2501.01818" target="_blank"
         rel="noopener">prompt-based routing attacks</a> where crafted inputs can
         manipulate AI orchestration systems to route requests to unintended models.
       - >
-        Studies demonstrate <a href="https://arxiv.org/abs/2310.15123" target="_blank"
-        rel="noopener">configuration tampering attacks</a> on AI serving infrastructure
-        that can redirect model requests to attacker-controlled endpoints.
+        A <a href="https://nvd.nist.gov/vuln/detail/CVE-2026-24779" target="_blank"
+        rel="noopener">server-side request forgery vulnerability in vLLM</a>
+        (CVE-2026-24779, patched in 0.14.1) demonstrated that host restriction
+        bypasses in AI serving infrastructure can allow attackers to coerce the
+        server into making arbitrary requests to internal network resources.
     tourContent:
       introduced:
         - >
@@ -1669,7 +1792,7 @@ risks:
           integrity verification, robust access controls for routing systems,
           cryptographic signing of routing configurations, monitoring for anomalous
           routing patterns, and validation of model endpoints before request forwarding.
-  - id: EBM
+  - id: riskEvaluationBenchmarkManipulation
     title: Evaluation/Benchmark Manipulation
     shortDescription:
       - >
@@ -1712,14 +1835,15 @@ risks:
       - controlModelAndDataIntegrityManagement
     examples:
       - >
-        Research demonstrates <a href="https://arxiv.org/abs/2108.07258" target="_blank"
-        rel="noopener">benchmark gaming attacks</a> where models are specifically
-        optimized to perform well on evaluation metrics while failing on real-world
-        tasks.
+        Research demonstrates <a href="https://arxiv.org/abs/2502.13295" target="_blank"
+        rel="noopener">benchmark gaming attacks</a> where reasoning models hack
+        benchmarks by exploiting task specifications rather than developing genuine
+        capability.
       - >
-        Studies show <a href="https://arxiv.org/abs/2201.07085" target="_blank"
-        rel="noopener">evaluation dataset poisoning</a> where malicious examples
-        in benchmarks can mislead model assessment and safety evaluation processes.
+        Studies show <a href="https://arxiv.org/abs/2510.13570" target="_blank"
+        rel="noopener">selective adversarial attacks on LLM benchmarks</a> where
+        semantic-preserving perturbations to evaluation questions can manipulate
+        model rankings and mislead assessment processes.
     tourContent:
       introduced:
         - >
@@ -1739,7 +1863,7 @@ risks:
           integrity verification, using diverse and protected evaluation sets,
           employing red teaming and adversarial testing, monitoring for evaluation
           anomalies, and maintaining strict access controls for evaluation data.
-  - id: COV
+  - id: riskCovertChannelsInModelOutputs
     title: Covert Channels in Model Outputs
     shortDescription:
       - >
@@ -1782,15 +1906,15 @@ risks:
       - controlModelAndDataIntegrityManagement
     examples:
       - >
-        Research demonstrates <a href="https://arxiv.org/abs/2305.20010" target="_blank"
-        rel="noopener">steganographic attacks on language models</a> where hidden
-        information is encoded in generated text outputs without affecting apparent
-        quality or coherence.
+        Research demonstrates <a href="https://arxiv.org/abs/2410.03768" target="_blank"
+        rel="noopener">emergent steganographic collusion in LLMs</a> where models
+        trained with misspecified reward incentives spontaneously develop hidden
+        encoding schemes in generated text, undetectable by standard oversight.
       - >
-        Studies show <a href="https://arxiv.org/abs/2210.01405" target="_blank"
-        rel="noopener">timing-based covert channels</a> in AI systems where
-        information is transmitted through response latency patterns and processing
-        delays.
+        Studies show <a href="https://arxiv.org/abs/2410.17175" target="_blank"
+        rel="noopener">remote timing attacks on LLM inference</a> where
+        efficiency optimizations introduce data-dependent timing that leaks
+        conversation topics and PII through encrypted network traffic.
     tourContent:
       introduced:
         - >
@@ -1811,7 +1935,7 @@ risks:
           for anomalous response patterns, analyzing model behavior for covert
           channels, and applying randomization techniques to disrupt potential
           information encoding mechanisms.
-  - id: MLD
+  - id: riskMaliciousLoaderDeserialization
     title: Malicious Loader/Deserialization
     shortDescription:
       - >
@@ -1870,9 +1994,10 @@ risks:
         target="_blank" rel="noopener">weaponized ML models</a> that can deploy
         ransomware or establish backdoors when loaded by unsuspecting users.
       - >
-        Studies reveal <a href="https://arxiv.org/abs/2204.06974" target="_blank"
-        rel="noopener">vulnerabilities in popular ML frameworks</a> where model
-        loading processes can be exploited for remote code execution.
+        Studies reveal <a href="https://arxiv.org/abs/2601.14163" target="_blank"
+        rel="noopener">widespread remote code execution risks in ML model hosting
+        ecosystems</a> where unsafe deserialization and custom code execution
+        during model loading affect tens of thousands of repositories.
     tourContent:
       introduced:
         - >
@@ -1891,7 +2016,98 @@ risks:
           input validation and sanitization, verifying model integrity through
           cryptographic signatures, sandboxing model loading processes, and using
           secure-by-default ML tooling that prevents code execution during deserialization.
-  - id: PCP
+  - id: riskToolSourceProvenance
+    title: Tool Source Provenance
+    shortDescription:
+      - >
+        Use of unvetted or unverified tool registries, MCP server manifests,
+        or tool metadata sources that may provide agents with deceptive tool
+        descriptions, altered schemas, or shadowed tool names.
+    longDescription:
+      - >
+        Agents depend on tool metadata from registries, MCP server manifests,
+        and discovery endpoints to decide which tools to invoke. When these
+        sources are adopted without provenance verification, cryptographic
+        signing, or publisher identity validation, the agent may receive
+        deliberately deceptive tool descriptions or schemas.
+      - >
+        This risk operates at the tool selection layer, before a prompt is
+        constructed. Unlike <a href="#riskPromptInjection">Prompt Injection</a>, which
+        targets model input processing, riskToolSourceProvenance targets the trust assumptions
+        in tool discovery. The agent's reasoning core treats tool metadata
+        as authoritative, and unvetted sources exploit that trust.
+      - >
+        Attack patterns include Tool Poisoning (malicious logic hidden in
+        tool descriptions), Tool Shadowing and Typosquatting (lookalike tools
+        using similar names or Unicode homoglyphs), and Schema Poisoning
+        (configuration files that alter tool behavior). These were
+        cataloged by Checkmarx in their MCP risk taxonomy (December 2025).
+      - >
+        riskToolSourceProvenance is structurally analogous to <a href="#riskModelSourceTampering">Model Source
+        Tampering</a>, which addresses unvetted model artifacts in the
+        supply chain. Both are provenance failures where untrusted sources
+        are consumed without verification. A successful riskToolSourceProvenance exploit
+        typically manifests as <a href="#riskRogueActions">Rogue Actions</a> when the
+        agent invokes the wrong tool.
+    category: risksSupplyChainAndDevelopment
+    personas:
+      - personaAgenticProvider
+      - personaApplicationDeveloper
+    controls:
+      - controlModelAndDataIntegrityManagement
+      - controlSecureByDefaultMLTooling
+      - controlAgentPluginPermissions
+    examples:
+      - >
+        The <a href="https://checkmarx.com/zero-post/11-emerging-ai-security-risks-with-mcp-model-context-protocol/"
+        target="_blank" rel="noopener">Checkmarx CxZero MCP Risk Taxonomy</a>
+        (December 2025) identified Tool Poisoning, Tool Shadowing, and Schema
+        Poisoning as three of the top 11 MCP security risks.
+      - >
+        The NeurIPS 2025 paper <a href="https://arxiv.org/html/2508.02110v2"
+        target="_blank" rel="noopener">"Attractive Metadata Attack"</a>
+        demonstrated that metadata manipulation alone is sufficient to redirect
+        tool selection in agentic systems, achieving 81-95% attack success rates.
+    relevantQuestions:
+      - Do you discover or register tools from third-party sources without verifying the publisher's identity or provenance?
+      - Do you allow tool registries or MCP server manifests to be added to your system without cryptographic signature verification?
+      - Does your tool selection process rely on tool descriptions or metadata without independent validation of the tool's claimed functionality?
+    tourContent:
+      introduced:
+        - >
+          Tool Source Provenance risk is introduced when tool registries,
+          MCP server manifests, or discovery endpoints are adopted without
+          provenance verification or publisher identity validation.
+      exposed:
+        - >
+          This risk is exposed during tool discovery and selection when
+          agents consume unvetted tool metadata and make invocation
+          decisions based on unverified descriptions or schemas.
+      mitigated:
+        - >
+          Mitigation involves cryptographic signing of tool manifests,
+          publisher identity verification, namespace governance to prevent
+          typosquatting, and least-privilege tool access policies.
+    mappings:
+      mitre-atlas:
+        - AML.T0010.001
+      stride:
+        - spoofing
+      owasp-top10-llm:
+        - LLM03
+        - LLM06
+    lifecycleStage:
+      - development
+      - deployment
+    impactType:
+      - confidentiality
+      - integrity
+      - safety
+    actorAccess:
+      - supply-chain
+      - agent
+      - external
+  - id: riskPromptResponseCachePoisoning
     title: Prompt/Response Cache Poisoning
     shortDescription:
       - >
@@ -1937,14 +2153,15 @@ risks:
       - controlUserDataManagement
     examples:
       - >
-        Research has shown <a href="https://arxiv.org/abs/2403.04783" target="_blank"
-        rel="noopener">cache-based attacks on language models</a> where malicious
-        prompts can influence responses served to other users through shared caching
-        mechanisms.
+        Research has shown <a href="https://arxiv.org/abs/2601.23088" target="_blank"
+        rel="noopener">semantic cache key collision attacks</a> where crafted
+        prompts can hijack cached LLM responses, serving attacker-controlled
+        content to other users through shared caching mechanisms.
       - >
-        Studies demonstrate <a href="https://arxiv.org/abs/2310.07809" target="_blank"
-        rel="noopener">privacy risks in LLM caching systems</a> where inadequate
-        cache isolation can lead to cross-user information leakage.
+        Studies demonstrate <a href="https://arxiv.org/abs/2508.09442" target="_blank"
+        rel="noopener">privacy risks in KV-cache systems</a> where user inputs
+        can be reconstructed from plaintext cache contents in multi-tenant LLM
+        serving infrastructure.
     tourContent:
       introduced:
         - >
@@ -1961,7 +2178,7 @@ risks:
           Mitigation involves implementing strong cache isolation per user or tenant,
           validating cached content integrity, using cryptographically secure cache
           keys, and applying access controls to prevent unauthorized cache manipulation.
-  - id: RVP
+  - id: riskRetrievalVectorStorePoisoning
     title: Retrieval/Vector Store Poisoning
     shortDescription:
       - >

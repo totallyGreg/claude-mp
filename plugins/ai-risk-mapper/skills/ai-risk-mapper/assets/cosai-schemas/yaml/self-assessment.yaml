@@ -40,8 +40,8 @@ selfAssessment:
       personas:
         - personaModelCreator
       risks:
-        - UTD
-        - ISD
+        - riskUnauthorizedTrainingData
+        - riskInferredSensitiveData
       relevance:
         - No
         - Maybe
@@ -58,7 +58,7 @@ selfAssessment:
       personas:
         - personaModelCreator
       risks:
-        - DP
+        - riskDataPoisoning
       relevance:
         - No
         - Maybe
@@ -75,7 +75,7 @@ selfAssessment:
       personas:
         - personaModelCreator
       risks:
-        - SDD
+        - riskSensitiveDataDisclosure
       relevance:
         - Yes
         - Maybe
@@ -93,8 +93,8 @@ selfAssessment:
         - personaModelCreator
         - personaModelConsumer
       risks:
-        - SDD
-        - EDH
+        - riskSensitiveDataDisclosure
+        - riskExcessiveDataHandling
       relevance:
         - No
         - Maybe
@@ -112,9 +112,9 @@ selfAssessment:
         - personaModelCreator
         - personaModelConsumer
       risks:
-        - DP
-        - MST
-        - MXF
+        - riskDataPoisoning
+        - riskModelSourceTampering
+        - riskModelExfiltration
       relevance:
         - No
         - Maybe
@@ -132,9 +132,9 @@ selfAssessment:
         - personaModelCreator
         - personaModelConsumer
       risks:
-        - DP
-        - MXF
-        - MST
+        - riskDataPoisoning
+        - riskModelExfiltration
+        - riskModelSourceTampering
       relevance:
         - No
         - Maybe
@@ -151,8 +151,8 @@ selfAssessment:
       personas:
         - personaModelCreator
       risks:
-        - DP
-        - MST
+        - riskDataPoisoning
+        - riskModelSourceTampering
       relevance:
         - No
         - Maybe
@@ -169,10 +169,10 @@ selfAssessment:
       personas:
         - personaModelCreator
       risks:
-        - DP
-        - MXF
-        - MDT
-        - MST
+        - riskDataPoisoning
+        - riskModelExfiltration
+        - riskModelDeploymentTampering
+        - riskModelSourceTampering
       relevance:
         - No
         - Maybe
@@ -190,8 +190,8 @@ selfAssessment:
         - personaModelCreator
         - personaModelConsumer
       risks:
-        - DMS
-        - MRE
+        - riskDenialOfMLService
+        - riskModelReverseEngineering
       relevance:
         - No
         - Maybe
@@ -209,7 +209,7 @@ selfAssessment:
         - personaModelCreator
         - personaModelConsumer
       risks:
-        - IIC
+        - riskInsecureIntegratedComponent
       relevance:
         - No
         - Maybe
@@ -227,11 +227,11 @@ selfAssessment:
         - personaModelCreator
         - personaModelConsumer
       risks:
-        - IMO
-        - MEV
-        - PIJ
-        - SDD
-        - ISD
+        - riskInsecureModelOutput
+        - riskModelEvasion
+        - riskPromptInjection
+        - riskSensitiveDataDisclosure
+        - riskInferredSensitiveData
       relevance:
         - No
         - Maybe
@@ -249,8 +249,8 @@ selfAssessment:
         - personaModelCreator
         - personaModelConsumer
       risks:
-        - RA
-        - PIJ
+        - riskRogueActions
+        - riskPromptInjection
       relevance:
         - Yes
         - Maybe

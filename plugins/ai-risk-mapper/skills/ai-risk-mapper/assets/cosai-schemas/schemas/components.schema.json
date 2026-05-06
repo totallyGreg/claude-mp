@@ -93,7 +93,35 @@
         "subcategory": {
           "$ref": "#/definitions/subcategory/properties/id"
         },
-        "edges": { "$ref": "#/definitions/edges" }
+        "edges": { "$ref": "#/definitions/edges" },
+        "mappings": {
+          "type": "object",
+          "description": "Cross-references to external security frameworks. Per ADR-018 D6 + ADR-022 D5b+D5c: mitre-atlas, iso-22989, and eu-ai-act receive per-framework strict patterns from frameworks.schema.json; stride, nist-ai-rmf, and owasp-top10-llm fall through to the loose catch-all because their current entries use non-canonical forms. Keys must match valid framework IDs in frameworks.schema.json.",
+          "propertyNames": {
+            "$ref": "frameworks.schema.json#/definitions/framework/properties/id"
+          },
+          "properties": {
+            "mitre-atlas": {
+              "type": "array",
+              "items": { "$ref": "frameworks.schema.json#/definitions/framework-mapping-patterns/properties/mitre-atlas" }
+            },
+            "iso-22989": {
+              "type": "array",
+              "items": { "$ref": "frameworks.schema.json#/definitions/framework-mapping-patterns/properties/iso-22989" }
+            },
+            "eu-ai-act": {
+              "type": "array",
+              "items": { "$ref": "frameworks.schema.json#/definitions/framework-mapping-patterns/properties/eu-ai-act" }
+            }
+          },
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "externalReferences": {
+          "$ref": "external-references.schema.json#/definitions/externalReferences"
+        }
       },
       "required": ["id", "title", "category", "edges"]
     },

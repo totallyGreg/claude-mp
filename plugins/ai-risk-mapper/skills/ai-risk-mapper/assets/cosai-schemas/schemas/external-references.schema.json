@@ -1,0 +1,69 @@
+{
+  "$id": "external-references.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "External References Schema",
+  "description": "Shared shape for the externalReferences array on risks, controls, components, and personas. Single source of truth per ADR-016 D3; consumer schemas $ref the array definition rather than duplicating it.",
+  "definitions": {
+    "externalReferences": {
+      "type": "array",
+      "description": "Structured outbound citations and editorial pointers. Empty arrays are rejected per ADR-016 D3 — authors omit the field when there are no references.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "description": "One outbound reference. id is the sentinel target used by {{ref:identifier}} prose mentions; title is the display string; url is the underlying https resource.",
+        "required": ["type", "id", "title", "url"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Reference type. Citation-grade types underpin substance; the editorial type is the relief valve for color links.",
+            "enum": [
+              "cwe",
+              "cve",
+              "atlas",
+              "attack",
+              "advisory",
+              "paper",
+              "news",
+              "spec",
+              "editorial",
+              "other"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "description": "Author-chosen lowercase-kebab identifier; per-type regex pinned via allOf for canonical-form types.",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "description": "Display string used by table generators and the site renderer.",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "description": "Outbound URL. https only — http and other schemes are rejected.",
+            "pattern": "^https://"
+          }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "type": { "const": "cwe" } }, "required": ["type"] },
+            "then": { "properties": { "id": { "type": "string", "pattern": "^cwe-\\d+$" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "cve" } }, "required": ["type"] },
+            "then": { "properties": { "id": { "type": "string", "pattern": "^cve-\\d{4}-\\d+$" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "atlas" } }, "required": ["type"] },
+            "then": { "properties": { "id": { "type": "string", "pattern": "^aml-t\\d{4}(\\.\\d{3})?$" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "attack" } }, "required": ["type"] },
+            "then": { "properties": { "id": { "type": "string", "pattern": "^attack-t\\d{4}(\\.\\d{3})?$" } } }
+          }
+        ]
+      }
+    }
+  }
+}

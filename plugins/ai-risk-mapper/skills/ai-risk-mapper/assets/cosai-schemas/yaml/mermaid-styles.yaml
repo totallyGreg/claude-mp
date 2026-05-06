@@ -1,0 +1,206 @@
+# Mermaid Styles Configuration
+# Version 1.0.0 - Initial implementation with extracted hardcoded values
+#
+# This configuration defines all styling elements for Mermaid graph generation
+# used by ComponentGraph and ControlGraph classes in the validation system.
+
+version: '1.0.0'
+
+# Design foundation - core design tokens
+foundation:
+  colors:
+    primary: '#4285f4' # Google Blue - used for primary actions and "all" controls
+    success: '#34a853' # Google Green - used for success states and category mappings
+    accent: '#9c27b0' # Purple - first multi-edge style color
+    warning: '#ff9800' # Orange - second multi-edge style color
+    error: '#e91e63' # Pink - third multi-edge style color
+    neutral: '#333333' # Dark gray - used for borders and strokes
+    lightGray: '#f0f0f0' # Light gray - container backgrounds
+    darkGray: '#666666' # Medium gray - container borders
+
+  strokeWidths:
+    thin: '1px' # Subgroup borders
+    medium: '2px' # Standard component and control borders
+    thick: '3px' # Emphasis elements like container borders
+
+  strokePatterns:
+    solid: '' # No dash pattern (solid lines)
+    dashed: '5 5' # Standard dashed pattern
+    dotted: '8 4' # Dotted pattern for "all" control edges
+    longDash: '10 2' # Long dash pattern for multi-edge styles
+    longDashSpaced: '10 5' # Long dash with spacing for containers
+
+# Shared elements used by multiple graph types
+sharedElements:
+  cssClasses:
+    hidden: 'display: none;'
+    allControl: 'stroke:#4285f4,stroke-width:2px,stroke-dasharray: 5 5'
+
+  # Component category styling - shared between ComponentGraph and ControlGraph
+  componentCategories:
+    componentsInfrastructure:
+      fill: '#e6f3e6' # Light green for infrastructure components
+      stroke: '#333333' # Dark gray border
+      strokeWidth: '2px' # Medium border width
+      subgroupFill: '#d4e6d4' # Darker green for infrastructure subgroups
+    componentsApplication:
+      fill: '#e6f0ff' # Light blue for application components
+      stroke: '#333333' # Dark gray border
+      strokeWidth: '2px' # Medium border width
+      subgroupFill: '#e0f0ff' # Darker blue for application subgroups
+    componentsModel:
+      fill: '#ffe6e6' # Light red for model components
+      stroke: '#333333' # Dark gray border
+      strokeWidth: '2px' # Medium border width
+      subgroupFill: '#f0e6e6' # Darker red for model subgroups
+
+# Graph-type-specific configurations
+graphTypes:
+  # ComponentGraph configuration
+  component:
+    direction: 'TD' # Top-down layout for component relationships
+    metadata:
+      layout: 'elk'
+      mergeEdges: False
+      nodePlacementStrategy: 'BRANDES_KOEPF'
+    flowchartConfig:
+      padding: 5 # Internal node padding
+      wrappingWidth: 250 # Text wrapping width
+    specialStyling: {} # No special styling for component graphs
+
+  # ControlGraph configuration
+  control:
+    direction: 'LR' # Left-right layout optimized for control-to-component flow
+    metadata:
+      layout: 'elk'
+      mergeEdges: True
+      # Both NETWORK_SIMPLEX and BRANDES_KOEPF work well
+      nodePlacementStrategy: 'NETWORK_SIMPLEX'
+    flowchartConfig:
+      nodeSpacing: 25 # Space between nodes
+      rankSpacing: 150 # Space between ranks/levels
+      padding: 5 # Internal node padding
+      wrappingWidth: 250 # Text wrapping width
+    specialStyling:
+      # Styling for the main components container in control graphs
+      componentsContainer:
+        fill: '#f0f0f0' # Light gray background
+        stroke: '#666666' # Medium gray border
+        strokeWidth: '3px' # Thick border for emphasis
+        strokeDasharray: '10 5' # Long dashed border pattern
+      # Controls container styling
+      controlsContainer:
+        fill: '#f0f0f0' # Light gray background
+        stroke: '#666666' # Medium gray border
+        strokeWidth: '3px' # Thick border for emphasis
+        strokeDasharray: '10 5' # Long dashed border pattern
+
+      # Edge styling system for different relationship types
+      edgeStyles:
+        # Edges from controls mapped to "all" components (universal controls)
+        allControlEdges:
+          stroke: '#4285f4' # Google Blue
+          strokeWidth: '3px' # Thick for emphasis
+          strokeDasharray: '8 4' # Dotted pattern
+
+        # Edges targeting subgraphs/categories (category-level mappings)
+        subgraphEdges:
+          stroke: '#34a853' # Google Green
+          strokeWidth: '2px' # Standard width
+
+        # Multi-edge styling for controls with 3+ individual component mappings
+        # Uses 4-color cycling system with different patterns for visual distinction
+        multiEdgeStyles:
+          - stroke: '#9c27b0' # Purple - solid
+            strokeWidth: '2px'
+          - stroke: '#ff9800' # Orange - dashed
+            strokeWidth: '2px'
+            strokeDasharray: '5 5'
+          - stroke: '#e91e63' # Pink - long dash
+            strokeWidth: '2px'
+            strokeDasharray: '10 2'
+          - stroke: '#C95792' # Magenta - long dash with spacing
+            strokeWidth: '2px'
+            strokeDasharray: '10 5'
+
+  # RiskGraph configuration - extends control graph with risk-specific elements
+  risk:
+    direction: 'LR' # Left-to-right layout for three-layer hierarchy (risks → controls → components)
+    metadata:
+      layout: 'elk'
+      mergeEdges: True
+      # Both NETWORK_SIMPLEX and BRANDES_KOEPF work well
+      nodePlacementStrategy: 'NETWORK_SIMPLEX'
+    flowchartConfig:
+      nodeSpacing: 30 # Increased spacing for three-layer complexity
+      rankSpacing: 40 # Increased spacing between layers
+      padding: 5 # Internal node padding
+      wrappingWidth: 250 # Text wrapping width
+    specialStyling:
+      # Risk category styling - distinctive visual identity for security risks
+      riskCategories:
+        risks:
+          fill: '#ffeef0' # Light pink background for risk category
+          stroke: '#e91e63' # Pink border for risk emphasis
+          strokeWidth: '2px' # Standard border width
+          subgroupFill: '#ffe0e6' # Darker pink for risk subgroups (future use)
+      # Components container styling
+      componentsContainer:
+        fill: '#f0f0f0' # Light gray background
+        stroke: '#666666' # Medium gray border
+        strokeWidth: '3px' # Thick border for emphasis
+        strokeDasharray: '10 5' # Long dashed border pattern
+      # Controls container styling
+      controlsContainer:
+        fill: '#f0f0f0' # Light gray background
+        stroke: '#666666' # Medium gray border
+        strokeWidth: '3px' # Thick border for emphasis
+        strokeDasharray: '10 5' # Long dashed border pattern
+      # Risks container styling
+      risksContainer:
+        fill: '#f0f0f0' # Light gray background
+        stroke: '#666666' # Medium gray border
+        strokeWidth: '3px' # Thick border for emphasis
+        strokeDasharray: '10 5' # Long dashed border pattern
+
+      # Edge styling system for risk graph relationships
+      edgeStyles:
+        # Risk-to-control edges - primary relationship in risk graphs
+        # Array of 4 different styles that cycle based on index%4
+        riskControlEdges:
+          - stroke: '#e6cbce' # Pink - solid
+            strokeWidth: '2px'
+            strokeDasharray: '5 3'
+          - stroke: '#b66871' # Darker pink - dashed
+            strokeWidth: '2px'
+            strokeDasharray: '8 4'
+          - stroke: '#b66871' # Even darker pink - long dash
+            strokeWidth: '2px'
+            strokeDasharray: '10 2'
+          - stroke: '#1c0d0f' # Darkest pink - long dash with spacing
+            strokeWidth: '2px'
+            strokeDasharray: '12 5'
+
+        # Inherited control-to-component edge styles from control graph
+        allControlEdges:
+          stroke: '#4285f4' # Google Blue
+          strokeWidth: '3px' # Thick for emphasis
+          strokeDasharray: '8 4' # Dotted pattern
+
+        subgraphEdges:
+          stroke: '#34a853' # Google Green
+          strokeWidth: '2px' # Standard width
+
+        # Multi-edge styling - reused from control graph for consistency
+        multiEdgeStyles:
+          - stroke: '#9c27b0' # Purple - solid
+            strokeWidth: '2px'
+          - stroke: '#ff9800' # Orange - dashed
+            strokeWidth: '2px'
+            strokeDasharray: '5 5'
+          - stroke: '#e91e63' # Pink - long dash
+            strokeWidth: '2px'
+            strokeDasharray: '10 2'
+          - stroke: '#C95792' # Magenta - long dash with spacing
+            strokeWidth: '2px'
+            strokeDasharray: '10 5'

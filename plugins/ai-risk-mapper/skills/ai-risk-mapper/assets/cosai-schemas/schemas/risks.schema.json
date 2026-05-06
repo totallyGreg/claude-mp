@@ -20,32 +20,34 @@
         "id": {
           "type": "string",
           "enum": [
-            "ASSC",
-            "ADI",
-            "COV",
-            "DMS",
-            "DP",
-            "EBM",
-            "EDH",
-            "EDW",
-            "FLP",
-            "IIC",
-            "IMO",
-            "ISD",
-            "MDT",
-            "MEV",
-            "MLD",
-            "MRE",
-            "MST",
-            "MXF",
-            "ORH",
-            "PCP",
-            "PIJ",
-            "RA",
-            "RVP",
-            "SDD",
-            "UTD",
-            "EDH-I"
+            "riskAcceleratorAndSystemSideChannels",
+            "riskAdapterPEFTInjection",
+            "riskCovertChannelsInModelOutputs",
+            "riskDenialOfMLService",
+            "riskDataPoisoning",
+            "riskEvaluationBenchmarkManipulation",
+            "riskExcessiveDataHandling",
+            "riskEconomicDenialOfWallet",
+            "riskFederatedDistributedTrainingPrivacy",
+            "riskInsecureIntegratedComponent",
+            "riskInsecureModelOutput",
+            "riskInferredSensitiveData",
+            "riskModelDeploymentTampering",
+            "riskModelEvasion",
+            "riskMaliciousLoaderDeserialization",
+            "riskModelReverseEngineering",
+            "riskModelSourceTampering",
+            "riskModelExfiltration",
+            "riskOrchestratorRouteHijacking",
+            "riskPromptResponseCachePoisoning",
+            "riskPromptInjection",
+            "riskRogueActions",
+            "riskRetrievalVectorStorePoisoning",
+            "riskSensitiveDataDisclosure",
+            "riskToolRegistryTampering",
+            "riskToolSourceProvenance",
+            "riskUnauthorizedTrainingData",
+            "riskExcessiveDataHandlingDuringInference"
           ]
         },
         "title": { "type": "string" },
@@ -84,23 +86,28 @@
         },
         "mappings": {
           "type": "object",
-          "description": "Cross-references to external security frameworks. Keys must match valid framework IDs defined in frameworks.schema.json and frameworks.yaml.",
+          "description": "Cross-references to external security frameworks. Per ADR-019 D5 + ADR-022 D5b: mitre-atlas, iso-22989, and eu-ai-act receive per-framework strict patterns from frameworks.schema.json; stride, nist-ai-rmf, and owasp-top10-llm fall through to the loose catch-all because their current entries use non-canonical forms. Keys must match valid framework IDs in frameworks.schema.json.",
           "propertyNames": {
             "$ref": "frameworks.schema.json#/definitions/framework/properties/id"
           },
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "description": "Framework-specific category, technique, or tactic identifier"
+          "properties": {
+            "mitre-atlas": {
+              "type": "array",
+              "items": { "$ref": "frameworks.schema.json#/definitions/framework-mapping-patterns/properties/mitre-atlas" }
+            },
+            "iso-22989": {
+              "type": "array",
+              "items": { "$ref": "frameworks.schema.json#/definitions/framework-mapping-patterns/properties/iso-22989" }
+            },
+            "eu-ai-act": {
+              "type": "array",
+              "items": { "$ref": "frameworks.schema.json#/definitions/framework-mapping-patterns/properties/eu-ai-act" }
             }
           },
-          "examples": [
-            {
-              "mitre-atlas": ["ml-model-access", "exfiltration"],
-              "stride": ["information-disclosure"]
-            }
-          ]
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
         },
         "lifecycleStage": {
           "description": "AI system lifecycle phases where applicable",
@@ -146,6 +153,9 @@
               "enum": ["all", "none"]
             }
           ]
+        },
+        "externalReferences": {
+          "$ref": "external-references.schema.json#/definitions/externalReferences"
         }
       },
       "required": ["id", "title", "shortDescription", "longDescription", "category", "personas", "controls"]

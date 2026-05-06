@@ -106,23 +106,28 @@
         },
         "mappings": {
           "type": "object",
-          "description": "Cross-references to external security frameworks. Keys must match valid framework IDs defined in frameworks.schema.json and frameworks.yaml.",
+          "description": "Cross-references to external security frameworks. Per ADR-020 D5 + ADR-022 D5b: mitre-atlas, iso-22989, and eu-ai-act receive per-framework strict patterns from frameworks.schema.json; stride, nist-ai-rmf, and owasp-top10-llm fall through to the loose catch-all because their current entries use non-canonical forms. Keys must match valid framework IDs in frameworks.schema.json.",
           "propertyNames": {
             "$ref": "frameworks.schema.json#/definitions/framework/properties/id"
           },
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "description": "Framework-specific category, technique, or tactic identifier"
+          "properties": {
+            "mitre-atlas": {
+              "type": "array",
+              "items": { "$ref": "frameworks.schema.json#/definitions/framework-mapping-patterns/properties/mitre-atlas" }
+            },
+            "iso-22989": {
+              "type": "array",
+              "items": { "$ref": "frameworks.schema.json#/definitions/framework-mapping-patterns/properties/iso-22989" }
+            },
+            "eu-ai-act": {
+              "type": "array",
+              "items": { "$ref": "frameworks.schema.json#/definitions/framework-mapping-patterns/properties/eu-ai-act" }
             }
           },
-          "examples": [
-            {
-              "mitre-atlas": ["ml-model-access", "exfiltration"],
-              "stride": ["information-disclosure"]
-            }
-          ]
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
         },
         "lifecycleStage": {
           "description": "AI system lifecycle phases where applicable",
@@ -168,6 +173,9 @@
               "enum": ["all", "none"]
             }
           ]
+        },
+        "externalReferences": {
+          "$ref": "external-references.schema.json#/definitions/externalReferences"
         }
       },
       "required": ["title", "description", "category", "personas", "components", "risks"]

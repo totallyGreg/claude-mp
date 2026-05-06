@@ -63,6 +63,7 @@ The skill runs automated assessments and generates comprehensive reports aligned
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 5.2.1 | 2026-05-06 | - | Re-bundle offline schemas from upstream main (e01f684): 10 YAML + 13 JSON schemas, 28 camelCase risks, new externalReferences/persona-site-data schemas | 100 | 100 | 100 | 100 | 100 | 100 |
 | 5.2.0 | 2026-05-06 | - | Provenance on all 7 refs, negative trigger, offload examples to refs, full-audit refresh: externalReferences + eu-ai-act + strict mapping patterns from upstream Apr 30 commit | 100 | 100 | 100 | 100 | 100 | 100 |
 | 5.1.1 | 2026-04-28 | [#165](https://github.com/totallyGreg/claude-mp/issues/165) | Refresh references via /ss-refresh: risk IDs migrated to camelCase (28 total, 2 new), provenance frontmatter added, last_verified updated | 100 | 88 | 100 | 100 | 100 | 97 |
 | 5.1.0 | 2026-03-05 | [#85](https://github.com/totallyGreg/claude-mp/issues/85) | Sync upstream: bundle 3 YAML enum files + riskmap.schema.json (9+11), fix deprecated persona refs in docs, add deprecation warning in CLI, add commit-hash README | 98 | 88 | 100 | 100 | - | 97 |

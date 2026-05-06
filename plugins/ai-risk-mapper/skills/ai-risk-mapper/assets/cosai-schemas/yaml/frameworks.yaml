@@ -68,3 +68,15 @@ frameworks:
     documentUri: https://www.iso.org/standard/74296.html
     applicableTo:
       - personas
+
+  - id: eu-ai-act
+    name: EU AI Act
+    fullName: European Union Artificial Intelligence Act
+    description: Legal framework establishing risk-tier requirements for AI systems across the EU, including prohibitions on certain uses, obligations for high-risk systems, and requirements for general-purpose AI models
+    baseUri: https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai
+    version: '2024'
+    lastUpdated: '2024-06-13'
+    documentUri: https://eur-lex.europa.eu/eli/reg/2024/1689
+    applicableTo:
+      - personas
+      - controls

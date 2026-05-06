@@ -20,7 +20,7 @@
         "id": {
           "type": "string",
           "description": "Unique framework identifier used in mapping references",
-          "enum": ["mitre-atlas", "nist-ai-rmf", "stride", "owasp-top10-llm", "iso-22989"]
+          "enum": ["mitre-atlas", "nist-ai-rmf", "stride", "owasp-top10-llm", "iso-22989", "eu-ai-act"]
         },
         "name": {
           "type": "string",
@@ -75,6 +75,36 @@
         }
       },
       "required": ["id", "name", "fullName", "description", "baseUri", "applicableTo"]
+    },
+    "framework-mapping-patterns": {
+      "type": "object",
+      "description": "Per-framework mapping-ID regex patterns per ADR-022 D5b. Keys mirror the framework.id enum to prevent drift; values constrain the canonical ID shape consumed by risks/controls/personas mappings. ISO 22989 is the deliberate exception (bare string, no regex) because persona ISO 22989 mappings are role descriptors rather than canonical IDs.",
+      "additionalProperties": false,
+      "properties": {
+        "mitre-atlas": {
+          "type": "string",
+          "pattern": "^AML\\.(T|M)\\d{4}(\\.\\d{3})?$"
+        },
+        "nist-ai-rmf": {
+          "type": "string",
+          "pattern": "^(GOVERN|MAP|MEASURE|MANAGE)-\\d+(\\.\\d+)*$"
+        },
+        "stride": {
+          "type": "string",
+          "pattern": "^(Spoofing|Tampering|Repudiation|InformationDisclosure|DenialOfService|ElevationOfPrivilege)$"
+        },
+        "owasp-top10-llm": {
+          "type": "string",
+          "pattern": "^LLM\\d{2}:\\d{4}$"
+        },
+        "iso-22989": {
+          "type": "string"
+        },
+        "eu-ai-act": {
+          "type": "string",
+          "pattern": "^Article\\s\\d+(\\(\\d+\\))?$"
+        }
+      }
     }
   }
 }
