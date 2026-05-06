@@ -2,7 +2,7 @@
 name: ai-risk-mapper
 description: This skill should be used when identifying, analyzing, and mitigating security risks in Artificial Intelligence systems using the CoSAI (Coalition for Secure AI) Risk Map framework. Use when users ask to "assess AI security risks", "analyze AI system threats", "map risks to controls", "run a risk assessment", "check compliance with MITRE ATLAS", "generate a CoSAI report", or "profile persona risks". Supports LLM applications, ML pipelines, model training/serving infrastructure, and compliance reporting aligned with MITRE ATLAS, NIST AI RMF, OWASP Top 10 for LLM, STRIDE, and ISO 22989 frameworks. Do NOT use for general software security scanning without an AI/ML component (use standard SAST/DAST tools instead).
 metadata:
-  version: "5.2.1"
+  version: "5.2.2"
   author: J. Greg Williams
 compatibility: Requires python3 and uv for script execution
 license: Apache 2.0
@@ -40,6 +40,7 @@ For ad-hoc queries, threat modeling, or compliance mapping, use the CLI scripts.
 | Get persona risk profile | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_persona_profile.py personaModelProvider` |
 | Assess control coverage | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_gap_analysis.py DP --implemented controlTrainingDataSanitization` |
 | Get framework mappings | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_framework_map.py PIJ --framework mitre-atlas` |
+| Risks by actor access level | `uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/cli_actor_access.py agent` |
 
 See `references/exploration_guide.md` for entity IDs, query patterns, and the core analyzer API.
 
@@ -65,6 +66,7 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/orchestrate_risk_asse
 | Workflow procedures | `references/workflow_guide.md` |
 | Interactive exploration | `references/exploration_guide.md` |
 | Usage examples | `references/usage_examples.md` |
+| Threat actor access levels | `references/actor_access_guide.md` |
 
 ## Resources
 
@@ -82,6 +84,7 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/scripts/orchestrate_risk_asse
 - `cli_persona_profile.py` - Persona profiles
 - `cli_gap_analysis.py` - Gap analysis
 - `cli_framework_map.py` - Framework mappings
+- `cli_actor_access.py` - Risks by actor access level
 
 **Bundled Assets:** (via `${CLAUDE_PLUGIN_ROOT}/skills/ai-risk-mapper/`)
 - `assets/cosai-schemas/` - Offline schema cache

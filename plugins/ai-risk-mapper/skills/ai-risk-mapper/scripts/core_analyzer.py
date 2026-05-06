@@ -58,6 +58,7 @@ class Risk:
     mappings: Dict[str, List[str]]
     lifecycle_stages: List[str]
     impact_types: List[str]
+    actor_access: List[str]
 
 
 @dataclass
@@ -186,6 +187,7 @@ class RiskAnalyzer:
                 mappings=risk_data.get("mappings", {}),
                 lifecycle_stages=risk_data.get("lifecycleStage", []),
                 impact_types=risk_data.get("impactType", []),
+                actor_access=risk_data.get("actorAccess", []),
             )
             self.risks[risk.id] = risk
         logger.debug("Loaded %d risks", len(self.risks))
@@ -433,6 +435,23 @@ class RiskAnalyzer:
             risk
             for risk in self.risks.values()
             if any(control_id in risk.controls for control_id in relevant_control_ids)
+        ]
+
+    def get_risks_by_actor_access(self, access_level: str) -> List[Risk]:
+        """
+        Get risks exploitable at a specific threat actor access level.
+
+        Args:
+            access_level: One of: external, api, user, privileged, agent,
+                         supply-chain, infrastructure-provider, service-provider, physical
+
+        Returns:
+            List of risks that can be exploited at this access level
+        """
+        return [
+            risk
+            for risk in self.risks.values()
+            if access_level in risk.actor_access
         ]
 
     # ========================================================================
@@ -810,6 +829,7 @@ class RiskAnalyzer:
             "mappings": risk.mappings,
             "lifecycleStages": risk.lifecycle_stages,
             "impactTypes": risk.impact_types,
+            "actorAccess": risk.actor_access,
         }
 
     def export_control_as_dict(self, control_id: str) -> Optional[Dict[str, Any]]:
