@@ -9,22 +9,23 @@ Consolidates three tightly coupled tools into a single plugin:
 
 ## Components
 
-### Skills (3)
+### Skills (4)
 
 | Skill | Purpose |
 |-------|---------|
 | `skillsmith` | Skill evaluation with 5 scored dimensions, improvement loop, and marketplace sync |
 | `marketplace-manager` | Self-sufficient marketplace repo model with two-tier script architecture |
 | `agentsmith` | Agent evaluation with 3 quality dimensions (Trigger Effectiveness, System Prompt Quality, Coherence) |
+| `wtf` | Proactive friction reporter — captures dev-experience pain for improve workflow consumption |
 
 ### Agent: skill-observer
 Analyzes saved Claude Code session transcripts to identify where a skill failed to guide Claude effectively. Returns ranked structural gaps with installed→source path mapping.
 
-### Commands (14)
+### Commands (15)
 
 | Prefix | Commands | Scope |
 |--------|----------|-------|
-| `ss-*` | `/ss-evaluate`, `/ss-improve`, `/ss-init`, `/ss-observe`, `/ss-package`, `/ss-research`, `/ss-validate` | Skill quality |
+| `ss-*` | `/ss-evaluate`, `/ss-improve`, `/ss-init`, `/ss-observe`, `/ss-package`, `/ss-research`, `/ss-validate`, `/ss-wtf` | Skill quality + friction |
 | `mp-*` | `/mp-sync`, `/mp-validate`, `/mp-add`, `/mp-list`, `/mp-status` | Marketplace ops |
 | `as-*` | `/as-evaluate`, `/as-improve` | Agent quality |
 
@@ -40,6 +41,7 @@ Analyzes saved Claude Code session transcripts to identify where a skill failed 
 
 | Version | Changes |
 |---------|---------|
+| 1.3.0 | Add WTF (Work the Foundry) friction reporter skill, `/ss-wtf` command, friction query integration in `/ss-improve` and `/as-improve` |
 | 1.0.0 | Initial release — consolidates skillsmith v6.9.0, marketplace-manager v4.0.0, and new agentsmith v1.0.0 |
 
 ## Skill: skillsmith
@@ -103,5 +105,21 @@ Analyzes saved Claude Code session transcripts to identify where a skill failed 
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
 | 1.1.0 | 2026-04-28 | - | Add code examples, agent-improvement-guide.md reference with delegation model and improvement patterns | 100 | 90 | 100 | 100 | 100 | 98 |
 | 1.0.0 | 2026-04-28 | - | Initial release — agent evaluation with 3 quality dimensions | 100 | 80 | 100 | 85 | 100 | 93 |
+
+## Skill: wtf
+
+### Current Metrics
+
+**Score: 100/100** (Excellent) — 2026-05-08
+
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 100 | 100 | 100 | 100 | 100 |
+
+### Version History
+
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.0.0 | 2026-05-08 | [#173](https://github.com/totallyGreg/claude-mp/issues/173) | Initial release — proactive friction reporter with submit script and improve integration | 100 | 100 | 100 | 100 | 100 | 100 |
 
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)

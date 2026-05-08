@@ -59,6 +59,29 @@ If the output identifies missing recommended frontmatter fields (`license`, `com
 2. Patch the `SKILL.md` frontmatter using the Edit tool
 3. Note the expected score delta (+3–6 pts per missing field pair) to document in Step 4
 
+## Step 0d: Check accumulated friction reports
+
+Extract the skill name from `$ARGUMENTS` (the leaf directory name). Query the friction report store for matching reports:
+
+```bash
+repo_root=$(git rev-parse --show-toplevel)
+skill_name=$(basename "$ARGUMENTS")
+reports_dir="$repo_root/.local/agent-issues/reports"
+
+if [[ -d "$reports_dir" ]]; then
+  matches=$(grep -rl "name:.*$skill_name" "$reports_dir"/*.md 2>/dev/null)
+fi
+```
+
+If matching reports are found, read each and present a **Friction context** summary before evaluation:
+
+> **Friction reports found for `<skill-name>`:**
+> - `<date>` — `<category>`: `<description>`
+
+This context is *advisory* — it highlights real user pain points to prioritize during improvement. It does not replace the evaluation scores.
+
+If no reports found or the directory does not exist, skip this step silently.
+
 ## Step 1: Evaluate current state
 
 ```bash
