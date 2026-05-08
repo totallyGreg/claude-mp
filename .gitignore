@@ -44,3 +44,6 @@ htmlcov/
 
 # Plugin local state (machine-specific, never ship)
 *.local.md
+
+# WTF friction reports (local only, never commit)
+.local/

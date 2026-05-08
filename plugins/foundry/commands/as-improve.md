@@ -41,6 +41,29 @@ If it does start with `$HOME/.claude/plugins/`:
 
 After this step, all subsequent steps use the remapped source path.
 
+## Step 0b: Check accumulated friction reports
+
+Determine the agent name from `$ARGUMENTS` (the directory name or filename without `.md`). Query the friction report store:
+
+```bash
+repo_root=$(git rev-parse --show-toplevel)
+agent_name=$(basename "$ARGUMENTS" .md)
+reports_dir="$repo_root/.local/agent-issues/reports"
+
+if [[ -d "$reports_dir" ]]; then
+  matches=$(grep -rl "name:.*$agent_name" "$reports_dir"/*.md 2>/dev/null)
+fi
+```
+
+If matching reports are found, read each and present a **Friction context** summary before evaluation:
+
+> **Friction reports found for `<agent-name>`:**
+> - `<date>` — `<category>`: `<description>`
+
+This context is *advisory* — it highlights real user pain points to prioritize during improvement. It does not replace the evaluation scores.
+
+If no reports found or the directory does not exist, skip this step silently.
+
 ## Step 1: Evaluate current state
 
 ```bash
