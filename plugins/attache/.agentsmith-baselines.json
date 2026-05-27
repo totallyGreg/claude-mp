@@ -7,10 +7,10 @@
     "last_evaluated": "2026-04-28"
   },
   "attache": {
-    "overall_score": 82,
-    "trigger_effectiveness": 85,
-    "system_prompt_quality": 78,
-    "coherence": 86,
-    "last_evaluated": "2026-04-30"
+    "overall_score": 97,
+    "trigger_effectiveness": 100,
+    "system_prompt_quality": 100,
+    "coherence": 93,
+    "last_evaluated": "2026-05-27"
   }
 }

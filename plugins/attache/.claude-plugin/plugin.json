@@ -1,11 +1,11 @@
 {
   "name": "attache",
-  "version": "11.1.0",
-  "description": "Chief of Staff agent — personal advisor that orchestrates task management, delegates to specialist agents, learns workflow patterns, and manages the full tool stack.",
+  "version": "12.0.0",
+  "description": "Chief of Staff agent — personal productivity orchestrator that routes to task backends (OmniFocus, Asana), coordinates cross-tool workflows, and learns patterns across the full tool stack.",
   "author": {
     "name": "J. Greg Williams",
     "email": "283704+totallyGreg@users.noreply.github.com"
   },
   "license": "MIT",
-  "keywords": ["attache", "omnifocus", "gtd", "agent", "orchestrator"]
+  "keywords": ["attache", "omnifocus", "asana", "gtd", "agent", "orchestrator"]
 }

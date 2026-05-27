@@ -1,11 +1,11 @@
 # attache
 
-Chief of Staff agent — personal advisor that orchestrates task management, delegates to specialist agents, learns workflow patterns, and manages the full tool stack. Built on the omnifocus-core foundation.
+Chief of Staff agent — personal productivity orchestrator that routes to task backends (OmniFocus for personal GTD, Asana for corporate collaboration), coordinates cross-tool workflows, and learns patterns across the full tool stack.
 
 ## Components
 
 ### Agent: attache
-Routes between omnifocus-core (queries/task CRUD), omnifocus-generator (OmniFocus plugins), attache-analyst (system learning), gtd-coach (methodology), and sibling agents (archivist, terminal-guru) based on user intent. Invoke via `subagent_type="attache:attache"` — not the Skill tool.
+Routes between omnifocus-core (queries/task CRUD), asana-workspace-manager (corporate tasks), omnifocus-generator (OmniFocus plugins), attache-analyst (system learning), gtd-coach (methodology), and sibling agents (archivist, terminal-guru) based on user intent. Invoke via `subagent_type="attache:attache"` — not the Skill tool.
 
 ### Skill: omnifocus-core
 Stateless data access — task CRUD, queries, perspectives, reporting via ofo CLI.
@@ -26,6 +26,7 @@ Pure GTD methodology coaching without OmniFocus automation.
 
 | Version | Changes |
 |---------|---------|
+| 12.0.0 | **Tool-agnostic GTD router**: Asana as peer backend alongside OmniFocus. Cross-tool workflows (task mirroring, pulling, reconciliation, unified daily view). Write safety classification. Output format section. Agent score 97/100 (was 82). |
 | 11.0.0 | **Attache rename**: omnifocus-manager → attache. Skill decomposition: omnifocus-core + omnifocus-generator + attache-analyst. Cross-tool delegation (archivist, terminal-guru). Tool stack awareness via Tools.base. Agent score 82/100. |
 | 9.0.0 | ofoCore named exports, shared types, ofo dump/stats, open-based deploy |
 | 8.4.0 | perspective-list, perspective-rules with ID resolution |
