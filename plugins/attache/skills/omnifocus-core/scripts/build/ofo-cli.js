@@ -254,7 +254,7 @@ function cmdCreate(args) {
 }
 function cmdUpdate(args) {
     if (args.length < 1)
-        die('Usage: ofo update <id> [--name N] [--due D] [--flagged] [--tags t1,t2]');
+        die('Usage: ofo update <id> [--name N] [--due D] [--flagged] [--tags t1,t2] [--project P]');
     const id = parseOmniFocusUrl(args[0]);
     const argObj = { id };
     let i = 1;
@@ -287,6 +287,9 @@ function cmdUpdate(args) {
                 break;
             case '--estimate':
                 argObj.estimate = parseInt(args[++i] || '0', 10);
+                break;
+            case '--project':
+                argObj.project = args[++i] || '';
                 break;
             case '--planned-date': {
                 const val = args[++i] || '';

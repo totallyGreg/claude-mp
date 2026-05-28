@@ -42,6 +42,8 @@ scripts/ofo create --name "Task" --project "Work" --due 2026-12-31
 scripts/ofo update <id> --name "New name" --flagged
 scripts/ofo update <id> --note "text"                # Replace task note entirely
 scripts/ofo update <id> --note-append "text"         # Append text to existing note
+scripts/ofo update <id> --project "Project Name"     # Move task to a project
+scripts/ofo update <id> --project inbox              # Move task back to inbox
 scripts/ofo search "meeting"                 # Search by name/note
 scripts/ofo list inbox                       # List inbox tasks
 scripts/ofo list today                       # Flagged + due today + planned today

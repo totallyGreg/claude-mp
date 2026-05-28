@@ -249,6 +249,16 @@ function updateTask(args: OfoArgs): OfoResult {
   if (args.plannedDate !== undefined) {
     try { t.plannedDate = args.plannedDate === null ? null : new Date(args.plannedDate as string); } catch (_) {}
   }
+  if (args.project !== undefined) {
+    const projName = args.project as string;
+    if (projName === 'inbox' || projName === '') {
+      moveTasks([t], inbox.ending);
+    } else {
+      const proj = flattenedProjects.byName(projName);
+      if (!proj) return { success: false, error: 'Project not found: ' + projName };
+      moveTasks([t], proj.task.ending);
+    }
+  }
   if (args.tags !== undefined) {
     t.clearTags();
     (args.tags as string[]).forEach(function(tagName: string) {
@@ -263,6 +273,7 @@ function updateTask(args: OfoArgs): OfoResult {
     task: {
       id: t.id.primaryKey,
       name: t.name,
+      project: t.containingProject ? t.containingProject.name : 'Inbox',
       flagged: t.flagged,
       dueDate: t.dueDate ? t.dueDate.toISOString() : null,
       deferDate: t.deferDate ? t.deferDate.toISOString() : null,

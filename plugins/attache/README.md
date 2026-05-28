@@ -26,6 +26,7 @@ Pure GTD methodology coaching without OmniFocus automation.
 
 | Version | Changes |
 |---------|---------|
+| 12.0.1 | **ofo update --project**: Add --project flag to move tasks between projects (#161 partial). Fix build-attache.sh echo expansion corrupting string literals. Skill score 98/100. |
 | 12.0.0 | **Tool-agnostic GTD router**: Asana as peer backend alongside OmniFocus. Cross-tool workflows (task mirroring, pulling, reconciliation, unified daily view). Write safety classification. Output format section. Agent score 97/100 (was 82). |
 | 11.0.0 | **Attache rename**: omnifocus-manager → attache. Skill decomposition: omnifocus-core + omnifocus-generator + attache-analyst. Cross-tool delegation (archivist, terminal-guru). Tool stack awareness via Tools.base. Agent score 82/100. |
 | 9.0.0 | ofoCore named exports, shared types, ofo dump/stats, open-based deploy |
