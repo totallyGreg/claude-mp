@@ -67,11 +67,11 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 ### Current Metrics
 
-**Score: 91/100** (Good) — 2026-05-03
+**Score: 98/100** (Excellent) — 2026-05-29
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
-| 100 | 80 | 80 | 100 | 100 |
+| 100 | 90 | 100 | 100 | 100 |
 
 ### Version History
 

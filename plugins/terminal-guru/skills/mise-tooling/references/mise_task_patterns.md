@@ -238,27 +238,68 @@ curl -sf "$API_BASE/targets" -H "Authorization: Bearer $ACCESS_TOKEN" | jq '.'
 
 ## usage Field (CLI Arg Parsing)
 
-Turns tasks into full CLIs with argument parsing and shell autocomplete:
+Turns tasks into full CLIs with argument parsing and shell autocomplete. Variables are exposed as `$usage_<name>` environment variables (dashes become underscores).
+
+### Argument types
 
 ```toml
-[tasks.scan]
+[tasks.profile]
 usage = '''
-arg "<model_path>" help="Path or URI to scan"
-option "-g --group" help="Security group UUID"
-flag "-v --verbose" help="Verbose output"
-flag "--delete" help="Actually delete (default is dry-run)"
+arg "[lookup]" help="Name or UUID (omit to list all)"
+flag "-r --revisions" help="Show all revisions"
+flag "-d --delete <ids>" help="Delete specific IDs"
+flag "--delete-all" help="Delete all (with confirmation)"
 '''
-run = "model-security scan --model-path {{arg(name='model_path')}}"
 ```
 
-Access parsed values via `$usage_<name>` in the `run` script.
+| Syntax | Type | Variable | Example |
+|--------|------|----------|---------|
+| `arg "<name>"` | Required positional | `$usage_name` | `mise run task myarg` |
+| `arg "[name]"` | Optional positional | `${usage_name:-}` | `mise run task` or `mise run task myarg` |
+| `flag "-v --verbose"` | Boolean flag | `$usage_verbose` (true/false) | `mise run task -v` |
+| `flag "--port <port>"` | Value flag | `$usage_port` | `mise run task --port 8080` |
+| `flag "-f --format <fmt>" default="text"` | Value flag with default | `$usage_format` | `mise run task -f json` |
 
-**Advanced patterns:**
-- `<arg>` — mandatory positional argument
-- `[arg]` — optional positional argument
-- `${usage_var?}` — error if variable not set
-- `${usage_var:-default}` — default value (non-mutating)
-- Template functions: `{{arg(name='x')}}`, `{{option(name='x')}}`, `{{flag(name='x')}}`
+**No `--` separator needed** when using `usage` — positional args work directly: `mise run task myarg` not `mise run task -- myarg`.
+
+### Multi-mode task pattern
+
+Use an optional positional arg + boolean/value flags to build a single task that handles list, show, and action modes:
+
+```bash
+LOOKUP="${usage_lookup:-}"
+
+if [ "${usage_delete_all:-false}" = "true" ]; then
+  # action mode: requires lookup
+  : "${LOOKUP:?'profile name required with --delete-all'}"
+  # ... delete logic
+elif [ -z "$LOOKUP" ]; then
+  # list mode: no args
+  # ... list all
+elif [ "${usage_revisions:-false}" = "true" ]; then
+  # detail mode: lookup + flag
+  # ... show revisions
+else
+  # show mode: lookup only
+  # ... show single item
+fi
+```
+
+### File-based task arguments
+
+For file-based tasks in `.mise/tasks/`, use `#USAGE` comment directives instead of the `usage` TOML field:
+
+```bash
+#!/usr/bin/env bash
+#MISE description="Manage security profiles"
+#USAGE arg "[lookup]" help="Profile name or UUID"
+#USAGE flag "-r --revisions" help="Show all revisions"
+#USAGE flag "--delete-all" help="Delete all revisions"
+```
+
+### Deprecated
+
+Template functions (`{{arg(name='x')}}`, `{{option(name='x')}}`, `{{flag(name='x')}}`) are deprecated — removal scheduled for 2026.11.0. Use `$usage_<name>` environment variables instead.
 
 ## Running Tasks
 
@@ -290,3 +331,10 @@ run = '''
   jq -r '"result: \(.id)"'
 '''
 ```
+
+**When `'''` isn't enough:** Even literal strings can't help when the task grows complex enough that jq string interpolation, heredocs, and nested quoting collide. Signs you should move to a file-based task in `.mise/tasks/`:
+
+- Multiple jq calls with `\(...)` interpolation
+- TOML parse errors on backslash characters
+- Script exceeds ~30 lines inline
+- Need to share functions with other tasks via `source`

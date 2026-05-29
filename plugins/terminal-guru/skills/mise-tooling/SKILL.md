@@ -2,7 +2,9 @@
 name: mise-tooling
 description: This skill should be used when the user asks to "configure mise.toml", "create a mise task", "set up tool versions", "manage environments with mise", "debug mise config", "task_config includes", "mise task DRY", "mise profiles", "mise env not loading", "create mise run command", or needs help with mise (jdx/mise) for tool versioning, environment variables, or task automation. Also trigger on mentions of mise.toml, .miserc.toml, mise run, mise env, mise tasks, mise profiles, task_config, or exec() in env. Do NOT use for shell configuration or function generation (use zsh-dev instead). Do NOT use for sesh/tmux session management (use environment-composition instead). Do NOT use for signal handling or logging (use signals-monitoring instead). Mise + sesh integration questions should route here for the mise side and environment-composition for the sesh side.
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
+license: MIT
+compatibility: claude-code
 ---
 
 # Mise Tooling
@@ -63,10 +65,28 @@ Continuous file watching (`mise watch`) for rebuild-on-change workflows. Lifecyc
 ## Common Workflows
 
 ### "Create a new task"
-1. For simple tasks, add inline to `[tasks]` in `mise.toml`
-2. For service-grouped tasks, create `tasks/<service>.toml` and include via `task_config.includes`
-3. For complex tasks, use `usage` field for arg parsing and `depends` for ordering
-4. For reusable patterns, define `[task_templates.*]` and use `extends`
+
+Simple inline task:
+
+```toml
+[tasks.lint]
+description = "Run linter"
+run = "ruff check src/"
+```
+
+Task with arguments (no `--` needed for positional args):
+
+```toml
+[tasks.deploy]
+description = "Deploy to environment"
+usage = '''
+arg "[env]" help="Target environment" default="staging"
+flag "-f --force" help="Skip confirmation"
+'''
+run = 'echo "Deploying to $usage_env (force=$usage_force)"'
+```
+
+For complex tasks, use file-based scripts in `.mise/tasks/` with `#USAGE` directives. For reusable patterns, define `[task_templates.*]` and use `extends`.
 
 ### "Share tasks across projects"
 1. Define tasks in a parent directory's `mise.toml` or `tasks/` directory
@@ -74,10 +94,14 @@ Continuous file watching (`mise watch`) for rebuild-on-change workflows. Lifecyc
 3. Use `{{config_root}}` in task scripts to resolve paths relative to the config that defined the task
 
 ### "Set up credentials for a new tenant"
-1. Create `mise.<tenant>.toml` with `exec()` calls to keychain/vault
-2. Project sets default tenant in `.miserc.toml` (`env = ["tenant"]`)
-3. Cloners use `_.source = ".env"` for simple credential files
-4. Switch tenants: `MISE_ENV=other mise run <task>`
+
+```toml
+# mise.prod.toml — activated by MISE_ENV=prod or .miserc.toml
+[env]
+API_KEY = "{{exec(command='keychainctl pair get myapp API_KEY')}}"
+```
+
+Set default tenant in `.miserc.toml` (`env = ["prod"]`). Cloners use `_.source = ".env"` as fallback. Switch tenants: `MISE_ENV=staging mise run deploy`.
 
 ### "Look up a CLI command"
 See `references/mise_cli_reference.md` for compact command tables covering task management, run flags, environment, and tool operations.
