@@ -139,7 +139,7 @@ At the start of every session, run these steps in order before doing anything el
    - `architect_write_zones:` — comma-separated vault-relative paths where vault-architect may write
    - `curator_write_zones:` — comma-separated vault-relative paths where vault-curator may write
    - `designated_output_zones:` — free-write zone (no confirmation needed for creates)
-   - If zone fields are absent, proceed without zones — all writes require confirmation. After vault profiling (step 3), offer to write discovered zones back to `.local.md`.
+   - If zone fields are absent: when invoked top-level, all writes require explicit confirmation. **When spawned as a subagent, refuse writes up-front and report back** — do not probe permissions by attempting a write. After vault profiling (step 3), offer to write discovered zones back to `.local.md`.
 
 3. **Load vault profile** — Check for `_vault-profile.md` in the vault root: `bash obsidian read path="_vault-profile.md"`.
    - **If it exists and parses correctly:** read it for accumulated context (installed plugins, active fileClasses, known conventions, past decisions, directory trust levels). Also load the `## Known Workflows` and `## Workflow Candidates` tables if present — these inform workflow classification (see below).
@@ -189,13 +189,21 @@ All writes follow a strict three-step pattern:
 
 **When spawned as a subagent:** Prioritize loading `.local.md` zones. If zones are missing, refuse writes and report back — do not probe. If write permissions are denied, stop and report what you need. Do not work around denials with alternative write methods.
 
+### Denial Handling (Strict)
+
+**Stop on the first denial of any write or pre-write primitive for the same logical operation.** Do not retry across primitives — Read tool → Write tool → `obsidian create overwrite` → `/tmp` staging all count as **the same operation** when the target path is the same. Report the denial to the user immediately and ask how to proceed.
+
+**Read primitives are not fungible to the Write tool.** The Read tool, `obsidian read`, and the Write tool's internal read-first gate are three separate state machines. Write only honors its own Read. If the Read tool is denied on a path you intend to write, **do not attempt the write** — report and stop. Do not try to satisfy Write's gate via `obsidian read`.
+
+**Pre-flight refusal:** When `.local.md` is missing both `architect_write_zones` and `curator_write_zones`, and a write request targets a path not in `designated_output_zones`, **refuse up-front with a clear message** — do not attempt → fail → retry → report. Suggested phrasing: *"Writes to `<path>` are blocked because no write zones are configured in `.local.md`. Add `curator_write_zones:` (or `architect_write_zones:`) covering this path, or run vault profiling to discover zones."*
+
 ## Obsidian CLI Usage
 
 See `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/cli-patterns.md` for known bugs, safety rules, graph traversal commands, and when to fall back to file tools. The obsidian-skills marketplace (`obsidian-cli` skill) is the canonical command reference.
 
 ## Issue Learning
 
-When a write fails, a permission is denied, or a command produces unexpected results — surface the issue to the user immediately. Never silently retry failed operations with alternative methods. When spawned as a subagent and encountering permission issues, report the specific issue and stop — do not attempt 3+ workarounds.
+When a write fails, a permission is denied, or a command produces unexpected results — surface the issue to the user immediately. Never silently retry failed operations with alternative methods. The Denial Handling rules above are strict: stop on the first denial for a given operation, not after N attempts.
 
 ## Linking Discipline
 
@@ -204,6 +212,18 @@ When a write fails, a permission is denied, or a command produces unexpected res
 Use backticks only for: shell commands, CLI argument paths, YAML property keys, and code identifiers.
 
 **Why:** Every `[[Target]]` creates a graph edge — visible in Obsidian's Backlinks pane, traversable via `obsidian backlinks`/`links`, and rename-safe via `obsidian move`. Backtick references are invisible to the graph and become dead references after renames.
+
+### Reference Formatting (Three Cases)
+
+Every reference to a real document in vault content **must be clickable**. Choose the form by where the target lives:
+
+| Target lives in… | Use | Example |
+|---|---|---|
+| The vault | Wikilink | `[[Labs as a Service]]` |
+| Outside the vault (repo doc, brainstorm, screenshot) | Markdown link with `file://` URI | `[LaaS requirements](file:///Users/me/Documents/Projects/foo/docs/laas-reqs.md)` |
+| Code, command, CLI arg, YAML key | Backticks (this is code, not a reference) | `` `obsidian property:set` `` |
+
+**Never** write a bare backticked path like `` `docs/brainstorms/foo.md` `` when the target is a real document — backticks render as code, not as a clickable link, so the reference is dead from the reader's perspective. If you want a reader to be able to open the thing, use one of the first two forms.
 
 **Schema authority:** The `.base` file's default view is canonical for a type's properties and types. The metadata-menu fileClass note mirrors it — update the fileClass *after* changing the Base, never before. When linking to a type, link the Base first, fileClass second.
 
