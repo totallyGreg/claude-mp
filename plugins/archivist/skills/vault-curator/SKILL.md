@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.12.0"
+  version: "1.14.0"
   plugin: "archivist"
   stage: "3"
 license: MIT
