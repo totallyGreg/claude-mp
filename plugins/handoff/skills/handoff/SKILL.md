@@ -2,7 +2,6 @@
 name: handoff
 description: This skill should be used when the user or another agent asks to "create a handoff", "write a handoff payload", "generate a handoff for another agent", "build a context handoff", "configure a tmux relay", "hand off this work", "hand off to another claude", "relay this to another agent", "send context to a teammate", "transfer this to another pane", "pass this to <agent-name>", "/handoff", or otherwise wants to transfer structured work context from this Claude session to another Claude — whether a teammate spawned via SendMessage, a Claude process running in a separate tmux pane, or via clipboard for human-mediated handoff. Do NOT use for tmux pane management generally (use terminal-guru) or for end-of-session file-based recap intended for a future fresh Claude session unrelated to any live recipient (that is a different problem domain).
 metadata:
-  author: J. Greg Williams
   version: "0.1.0"
 compatibility: bash 4+; tmux 3.0+ for tmux transport; pbcopy/xclip/wl-copy for clipboard transport
 license: MIT
@@ -19,28 +18,25 @@ The recipient determines the transport. Pick **before** building the payload —
 | Recipient | Transport | How |
 |---|---|---|
 | Teammate in current orchestration (spawned via `TeamCreate` or `Agent`) | **SendMessage tool** (native) | Call `SendMessage({to: "<name>", message: <payload>})` directly. Do NOT invoke the script. |
-| Claude running in a separate tmux pane | **`tmux:` transport** | Invoke `scripts/handoff --to tmux:<target>` (pipe payload on stdin) |
+| Claude running in a separate tmux pane | **`tmux:` transport** | Invoke `scripts/handoff --to tmux:<address>` (pipe payload on stdin) |
 | Human to paste into another session | **clipboard** | `scripts/handoff --to clipboard` |
 | Audit trail or async pickup | **file** | `scripts/handoff --to file:<path>` |
 
-**SendMessage is always preferred when available** — no filesystem, no shell injection surface, no tmux Enter-character risk, receiver gets the message as their next conversation turn.
+**SendMessage is always preferred when available** — no filesystem, no shell injection surface, no tmux Enter-character risk; receiver gets the message as their next conversation turn.
 
 ## Building the Payload
 
-Every handoff uses the same 8-section Markdown schema. The receiver should be able to pick up productively without re-asking "what's going on."
+Every handoff uses the same Markdown schema. Four sections are required; everything else goes into a single free-form "Additional context" section. The receiver should be able to pick up productively without re-asking "what's going on."
 
 | Section | Required | Content |
 |---|---|---|
 | Goal | yes | One sentence: what the receiver is being asked to do |
 | Current state | yes | 5–15 bullets: what's done, in flight, blocked |
 | Decisions made | yes | Chosen approach + rejected alternatives (one-line rationale each) |
-| Open questions | optional | Things the sender couldn't resolve and is handing over |
 | Next steps | yes | Ordered list: what to do first, second, third |
-| Quick-start commands | optional | Commands the receiver can run immediately to inspect state |
-| Artifact references | optional | File paths, URLs, commit SHAs, task IDs — links, never inline copies |
-| Receiver notes | optional | Recipient-specific context (e.g., "you are archivist — vault path is X") |
+| Additional context | optional | Quick-start commands, artifact references, open questions, receiver-specific notes — only include what's genuinely useful |
 
-Full section specs, examples, and anti-patterns are in `references/payload-schema.md`. Load that reference when building a non-trivial payload or when the receiver is a specialized agent.
+Full per-section guidance, examples, and anti-patterns live in `references/payload-schema.md`. Load that reference when building a non-trivial payload or when the receiver is a specialized agent.
 
 ## Invoking the Script
 
@@ -60,13 +56,13 @@ echo "$PAYLOAD" | scripts/handoff --to tmux:my-session:1.0 --from "archivist"
 echo "$PAYLOAD" | scripts/handoff --to tmux:auto --from "attache"
 ```
 
-For `tmux:`, `--filter claude` is applied by default — see `references/tmux-targeting.md` for the security rationale and the pane-discovery algorithm. Override with `--no-filter` only when you know the receiver and accept the risk.
+For `tmux:`, `--filter claude` is applied by default — see `references/tmux-targeting.md` for the security rationale and the pane-discovery algorithm. Pass `--filter '.*'` to disable filtering when the receiver is known and the risk is accepted.
 
 ## When NOT to Invoke the Script
 
-- **Recipient is a teammate.** Use the SendMessage tool directly. The script does not handle SendMessage — that's the orchestration layer, not the IPC layer.
-- **Recipient is the same Claude session.** No handoff needed; just continue the work.
-- **End-of-session recap to a hypothetical future Claude.** That's a different problem (session-to-session context preservation, not live agent handoff). The genre is covered by tools like `claude-handoff` (REMvisual).
+- **Recipient is a teammate.** Use the SendMessage tool directly. The script does not handle SendMessage — that is the orchestration layer, not the IPC layer.
+- **Recipient is the same Claude session.** No handoff needed; continue the work.
+- **End-of-session recap to a hypothetical future Claude.** That is a different problem (session-to-session context preservation, not live agent handoff). The genre is covered by tools like `claude-handoff` (REMvisual).
 
 ## Tmux Transport: What to Know
 
@@ -86,7 +82,7 @@ Critical detail: the script makes **two** tmux send-keys calls — one for the l
 ```
 SendMessage({
   to: "archivist",
-  message: "<8-section payload as plain text>"
+  message: "<payload as plain text>"
 })
 ```
 
@@ -97,7 +93,7 @@ cat <<'EOF' | scripts/handoff --to tmux:auto --from "lead-claude"
 Continue the v2.0 design conversation for the archivist plugin.
 
 # Current state
-- Plan written and approved (see References)
+- Plan written and approved (see Additional context)
 - Issue #175 created with full design + open questions
 - ...
 EOF
@@ -111,6 +107,6 @@ echo "$PAYLOAD" | scripts/handoff --to clipboard
 
 ## References
 
-- `references/payload-schema.md` — full 8-section spec with per-section guidance, examples, and anti-patterns
+- `references/payload-schema.md` — full per-section guidance, examples, and anti-patterns
 - `references/tmux-targeting.md` — pane discovery algorithm, `--filter` semantics, security model, two-call Enter delivery
 - `scripts/handoff --help` — current script interface (single source of truth)

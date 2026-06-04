@@ -1,12 +1,8 @@
----
-name: Handoff Payload Schema
-description: The 8-section Markdown structure for handoff payloads — what each section is for, how to populate it, and what to leave out.
-load_when: Building a handoff payload (any transport); reviewing a received handoff for completeness; defining a custom schema variant for a domain-specific agent.
----
-
 # Handoff Payload Schema
 
-Every handoff — clipboard, file, tmux, or SendMessage — uses this 8-section Markdown structure. Sections appear in order. Omit optional sections only when genuinely empty (don't leave stubs).
+## When to load this
+
+Building any handoff payload (any transport); reviewing a received handoff for completeness; defining a custom schema variant for a domain-specific agent.
 
 ## Why a schema at all
 
@@ -15,7 +11,9 @@ The receiver should be able to pick up productively without asking "what's going
 - Senders have a checklist (forces explicit "what's blocked" / "what's settled" thinking)
 - Schema-aware agents (archivist, attache) can extract specific sections programmatically
 
-## The 8 sections
+## The structure
+
+Four required sections appear in order, followed by an optional free-form "Additional context" section. Omit the optional section entirely when there's nothing useful to add — do not write empty stubs.
 
 ### 1. Goal (required)
 
@@ -51,16 +49,7 @@ The choices the sender made — especially **rejected alternatives**. Prevents t
 - Markdown payload only for v0.1 — rejected JSON because no real consumer needs it yet
 ```
 
-### 4. Open questions (optional)
-
-Things the sender genuinely couldn't resolve and is handing over. Distinct from "Blocked" — these are decisions the receiver should make, not external waits.
-
-```markdown
-- Should the slash command default to opening $EDITOR for review, or send immediately?
-- For multi-pane tmux:auto matches, prompt the user or always pick first?
-```
-
-### 5. Next steps (required)
+### 4. Next steps (required)
 
 **Ordered list.** Concrete, executable. The receiver should know exactly what to do first.
 
@@ -72,9 +61,11 @@ Things the sender genuinely couldn't resolve and is handing over. Distinct from 
 5. Commit + push
 ```
 
-### 6. Quick-start commands (optional)
+### 5. Additional context (optional)
 
-Commands the receiver can run immediately to inspect current state without spelunking. Especially valuable when the receiver is a fresh Claude with no session history.
+A single free-form section for whatever the receiver genuinely needs that doesn't fit the four required sections. Include only what's actually useful. Common contents (use the subheadings or skip them — whatever reads cleanest for this specific handoff):
+
+**Quick-start commands** — what the receiver can run immediately to inspect state without spelunking:
 
 ```bash
 git -C /Users/gregwilliams/Documents/Projects/claude-mp log --oneline -5
@@ -82,38 +73,41 @@ gh issue view 175
 ls plugins/handoff/
 ```
 
-### 7. Artifact references (optional)
-
-File paths, URLs, commit SHAs, task IDs. **Links, never inline copies** — the receiver can read the source of truth.
+**Artifact references** — file paths, URLs, commit SHAs, task IDs. Links, never inline copies:
 
 ```markdown
 - Plan: /Users/gregwilliams/.claude/plans/plugins-archivist-take-a-look-replicated-quokka.md
 - Issue: https://github.com/totallyGreg/claude-mp/issues/175
-- Plugin manifest: plugins/handoff/.claude-plugin/plugin.json
 - Latest commit: 305fa10
 ```
 
-### 8. Receiver notes (optional)
+**Open questions** — things the sender genuinely couldn't resolve and is handing over (distinct from "Blocked" — these are decisions for the receiver, not external waits):
 
-Recipient-specific context. Set when the receiver is a known agent type and there's setup it needs to do.
+```markdown
+- Should the slash command default to opening $EDITOR for review, or send immediately?
+```
+
+**Receiver-specific context** — when the receiver is a known agent type and there's setup it needs to do:
 
 ```markdown
 - You are archivist. Vault path is in ~/.claude/plugins/cache/totally-tools/archivist/1.26.0/.local.md
 - The session log is open at <vault>/200 Daily/2026-06-04.md — append the handoff outcome there
 ```
 
+Use what helps; omit what doesn't. If nothing here is genuinely useful, omit the whole section.
+
 ## Anti-patterns
 
-**Inline transcripts.** Do not paste large chunks of prior conversation. Use Artifact references to point at session files or `gh` commands. The point of handoff is summary, not replay.
+**Inline transcripts.** Do not paste large chunks of prior conversation. Use artifact references to point at session files or `gh` commands. The point of handoff is summary, not replay.
 
-**Empty stubs.** Omitting an optional section is better than `## Open questions\n\n_None._` Lower noise, higher signal.
+**Empty stubs.** Omitting Additional context is better than `## Additional context\n\n_None._` Lower noise, higher signal.
 
-**Implicit context.** Don't assume the receiver shares your jargon, paths, or aliases. If the project nickname is "claude-mp," say so once in Receiver notes or Goal.
+**Implicit context.** Don't assume the receiver shares your jargon, paths, or aliases. If the project nickname is "claude-mp," say so once in Additional context or Goal.
 
 **Mixing decisions with state.** "Decisions made" is for rejected alternatives. "Current state" is for what is. Don't conflate.
 
-**Forgetting Quick-start commands when the receiver is in a different tmux pane.** That receiver has no shared context — Quick-start is the bridge.
+**Forgetting quick-start commands when the receiver is in a different tmux pane.** That receiver has no shared context — quick-start is the bridge. Surface them under Additional context.
 
 ## Schema extensions
 
-The 8-section structure is the contract. Domain agents may add their own subsections within a section (e.g., archivist might add a "Vault context" subsection under Receiver notes), but the top-level 8 stay stable so consumers can rely on them.
+The four required sections + Additional context structure is the contract. Domain agents may add their own subsections within Additional context (e.g., archivist might add a "Vault context" subsection), but the four required top-level sections stay stable so consumers can rely on them.

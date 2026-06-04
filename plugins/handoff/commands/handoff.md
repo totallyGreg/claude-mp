@@ -8,10 +8,9 @@ allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/skills/handoff/scripts/*), Bash(tmux:*
 Usage:
   /handoff                              → auto-select transport (teammate if available, else clipboard)
   /handoff to:teammate <name>           → SendMessage to a teammate
-  /handoff to:tmux                      → pick first claude-running pane
-  /handoff to:tmux <session>            → specific session (lowest pane)
-  /handoff to:tmux <session:window.pane> → explicit address
-  /handoff to:clipboard                 → pbcopy / xclip
+  /handoff to:tmux                      → pick first claude-running pane (--filter claude)
+  /handoff to:tmux <session:window.pane> → explicit pane address
+  /handoff to:clipboard                 → pbcopy / xclip / wl-copy
   /handoff to:file <path>               → write to path (chmod 600)
 
 Free-text after the transport is treated as the handoff intent (Goal section).

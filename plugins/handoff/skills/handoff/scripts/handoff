@@ -9,26 +9,23 @@
 # Payload is read from stdin. The script does not generate content.
 #
 # Usage:
-#   handoff --to clipboard                       # pbcopy / xclip
+#   handoff --to clipboard                       # pbcopy / xclip / wl-copy
 #   handoff --to file:<path>                     # write to path with chmod 600
-#   handoff --to tmux:<target> [--filter <re>]   # send via tmux send-keys
-#   handoff --to tmux:auto [--filter claude]     # pick first matching pane
+#   handoff --to tmux:<address> [--filter <re>]  # send to session:window.pane
+#   handoff --to tmux:auto [--filter <re>]       # pick first pane matching filter
 #
 # Options:
 #   --from <name>      Sender identifier shown in the pointer message (default: "agent")
 #   --filter <regex>   Restrict tmux delivery to panes whose current command matches.
 #                      Defaults to "claude" when transport is tmux:* (safety: avoids
 #                      delivering "read this file" instructions to a shell prompt).
-#                      Pass --no-filter to override.
-#   --no-filter        Disable the default --filter claude for tmux transport.
-#   --target-path <p>  For tmux transport: write the payload to this exact path
-#                      instead of a temp file. Useful for audit trails.
+#                      Pass --filter '.*' to disable filtering.
 #
 # Exit codes:
 #   0   delivered
 #   1   usage error
 #   2   transport error (no clipboard tool, tmux not found, target not found, etc.)
-#   3   security error (path failed validation)
+#   3   security error (user-supplied path failed validation)
 
 set -euo pipefail
 
@@ -39,8 +36,7 @@ set -euo pipefail
 TO=""
 FROM="agent"
 FILTER=""
-USE_FILTER_DEFAULT=true
-TARGET_PATH=""
+FILTER_EXPLICIT=false
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -53,30 +49,14 @@ usage() {
   exit "${1:-0}"
 }
 
-# Path validation — accept only safe characters in paths we put into pointer
-# messages or pass through to tmux send-keys. Prevents shell injection vectors.
-validate_path() {
+# Validate a USER-SUPPLIED path before interpolating it into a shell-visible
+# message or filesystem operation. Script-generated paths are not validated
+# (they're constructed from $$ and $(date +%s) — guaranteed safe).
+validate_user_path() {
   local path="$1"
   if [[ ! "$path" =~ ^[/a-zA-Z0-9._-]+$ ]]; then
     die "path contains unsafe characters: $path" 3
   fi
-}
-
-# Write payload to a chmod-600 temp file, return the path on stdout.
-write_temp_payload() {
-  local tmpdir="${TMPDIR:-/tmp}"
-  local path
-  path="${tmpdir%/}/handoff-$$-$(date +%s).md"
-  # Create with restrictive umask, then chmod explicitly.
-  ( umask 077 && cat > "$path" )
-  chmod 600 "$path"
-  printf '%s' "$path"
-}
-
-# Sweep old handoff temp files (>1 day). Best-effort, never fails the run.
-sweep_old_handoffs() {
-  local tmpdir="${TMPDIR:-/tmp}"
-  find "$tmpdir" -maxdepth 1 -name 'handoff-*.md' -mtime +1 -delete 2>/dev/null || true
 }
 
 # ---------------------------------------------------------------------------
@@ -100,8 +80,7 @@ transport_clipboard() {
 
 transport_file() {
   local path="$1"
-  validate_path "$path"
-  # Honor existing directory; create if missing only when single level.
+  validate_user_path "$path"
   local dir
   dir="$(dirname "$path")"
   [[ -d "$dir" ]] || die "directory does not exist: $dir" 2
@@ -110,27 +89,25 @@ transport_file() {
   echo "handoff: wrote payload to $path (mode 600)"
 }
 
-# Resolve a tmux pane address from a user-supplied target string.
-# Returns the canonical session:window.pane address on stdout.
+# Resolve a tmux pane address. Two forms accepted:
+#   "auto"               → first pane matching --filter
+#   "session:window.pane" → used as-is (must pass --filter)
 resolve_tmux_target() {
   local target="$1"
   local filter="$2"
 
   command -v tmux >/dev/null 2>&1 || die "tmux not found on PATH" 2
 
-  # Build the full pane list once: addr<TAB>cmd
   local panes
   panes="$(tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index}	#{pane_current_command}' 2>/dev/null)" \
     || die "tmux list-panes failed (is a tmux server running?)" 2
 
-  # Apply filter if requested
   if [[ -n "$filter" ]]; then
     panes="$(printf '%s\n' "$panes" | grep -E "	.*${filter}" || true)"
     [[ -n "$panes" ]] || die "no panes match filter: $filter" 2
   fi
 
   if [[ "$target" == "auto" ]]; then
-    # Pick first matching pane after filter
     local count
     count="$(printf '%s\n' "$panes" | wc -l | tr -d ' ')"
     if [[ "$count" -gt 1 ]]; then
@@ -141,7 +118,7 @@ resolve_tmux_target() {
     return
   fi
 
-  # Explicit session:window.pane — accept as-is if it appears in list
+  # Explicit session:window.pane
   if [[ "$target" =~ ^[A-Za-z0-9_-]+:[0-9]+\.[0-9]+$ ]]; then
     if printf '%s\n' "$panes" | grep -q "^${target}	"; then
       printf '%s' "$target"
@@ -150,43 +127,24 @@ resolve_tmux_target() {
     die "pane $target not found (or did not pass --filter)" 2
   fi
 
-  # Session name — resolve to lowest-index pane in the session
-  local session_panes
-  session_panes="$(printf '%s\n' "$panes" | awk -F: -v s="$target" '$1==s {print}')"
-  [[ -n "$session_panes" ]] || die "session not found (or did not pass --filter): $target" 2
-  local n
-  n="$(printf '%s\n' "$session_panes" | wc -l | tr -d ' ')"
-  if [[ "$n" -gt 1 ]]; then
-    echo "handoff: session $target has $n panes, sending to lowest-index" >&2
-  fi
-  printf '%s\n' "$session_panes" | sort | head -n1 | cut -f1
+  die "invalid tmux target: $target (expected 'auto' or 'session:window.pane')" 1
 }
 
 transport_tmux() {
-  local target_spec="$1"     # "auto" or "session" or "session:window.pane"
+  local target_spec="$1"
   local filter="$2"
-  local explicit_path="$3"   # may be empty
 
   local pane
   pane="$(resolve_tmux_target "$target_spec" "$filter")"
 
-  # Build payload file
+  # Build payload file — path is script-generated, no validation needed
+  local tmpdir="${TMPDIR:-/tmp}"
   local file
-  if [[ -n "$explicit_path" ]]; then
-    validate_path "$explicit_path"
-    local dir
-    dir="$(dirname "$explicit_path")"
-    [[ -d "$dir" ]] || die "directory does not exist: $dir" 2
-    ( umask 077 && cat > "$explicit_path" )
-    chmod 600 "$explicit_path"
-    file="$explicit_path"
-  else
-    file="$(write_temp_payload)"
-    validate_path "$file"
-  fi
+  file="${tmpdir%/}/handoff-$$-$(date +%s).md"
+  ( umask 077 && cat > "$file" )
+  chmod 600 "$file"
 
   # Pointer message — short, plain ASCII, contains no payload content.
-  # File path is validated above so injection-safe.
   local msg="[handoff from ${FROM}] Read ${file} and acknowledge in conversation."
 
   # Two-call delivery: literal message + explicit Enter.
@@ -212,12 +170,7 @@ while [[ $# -gt 0 ]]; do
       FROM="$2"; shift 2 ;;
     --filter)
       [[ $# -ge 2 ]] || die "--filter requires an argument"
-      FILTER="$2"; USE_FILTER_DEFAULT=false; shift 2 ;;
-    --no-filter)
-      FILTER=""; USE_FILTER_DEFAULT=false; shift ;;
-    --target-path)
-      [[ $# -ge 2 ]] || die "--target-path requires an argument"
-      TARGET_PATH="$2"; shift 2 ;;
+      FILTER="$2"; FILTER_EXPLICIT=true; shift 2 ;;
     -h|--help)
       usage 0 ;;
     *)
@@ -228,7 +181,7 @@ done
 [[ -n "$TO" ]] || die "--to is required (try --help)"
 
 # Apply default --filter claude for tmux transports (safety)
-if [[ "$TO" == tmux:* ]] && [[ "$USE_FILTER_DEFAULT" == true ]]; then
+if [[ "$TO" == tmux:* ]] && [[ "$FILTER_EXPLICIT" == false ]]; then
   FILTER="claude"
 fi
 
@@ -236,15 +189,13 @@ fi
 # Dispatch
 # ---------------------------------------------------------------------------
 
-sweep_old_handoffs
-
 case "$TO" in
   clipboard)
     transport_clipboard ;;
   file:*)
     transport_file "${TO#file:}" ;;
   tmux:*)
-    transport_tmux "${TO#tmux:}" "$FILTER" "$TARGET_PATH" ;;
+    transport_tmux "${TO#tmux:}" "$FILTER" ;;
   *)
     die "unknown transport: $TO (expected clipboard, file:<path>, or tmux:<target>)" ;;
 esac

@@ -2,7 +2,7 @@
 
 Hand off work to another Claude — a teammate in the same orchestration, a separate Claude running in a different tmux pane, or via clipboard/file for human-mediated transfer.
 
-The skill produces a structured 8-section Markdown payload (Goal, Current state, Decisions made, Open questions, Next steps, Quick-start commands, Artifact references, Receiver notes) and dispatches it through the right transport based on who the recipient is.
+The skill produces a structured Markdown payload (four required sections — Goal, Current state, Decisions made, Next steps — plus an optional free-form "Additional context" section) and dispatches it through the right transport based on who the recipient is.
 
 ## Why
 
@@ -21,9 +21,8 @@ This plugin fills that gap. The same payload schema works whether you're:
 ```
 /handoff                              # auto-select transport
 /handoff to:teammate <name>           # SendMessage to a teammate
-/handoff to:tmux                      # first claude-running pane
-/handoff to:tmux <session>            # specific session, lowest-index pane
-/handoff to:tmux <session:window.pane> # explicit address
+/handoff to:tmux                      # first claude-running pane (--filter claude)
+/handoff to:tmux <session:window.pane> # explicit pane address
 /handoff to:clipboard                 # pbcopy / xclip / wl-copy
 /handoff to:file <path>               # chmod 600 + write
 ```
@@ -59,10 +58,10 @@ SendMessage is preferred when available — no filesystem exposure, no Enter-cha
 The tmux transport assumes single-user threat model (sender and receiver are the same user on the same host). Within that model:
 
 - Payload files are written with `chmod 600` and `umask 077`
-- Old `handoff-*.md` temp files (>1 day) are swept on each invocation
-- File paths in pointer messages are validated (`^[/a-zA-Z0-9._-]+$`)
+- User-supplied file paths are validated (`^[/a-zA-Z0-9._-]+$`); script-generated temp paths are safe by construction
 - `--filter claude` is applied by default for `tmux:` targets — prevents delivering "read this file" instructions to a shell prompt that would try to execute them
 - Two-call `tmux send-keys` (literal message + explicit Enter) — fixes the common failure mode where the message arrives but sits at the prompt waiting on manual Return
+- Temp file cleanup is left to the OS (`/tmp` is wiped on reboot on macOS; Linux uses tmpreaper/systemd-tmpfiles)
 
 See `skills/handoff/references/tmux-targeting.md` for the full security model and known non-defenses.
 
@@ -95,7 +94,7 @@ If the standalone `tmux-send` capability planned for `terminal-guru` ever ships,
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
-| 0.1.0 | 2026-06-04 | - | Initial release. Three transports: SendMessage (via calling agent), tmux send-keys with two-call Enter delivery, clipboard, file. 8-section Markdown payload schema. Standalone tmux pane discovery (no terminal-guru dependency). Security: chmod 600 temp files, mandatory `--filter claude` default, path validation. | 100 | 90 | 100 | 100 | 100 | 98 |
+| 0.1.0 | 2026-06-04 | - | Initial release. Three transports: SendMessage (via calling agent), tmux send-keys with two-call Enter delivery, clipboard, file. Four required sections + Additional context Markdown payload schema. Standalone tmux pane discovery (no terminal-guru dependency). Security: chmod 600 temp files, mandatory `--filter claude` default, user-path validation. | 100 | 90 | 100 | 100 | 100 | 98 |
 
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
 
