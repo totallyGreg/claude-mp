@@ -1,0 +1,18 @@
+{
+  "name": "handoff",
+  "version": "0.1.0",
+  "description": "Hand off work to another Claude agent — teammate via SendMessage, tmux pane via send-keys, clipboard, or file. Structured Markdown payload with goal, state, decisions, and next steps.",
+  "author": {
+    "name": "J. Greg Williams",
+    "email": "283704+totallyGreg@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "handoff",
+    "relay",
+    "agent-to-agent",
+    "tmux",
+    "send-message",
+    "claude-code"
+  ]
+}
