@@ -152,16 +152,18 @@ At the start of every session, run these steps in order before doing anything el
 
    a. **Orphan count:** `bash obsidian orphans | wc -l` → store as `orphan_count`. If CLI unavailable, skip.
    b. **Unhealthy collections (fast scan):** First get candidates: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_collection_health.py ${VAULT_PATH} --dry-run`. Then for each candidate folder, run `check_collection_health.py --folder <folder>` and collect any with `health: partial` or `health: missing_infrastructure`. If vault has no collections (empty candidate list), skip.
+   c. **Schema drift on primary fileClass (cheap):** If `_vault-profile.md` lists an `Active fileClasses` table with a "most used" or top-of-list fileClass, run `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/detect_schema_drift.py ${VAULT_PATH} --file-class <top-class> --dry-run` and store the drift count as `drift_count`. Skip if profile doesn't designate a primary fileClass — do not iterate all fileClasses at init.
 
-   **Opening prompt based on signals:**
+   **Opening prompt based on signals (prioritize highest-impact issue first):**
    - If `orphan_count > 20` AND unhealthy collections found: "Your vault has **N orphaned notes** and **M collections** with missing infrastructure. Would you like to start with the orphans or the collection issues?"
    - If only `orphan_count > 20`: "Your vault has **N orphaned notes** that aren't connected to the knowledge graph. Would you like to find homes for them?"
    - If only unhealthy collections: "Found **M collections** with missing infrastructure: [names]. Would you like to scaffold the missing parts?"
+   - If only `drift_count > 0`: "Detected **N schema drift issues** on the `<top-class>` fileClass. Would you like to review and fix them?"
    - If no issues: "Vault looks healthy — what would you like to work on?"
 
-   **Fallback:** If CLI is unavailable for both checks, open with: "Ready to work on your vault — what would you like to do?"
+   **Fallback:** If CLI is unavailable for any check, skip that signal silently. If all three unavailable, open with: "Ready to work on your vault — what would you like to do?"
 
-   **Note:** See `references/collection-health-criteria.md` for health threshold definitions.
+   **Note:** See `references/collection-health-criteria.md` and `references/duplicate-detection-thresholds.md` for the policy thresholds (60% fileClass coverage, 80% duplicate similarity, etc.) that these signals apply.
 
 ## Read Path (Always Fast, Never Permission-Gated)
 
@@ -284,6 +286,7 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 3. Run `merge_notes.py --no-write`, write merged target with Write tool
 4. Dry-run `redirect_links.py --dry-run`, confirm, apply redirects (>50 files needs explicit approval)
 5. Delete source note after confirmed redirect
+6. Refresh Obsidian's index: `bash obsidian vault` — closes the 1–5s backlink-latency gap for any in-app readers
 
 ### Discovery: Find Related Notes
 1. Run scope selection (or use the target note's folder)
@@ -310,7 +313,8 @@ All metadata, consolidation, discovery, and visualization workflows begin with s
 
 1. Scope selection → dry-run `generate_canvas.py --dry-run` → review node/edge counts
 2. Generate with `--no-write`, write canvas via Write tool
-3. Report canvas path and stats
+3. Refresh Obsidian's index: `bash obsidian vault` — surfaces the new canvas in Obsidian without restart
+4. Report canvas path and stats
 
 ### Change Impact Map: Consult & Update
 

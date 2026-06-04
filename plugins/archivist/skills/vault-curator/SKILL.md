@@ -183,6 +183,8 @@ Detect duplicates within a scope using tiered detection:
 3. **Present groups** — Tier 1 (identical titles) first, then Tier 2 (similar titles, matching tags)
 4. **Per-group decision**: merge / create MOC / mark aliases / skip
 
+**Thresholds:** Default Tier 2 cutoff is 80% title similarity. See `references/duplicate-detection-thresholds.md` for tuning guidance, and for the canvas (`--max-nodes`, `--node-width/-height`) and collection-health (`--coverage-threshold`) policy values.
+
 ### Merge Notes
 
 Merge source note into target (surviving) note:
@@ -268,7 +270,7 @@ When asked "show me a map", "generate canvas", "visualize my notes", or "show kn
 3. **Review dry-run output** — confirm node count, edge count, clustering
 4. **Execute** (remove `--dry-run`) to write `.canvas` file
 
-**See:** `references/available-scripts.md` for canvas layout, naming conventions, and `--output`/`--max-nodes` options.
+**See:** `references/available-scripts.md` for canvas layout, naming conventions, and `--output`/`--max-nodes` options. Default thresholds (`--max-nodes 50`, `--node-width 300`, `--node-height 120`) and tuning guidance live in `references/duplicate-detection-thresholds.md`.
 
 ### Canvas: Edit Existing
 
