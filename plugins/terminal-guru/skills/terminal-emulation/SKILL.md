@@ -1,8 +1,8 @@
 ---
 name: terminal-emulation
-description: This skill should be used when diagnosing, fixing, or understanding Unix terminal display issues including terminfo database problems, Unicode/UTF-8 character rendering, locale configuration, TUI application display, SSH terminal setup, and terminal emulator configuration. Also use for tmux session management, session creation with sesh, pane logging, and environment setup with direnv. Use for garbled characters, wrong colors, broken box drawing, emoji rendering, character encoding problems, "create a tmux session", "set up pane logging", "configure sesh", or "session naming convention".
+description: This skill should be used when the user asks to "fix terminal colors", "configure $TERM", "debug terminfo", "set up truecolor", "test 256 color support", "fix unicode rendering", "fix garbled characters", "fix broken box drawing", "fix emoji rendering", "configure locale", "fix SSH terminal", "check $COLORTERM", "apply ANSI escape codes", "set up base16 theme", or needs help with the Unix terminal substrate — `$TERM`, terminfo database, ANSI escape codes, color tiers (16/256/truecolor), `$COLORTERM`, Unicode/UTF-8 rendering, locale configuration, and SSH terminal setup. Do NOT use for tmux automation (sessions, options, plugins, send-keys) — use tmux-dev. Do NOT use for TUI app theming (lazygit/k9s themes) — use tui-experience. Do NOT use for shell config — use zsh-dev.
 metadata:
-  version: "3.2.0"
+  version: "4.0.0"
 ---
 
 # Terminal Emulation
@@ -16,13 +16,13 @@ Diagnose and fix Unix terminal display issues: terminfo capabilities, Unicode/UT
 - Terminal display issues (garbled characters, wrong colors, broken box drawing)
 - Unicode/UTF-8 rendering problems (emoji, CJK characters, combining characters)
 - Terminfo database troubleshooting (wrong TERM, missing entries)
+- ANSI escape codes, color tier selection (16 / 256 / truecolor)
+- `$COLORTERM` detection and truecolor verification
+- Color palette setup (base16, pywal, terminal emulator color schemes)
 - Locale and encoding configuration
-- TUI application display problems
 - SSH terminal configuration
-- Tmux/Screen terminal setup and mouse bindings
-- Per-segment click actions in the tmux status bar
-- Tmux session creation and naming conventions (sesh, zoxide, direnv)
-- Pane logging setup and programmatic capture
+- TUI application *display* problems (font glyphs, ACS rendering) — for app theming/keybindings use tui-experience
+- `TERM=tmux-256color` setup and substrate-level tmux display issues — for tmux automation use tmux-dev
 - Character width and alignment issues
 - Font selection for Unicode coverage
 
@@ -77,7 +77,25 @@ infocmp xterm-256color > custom.ti
 tic -o ~/.terminfo custom.ti
 ```
 
-### 3. Unicode and UTF-8 Troubleshooting
+### 3. ANSI Colors
+
+The terminal emulator implements the ANSI color protocol — 16 named colors, the 256-color palette, and 24-bit truecolor. Color tier support is independent of `$TERM`; `$COLORTERM=truecolor` signals 24-bit capability.
+
+```bash
+# Tier checks
+echo $TERM                                    # terminfo entry (xterm-256color, tmux-256color, ...)
+echo $COLORTERM                               # "truecolor" or "24bit" → 16M colors supported
+tput colors                                   # numeric: 8, 16, 256, etc.
+
+# Visual tests
+printf '\e[31mRED\e[0m\n'                                          # 16-color: red text
+printf '\e[38;5;208mORANGE\e[0m\n'                                 # 256-color: palette index 208
+printf '\e[38;2;255;128;0mORANGE-truecolor\e[0m\n'                 # 24-bit: R=255 G=128 B=0
+```
+
+See `references/ansi_colors.md` for the full ANSI escape sequence reference, palette tiers, `$COLORTERM` detection, color-test tools (pastel, colortest), and terminal palette setup (base16, pywal).
+
+### 4. Unicode and UTF-8 Troubleshooting
 
 For detailed Unicode guidance, refer to `references/unicode_troubleshooting.md` which covers:
 - Locale configuration for UTF-8
@@ -218,8 +236,9 @@ fi
 - **`tests/base.py`** - Shared test infrastructure
 
 ### references/
-- **`terminfo_guide.md`** - Complete terminfo database reference and troubleshooting
-- **`unicode_troubleshooting.md`** - Unicode/UTF-8 character rendering and encoding issues
+- **`terminfo_guide.md`** — Terminfo database, `$TERM` selection, infocmp/tic/tput, terminal capabilities
+- **`ansi_colors.md`** — ANSI escape codes, 16/256/truecolor tiers, `$COLORTERM`, palette setup (base16), color-test tools
+- **`unicode_troubleshooting.md`** — Unicode/UTF-8 character rendering and encoding issues
 
 ### Related skills
 - **tmux-dev** — tmux automation, plugins, session management, mouse bindings, format strings
