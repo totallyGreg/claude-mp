@@ -104,6 +104,7 @@ See `references/workflow_patterns.md` for patterns, commands, and diagnostic che
 ## Resources
 
 ### references/
+- **`unix_composition_primer.md`** — Foundation: piping, filtering, transforming + tool preference matrix (rg/grep, fd/find, sd/sed, jq/yq/xsv, fzf/xargs/tee). Load for "how do I combine X and Y" questions.
 - **`composition_philosophy.md`** — Unix composition principle, Pattern Graduation Pipeline, tool landscape discovery, fzf as composition glue, composition heuristics
 - **`fzf_composition.md`** — fzf patterns, preview, multi-select, keybindings, recipes for git/brew/mise/files/processes, comparison with tv and gum
 - **`workflow_discovery.md`** — Signal sources (history, zoxide, brew, XDG, git), output format, profile integration, version auto-detection
