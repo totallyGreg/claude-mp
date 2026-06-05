@@ -115,7 +115,7 @@ See `references/workflow_patterns.md` for patterns, commands, and diagnostic che
 - **`workflow-discover.sh`** — Multi-source workflow discovery script (referenced by `/workflow-discover` command)
 
 ### Cross-references
-- **terminal-emulation** `tmux_session_management.md` — General tmux keybindings, pane logging, session persistence
+- **tmux-dev** `tmux_session_management.md` — tmux session management, keybindings, pane logging, persistence
 - **chronicle** `worktrees-experiments.md` — Git worktree lifecycle patterns
 - **zsh-dev** `zsh_function_patterns.md` — Function templates for graduating patterns
 - **mise-tooling** `mise_task_patterns.md` — Task creation for graduating patterns to mise

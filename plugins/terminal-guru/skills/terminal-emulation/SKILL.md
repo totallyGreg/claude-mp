@@ -129,8 +129,8 @@ Key information to verify:
 |----------|--------|-----------|
 | Wrong colors, broken function keys | Terminfo | `references/terminfo_guide.md` |
 | Garbled text, emoji broken, box drawing issues | Unicode/UTF-8 | `references/unicode_troubleshooting.md` |
-| Mouse click bindings not firing, wrong range value | Tmux mouse | `references/tmux_mouse_bindings.md` |
-| Need to create/manage tmux sessions, set up logging | Tmux sessions | `references/tmux_session_management.md` |
+| Mouse click bindings not firing, wrong range value | tmux automation | Use **tmux-dev** skill (`tmux_mouse_bindings.md`) |
+| Need to create/manage tmux sessions, set up logging | tmux automation | Use **tmux-dev** skill (`tmux_session_management.md`) |
 
 ### Step 3: Apply Targeted Fixes
 
@@ -220,5 +220,7 @@ fi
 ### references/
 - **`terminfo_guide.md`** - Complete terminfo database reference and troubleshooting
 - **`unicode_troubleshooting.md`** - Unicode/UTF-8 character rendering and encoding issues
-- **`tmux_mouse_bindings.md`** - Named status bar ranges, correct mouse events, diagnostic technique, live binding vs bootstrap
-- **`tmux_session_management.md`** - Session creation with sesh, naming conventions, direnv environment setup, pane logging, session persistence
+
+### Related skills
+- **tmux-dev** — tmux automation, plugins, session management, mouse bindings, format strings
+- **environment-composition** — sesh session orchestration on top of tmux
