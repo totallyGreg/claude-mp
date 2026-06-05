@@ -1,7 +1,7 @@
 {
   "name": "terminal-guru",
-  "version": "5.4.0",
-  "description": "Terminal diagnostics, tool composition, workflow discovery, and environment expert for macOS/Unix systems. Includes an orchestrator agent that diagnoses problems, composes tools into workflows, and discovers usage patterns. Five focused skills: terminal-emulation (terminfo, Unicode, display), zsh-dev (autoload functions, fpath, testing, performance), signals-monitoring (macOS logging, Unix signals, file watching, notifications), environment-composition (tool composition engine, fzf patterns, workflow discovery, sesh config), and mise-tooling (mise.toml config, task automation, multi-tenant credentials, tool versioning).",
+  "version": "5.5.0",
+  "description": "Terminal diagnostics, tool composition, workflow discovery, and environment expert for macOS/Unix systems. Includes an orchestrator agent that diagnoses problems across the terminal stack (substrate → shell → multiplexer → sessions → apps → automation), composes tools into workflows, and discovers usage patterns. Seven focused skills: terminal-emulation (Unix substrate: $TERM, terminfo, ANSI/256/truecolor, Unicode), zsh-dev (autoload functions, fpath, testing, performance), tmux-dev (pane/window/session addressing, send/receive, options, format strings, plugins, hooks), tui-experience (fzf/television/lazygit/k9s/btop theming + asciinema/vhs recording), signals-monitoring (macOS logging, Unix signals, file watching, notifications), environment-composition (tool composition engine, fzf patterns, workflow discovery, sesh config, unix composition primer), and mise-tooling (mise.toml config, task automation, multi-tenant credentials, tool versioning).",
   "author": {
     "name": "J. Greg Williams",
     "email": "283704+totallyGreg@users.noreply.github.com"
@@ -11,8 +11,19 @@
     "terminal",
     "terminfo",
     "unicode",
+    "ansi-color",
+    "truecolor",
     "zsh",
     "shell",
+    "tmux",
+    "tmux-plugin",
+    "tui",
+    "fzf",
+    "television",
+    "lazygit",
+    "k9s",
+    "asciinema",
+    "vhs",
     "diagnostics",
     "logging",
     "signals",
@@ -27,7 +38,6 @@
     "mise",
     "task-runner",
     "version-manager",
-    "fzf",
     "workflow-discovery",
     "tool-composition"
   ]

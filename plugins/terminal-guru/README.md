@@ -5,22 +5,41 @@ Terminal diagnostics, tool composition, workflow discovery, and environment expe
 ## Components
 
 ### Agent: terminal-guru
-Terminal and shell expert that diagnoses problems, composes tools into workflows, and discovers usage patterns. Routes to 5 skills across the terminal stack: zsh → tmux → sesh → git → command capture → mise tasks.
+Terminal and shell expert that diagnoses problems, composes tools into workflows, and discovers usage patterns. Routes to 7 skills across the terminal stack: terminal-emulation (substrate) → zsh → tmux → sesh → TUI apps → git → command capture → mise tasks.
 
 | Version | Date | Trigger | Prompt | Coherence | Overall |
 |---------|------|---------|--------|-----------|---------|
+| 5.5.0 | 2026-06-05 | 100 | 90 | 100 | 96 |
 | 5.3.0 | 2026-05-03 | 100 | 90 | 100 | 96 |
 | 5.2.0 | 2026-05-03 | 100 | 90 | 80 | 90 |
 | 5.1.0 | 2026-05-01 | 100 | 90 | 80 | 90 |
 
 ### Skill: terminal-emulation
-Terminal display diagnostics and configuration (~40% of content):
+The Unix terminal substrate (`$TERM`, terminfo, ANSI/256/truecolor, Unicode, locale):
 - Terminfo database management
+- ANSI escape codes, color tiers (16/256/truecolor), `$COLORTERM`, base16 palettes
 - Unicode/UTF-8 troubleshooting
 - Locale and encoding configuration
 - SSH terminal setup
-- Tmux/Screen configuration
-- TUI application display
+- TUI application display (substrate-level)
+
+### Skill: tmux-dev (NEW in 5.5.0)
+tmux as an automation and structural surface (no longer a sub-topic of terminal-emulation):
+- Pane/window/session unique IDs (`$N` / `@N` / `%N`) — the centerpiece for stable addressing
+- Send / receive between panes (`send-keys`, `capture-pane`, `pipe-pane`, `wait-for`)
+- Find / label / select (`choose-tree`, `find-window`, `display-panes`)
+- Options & format strings (scopes, user vars, conditionals)
+- TPM plugins, hooks, option-watching patterns
+- Plugin testing: verify-vs-configure-vs-debug discipline (from #41 retrospective)
+- Mouse bindings, named status-bar ranges
+- Programmatic session creation, sesh integration (tmux side)
+
+### Skill: tui-experience (NEW in 5.5.0)
+The "experience" layer — apps you live in, and recording what happens there:
+- TUI app theming/keybindings/quirks: fzf, television (tv), gum, btop, lazygit, k9s, glow, charm/bubbletea
+- Terminal recording: asciinema (rec/play/upload), `.cast` editing
+- Conversion: agg → GIF, svg-term-cli → SVG, ffmpeg → MP4
+- Scripted demos with charmbracelet `vhs` (`.tape` syntax, vhs-vs-asciinema decision)
 
 ### Skill: zsh-dev
 Zsh shell development and testing (~55% of content):
@@ -86,7 +105,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Changes |
 |---------|---------|
-| 5.3.0 | Evolved environment-composition (v2.0.0) into composition engine: composition philosophy, fzf patterns, workflow discovery. Added /workflow-discover command. Agent gains composition routing, workflow discovery, and tool references (96/100). Profile moved to XDG-configurable location with .example template. |
+| 5.5.0 | **Stack model correction + 2 new skills.** Promoted terminal-emulation to first-class substrate layer (Unix substrate: $TERM, terminfo, ANSI/256/truecolor, $COLORTERM, Unicode); promoted tmux out of terminal-emulation into its own first-class skill (tmux-dev). New skills: **tmux-dev** (pane/window/session unique-ID addressing, send/receive, options, format strings, plugins, hooks, testing patterns — closes #70) and **tui-experience** (fzf/television/gum/btop/lazygit/k9s/glow theming + asciinema/agg/vhs recording). Added ansi_colors.md reference to terminal-emulation (90→92). Added unix_composition_primer.md to environment-composition (piping/filtering/transforming + tool preference matrix). Agent stack model expanded to 8 layers with explicit substrate-vs-multiplexer boundary; routing table adds ~20 rows; 5 new routing-guidance paragraphs. Five Skills → Seven Skills. Scores: agent 96, all skills ≥ 90 (zsh-dev 98, mise-tooling 98, tmux-dev 91, tui-experience 92, terminal-emulation 92, signals-monitoring 92, environment-composition 90). |
 | 5.2.0 | Enriched mise-tooling (v2.0.0): DAG model, task templates, file-based discovery, hooks, monorepo, watch, CLI reference, use case patterns. Added zsh-vs-mise routing decision table. Reference freshness metadata (check_freshness.py compatible). Terminal stack profile for self-improvement. |
 | 5.1.0 | Added mise-tooling skill: config, tasks, includes, DRY patterns, multi-tenant credentials. Agent updated with terminal stack model and quality standards. Replaced direnv with mise as primary env manager. |
 | 5.0.0 | Added environment-composition skill: sesh.toml config, claude CLI integration, direnv, worktree workflows, Lens framework |
