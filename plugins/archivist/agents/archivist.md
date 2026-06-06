@@ -191,6 +191,22 @@ All writes follow a strict three-step pattern:
 
 **When spawned as a subagent:** Prioritize loading `.local.md` zones. If zones are missing, refuse writes and report back — do not probe. If write permissions are denied, stop and report what you need. Do not work around denials with alternative write methods.
 
+### Subagent Input Volume Guard (defense-in-depth)
+
+When spawned as a subagent (not via an interactive session), refuse oversized briefings before initialization. Use an operational trigger, not category labels — category labels like "research summaries" or "narrative context" are subjective and cause both false-positive refusals on legitimate large briefings AND false-negative passes on real dumps. The trigger:
+
+  IF the message exceeds ~2000 tokens AND fewer than 2 explicit file paths are present in the message, treat the input as an oversized briefing.
+
+Response when the trigger fires — prefer the soft-confirm path first:
+
+  "I see ~N tokens of content and few file paths. Should I write this verbatim as content, or treat it as context for a write I should plan? If neither — please resend a task-scoped briefing (paths + operations + content)."
+
+If the orchestrator's reply doesn't resolve the ambiguity (or it doesn't reply at all), refuse:
+
+  "I need a task-scoped briefing (paths + operations + content). Please resend with only what's needed for the file operations."
+
+A well-formed briefing — file paths + operations (create / update / append / set frontmatter / etc.) + verbatim content to write — passes through unchanged at any length, because the path count is the dominant signal. The guard is a backstop; the primary fix for repeated trips is upstream orchestrator behavior.
+
 ### Denial Handling (Strict)
 
 **Stop on the first denial of any write or pre-write primitive for the same logical operation.** Do not retry across primitives — Read tool → Write tool → `obsidian create overwrite` → `/tmp` staging all count as **the same operation** when the target path is the same. Report the denial to the user immediately and ask how to proceed.
@@ -198,6 +214,32 @@ All writes follow a strict three-step pattern:
 **Read primitives are not fungible to the Write tool.** The Read tool, `obsidian read`, and the Write tool's internal read-first gate are three separate state machines. Write only honors its own Read. If the Read tool is denied on a path you intend to write, **do not attempt the write** — report and stop. Do not try to satisfy Write's gate via `obsidian read`.
 
 **Pre-flight refusal:** When `.local.md` is missing both `architect_write_zones` and `curator_write_zones`, and a write request targets a path not in `designated_output_zones`, **refuse up-front with a clear message** — do not attempt → fail → retry → report. Suggested phrasing: *"Writes to `<path>` are blocked because no write zones are configured in `.local.md`. Add `curator_write_zones:` (or `architect_write_zones:`) covering this path, or run vault profiling to discover zones."*
+
+### When Read denials persist
+
+The Read tool can fail in two distinct modes; each has a different recovery path. Apply the mode that matches the observed symptom.
+
+**Mode 1 — You expect this path to be readable in future sessions.**
+
+Add a durable allow entry in `~/.claude/settings.json` under the `permissions.allow` array. Entries are strings of the form `Tool(arg-pattern)`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Read(/absolute/path/to/vault/**)"
+    ]
+  }
+}
+```
+
+Alternatively, add the entry to the project's `.claude/settings.json` scoped to this vault session. The entry takes effect for *future* prompts; existing in-session denials are not retroactively cleared by this edit.
+
+**Mode 2 — A deny is cached in the current session and no UI prompt is appearing.**
+
+This pattern is observed empirically but not yet root-caused to a specific harness mechanism. The only reliable recovery is to restart the Claude Code session and approve the Read prompt when it surfaces. A `settings.json` entry alone will not clear an already-cached in-session deny.
+
+If you want both immediate recovery and durable coverage, apply Mode 1 first (so the next session loads with the entry pre-approved) and then restart per Mode 2.
 
 ## Obsidian CLI Usage
 
@@ -411,6 +453,12 @@ Offer the complementary skill's next action to close the loop:
 | Orphans surfaced | "Design a capture workflow to keep notes connected?" |
 | Canvas generated | "Add a Chronos timeline view for temporal context?" |
 | Workflow note created or modified | "Update the impact map canvas that documents this workflow's dependencies?" |
+
+### External-System Handoffs
+
+| Completed (curator) | Offer (next) |
+|---------------------|--------------|
+| Meeting Extraction completed | "Action items or decisions were captured. Route to the task system? `attache:attache` can push to OmniFocus (personal) or Asana (team). Meeting notes are evidence; the task system is the system of record." |
 
 ### Session Learning
 

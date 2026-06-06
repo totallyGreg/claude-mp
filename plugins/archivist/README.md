@@ -54,7 +54,7 @@ Progressive disclosure:
 
 ## Version
 
-1.26.0
+1.27.0
 
 ## License
 
@@ -81,6 +81,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary |
 |---------|------|-------|---------|
+| 1.27.0 | 2026-06-06 | [#176](https://github.com/totallyGreg/claude-mp/issues/176) | Pass A (friction batch 2026-06-05). A1: Denial Handling — Mode 1/Mode 2 recovery guidance with `permissions.allow` schema + JSON example; Mode 2 labeled "observed empirically, not root-caused." A2: Subagent Input Volume Guard — token-count + file-path-count trigger (not category labels); soft-confirm path before refusal; defense-in-depth framing. A3: External-System Handoffs — new table in §Post-Workflow routing meeting-extraction action items to `attache:attache`. Agent eval 93 (no change). |
 | 1.26.0 | 2026-06-04 | [#160](https://github.com/totallyGreg/claude-mp/issues/160), [#129](https://github.com/totallyGreg/claude-mp/issues/129) | Friction fixes (2026-06-04 + 2026-05-28 reports) + Tier-1 wins from #160. Strict Denial Handling (stop on first denial across primitives, Read tool ≠ obsidian read ≠ Write's internal gate, pre-flight refusal when zones missing). Reference Formatting rule (wikilink intra-vault, file:// external, backticks code-only). Index refresh after Python writes. Init drift signal on primary fileClass. New `duplicate-detection-thresholds.md` policy reference. Closed #129 as superseded by current architecture. Agent eval 92→93 (Prompt 91→95). |
 | 1.25.0 | 2026-05-03 | - | Safety hardening: Write Path (read-prepare-write protocol), Issue Learning, Fast Init, anti-cascade principle, Drift Triage in curator (mechanical vs semantic). Body trim 4955→3033 words (session-logging + canvas-types moved to references). Agent eval 89→92 (Role:3→15, Prompt:83→91). |
 | 1.24.2 | 2026-04-24 | - | Refactor session-log to dispatch through logEntries.js; add resume/pause subcommands; entry enrichment with phase/outcome; linking conventions; progressive frontmatter updates |
