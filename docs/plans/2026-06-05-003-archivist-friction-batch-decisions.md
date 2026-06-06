@@ -20,7 +20,7 @@ reports: "2026-06-05-193627-77219, 77259, 77267, 77202, 77210"
 
 ## Follow-ups
 
-- **attache scope review:** consider expanding attache's agent description so it auto-routes for broader research/summarization domains (not just productivity/GTD). Today, attache only triggers on productivity intent, so main Claude handled this plugin-improvement batch — which is genuinely correct, but worth a separate ideation pass on what else should belong to attache.
+- **attache scope review** ([#177](https://github.com/totallyGreg/claude-mp/issues/177)): expand attache's agent description so it auto-routes for broader research/summarization/improvement-orchestration domains (not just productivity/GTD). Today, attache only triggers on productivity intent, so main Claude handled this plugin-improvement batch end-to-end with attache idle as a teammate. Issue #177 carries the full proposal (role framing, new triggers, two architectural follow-ons on handoff routing and lead-transfer patterns).
 - **Periodic harness review:** Pass F workaround is a band-aid. Set a reminder to revisit the `tmux capture-pane` workaround when CC harness gets updates around team-mode message delivery or stuck-teammate detection.
 
 ## Why this doc exists
