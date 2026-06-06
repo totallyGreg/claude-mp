@@ -135,7 +135,7 @@
       "name": "handoff",
       "description": "Hand off work to another Claude — teammate via SendMessage, tmux pane via send-keys, clipboard, or file. Structured Markdown payload with goal, state, decisions, and next steps.",
       "category": "development",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"

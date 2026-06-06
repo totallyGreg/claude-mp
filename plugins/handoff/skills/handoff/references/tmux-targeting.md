@@ -21,12 +21,28 @@ Note: bare session names (without `window.pane`) are NOT supported. If the calle
 
 ## Pane discovery algorithm
 
-1. `tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index}\t#{pane_current_command}'` builds the full pane list (tab-delimited address + current command).
-2. If a filter is set, `grep -E` narrows to panes whose current command matches.
+1. `tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index}\t#{pane_current_command}'` builds the full pane list (tab-delimited `address\tcurrent_command`).
+2. If `--filter` and/or `--filter-address` are set, `awk` AND-composes both:
+   - `--filter <re>` matches against the command column (after the tab)
+   - `--filter-address <re>` matches against the address column (before the tab)
+   - Both must match; either can be omitted (empty = wildcard). Example: `--filter claude --filter-address "airs/project"` keeps only panes running `claude` in sessions whose address starts with `airs/project`.
 3. Resolution per target type (see table above).
-4. The chosen pane address is used for `tmux send-keys -t <pane>`.
+4. For explicit `session:window.pane` targets, the session name must start with an alphanumeric or underscore and must not contain `..` or `./` sequences (path-traversal rejection). Session names may include letters, digits, `_`, `-`, `.`, and `/`.
+5. The chosen pane address is used for `tmux send-keys -t <pane>`.
 
 If no panes match after filtering, the script exits with a clear error before any delivery.
+
+**Disambiguating multiple claude panes** — common with team sessions:
+```bash
+# List all panes with their addresses:
+tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index}\t#{pane_current_command}'
+
+# Target the claude pane in the airs/project session only:
+echo "$PAYLOAD" | scripts/handoff --to tmux:auto --filter claude --filter-address "airs/project"
+
+# Or use explicit address (avoids ambiguity entirely):
+echo "$PAYLOAD" | scripts/handoff --to tmux:airs/project:1.0
+```
 
 ## The `--filter claude` default
 

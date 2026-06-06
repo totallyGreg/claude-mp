@@ -2,7 +2,7 @@
 name: handoff
 description: This skill should be used when the user or another agent asks to "create a handoff", "write a handoff payload", "generate a handoff for another agent", "build a context handoff", "configure a tmux relay", "hand off this work", "hand off to another claude", "relay this to another agent", "send context to a teammate", "transfer this to another pane", "pass this to <agent-name>", "/handoff", or otherwise wants to transfer structured work context from this Claude session to another Claude — whether a teammate spawned via SendMessage, a Claude process running in a separate tmux pane, or via clipboard for human-mediated handoff. Do NOT use for tmux pane management generally (use terminal-guru) or for end-of-session file-based recap intended for a future fresh Claude session unrelated to any live recipient (that is a different problem domain).
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
 compatibility: bash 4+; tmux 3.0+ for tmux transport; pbcopy/xclip/wl-copy for clipboard transport
 license: MIT
 ---
@@ -57,6 +57,8 @@ echo "$PAYLOAD" | scripts/handoff --to tmux:auto --from "attache"
 ```
 
 For `tmux:`, `--filter claude` is applied by default — see `references/tmux-targeting.md` for the security rationale and the pane-discovery algorithm. Pass `--filter '.*'` to disable filtering when the receiver is known and the risk is accepted.
+
+**Disambiguating multiple claude panes:** when several panes run `claude`, `--filter claude` matches all of them and the script picks the first. Use `--filter-address <regex>` to pin by session address. Example: `--filter claude --filter-address "airs/project"` targets the `claude` pane in the `airs/project` session. Combined filters AND together. Run `tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index}\t#{pane_current_command}'` to see all addresses before targeting.
 
 ## When NOT to Invoke the Script
 

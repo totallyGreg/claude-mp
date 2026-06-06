@@ -9,17 +9,21 @@
 # Payload is read from stdin. The script does not generate content.
 #
 # Usage:
-#   handoff --to clipboard                       # pbcopy / xclip / wl-copy
-#   handoff --to file:<path>                     # write to path with chmod 600
-#   handoff --to tmux:<address> [--filter <re>]  # send to session:window.pane
-#   handoff --to tmux:auto [--filter <re>]       # pick first pane matching filter
+#   handoff --to clipboard                                      # pbcopy / xclip / wl-copy
+#   handoff --to file:<path>                                    # write to path with chmod 600
+#   handoff --to tmux:<address> [--filter <re>]                 # send to session:window.pane
+#   handoff --to tmux:auto [--filter <re>]                      # pick first pane matching filter
 #
 # Options:
-#   --from <name>      Sender identifier shown in the pointer message (default: "agent")
-#   --filter <regex>   Restrict tmux delivery to panes whose current command matches.
-#                      Defaults to "claude" when transport is tmux:* (safety: avoids
-#                      delivering "read this file" instructions to a shell prompt).
-#                      Pass --filter '.*' to disable filtering.
+#   --from <name>             Sender identifier shown in the pointer message (default: "agent")
+#   --filter <regex>          Restrict delivery to panes whose current command matches.
+#                             Defaults to "claude" for tmux:* (safety: avoids delivering
+#                             instructions to a shell prompt). Pass --filter '.*' to disable.
+#   --filter-address <regex>  Restrict delivery to panes whose pane address matches.
+#                             Composed with --filter (AND). Example: --filter claude
+#                             --filter-address "airs/project" targets the claude pane in
+#                             that session. Session names may contain letters, digits, _, -, .,
+#                             and / but must not begin with - or contain ..
 #
 # Exit codes:
 #   0   delivered
@@ -36,6 +40,7 @@ set -euo pipefail
 TO=""
 FROM="agent"
 FILTER=""
+FILTER_ADDRESS=""
 FILTER_EXPLICIT=false
 
 # ---------------------------------------------------------------------------
@@ -95,6 +100,7 @@ transport_file() {
 resolve_tmux_target() {
   local target="$1"
   local filter="$2"
+  local filter_address="${3:-}"
 
   command -v tmux >/dev/null 2>&1 || die "tmux not found on PATH" 2
 
@@ -102,32 +108,39 @@ resolve_tmux_target() {
   panes="$(tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index}	#{pane_current_command}' 2>/dev/null)" \
     || die "tmux list-panes failed (is a tmux server running?)" 2
 
-  if [[ -n "$filter" ]]; then
-    panes="$(printf '%s\n' "$panes" | grep -E "	.*${filter}" || true)"
-    [[ -n "$panes" ]] || die "no panes match filter: $filter" 2
+  if [[ -n "$filter" || -n "$filter_address" ]]; then
+    panes="$(printf '%s\n' "$panes" | awk -F'\t' \
+      -v addr="$filter_address" -v cmd="$filter" \
+      '(addr == "" || $1 ~ addr) && (cmd == "" || $2 ~ cmd) { print }' || true)"
+    [[ -n "$panes" ]] || die "no panes match --filter / --filter-address" 2
   fi
 
   if [[ "$target" == "auto" ]]; then
     local count
     count="$(printf '%s\n' "$panes" | wc -l | tr -d ' ')"
     if [[ "$count" -gt 1 ]]; then
-      echo "handoff: multiple matching panes, picking first. Override with --to tmux:<address>:" >&2
-      printf '%s\n' "$panes" | sed 's/^/  /' >&2
+      echo "handoff: multiple matching panes, picking first. Use --filter-address or --to tmux:<address> to target a specific pane:" >&2
+      printf '%s\n' "$panes" | awk -F'\t' '{ print "  " $1 "\t(" $2 ")" }' >&2
     fi
-    printf '%s' "$panes" | head -n1 | cut -f1
+    printf '%s' "$panes" | head -n1 | awk -F'\t' '{ print $1 }'
     return
   fi
 
-  # Explicit session:window.pane
-  if [[ "$target" =~ ^[A-Za-z0-9_-]+:[0-9]+\.[0-9]+$ ]]; then
-    if printf '%s\n' "$panes" | grep -q "^${target}	"; then
+  # Explicit session:window.pane — first char must be alnum or underscore (no leading -, /, .)
+  if [[ "$target" =~ ^[A-Za-z0-9_][A-Za-z0-9_./-]*:[0-9]+\.[0-9]+$ ]]; then
+    # Reject path-traversal-shaped session names
+    local session_name="${target%%:*}"
+    if [[ "$session_name" == *..* || "$session_name" == */./* || "$session_name" == */ ]]; then
+      die "invalid tmux target: $target (session name contains path-traversal characters)" 1
+    fi
+    if printf '%s\n' "$panes" | awk -F'\t' -v t="$target" '$1 == t { found=1 } END { exit !found }'; then
       printf '%s' "$target"
       return
     fi
-    die "pane $target not found (or did not pass --filter)" 2
+    die "pane $target not found (or did not pass --filter / --filter-address)" 2
   fi
 
-  die "invalid tmux target: $target (expected 'auto' or 'session:window.pane')" 1
+  die "invalid tmux target: $target (expected 'auto' or 'session:window.pane'; session names may contain letters, digits, _, -, ., / but must not start with - or contain ..)" 1
 }
 
 transport_tmux() {
@@ -135,7 +148,7 @@ transport_tmux() {
   local filter="$2"
 
   local pane
-  pane="$(resolve_tmux_target "$target_spec" "$filter")"
+  pane="$(resolve_tmux_target "$target_spec" "$filter" "$FILTER_ADDRESS")"
 
   # Build payload file — path is script-generated, no validation needed
   local tmpdir="${TMPDIR:-/tmp}"
@@ -171,6 +184,9 @@ while [[ $# -gt 0 ]]; do
     --filter)
       [[ $# -ge 2 ]] || die "--filter requires an argument"
       FILTER="$2"; FILTER_EXPLICIT=true; shift 2 ;;
+    --filter-address)
+      [[ $# -ge 2 ]] || die "--filter-address requires an argument"
+      FILTER_ADDRESS="$2"; shift 2 ;;
     -h|--help)
       usage 0 ;;
     *)

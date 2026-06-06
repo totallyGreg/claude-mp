@@ -84,7 +84,7 @@ If the standalone `tmux-send` capability planned for `terminal-guru` ever ships,
 
 ### Current Metrics
 
-**Score: 98/100** (Excellent) — 2026-06-04
+**Score: 98/100** (Excellent) — 2026-06-06
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -94,6 +94,7 @@ If the standalone `tmux-send` capability planned for `terminal-guru` ever ships,
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 0.2.0 | 2026-06-06 | [#176](https://github.com/totallyGreg/claude-mp/issues/176) | Pass D (friction batch 2026-06-05). D1: regex broadened to allow `/` in session names; path-traversal rejection (leading `-`, `..` sequences); SKILL.md and tmux-targeting.md document valid session-name shapes. D2: `--filter-address <regex>` flag added — AND-composed with `--filter` via awk; disambiguates multiple claude panes by session address; SKILL.md and tmux-targeting.md updated with disambiguation examples and combined-filter docs. Score 98 (no change). | 100 | 90 | 100 | 100 | 100 | 98 |
 | 0.1.0 | 2026-06-04 | - | Initial release. Three transports: SendMessage (via calling agent), tmux send-keys with two-call Enter delivery, clipboard, file. Four required sections + Additional context Markdown payload schema. Standalone tmux pane discovery (no terminal-guru dependency). Security: chmod 600 temp files, mandatory `--filter claude` default, user-path validation. | 100 | 90 | 100 | 100 | 100 | 98 |
 
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
