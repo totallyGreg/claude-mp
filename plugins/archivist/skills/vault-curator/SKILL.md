@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.14.0"
+  version: "1.15.0"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -65,8 +65,21 @@ Before writing any note to the vault:
 1. **Frontmatter on line 1** — `---` must be the very first characters; a leading newline silently breaks Obsidian's property parsing.
 2. **Linter compliance** — non-compliant notes produce spurious git diffs. Bulk validate: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/validate_frontmatter.py ${VAULT_PATH}`
 3. **Wikilinks over backticks** — use `[[Target]]` for all vault entity references. See `references/linking-discipline.md`.
+3a. **Entity wikilink check** — before writing, scan the proposed content for capitalized proper-noun phrases that are NOT already wikilinked. Bound the scan:
+    - Skip content inside code fences, inline code, and YAML frontmatter.
+    - Skip sentence-initial single capitalized words and common acronyms (API, JSON, YAML, HTTP, URL) via a stop-list.
+    - Prefer multi-word proper-noun phrases (`Prisma AIRS Team`, `Labs as a Service`) over single-word candidates.
+    - Cap candidates per write at ~20; if exceeded, surface a summary ("Found N phrases. Show first 20 or skip?") rather than continuing.
+    For surviving candidates, run a single batch existence check using `obsidian search query="<phrase>"` (or `obsidian aliases`). At the end of the scan, surface unresolved or multi-match candidates in one consolidated message:
+      "These mentions may want to be wikilinks: - 'Prisma AIRS Team' — no vault note found (write as plain text, create a stub, or specify a target?) - 'AIRS' — matches 3 notes (specify which, or leave plain?) Reply with link decisions or 'skip all' to proceed."
+    The user makes the call; rewrite only the mentions confirmed. Do NOT scan-and-rewrite autonomously. Do NOT issue one search per candidate inline.
 4. **NEVER use `obsidian create overwrite` with placeholder content** — the command is destructive and atomic; it replaces the entire note body instantly. Always prepare the FULL content first, then write in one operation. To test write permissions, use `obsidian property:set` on a non-critical property — it is additive, not destructive. Never write "test", empty strings, or partial content to existing notes.
 5. **ALWAYS read before writing** — the Read tool or `obsidian read` must be called on the target path before any Edit, Write, or `obsidian create overwrite` operation. This ensures you have the current content and can prepare a complete replacement.
+6. **fileClass validation** — when `fileClass:` is present in content being written:
+   a. Re-read `_vault-profile.md` from disk (do not rely on the cached session-init copy — the architect may have registered new fileClasses mid-session).
+   b. Parse `## Active fileClasses`: if rendered as a markdown table, extract the first column; else if a `-` bulleted list, take the first capitalized token on each line; else emit warning ("fileClass validation skipped — `_vault-profile.md` `## Active fileClasses` is empty or unparseable") and proceed.
+   c. If the value appears in the parsed set, allow the write.
+   d. If absent: refuse and surface the gap ("fileClass `<value>` is not in the vault's Active fileClasses registry. Consult vault-architect to register it, or choose an existing fileClass: [list]."). Never invent a fileClass to complete a write.
 
 ### Drift Triage Protocol
 
@@ -78,6 +91,10 @@ When schema drift is detected, classify each finding before acting:
 Run drift scripts inline when fixes are mechanical. Escalate to architect when fixes need design decisions. Drift correction should never interrupt a curation workflow — finish the task, then offer drift check as a follow-up.
 
 ### Write Boundaries
+
+**Schema-change guard** — before accepting any request, check whether it involves: defining or registering a new fileClass, establishing a new folder naming convention, or designing a new template schema or Bases view from scratch. These are architect-territory. Refuse immediately and route explicitly:
+  "Creating a new fileClass/folder convention/template schema is vault-architect work. I can handle content migration and metadata backfill after the architect establishes the schema."
+Do NOT attempt the operation, even partially.
 
 Check `curator_write_zones:` in `${CLAUDE_PLUGIN_ROOT}/.local.md` before any write. A write is allowed if the target path starts with a listed zone prefix. Canvas files and discovery views are always allowed as generated output regardless of zone.
 

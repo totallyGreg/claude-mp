@@ -122,16 +122,17 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 ### Current Metrics
 
-**Score: 96/100** (Excellent) — 2026-05-03
+**Score: 96/100** (Excellent) — 2026-06-06
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
-| 80 | 100 | 100 | 100 | 100 |
+| 79 | 100 | 100 | 100 | 100 |
 
 ### Version History
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.15.0 | 2026-06-06 | [#176](https://github.com/totallyGreg/claude-mp/issues/176) | Pass B (friction batch 2026-06-05). B1: fileClass validation gate (item 6) — re-read `_vault-profile.md` from disk per write (freshness), parse Active fileClasses (table→bullet→warn-and-skip), refuse+surface gap if value absent. B2: entity wikilink check (item 3a) — batch scan with stop-list, code-fence skip, ~20 cap, single consolidated end-of-scan prompt (no per-candidate blocking). B3: schema-change guard in §Write Boundaries — hard-stop on fileClass/folder-convention/template-schema creation, explicit vault-architect routing. Score 96 (Concs 80→79 from added prose, overall unchanged). | 79 | 100 | 100 | 100 | 100 | 96 |
 | 1.14.0 | 2026-06-04 | [#160](https://github.com/totallyGreg/claude-mp/issues/160) | Add `duplicate-detection-thresholds.md` reference (canvas, similarity, coverage thresholds with tuning guidance); link from Find Similar Notes and Canvas Map Generation sections | 80 | 100 | 100 | 100 | 100 | 96 |
 | 1.13.0 | 2026-05-03 | - | Add Write Quality Gate rule #5 (read before write), Drift Triage protocol (mechanical vs semantic), session-logging.md reference | 80 | 100 | 100 | 100 | 100 | 96 |
 | 1.12.0 | 2026-04-14 | [#160](https://github.com/totallyGreg/claude-mp/issues/160) | Add collection-health-criteria.md reference; add --no-write to generate_canvas.py, merge_notes.py, redirect_links.py (50-file cap on redirect); add --node-width/--node-height/--coverage-threshold CLI args; add fileClass group nodes + edge direction markers to canvas | 83 | 100 | 100 | 100 | 100 | 96 |
