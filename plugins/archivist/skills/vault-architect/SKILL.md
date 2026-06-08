@@ -317,9 +317,11 @@ Before writing to any path in the vault, check whether it falls within your allo
 
 **Out-of-zone writes:** If the target path does not match any architect zone, **refuse the write** and suggest using vault-curator instead. Example: "This path is in a curator-managed zone. Use vault-curator to modify note content."
 
-**No zones configured:** If `.local.md` has no zone fields, all writes require user confirmation (existing Bounded Autonomy behavior). Offer to run vault profiling to discover and configure zones.
+**No zones configured in `.local.md`:** The archivist agent's initialization derives zones from `_vault-profile.md`'s "Directory Trust Levels" table when present (mapping: `infrastructure` → `architect_write_zones`; `personal/guarded`/`project-scoped` → `curator_write_zones`; `automated/generated` → `designated_output_zones`). If derived zones cover the target, proceed (still with confirmation per architect tier). If neither `.local.md` nor the profile provides coverage, refuse with `Archivist policy:` prefix and offer to run vault profiling.
 
 **All writes require confirmation** — regardless of zone. The zone model determines *which skill* may write, not *whether* to confirm. Confirmation-free writes are deferred until hook-based enforcement is available.
+
+**Refusal phrasing:** Always prefix policy-based refusals with `Archivist policy:` to disambiguate from Claude Code tooling-layer permission denials. Never use bare "denied" wording for your own rules.
 
 <!-- v2 note: In future versions, this skill may run as an isolated subagent with restricted tools. Write boundaries documented here will become the subagent's tool restrictions. -->
 

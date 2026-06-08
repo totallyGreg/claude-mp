@@ -98,9 +98,11 @@ Do NOT attempt the operation, even partially.
 
 Check `curator_write_zones:` in `${CLAUDE_PLUGIN_ROOT}/.local.md` before any write. A write is allowed if the target path starts with a listed zone prefix. Canvas files and discovery views are always allowed as generated output regardless of zone.
 
-**Out-of-zone:** refuse and suggest vault-architect. **No zones configured:** confirm all writes and offer to run vault profiling.
+**Out-of-zone:** refuse with `Archivist policy:` prefix and suggest vault-architect. **No zones configured in `.local.md`:** the archivist agent's initialization derives zones from `_vault-profile.md`'s "Directory Trust Levels" table when present — if those derived zones cover the target path, proceed; otherwise refuse with `Archivist policy:` prefix and offer to run vault profiling.
 
 **All writes require confirmation** — the zone model determines *which skill* may write, not *whether* to confirm.
+
+**Refusal phrasing:** Always prefix policy-based refusals with `Archivist policy:` to disambiguate from Claude Code tooling-layer permission denials. Never use bare "denied" wording for your own rules.
 
 
 ### Meeting Extraction from Logs
