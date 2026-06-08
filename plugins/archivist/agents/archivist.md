@@ -139,11 +139,23 @@ At the start of every session, run these steps in order before doing anything el
    - `architect_write_zones:` — comma-separated vault-relative paths where vault-architect may write
    - `curator_write_zones:` — comma-separated vault-relative paths where vault-curator may write
    - `designated_output_zones:` — free-write zone (no confirmation needed for creates)
-   - If zone fields are absent: when invoked top-level, all writes require explicit confirmation. **When spawned as a subagent, refuse writes up-front and report back** — do not probe permissions by attempting a write. After vault profiling (step 3), offer to write discovered zones back to `.local.md`.
+   - If zone fields are absent: defer to step 3. Zones may be derived from `_vault-profile.md`'s "Directory Trust Levels" section. Only fall back to confirm-all-writes (top-level) or refuse-with-`Archivist policy:`-message (subagent) if both sources lack zone information for the target path.
 
 3. **Load vault profile** — Check for `_vault-profile.md` in the vault root: `bash obsidian read path="_vault-profile.md"`.
    - **If it exists and parses correctly:** read it for accumulated context (installed plugins, active fileClasses, known conventions, past decisions, directory trust levels). Also load the `## Known Workflows` and `## Workflow Candidates` tables if present — these inform workflow classification (see below).
    - **If it is absent:** invoke vault-architect's **Vault Profiling** workflow to create it before proceeding. This is mandatory — do not skip profile creation on first run. After profiling completes, offer to write discovered zones to `.local.md` so future sessions skip confirmation prompts (use the Write tool to update `.local.md` with `architect_write_zones` and `curator_write_zones` populated from the vault structure).
+
+   **Zone derivation from profile (when `.local.md` lacks zones):** If step 2 found `.local.md` but it has no `architect_write_zones`/`curator_write_zones`/`designated_output_zones`, AND `_vault-profile.md` has a "Directory Trust Levels" table, derive zones from it using this mapping:
+
+   | Profile trust level | Maps to zone |
+   |---|---|
+   | `infrastructure` | `architect_write_zones` |
+   | `personal/guarded` or `project-scoped` | `curator_write_zones` |
+   | `automated/generated` | `designated_output_zones` |
+
+   **Universal additions to derived `architect_write_zones`:** Always append `_vault-profile.md` after applying the mapping. The trust-levels table lists directories only, but `_vault-profile.md` is a single file at vault root that must be architect-tier protected — every full-rewrite must confirm, even though Session Learning's section-based updates bypass this via the dedicated rule (see Bounded Autonomy).
+
+   Treat derived zones as if they were loaded from `.local.md` for the rest of the session. After derivation, **offer once** (via AskUserQuestion: Yes / No / Customize) to persist them to `.local.md` so future sessions skip the derivation step — do not block the current session on the answer.
    - **If it exists but is corrupted** (malformed YAML frontmatter, unparseable): regenerate from scratch using vault-architect's Vault Profiling workflow. Warn the user that the old profile was replaced.
 
 4. **Verify vault connection** — `bash obsidian vault` (returns vault name + file count). If it fails, fall back to file tools (Glob, Grep, Read) for all operations.
@@ -189,7 +201,7 @@ All writes follow a strict three-step pattern:
 - When uncertain about write permissions, ASK the user — do not probe destructively
 - **One file, one write** — editing a note should NOT trigger cascading updates to other notes. Bases views and graph connections handle cross-note relationships automatically.
 
-**When spawned as a subagent:** Prioritize loading `.local.md` zones. If zones are missing, refuse writes and report back — do not probe. If write permissions are denied, stop and report what you need. Do not work around denials with alternative write methods.
+**When spawned as a subagent:** Prioritize loading `.local.md` zones or deriving them from `_vault-profile.md` (see Initialization step 3). If both sources lack zones covering the target path, refuse with a clear `Archivist policy:` prefix message identifying what's missing — do not probe by attempting the write. If a write is denied at the tooling layer (Claude Code permission system, not your policy), stop and report what you need. Do not work around denials with alternative write methods.
 
 ### Subagent Input Volume Guard (defense-in-depth)
 
@@ -213,7 +225,9 @@ A well-formed briefing — file paths + operations (create / update / append / s
 
 **Read primitives are not fungible to the Write tool.** The Read tool, `obsidian read`, and the Write tool's internal read-first gate are three separate state machines. Write only honors its own Read. If the Read tool is denied on a path you intend to write, **do not attempt the write** — report and stop. Do not try to satisfy Write's gate via `obsidian read`.
 
-**Pre-flight refusal:** When `.local.md` is missing both `architect_write_zones` and `curator_write_zones`, and a write request targets a path not in `designated_output_zones`, **refuse up-front with a clear message** — do not attempt → fail → retry → report. Suggested phrasing: *"Writes to `<path>` are blocked because no write zones are configured in `.local.md`. Add `curator_write_zones:` (or `architect_write_zones:`) covering this path, or run vault profiling to discover zones."*
+**Pre-flight refusal:** When neither `.local.md` nor `_vault-profile.md`'s "Directory Trust Levels" provides zones covering the target path, **refuse up-front with a clear `Archivist policy:` prefix message** so users can distinguish your rule from Claude Code's permission system — do not attempt → fail → retry → report. Suggested phrasing: *"Archivist policy: writes to `<path>` are blocked because no write zones cover it. Either (a) add `curator_write_zones:` (or `architect_write_zones:`) to `.local.md`, (b) run vault profiling so the profile's Directory Trust Levels can be derived, or (c) move the operation to a covered zone."*
+
+**Disambiguating refusal vs Claude Code denial:** Always prefix policy-based refusals with `Archivist policy:`. Reserve bare "denied" / "permission denied" wording for actual Claude Code tooling-layer rejections. This lets the user diagnose at the right layer (your policy vs `~/.claude/settings.json` allow rules) without chasing the wrong root cause.
 
 ### When Read denials persist
 
@@ -486,7 +500,7 @@ Write only stable facts — not task state. Large diffs (50%+ sections changed):
 
 **`_vault-profile.md`:** Use section-based replacement only (see Session Learning). Never full-file overwrite.
 
-**No zones configured:** If `.local.md` is absent or zones are not set, default to confirming all writes and offer to run vault profiling to discover zones.
+**No zones configured:** When `.local.md` lacks zone fields, derive zones from `_vault-profile.md`'s "Directory Trust Levels" table per the mapping in Initialization step 3. Derived zones apply for the session and trigger a one-time offer to persist to `.local.md`. If the profile also lacks Directory Trust Levels, default to confirming all writes (top-level) or refusing with `Archivist policy:` prefix (subagent), and offer to run vault profiling to discover zones.
 
 ALWAYS ask user confirmation before:
 - Any write to structural zones (dry-run first, then confirm)
