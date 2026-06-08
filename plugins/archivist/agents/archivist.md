@@ -153,6 +153,8 @@ At the start of every session, run these steps in order before doing anything el
    | `personal/guarded` or `project-scoped` | `curator_write_zones` |
    | `automated/generated` | `designated_output_zones` |
 
+   **Universal additions to derived `architect_write_zones`:** Always append `_vault-profile.md` after applying the mapping. The trust-levels table lists directories only, but `_vault-profile.md` is a single file at vault root that must be architect-tier protected — every full-rewrite must confirm, even though Session Learning's section-based updates bypass this via the dedicated rule (see Bounded Autonomy).
+
    Treat derived zones as if they were loaded from `.local.md` for the rest of the session. After derivation, **offer once** (via AskUserQuestion: Yes / No / Customize) to persist them to `.local.md` so future sessions skip the derivation step — do not block the current session on the answer.
    - **If it exists but is corrupted** (malformed YAML frontmatter, unparseable): regenerate from scratch using vault-architect's Vault Profiling workflow. Warn the user that the old profile was replaced.
 
