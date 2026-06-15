@@ -574,6 +574,12 @@ Commands:
   clarity [--limit N]               Tasks with lowest clarity score (no estimate/tags/project); default limit 10
   stalled [--days N]                Active projects with no available next action or not modified in N days (default 14)
   health                            System health: inbox, overdue (with Catch Up metadata), flagged — single call
+  system-map [flags]                Inspect or refresh the Attache System Map (per D7.2 schema v1).
+                                    Flags: --show (human summary), --json (raw JSON, default),
+                                           --refresh [--depth quick|full] (re-discover + write to task note),
+                                           --drift-check (returns {stale, reasons, ageDays}),
+                                           --validate (check against schema v1 required fields).
+                                    Env: ATTACHE_MAP_MAX_AGE_DAYS (default 30) — drift-check age threshold.
   help                              Show this help
 
 Filters for 'list':
@@ -641,6 +647,204 @@ Prerequisites:
 
 // --- Main ---
 
+// --- D7.3 — System Map CLI ---
+
+const ATTACHE_PLUGIN_ID = 'com.totallytools.omnifocus.attache';
+const SYSTEM_MAP_TASK_NAME = 'Attache System Map';
+const EXPECTED_SCHEMA_VERSION = 1;
+const DEFAULT_MAX_AGE_DAYS = 30;
+
+/**
+ * Run an inline omnijs-run script and return its pasteboard output.
+ * Same polling pattern as runAction() but takes the script body inline
+ * (not the ofo-stub.js). Used for system-map operations that cross
+ * libraries (ofoCore + systemDiscovery).
+ */
+function runInlineScript(scriptBody: string): string {
+  pbcopy('__ofo_pending__');
+  const encoded = urlEncode(scriptBody);
+  execSync(`open "omnifocus://localhost/omnijs-run?script=${encoded}"`, { stdio: 'ignore' });
+  for (let attempt = 0; attempt < 50; attempt++) {
+    execSync('sleep 0.2');
+    const result = pbpaste();
+    if (result !== '__ofo_pending__') return result;
+  }
+  die('Timeout waiting for OmniFocus response (system-map). Is external script execution enabled?');
+  return ''; // unreachable
+}
+
+function cmdSystemMap(args: string[]): void {
+  let mode: 'show' | 'refresh' | 'drift-check' | 'validate' | 'json' = 'json';
+  let depth: 'quick' | 'full' = 'full';
+
+  for (let i = 0; i < args.length; i++) {
+    switch (args[i]) {
+      case '--show':        mode = 'show'; break;
+      case '--refresh':     mode = 'refresh'; break;
+      case '--drift-check': mode = 'drift-check'; break;
+      case '--validate':    mode = 'validate'; break;
+      case '--json':        mode = 'json'; break;
+      case '--depth':       depth = (args[++i] as 'quick' | 'full') || 'full'; break;
+      default:              die('Unknown flag: ' + args[i] + '. Usage: ofo system-map [--show|--refresh|--drift-check|--validate|--json] [--depth quick|full]');
+    }
+  }
+
+  if (mode === 'refresh') {
+    // Inline script: invoke systemDiscovery, write to task note, return JSON.
+    const script = `(() => {
+  const p = PlugIn.find(${JSON.stringify(ATTACHE_PLUGIN_ID)});
+  if (!p) { Pasteboard.general.string = JSON.stringify({success:false, error:"Attache plugin not installed"}); return; }
+  const lib = p.library("systemDiscovery");
+  if (!lib) { Pasteboard.general.string = JSON.stringify({success:false, error:"systemDiscovery library not found in Attache plugin (rebuild required?)"}); return; }
+  let map;
+  try { map = lib.discoverSystem({depth: ${JSON.stringify(depth)}}); }
+  catch (e) { Pasteboard.general.string = JSON.stringify({success:false, error:"discoverSystem threw: " + String(e)}); return; }
+  const mapJson = JSON.stringify(map);
+  // Find or create the Attache System Map task at inbox root
+  const existing = flattenedTasks.filter(t => t.name === ${JSON.stringify(SYSTEM_MAP_TASK_NAME)});
+  let task;
+  if (existing.length > 0) { task = existing[0]; task.note = mapJson; }
+  else { task = new Task(${JSON.stringify(SYSTEM_MAP_TASK_NAME)}, inbox.ending); task.note = mapJson; }
+  Pasteboard.general.string = JSON.stringify({success:true, refreshed:true, taskId: task.id.primaryKey, schemaVersion: map.schemaVersion, generatedAt: map.generatedAt, discoveryMode: map.discoveryMode, conventions: map.conventions, durationModel: map.durationModel});
+})()`;
+    const result = runInlineScript(script);
+    process.stdout.write(result);
+    return;
+  }
+
+  // For show/drift-check/validate/json: first read the map from the task note.
+  const readScript = `(() => {
+  const tasks = flattenedTasks.filter(t => t.name === ${JSON.stringify(SYSTEM_MAP_TASK_NAME)});
+  if (tasks.length === 0) { Pasteboard.general.string = JSON.stringify({success:false, error:"System Map not found. Run: ofo system-map --refresh"}); return; }
+  const task = tasks[0];
+  const note = task.note || "{}";
+  // Also collect live counts for drift detection
+  const liveTagCount = flattenedTags.length;
+  const liveTopLevelFolderCount = folders.length;
+  Pasteboard.general.string = JSON.stringify({success:true, note: note, liveTagCount: liveTagCount, liveTopLevelFolderCount: liveTopLevelFolderCount, taskId: task.id.primaryKey});
+})()`;
+  const readResult = runInlineScript(readScript);
+  let readData: any;
+  try { readData = JSON.parse(readResult); }
+  catch { die('Failed to parse OmniFocus response: ' + readResult.slice(0, 200)); }
+  if (!readData.success) {
+    process.stdout.write(readResult);
+    process.exit(1);
+  }
+
+  let map: any;
+  try { map = JSON.parse(readData.note); }
+  catch {
+    process.stdout.write(JSON.stringify({ success: false, error: 'System Map task note is not valid JSON. Run: ofo system-map --refresh' }));
+    process.exit(1);
+  }
+
+  if (mode === 'json' || mode === 'show') {
+    if (mode === 'json') {
+      process.stdout.write(JSON.stringify(map, null, 2));
+      return;
+    }
+    // Human-readable summary
+    const ageDays = map.generatedAt
+      ? Math.floor((Date.parse(new Date().toISOString()) - Date.parse(map.generatedAt)) / 86400000)
+      : '?';
+    const lines = [
+      'Attache System Map',
+      '==================',
+      `Schema version:    ${map.schemaVersion ?? '(legacy, pre-D7.2)'}`,
+      `Attache version:   ${map.attacheVersion ?? '?'}`,
+      `Generated at:      ${map.generatedAt ?? map.discoveredAt ?? '?'} (${ageDays} days ago)`,
+      `Discovery mode:    ${map.discoveryMode ?? '?'} (depth: ${map.discoveryDepth ?? map.discoveryMode ?? '?'})`,
+      `Duration model:    ${map.durationModel ?? '?'}`,
+      '',
+      'Conventions:',
+      `  waitingTag:        ${map.conventions?.waitingTag ?? '(none)'}`,
+      `  somedayTag:        ${map.conventions?.somedayTag ?? '(none)'}`,
+      `  somedayFolder:     ${map.conventions?.somedayFolder ?? '(none)'}`,
+      `  waitingForFolder:  ${map.conventions?.waitingForFolder ?? '(none)'}`,
+      `  defaultContextTag: ${map.conventions?.defaultContextTag ?? '(none)'}`,
+      '',
+      `Folders: ${map.structure?.totalFolders ?? '?'} total, ${map.structure?.topLevelFolders?.length ?? '?'} top-level`,
+      `Projects: ${map.projects?.total ?? '?'} (${map.projects?.active ?? '?'} active, ${map.projects?.stalled ?? '?'} stalled)`,
+      map.tasks ? `Tasks: ${map.tasks.active ?? '?'} active (${map.tasks.inInbox ?? '?'} in inbox)` : 'Tasks: (quick mode, no task data)',
+      `Tags: ${map.tags?.totalTags ?? '?'} total (${map.tags?.taxonomyStyle ?? '?'})`,
+    ];
+    process.stdout.write(lines.join('\n') + '\n');
+    return;
+  }
+
+  if (mode === 'validate') {
+    const errors: string[] = [];
+    if (map.schemaVersion !== EXPECTED_SCHEMA_VERSION) {
+      errors.push(`schemaVersion: expected ${EXPECTED_SCHEMA_VERSION}, got ${map.schemaVersion}`);
+    }
+    const requiredTopLevel = ['attacheVersion', 'generatedAt', 'discoveryMode', 'discoveryDepth', 'conventions', 'tags', 'structure', 'projects'];
+    for (const field of requiredTopLevel) {
+      if (!(field in map)) errors.push(`missing required field: ${field}`);
+    }
+    if (map.conventions) {
+      const reqConventions = ['waitingTag', 'somedayTag', 'somedayFolder', 'waitingForFolder', 'defaultContextTag'];
+      for (const c of reqConventions) {
+        if (!(c in map.conventions)) errors.push(`missing required field: conventions.${c}`);
+      }
+    }
+    if (errors.length === 0) {
+      process.stdout.write(JSON.stringify({ valid: true, schemaVersion: map.schemaVersion }) + '\n');
+      return;
+    }
+    process.stdout.write(JSON.stringify({ valid: false, errors }) + '\n');
+    process.exit(1);
+  }
+
+  if (mode === 'drift-check') {
+    const maxAgeDays = parseInt(process.env['ATTACHE_MAP_MAX_AGE_DAYS'] || String(DEFAULT_MAX_AGE_DAYS), 10);
+    const reasons: string[] = [];
+
+    if (map.schemaVersion !== EXPECTED_SCHEMA_VERSION) {
+      reasons.push(`schema-stale: map v${map.schemaVersion}, current schema v${EXPECTED_SCHEMA_VERSION}`);
+    }
+
+    const generatedAt = map.generatedAt || map.discoveredAt;
+    let ageDays = 0;
+    if (generatedAt) {
+      ageDays = Math.floor((Date.parse(new Date().toISOString()) - Date.parse(generatedAt)) / 86400000);
+      if (ageDays > maxAgeDays) reasons.push(`age-stale: refreshed ${ageDays} days ago (threshold ${maxAgeDays}d)`);
+    }
+
+    // Tag-count delta: sum of all tags.categories.* arrays vs current flattenedTags.length
+    let mapTagCount = 0;
+    if (map.tags?.categories) {
+      for (const cat of Object.values(map.tags.categories) as any[]) {
+        if (Array.isArray(cat)) mapTagCount += cat.length;
+      }
+    }
+    const tagDelta = Math.abs(readData.liveTagCount - mapTagCount);
+    const tagDeltaPct = mapTagCount > 0 ? (tagDelta / mapTagCount) * 100 : 0;
+    if (tagDeltaPct > 10) {
+      reasons.push(`tag-drift: ${tagDelta} tags difference (${tagDeltaPct.toFixed(1)}% drift)`);
+    }
+
+    // Folder-count delta
+    const mapFolderCount = map.structure?.topLevelFolders?.length ?? 0;
+    const folderDelta = Math.abs(readData.liveTopLevelFolderCount - mapFolderCount);
+    const folderDeltaPct = mapFolderCount > 0 ? (folderDelta / mapFolderCount) * 100 : 0;
+    if (folderDeltaPct > 10) {
+      reasons.push(`folder-drift: top-level folder count changed (${folderDelta} difference)`);
+    }
+
+    // Broken convention check (rough — checks if convention tag/folder name still exists)
+    // Note: full check requires another roundtrip; the live counts already give a strong signal.
+
+    process.stdout.write(JSON.stringify({
+      stale: reasons.length > 0,
+      reasons,
+      lastRefresh: generatedAt,
+      ageDays,
+    }, null, 2) + '\n');
+    return;
+  }
+}
+
 const argv = process.argv.slice(2);
 const command = argv[0] || 'help';
 const commandArgs = argv.slice(1);
@@ -673,6 +877,7 @@ switch (command) {
   case 'clarity':               cmdClarity(commandArgs); break;
   case 'stalled':               cmdStalled(commandArgs); break;
   case 'health':                cmdHealth(); break;
+  case 'system-map':            cmdSystemMap(commandArgs); break;
   case 'help':
   case '--help':
   case '-h':          cmdHelp(); break;
