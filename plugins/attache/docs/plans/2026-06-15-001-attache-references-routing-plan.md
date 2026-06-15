@@ -23,10 +23,10 @@ Issues touching this surface: **#141** (CLI gaps), **#135** (plugin reload), **#
 When done, the following are true:
 
 1. `plugins/attache/agents/attache.md` contains a **Channel Selection** section with a decision tree distinguishing the four channels (CLI, Attache action, standalone plugin, JXA) and acceptance examples for each.
-2. `plugins/attache/skills/omnifocus-generator/references/` is reorganized into a hierarchical tree with a 00_index.md entry point. The 177KB `omnifocus_api.md` is moved/linked once (no duplication between `omnifocus-core` and `omnifocus-generator`).
-3. A new doctrine doc (`40_patterns/library_consumer_pattern.md`) tells the generator: *before generating new code, check whether `ofoCore` already exposes the function*. The generator SKILL.md workflow gains a STEP 1.5 enforcement step.
-4. `50_external/inventory_refresh_workflow.md` defines a re-runnable WebFetch workflow that maps the `omni-automation.com` API surface to our local capability docs and reports gaps. The workflow is documented, not executed, by this plan.
-5. A walkthrough in `20_capabilities/04_foundation_models.md` shows the Foundation Models task-organizer plugin built end-to-end using only the new references (the acceptance test).
+2. `plugins/attache/skills/omnifocus-generator/references/` is **flat** (AgentSkills spec: "Keep reference chains one-level deep") with descriptive snake_case filenames. SKILL.md gains a "Reference Documentation" router table that contextually points at each reference (per skillsmith convention — no separate `00_index.md`). The 177KB `omnifocus_api.md` stays in `omnifocus-core/references/` and is cross-referenced from `omnifocus-generator` capability docs via relative path — no duplication.
+3. A new doctrine doc (`references/library_consumer_pattern.md`) tells the generator: *before generating new code, check whether `ofoCore` already exposes the function*. The generator SKILL.md workflow gains a STEP 1.5 enforcement step.
+4. `references/inventory_refresh_workflow.md` defines a re-runnable WebFetch workflow that maps the `omni-automation.com` API surface to our local capability docs and reports gaps. Phase 1 executes the workflow once; subsequent re-runs follow the documented procedure.
+5. A walkthrough in `references/foundation_models.md` shows the Foundation Models task-organizer plugin built end-to-end using only the new references (the acceptance test).
 6. **`ofoCore` exposes every GTD-essential capability** — all seven gtd-coach coaching queries answerable without falling through to JXA; project lifecycle (create, status changes, move-to-folder, mark-reviewed) covered. `gtd-coach/SKILL.md` updated to point at `ofo` CLI commands instead of `gtd-queries.js`.
 7. **System Map is a first-class, schema-versioned contract.** A documented schema lives in `attache-analyst/references/system_map_schema.md`. CLI commands (`ofo system-map`, `ofo system-map --refresh`, `ofo system-map --drift-check`) make it inspectable and refreshable. Every D6 GTD query auto-resolves conventions from the map. gtd-coach mandates a drift check at session start.
 8. **Egregious errors no longer reach OmniFocus load time.** Layered static validation (D8): tightened TS strictness, `no-undef` lint, PlugIn-API antipatterns, manifest↔resources coherence checks, auto-emitted runtime contract skeletons, and optional pre-load smoke test. A deliberately broken spec is caught by the pipeline before any `.omnifocusjs` bundle is written.
@@ -47,7 +47,7 @@ Execution is split across two foundry-driven agents on separate machines. The sp
    - Fetch each linked topic page
    - Build the `class | method | description | source-url` capability table
    - Compare against `plugins/attache/skills/omnifocus-core/references/omnifocus_api.md` (or the moved version under `omnifocus-generator/references/30_api_reference/` if migration has happened) — mark each row `covered` / `partial` / `missing`
-2. Write `plugins/attache/skills/omnifocus-generator/references/50_external/capability_inventory.md` per the D4 spec.
+2. Write `plugins/attache/skills/omnifocus-generator/references/capability_inventory.md` per the D4 spec.
 3. Draft skeletons for each `plugins/attache/skills/omnifocus-generator/references/20_capabilities/*.md` doc using the D2 template (what this covers → what NOT → first-stop ofoCore check → native classes → reach-out trigger). Pull content from the fetched omni-automation.com pages. Mark each draft `<!-- DRAFT — review during D2 integration -->` at the top.
 4. Update this plan with: (a) a "Phase 1 Research Complete" appendix listing every file written, (b) an "Unsurfaced Capabilities" section listing any high-value gaps that should become follow-up issues (NOT scope additions to D6/D7/D8), (c) the `RESEARCH COMPLETE: <ISO-date>` marker right before the "Verification" section so Phase 2 knows it's safe to start.
 5. Hand back a status report: files written, capabilities surfaced, recommended follow-up issues to file (don't file them — implementation agent or human files them as cross-references from this epic).
@@ -59,30 +59,87 @@ Execution is split across two foundry-driven agents on separate machines. The sp
 - Modify any `.ts`, `.js`, `manifest.json`, agent `.md`, or existing SKILL.md
 - Run `build-attache.sh`, `validate-plugin.sh`, or any plugin build/install step
 - Migrate or reorganize existing references (that's Phase 2's D2 work)
-- Touch the `20_capabilities/*.md` files beyond initial draft creation (no rewrites of its own drafts)
+- Touch the new capability files beyond initial draft creation (no rewrites of its own drafts; flattening is done by Phase 1.5, not Phase 1)
 - Make scope decisions about D6/D7/D8 — only surface gaps as recommendations
 - Touch repo state outside `plugins/attache/skills/omnifocus-generator/references/` (and this plan file)
 
 **Phase 1 success criterion:** Phase 2 agent reads the plan, sees the `RESEARCH COMPLETE` marker + the file list, and can begin D2 reorganization immediately without further fetching.
 
+### Phase 1.5 — Skill Compliance Retrofit (MANDATORY before Phase 2)
+
+**Why this exists.** The original D2 spec prescribed numbered subdirectories under `references/` (`00_index.md`, `10_decision_framework/`, `20_capabilities/`, `30_api_reference/`, `40_patterns/`, `50_external/`). Phase 1 faithfully implemented this. **Post-Phase-1 audit by foundry/skillsmith found this structure violates the AgentSkills specification:**
+
+- AgentSkills spec (`skillsmith/references/agentskills_specification.md`): *"Keep reference chains one-level deep from SKILL.md"* and *"Avoid deeply nested file references."*
+- `skillsmith/references/reference_management_guide.md` FAQ: *"Keep references flat in `references/` for best compatibility"* (the `update_references.py` validator only scans `references/*.md`, treating nested files as orphans).
+- Empirical baseline measured 2026-06-15: every other skill in the marketplace (25+ skills including `skillsmith` 13 flat, `vault-architect` 12, `swift-dev` 11, `omnifocus-core` 11) keeps `references/` flat. `omnifocus-generator` was the sole nonconforming skill.
+
+`evaluate_skill.py --explain` scored 100/100 because it grades SKILL.md content (conciseness, complexity, frontmatter, description quality), not directory layout — so the eval was blind to the structural defect.
+
+**Scope of retrofit:** Flatten the 13 nested files Phase 1 produced into `references/` with descriptive `snake_case` filenames; drop the numbered prefixes (numbered prefixes imply a reading order that skills don't have); make `SKILL.md` the router via a "Reference Documentation" table; preserve all Phase 1 content verbatim (only paths change).
+
+**Retrofit work (3 mechanical commits — ~30 minutes):**
+
+**Commit 1 — Flatten files.** `git mv` each nested file to the flat name per D2's structure diagram:
+
+```
+tasks_projects_tags.md   → tasks_projects_tags.md
+20_capabilities/02_perspectives.md          → perspectives.md
+20_capabilities/03_forms_ui.md              → forms_ui.md
+foundation_models.md     → foundation_models.md
+20_capabilities/05_files_export.md          → files_export.md
+20_capabilities/06_localization.md          → localization.md
+20_capabilities/07_url_scheme_callbacks.md  → url_scheme_callbacks.md
+libraries_shared_code.md → libraries_shared_code.md
+20_capabilities/09_settings_preferences.md  → settings_preferences.md
+20_capabilities/10_outline_tree_ui.md       → outline_tree_ui.md
+capability_inventory.md         → capability_inventory.md
+web_fetch_protocol.md           → web_fetch_protocol.md
+inventory_refresh_workflow.md   → inventory_refresh_workflow.md
+```
+
+Then `rmdir 20_capabilities 50_external`.
+
+**Commit 2 — Fix internal cross-links.** Each capability doc references its siblings by the old nested path (e.g., `tasks_projects_tags.md` line 7: *"See `02_perspectives.md`, `03_forms_ui.md`, `04_foundation_models.md`"*). Bash sweep:
+
+```bash
+cd plugins/attache/skills/omnifocus-generator/references
+for f in *.md; do
+  sed -i '' -E -e 's|0[0-9]_||g' -e 's|20_capabilities/||g' -e 's|50_external/||g' "$f"
+done
+```
+
+Spot-check for broken links after running; the regex is conservative (only strips `0N_` prefix patterns and the two known subdirs).
+
+**Commit 3 — Restructure SKILL.md as router.** Add the "Reference Documentation" table per D2 spec. Re-run `uv run scripts/evaluate_skill.py plugins/attache/skills/omnifocus-generator --explain` and confirm score is still ≥ baseline. Confirm no orphaned references reported.
+
+**Retrofit acceptance:**
+
+1. `find plugins/attache/skills/omnifocus-generator/references -type d` returns only the references/ directory itself — no subdirectories.
+2. Every flat file in `references/` is mentioned at least once in `SKILL.md` (via the router table).
+3. `evaluate_skill.py --explain` continues to score 100/100 on SKILL.md content.
+4. No `git mv` lost content — `git diff -M` shows pure renames for all 13 files.
+
+**Phase 2 hard precondition (revised):** Phase 2 does NOT start until Phase 1.5 retrofit is complete AND a `RETROFIT COMPLETE: <ISO-date>` marker is added below the `RESEARCH COMPLETE` marker in this plan. Starting Phase 2 against the nested structure would multiply the rework — every D3/D5/D6/D7/D8 file path in the plan assumes flat.
+
 ### Phase 2 — Implementation Agent
 
-**Scope:** Everything except D4 execution and capability-doc drafting. Specifically: D1, D2 (reorganization + integration of Phase 1 drafts), D3, D5, D6, D7, D8 + final D7.8 capability-map row.
+**Scope:** Everything except D4 execution and capability-doc drafting. Specifically: D1, D2 (SKILL.md router + migration table application — the file moves themselves are Phase 1.5), D3, D5, D6, D7, D8 + final D7.8 capability-map row.
 
-**Concrete tasks:** Follow the Constraints execution order (next section), treating Phase 1's drafted `20_capabilities/*.md` files as authoritative content to integrate (review, polish, cross-link) during D2 — not regenerate from scratch.
+**Concrete tasks:** Follow the Constraints execution order (next section), treating Phase 1's flattened capability files as authoritative content to integrate (review, polish, cross-link) — not regenerate from scratch.
 
-**Hard precondition:** This plan file contains a `RESEARCH COMPLETE: <ISO-date>` marker before "Verification". If absent, Phase 2 stops and asks for status of Phase 1 (do not proceed without research output, or you'll duplicate work and end up with two competing capability inventories).
+**Hard precondition:** This plan file contains BOTH a `RESEARCH COMPLETE: <ISO-date>` marker AND a `RETROFIT COMPLETE: <ISO-date>` marker before "Verification". If either is absent, Phase 2 stops and asks for status (Phase 1.5 retrofit may have been skipped; do not proceed against nested structure).
 
 **Tools required:** Full agent toolkit including Bash for builds, Edit/Write for code, the foundry skill loop (`/ss-improve`).
 
 ### Handoff Boundary
 
-Phase 1 and Phase 2 touch disjoint file sets:
+The three phases touch disjoint file sets:
 
-- **Phase 1 writes only:** new files under `omnifocus-generator/references/50_external/` and `omnifocus-generator/references/20_capabilities/`, plus this plan
-- **Phase 2 writes everywhere else** AND reviews/integrates Phase 1's drafts during D2 (may polish them, MUST NOT discard them — the research is the contract)
+- **Phase 1 writes only:** new files under `omnifocus-generator/references/` (originally placed in subdirectories; Phase 1.5 retrofits to flat), plus this plan
+- **Phase 1.5 modifies only:** the 13 Phase 1 files (rename + cross-link sweep) + SKILL.md (router table) + this plan (RETROFIT COMPLETE marker)
+- **Phase 2 writes everywhere else** AND reviews/integrates Phase 1's flattened content during D2 polish (may polish, MUST NOT discard — the research is the contract)
 
-No locking primitive — the disjoint file sets are the contract. If Phase 2 needs to start before Phase 1 finishes (e.g., D8.1 config tightening), it can — none of the Constraints execution order's early steps touch references/ at all.
+No locking primitive — the disjoint file sets are the contract. Phase 2 sub-steps that don't touch references/ (e.g., D8.1 tsconfig tightening) MAY run in parallel with Phase 1.5 if convenient, but D2/D3/D5/D6/D7/D8 sub-steps that reference flat paths must wait for the RETROFIT COMPLETE marker.
 
 ## Deliverable D1 — Channel Selection in Attache Agent
 
@@ -112,77 +169,110 @@ START
 └── None of the above → STOP. Ask the user.
 ```
 
-End with a one-line link back to the omnifocus-generator references: *"For format selection (solitary, solitary-fm, bundle, solitary-library) once you're committed to a plugin, see `skills/omnifocus-generator/references/10_decision_framework/plugin_format_selection.md`."*
+End with a one-line link back to the omnifocus-generator references: *"For format selection (solitary, solitary-fm, bundle, solitary-library) once you're committed to a plugin, see `skills/omnifocus-generator/references/plugin_format_selection.md`."*
 
-## Deliverable D2 — Reference Reorganization with Progressive Disclosure
+## Deliverable D2 — Reference Reorganization (Flat Structure + SKILL.md Router)
 
 **Target:** `plugins/attache/skills/omnifocus-generator/references/`
 
-Final structure (greenfield, no backward-compatibility shims — this is internal documentation):
+> **Revision note (2026-06-15):** Earlier drafts of this plan prescribed a numbered/nested directory tree under `references/`. That design was nonconforming with the AgentSkills specification — see "Phase 1.5 — Skill Compliance Retrofit" in the Two-Agent Handoff Model section for the empirical evidence (every other marketplace skill is flat) and the formal spec quote ("Keep reference chains one-level deep from SKILL.md"). D2 now specifies a **flat references/ directory with descriptive snake_case filenames** and a **SKILL.md "Reference Documentation" table** as the router. This is the convention used by `skillsmith` (13 flat refs), `vault-architect` (12), `swift-dev` (11), and `omnifocus-core` (11).
+
+**Final structure:**
 
 ```
-references/
-├── 00_index.md                                  ← Entry point. Capability map + reading order.
-├── 10_decision_framework/
-│   ├── cli_vs_plugin_vs_jxa.md                 ← Mirrors attache.md channel selection (one source of truth — write here, link from agent)
-│   └── plugin_format_selection.md              ← solitary / solitary-fm / bundle / solitary-library
-├── 20_capabilities/                            ← One doc per capability area. Each ≤300 lines.
-│   ├── 01_tasks_projects_tags.md               ← Task/Project/Tag CRUD via PlugIn.Library — POINTS TO ofoCore first
-│   ├── 02_perspectives.md
-│   ├── 03_forms_ui.md                          ← Form class, alert(), Picker, TextField
-│   ├── 04_foundation_models.md                 ← LanguageModel, Schema, prompting + worked Foundation Models walkthrough
-│   ├── 05_files_export.md                      ← FileWrapper, FileType, JSON/CSV/Markdown export
-│   ├── 06_localization.md                      ← Resources/<locale>.lproj/*.strings
-│   ├── 07_url_scheme_callbacks.md              ← omnifocus:// + omnijs-run + x-callback-url
-│   ├── 08_libraries_shared_code.md             ← PlugIn.Library pattern, calling Attache's ofoCore from a generated plugin
-│   └── 09_settings_preferences.md              ← SyncedPref, hostBoundPref
-├── 30_api_reference/
-│   ├── omnifocus_api.md                        ← MOVED from omnifocus-core (canonical, 177KB — read only when capability docs say to)
-│   ├── omnifocus_d_ts.md                       ← How to read the TypeScript stubs in scripts/typescript/
-│   └── api_gaps.md                             ← Known stub gaps (ES2020 false positives, missing types)
-├── 40_patterns/
-│   ├── iife_wrapper.md                         ← PlugIn.Library IIFE wrap done by build-attache.sh
-│   ├── library_consumer_pattern.md             ← D3 lives here. How generated plugins consume ofoCore.
-│   ├── validation_pipeline.md                  ← validate-plugin.sh contract + known false positives
-│   ├── version_bump_protocol.md                ← Memory rule: always bump manifest version + .strings
-│   └── error_handling.md
-└── 50_external/
-    ├── capability_inventory.md                 ← Generated artifact from inventory workflow (initially placeholder)
-    ├── web_fetch_protocol.md                   ← When/how to reach out to omni-automation.com (specific URLs + prompts)
-    └── inventory_refresh_workflow.md           ← D4 lives here. The re-runnable workflow.
+omnifocus-generator/
+├── SKILL.md                            ← Router. Contains the "Reference Documentation" table that contextually points at each reference.
+├── scripts/                            ← (unchanged)
+└── references/                         ← FLAT. No subdirectories. snake_case descriptive names.
+    ├── automation_best_practices.md       (existing — retained)
+    ├── channel_selection.md               (existing — retained, expanded with D1 channel-selection content)
+    ├── code_generation_validation.md      (existing — superseded by validation_pipeline.md per D8.7; see migration table)
+    ├── omni_automation_guide.md           (existing — retained or absorbed into capability docs per migration)
+    ├── tasks_projects_tags.md             (Phase 1 — capability: Task/Project/Tag/Folder CRUD; first-stop ofoCore check)
+    ├── perspectives.md                    (Phase 1 — capability: perspective queries, configure rules)
+    ├── forms_ui.md                        (Phase 1 — capability: Form, Alert, Picker, TextField)
+    ├── foundation_models.md               (Phase 1 — capability: LanguageModel.Session/Schema; D5 worked example lives here)
+    ├── files_export.md                    (Phase 1 — capability: FileWrapper, FileType, export workflows)
+    ├── localization.md                    (Phase 1 — capability: Resources/<locale>.lproj/*.strings)
+    ├── url_scheme_callbacks.md            (Phase 1 — capability: omnifocus:// + omnijs-run + x-callback-url)
+    ├── libraries_shared_code.md           (Phase 1 — capability: PlugIn.Library pattern, consuming ofoCore)
+    ├── settings_preferences.md            (Phase 1 — capability: SyncedPref, hostBoundPref)
+    ├── outline_tree_ui.md                 (Phase 1 — capability: Tree, TreeNode, DocumentWindow)
+    ├── capability_inventory.md            (Phase 1 — omni-automation.com → local refs coverage map)
+    ├── web_fetch_protocol.md              (Phase 1 — when/how to fetch omni-automation.com mid-task)
+    ├── inventory_refresh_workflow.md      (Phase 1 — re-runnable refresh workflow; D4 lives here)
+    ├── library_consumer_pattern.md        (D3 — how generated plugins consume ofoCore)
+    ├── system_map_dependency.md           (D7.7 — how generated plugins consume the Attache System Map)
+    ├── validation_pipeline.md             (D8.7 — layered validation pipeline; supersedes code_generation_validation.md)
+    ├── api_gaps.md                        (D8.1 — known TS stub gaps, @ts-expect-error tracking)
+    ├── plugin_format_selection.md         (solitary / solitary-fm / bundle / solitary-library decision)
+    ├── iife_wrapper.md                    (PlugIn.Library IIFE wrap done by build-attache.sh)
+    ├── version_bump_protocol.md           (manifest version + .strings bump rule)
+    └── error_handling.md                  (patterns + antipatterns reference for generator output)
 ```
 
-**00_index.md** is the entry point. It contains:
+**SKILL.md becomes the router.** It gains a "Reference Documentation" table (modeled on `skillsmith/SKILL.md`) that contextually points at each reference. Per the `skillsmith` reference_management_guide.md: *"References discovered in context where they're actually used... Maintains one-level reference chain (SKILL.md → reference files)."* No separate `00_index.md` — SKILL.md IS the index.
 
-- A 1-paragraph statement of the skill's purpose.
-- The **Channel Selection** decision tree (synced with attache.md).
-- A **Capability Map** table: `| If building... | Read first | If gap, then |`. Each row points at ≤2 capability docs. Example row: `| A plugin that organizes tasks with on-device AI | 20_capabilities/04_foundation_models.md → 40_patterns/library_consumer_pattern.md | 50_external/web_fetch_protocol.md → fetch https://omni-automation.com/omnifocus/languagemodel-classes.html |`.
-- A **Token-Cost Budget** rule: *"For any plugin generation task, you should read ≤3 reference files (~3KB each) before generating code. If the capability map says to read more, that's a signal to refine the capability map."*
+**Router table to add to SKILL.md:**
 
-**Each `20_capabilities/*.md` doc** follows this template:
+```markdown
+## Reference Documentation
+
+| Reference | Use When |
+|-----------|---------|
+| `references/tasks_projects_tags.md` | Generating Task/Project/Tag/Folder CRUD — check ofoCore first |
+| `references/perspectives.md` | Generating perspective query/configure code |
+| `references/forms_ui.md` | Building Form/Alert/Dialog UI |
+| `references/foundation_models.md` | Using LanguageModel.Session/Schema for on-device AI |
+| `references/files_export.md` | FileWrapper / FileType / export workflows |
+| `references/localization.md` | Resources/<locale>.lproj/*.strings setup |
+| `references/url_scheme_callbacks.md` | omnifocus:// + omnijs-run + x-callback-url |
+| `references/libraries_shared_code.md` | PlugIn.Library pattern; consuming ofoCore |
+| `references/settings_preferences.md` | SyncedPref, hostBoundPref |
+| `references/outline_tree_ui.md` | Tree / TreeNode / DocumentWindow APIs |
+| `references/library_consumer_pattern.md` | DOCTRINE: generated plugins MUST consume ofoCore, not reimplement |
+| `references/system_map_dependency.md` | DOCTRINE: GTD/query plugins MUST consume the Attache System Map |
+| `references/capability_inventory.md` | Coverage map: omni-automation.com → local refs (gap discovery) |
+| `references/web_fetch_protocol.md` | When/how to fetch omni-automation.com mid-task |
+| `references/inventory_refresh_workflow.md` | Re-run the capability inventory (quarterly cadence or on demand) |
+| `references/plugin_format_selection.md` | solitary / solitary-fm / bundle / solitary-library decision |
+| `references/validation_pipeline.md` | Layered pre-emit and post-emit validation (D8.7) |
+| `references/api_gaps.md` | Known TS stub gaps + @ts-expect-error tracking |
+| `references/iife_wrapper.md` | PlugIn.Library IIFE wrap done by build-attache.sh |
+| `references/version_bump_protocol.md` | Manifest version + .strings bump rule |
+| `references/error_handling.md` | Patterns + antipatterns for generated code |
+| `references/channel_selection.md` | CLI vs Plugin vs JXA decision (mirrors agents/attache.md per D1) |
+| `references/code_generation_validation.md` | (legacy — content superseded by validation_pipeline.md; retained until split complete) |
+| `references/automation_best_practices.md` | (existing — patterns to absorb into capability docs / error_handling.md) |
+| `references/omni_automation_guide.md` | (existing — content to absorb into capability docs per topic) |
+
+For the full OmniFocus API reference, see `../omnifocus-core/references/omnifocus_api.md` (canonical; not duplicated here).
+```
+
+**Each capability doc follows this template** (Phase 1 already produced 10 docs matching this — preserve as-is during retrofit):
 
 1. **What this covers** (1 line).
-2. **What this does NOT cover** (link to nearest related doc).
+2. **What this does NOT cover** — link to nearest related reference.
 3. **First-stop solution: check `ofoCore`** — does the function exist in `scripts/src/ofo-core.ts`? List the relevant exports. If yes, consume via library. If no, continue.
 4. **Native Omni Automation classes** — short reference (class names + key methods) with code skeletons. ≤200 lines.
-5. **Reach-out trigger** — if the user's specific question isn't covered here, the exact `WebFetch` invocation: URL + prompt.
+5. **Reach-out trigger** — exact `WebFetch` invocation (URL + prompt) if the case isn't covered.
 
-**Migration tactics:** The existing flat references move into the new structure. Mapping:
+**Migration tactics:** Per Phase 1.5 retrofit (see Two-Agent Handoff Model), 13 files move from nested subdirs to flat names. Existing legacy refs split as follows:
 
 | Old | New |
 |---|---|
-| `omnifocus-generator/references/code_generation_validation.md` | Split: validation rules → `40_patterns/validation_pipeline.md`; LanguageModel schema → `20_capabilities/04_foundation_models.md`; IIFE assertions → `40_patterns/iife_wrapper.md` |
-| `omnifocus-generator/references/omni_automation_guide.md` | Split across `20_capabilities/*.md` per topic |
-| `omnifocus-generator/references/automation_best_practices.md` | Split: patterns → `40_patterns/`; anti-patterns → `40_patterns/error_handling.md` |
-| `omnifocus-generator/references/channel_selection.md` | Merge into `10_decision_framework/cli_vs_plugin_vs_jxa.md` |
-| `omnifocus-core/references/omnifocus_api.md` | MOVE to `omnifocus-generator/references/30_api_reference/omnifocus_api.md`. Leave a 1-line pointer stub in `omnifocus-core/references/` that says: *"Canonical OmniFocus API reference now lives in `../../omnifocus-generator/references/30_api_reference/omnifocus_api.md`."* |
-| `omnifocus-core/references/api_reference.md` | Keep in `omnifocus-core` (it's a CLI-user quick lookup, not a generator reference) |
+| `omnifocus-generator/references/code_generation_validation.md` | Split: validation rules → `validation_pipeline.md`; LanguageModel schema → `foundation_models.md`; IIFE assertions → `iife_wrapper.md`. Original file removed once split is complete. |
+| `omnifocus-generator/references/omni_automation_guide.md` | Split across `<topic>.md` capability docs (Phase 1 drafts already cover most of this). Original file removed once content is fully absorbed. |
+| `omnifocus-generator/references/automation_best_practices.md` | Split: patterns absorbed into relevant capability docs; antipatterns → `error_handling.md`. Original file removed. |
+| `omnifocus-generator/references/channel_selection.md` | **Retained.** Extended with the channel-selection decision tree from D1 (one source of truth — write here, link from `agents/attache.md`). Earlier draft proposed `cli_vs_plugin_vs_jxa.md` as a new file; that's superseded by extending the existing flat ref. |
+| `omnifocus-core/references/omnifocus_api.md` | **No longer moves.** Stay in `omnifocus-core/references/`. Capability docs in `omnifocus-generator/references/` cross-reference it via relative path: `../../omnifocus-core/references/omnifocus_api.md`. Cross-skill linking is allowed; physical duplication is not. |
+| `omnifocus-core/references/api_reference.md` | Keep in `omnifocus-core` (CLI-user quick lookup). |
 
-Do **not** duplicate — every fact lives in exactly one file. Cross-link freely.
+Do **not** duplicate — every fact lives in exactly one file. Cross-link freely (including across skills).
 
 ## Deliverable D3 — Shared-Library Doctrine
 
-**Primary file:** `plugins/attache/skills/omnifocus-generator/references/40_patterns/library_consumer_pattern.md`
+**Primary file:** `plugins/attache/skills/omnifocus-generator/references/library_consumer_pattern.md`
 
 This doc establishes the rule: **`ofoCore` is the shared library. Every generated plugin that touches tasks, projects, tags, or perspectives consumes it; it does not reimplement.**
 
@@ -200,13 +290,13 @@ Contents:
 
 **Enforcement in the generator workflow.** Update `omnifocus-generator/SKILL.md` to insert a **STEP 1.5** between CLASSIFY and SELECT FORMAT:
 
-> **STEP 1.5 — CHECK ofoCore.** Before generating any code, read `references/40_patterns/library_consumer_pattern.md` and the current `scripts/src/ofo-core.ts` exports. If the operation you need is already there, the plugin should consume it via `PlugIn.find(...).library("ofoCore")`. If only *part* of what you need is there, propose the missing function as an `ofoCore` addition (link to issue #141) and proceed with consumption + a documented gap. Only generate fresh CRUD code when the operation does not belong in `ofoCore` (rare).
+> **STEP 1.5 — CHECK ofoCore.** Before generating any code, read `references/library_consumer_pattern.md` and the current `scripts/src/ofo-core.ts` exports. If the operation you need is already there, the plugin should consume it via `PlugIn.find(...).library("ofoCore")`. If only *part* of what you need is there, propose the missing function as an `ofoCore` addition (link to issue #141) and proceed with consumption + a documented gap. Only generate fresh CRUD code when the operation does not belong in `ofoCore` (rare).
 
 Mirror this rule in `attache.md` agent doc near the existing "OmniFocus Execution Hierarchy" section.
 
 ## Deliverable D4 — Re-Runnable Web Capability Inventory Workflow
 
-**File:** `plugins/attache/skills/omnifocus-generator/references/50_external/inventory_refresh_workflow.md`
+**File:** `plugins/attache/skills/omnifocus-generator/references/inventory_refresh_workflow.md`
 
 This is the workflow that an agent runs to refresh the capability inventory from omni-automation.com. **Under the Two-Agent Handoff Model, D4 is executed by the Phase 1 Research Agent** as its primary task — the workflow doc AND the populated `capability_inventory.md` AND drafted `20_capabilities/*.md` skeletons are all Phase 1 deliverables. Subsequent re-runs (quarterly cadence, or when a specific capability is missing) follow the same documented workflow.
 
@@ -222,16 +312,16 @@ Workflow shape (document as numbered steps an agent can follow):
 **Anti-patterns to call out in the doc:**
 
 - DO NOT read the full body of every topic page during normal work — only run this workflow on schedule (e.g., quarterly) or when a specific capability is missing.
-- DO NOT inline the capability inventory into `00_index.md` — it lives in `50_external/capability_inventory.md` and is referenced from the capability map only as needed.
+- DO NOT inline the capability inventory into `SKILL.md` — it lives in `capability_inventory.md` and is referenced from the SKILL.md router table only as needed.
 - DO NOT fetch the same URL twice in a single run — WebFetch caches, but the workflow should batch.
 
 **`web_fetch_protocol.md`** (sibling file) documents the contract for *one-off* WebFetches during plugin building (when a capability doc says "if your case isn't covered here, fetch X"): includes the URL format, the prompt template, and a token-cost reminder.
 
 ## Deliverable D5 — Foundation Models Worked Example (Acceptance Test)
 
-**File:** `plugins/attache/skills/omnifocus-generator/references/20_capabilities/04_foundation_models.md`
+**File:** `plugins/attache/skills/omnifocus-generator/references/foundation_models.md`
 
-After the standard capability-doc sections, append a section titled **"Worked Example: Organize Project Tasks via Foundation Models"** with a full walkthrough. This is the plan's acceptance criterion — a fresh agent should be able to build the plugin reading only this doc + the docs it links to (`08_libraries_shared_code.md`, `40_patterns/library_consumer_pattern.md`, and `10_decision_framework/plugin_format_selection.md`).
+After the standard capability-doc sections, append a section titled **"Worked Example: Organize Project Tasks via Foundation Models"** with a full walkthrough. This is the plan's acceptance criterion — a fresh agent should be able to build the plugin reading only this doc + the docs it links to (`08_libraries_shared_code.md`, `library_consumer_pattern.md`, and `plugin_format_selection.md`).
 
 Walkthrough outline (the executing agent fleshes this out):
 
@@ -354,9 +444,9 @@ After all library + CLI changes:
 
 After D6 lands, the executing agent revisits:
 
-- `references/40_patterns/library_consumer_pattern.md` — regenerate the `ofoCore` exports table to include the new functions.
-- `references/20_capabilities/01_tasks_projects_tags.md` — update the "check ofoCore first" section to list the new project-lifecycle functions.
-- `references/00_index.md` capability map — add rows for the new GTD coaching queries with the right reading order.
+- `references/library_consumer_pattern.md` — regenerate the `ofoCore` exports table to include the new functions.
+- `references/tasks_projects_tags.md` — update the "check ofoCore first" section to list the new project-lifecycle functions.
+- `SKILL.md`'s Reference Documentation router table capability map — add rows for the new GTD coaching queries with the right reading order.
 
 ## Deliverable D7 — System Map as First-Class Convention Source
 
@@ -439,20 +529,20 @@ This was added in D6.4 (STEP 0 — Confirm System Map currency). D7 ensures the 
 
 ### D7.7 — Generator Reference Doc
 
-Add `plugins/attache/skills/omnifocus-generator/references/40_patterns/system_map_dependency.md`:
+Add `plugins/attache/skills/omnifocus-generator/references/system_map_dependency.md`:
 
 - **The rule.** Any generated plugin that does GTD-flavored coaching, querying, or organization MUST consume the System Map. The pattern: `var sm = JSON.parse(systemMapTask.note); var waitingTag = sm.conventions.waitingTag;`.
-- **How to find the System Map task from a generated plugin.** Use `flattenedTasks.byName("Attache System Map")` (or first match if the API doesn't expose `byName` on tasks — fall back to filter). Document the OmniFocus API caveat in `30_api_reference/api_gaps.md` if relevant.
+- **How to find the System Map task from a generated plugin.** Use `flattenedTasks.byName("Attache System Map")` (or first match if the API doesn't expose `byName` on tasks — fall back to filter). Document the OmniFocus API caveat in `api_gaps.md` if relevant.
 - **Schema version handling.** Always check `sm.schemaVersion === expectedVersion` before reading; warn-and-proceed if higher, error-and-exit if lower.
-- **Cross-link.** Update `40_patterns/library_consumer_pattern.md` to list `systemDiscovery` as the second mandatory library after `ofoCore` for GTD-flavored plugins.
+- **Cross-link.** Update `library_consumer_pattern.md` to list `systemDiscovery` as the second mandatory library after `ofoCore` for GTD-flavored plugins.
 
 ### D7.8 — Capability Map Integration
 
-In `omnifocus-generator/references/00_index.md`, the Capability Map gets a new row:
+In `omnifocus-generator/SKILL.md` (the Reference Documentation router table from D2), a new row is added:
 
 | If building... | Read first | If gap, then |
 |---|---|---|
-| A plugin that organizes/queries the user's GTD system | `40_patterns/system_map_dependency.md` → `attache-analyst/references/system_map_schema.md` | If conventions aren't covered: extend `systemDiscovery` (file an issue) |
+| A plugin that organizes/queries the user's GTD system | `system_map_dependency.md` → `attache-analyst/references/system_map_schema.md` | If conventions aren't covered: extend `systemDiscovery` (file an issue) |
 
 This ensures the Foundation Models worked example in D5 reads `system_map_dependency.md` and uses the user's actual convention tags rather than hardcoded examples.
 
@@ -479,7 +569,7 @@ Edit `plugins/attache/skills/omnifocus-core/scripts/src/tsconfig.plugin.json` (a
 - Add `"exactOptionalPropertyTypes": true` — distinguishes `{x?: T}` from `{x: T | undefined}`, catches drift between OmniFocus stubs and consumer code.
 - Add `"noPropertyAccessFromIndexSignature": true` — forces bracket access on index signatures, makes implicit-any leakage visible.
 
-If turning these on surfaces ≥5 existing errors per file, the executing agent should pause and ask before mass-suppressing — that's a real audit finding, not a config tuning. Use `// @ts-expect-error #ISSUE-N` per call site (tracked, not silenced) and document each in `30_api_reference/api_gaps.md`.
+If turning these on surfaces ≥5 existing errors per file, the executing agent should pause and ask before mass-suppressing — that's a real audit finding, not a config tuning. Use `// @ts-expect-error #ISSUE-N` per call site (tracked, not silenced) and document each in `api_gaps.md`.
 
 ### D8.2 — Enable ESLint Typo-Catching
 
@@ -517,7 +607,7 @@ Add to `plugins/attache/skills/omnifocus-generator/scripts/jxa-antipatterns.json
   "pattern": "new\\s+LanguageModel\\.Schema\\b",
   "severity": "error",
   "message": "Use LanguageModel.Schema factory methods (e.g., LanguageModel.Schema.object({...})), not the constructor.",
-  "reference": "20_capabilities/04_foundation_models.md"
+  "reference": "foundation_models.md"
 }
 ```
 
@@ -582,7 +672,7 @@ if (sm.schemaVersion !== EXPECTED_SCHEMA_VERSION) {
 
 The `EXPECTED_SCHEMA_VERSION` is templated in from the System Map schema doc at generation time, so generated plugins are pinned to a specific schema version they were validated against.
 
-Document both skeletons in `40_patterns/library_consumer_pattern.md` (D3) and `40_patterns/system_map_dependency.md` (D7.7).
+Document both skeletons in `library_consumer_pattern.md` (D3) and `system_map_dependency.md` (D7.7).
 
 ### D8.6 — Pre-Load Smoke Test (Optional but Recommended)
 
@@ -598,7 +688,7 @@ Wire into `validate-plugin.sh` as the final gate. Mark as optional in case Node 
 
 ### D8.7 — Validation Pipeline Reference Doc
 
-Rewrite `plugins/attache/skills/omnifocus-generator/references/40_patterns/validation_pipeline.md` to document the layered approach as a single source of truth:
+Rewrite `plugins/attache/skills/omnifocus-generator/references/validation_pipeline.md` to document the layered approach as a single source of truth:
 
 1. **Pre-generation (in `generate_plugin.ts`):** Spec validation, template selection, ofoCore-check prompt (per D3 STEP 1.5).
 2. **Pre-emit (after TS source is generated):** `tsc --noEmit` with strict flags from D8.1; ESLint with D8.2 + D8.3 rules; refusal-to-emit on error.
@@ -623,10 +713,10 @@ The executing agent should construct a deliberately broken plugin spec (e.g., re
 Representative paths (not exhaustive — the executing agent will discover the full set during the migration):
 
 - `plugins/attache/agents/attache.md` — channel selection section + STEP 1.5 mention
-- `plugins/attache/skills/omnifocus-generator/SKILL.md` — workflow updated with STEP 1.5 and new reference-path discipline
-- `plugins/attache/skills/omnifocus-generator/references/**` — entire new structure (new + moved + split files)
-- `plugins/attache/skills/omnifocus-core/references/omnifocus_api.md` — replaced with a 1-line pointer stub
-- `plugins/attache/skills/omnifocus-core/SKILL.md` — references-section pointer updated; CLI command surface section updated for D6.3 additions
+- `plugins/attache/skills/omnifocus-generator/references/` — Phase 1.5 retrofit (13 nested files moved to flat names + cross-link sweep); new D2-spec files added flat; legacy refs (`code_generation_validation.md`, `omni_automation_guide.md`, `automation_best_practices.md`) split into capability + pattern docs and then removed once content is absorbed; `channel_selection.md` retained and extended with D1 content
+- `plugins/attache/skills/omnifocus-core/references/omnifocus_api.md` — **stays in place** (no longer moved per revised D2). Cross-referenced from omnifocus-generator capability docs via relative path
+- `plugins/attache/skills/omnifocus-core/SKILL.md` — CLI command surface section updated for D6.3 additions
+- `plugins/attache/skills/omnifocus-generator/SKILL.md` — D2 router table added (Reference Documentation); STEP 1.5 added to workflow per D3
 - `plugins/attache/skills/omnifocus-core/scripts/src/ofo-core.ts` — D6.2 new functions (9 new: `listWaitingFor`, `listSomedayMaybe`, `listNeglectedProjects`, `listRecentlyCompleted`, `listProjectsForReview`, `markProjectReviewed`, `listFolders`, `createProject`, `updateProject`) + dispatch additions
 - `plugins/attache/skills/omnifocus-core/scripts/src/ofo-cli.ts` — D6.3 CLI surface for the new functions; D7.3 `ofo system-map` subcommands; D7.5 convention resolution chain
 - `plugins/attache/skills/omnifocus-core/scripts/src/ofo-types.ts` and `ofo-core-ambient.d.ts` — new `OfoAction` enum entries
@@ -637,7 +727,7 @@ Representative paths (not exhaustive — the executing agent will discover the f
 - `plugins/attache/skills/attache-analyst/references/system_map_schema.md` — NEW, D7.2 contract doc
 - `plugins/attache/skills/attache-analyst/references/system_map.schema.json` — NEW, JSON Schema for validation
 - `plugins/attache/skills/attache-analyst/SKILL.md` — reference the new schema doc; update System Map field list
-- `plugins/attache/skills/omnifocus-generator/references/40_patterns/system_map_dependency.md` — NEW, D7.7 generator-side consumer rule
+- `plugins/attache/skills/omnifocus-generator/references/system_map_dependency.md` — NEW, D7.7 generator-side consumer rule
 - `Attache.omnifocusjs/Resources/dailyReview.js` — D7.4 drift signal at session start (soft warning)
 - `Attache.omnifocusjs/manifest.json` + `Resources/en.lproj/com.totallytools.omnifocus.attache.strings` — version bump per D6.6 (and again if D7 ships separately)
 - `plugins/attache/skills/omnifocus-core/scripts/src/tsconfig.plugin.json` + `tsconfig.cli.json` + `tsconfig.attache-libs.json` — D8.1 strict flag additions
@@ -646,8 +736,8 @@ Representative paths (not exhaustive — the executing agent will discover the f
 - `plugins/attache/skills/omnifocus-generator/scripts/validate-plugin.sh` — D8.4 bundle coherence checks + D8.6 smoke-load gate
 - `plugins/attache/skills/omnifocus-generator/scripts/generate_plugin.ts` — D8.5 runtime skeleton emission for `requires: ["ofoCore"]` and `requires: ["systemMap"]`
 - `plugins/attache/skills/omnifocus-generator/scripts/smoke-load.js` — NEW, D8.6 stub-environment parse-evaluate test
-- `plugins/attache/skills/omnifocus-generator/references/40_patterns/validation_pipeline.md` — D8.7 layered-pipeline rewrite
-- `plugins/attache/skills/omnifocus-generator/references/30_api_reference/api_gaps.md` — D8.1 `@ts-expect-error #ISSUE` tracking table
+- `plugins/attache/skills/omnifocus-generator/references/validation_pipeline.md` — D8.7 layered-pipeline rewrite
+- `plugins/attache/skills/omnifocus-generator/references/api_gaps.md` — D8.1 `@ts-expect-error #ISSUE` tracking table
 
 **Do NOT modify** in this pass:
 
@@ -659,8 +749,8 @@ Representative paths (not exhaustive — the executing agent will discover the f
 
 - **#141 (GTD-essential portions: now in D6)** — Expanding `ofo` CLI to cover full OmniFocus mutation surface. D6 closes: project create/update/move, project review marking, neglected/waiting-for/someday/completed queries, folder listing. **Remaining gaps stay on #141**: skip-one-occurrence, defer-shortcut helpers, repetition rule editing, task-level reordering, parent-task assignment, single-task→project conversion.
 - **#161 (GTD-essential portions: now in D6)** — Project create + move + status changes are addressed in D6. **Remaining stays on #161**: the original unsafe-completion bug fix (audit `completeTask` for safety; this plan does not modify `completeTask`) and any task-level project-move safety improvements.
-- **#135** — Plugin deploy/library reload bug. Plan documents the manual restart workaround in `40_patterns/validation_pipeline.md`; fix is its own issue. D6 will exercise this bug because `Attache.omnifocusjs` rebuilds — the executing agent should expect to restart OmniFocus after deploy.
-- **#152** — Plugin structure validation handoff. Plan documents the contract in `40_patterns/validation_pipeline.md`; fix is its own issue.
+- **#135** — Plugin deploy/library reload bug. Plan documents the manual restart workaround in `validation_pipeline.md`; fix is its own issue. D6 will exercise this bug because `Attache.omnifocusjs` rebuilds — the executing agent should expect to restart OmniFocus after deploy.
+- **#152** — Plugin structure validation handoff. Plan documents the contract in `validation_pipeline.md`; fix is its own issue.
 - **#177** — Broader attache orchestration scope. Plan's channel-selection section is a partial down payment, but the full agent-description expansion is a separate pass.
 
 RESEARCH COMPLETE: 2026-06-15
@@ -675,12 +765,14 @@ RESEARCH COMPLETE: 2026-06-15
 
 All new files under `plugins/attache/skills/omnifocus-generator/references/`:
 
-**`50_external/`**
+> **POST-RETROFIT NOTE (Phase 1.5):** Files listed below in `50_external/` and `20_capabilities/` subdirectories were flattened to `plugins/attache/skills/omnifocus-generator/references/<descriptive-name>.md` during Phase 1.5 (skill compliance retrofit). The subdirectory paths and numbered prefixes shown below reflect the original Phase 1 output and are kept as a record of what was produced; the actual on-disk locations after retrofit are flat per D2.
+
+**`50_external/`** *(retrofit → flat)*
 - `inventory_refresh_workflow.md` — D4 workflow doc (re-runnable fetch process; full sidebar topic list; confirmed working/404'd slugs from 2 rounds)
 - `web_fetch_protocol.md` — One-off WebFetch contract (URL table, prompt template, token-cost reminder)
 - `capability_inventory.md` — Populated capability table (covered/partial/missing rows; gap TODO list; `.omnijs` vs `.omnifocusjs` distinction noted)
 
-**`20_capabilities/`**
+**`20_capabilities/`** *(retrofit → flat)*
 - `01_tasks_projects_tags.md` — Task, Project, Tag, Folder full API + ofoCore first-stop table
 - `02_perspectives.md` — Perspective.BuiltIn, Perspective.Custom, ForecastDay (NEW — missing from local refs)
 - `03_forms_ui.md` — Form + Form.Field subtypes, Alert, FilePicker, FileSaver
@@ -724,19 +816,19 @@ Issues to file after Phase 2 (do NOT scope into D6/D7/D8):
 
 2. **Email class** — `email.html` 404'd. Only `Email` class summary in `OF-API.html`. Filing: `feat(references): document Email class for notification/export patterns`
 
-3. **Text and Style classes** — `text-style.html` 404'd. Filing: `feat(references): document Text/Style/AttributedString API in 20_capabilities`
+3. **Text and Style classes** — `text-style.html` 404'd. Filing: `feat(references): document Text/Style/AttributedString API in references (flat)`
 
 4. **Shortcuts integration** — `shortcuts.html` 404'd. Only brief mention via JXA/osascript pattern. Filing: `feat(references): document Apple Shortcuts integration (osascript x-callback-url) for Attache`
 
-5. **Window.Node tree traversal** — `Node` class has no dedicated page; only mentioned in `automation-new.html`. Filing: `feat(references): add Window.contentTree / Node API to 20_capabilities (missing for outline-based plugins)`
+5. **Window.Node tree traversal** — `Node` class has no dedicated page; only mentioned in `automation-new.html`. Filing: `feat(references): add Window.contentTree / Node API to references (flat) (missing for outline-based plugins)`
 
 ### Phase 2 Start Condition
 
-Phase 2 can begin. All Phase 1 files are written. Phase 2 must NOT re-execute D4 or regenerate capability docs from scratch. When integrating Phase 1 drafts in D2:
+Phase 2 can begin **only after Phase 1.5 (Skill Compliance Retrofit) completes** and a `RETROFIT COMPLETE: <ISO-date>` marker is added below the `RESEARCH COMPLETE` marker above. Phase 2 must NOT re-execute D4 or regenerate capability docs from scratch. When integrating Phase 1 drafts in D2:
 - Polish the `<!-- DRAFT -->` sections
-- Add cross-links between docs
+- Add cross-links between docs (use flat paths — no subdirectory prefixes)
 - Remove `<!-- DRAFT -->` markers after review
-- Integrate into the `00_index.md` capability map
+- Integrate into the `SKILL.md` Reference Documentation router table (per D2)
 
 ---
 
@@ -752,7 +844,7 @@ The executing agent (via foundry plugin) should run, in order:
 6. **Skillsmith eval.** Run `uv run plugins/foundry/skills/skillsmith/scripts/evaluate_skill.py` on `omnifocus-generator`, `omnifocus-core`, `gtd-coach`, AND `attache-analyst`. All four ≥ pre-change baseline. Record scores in the plugin-level `plugins/attache/README.md` per repo convention.
 7. **Plugin validation.** `bash plugins/attache/skills/omnifocus-generator/scripts/validate-plugin.sh ~/Library/Containers/com.omnigroup.OmniFocus4/Data/Library/Application\ Support/Plug-Ins/Attache.omnifocusjs` — must pass on the rebuilt bundle. Validation now includes D8.4 bundle coherence (manifest↔resources↔strings) and D8.6 pre-load smoke gate.
 7a. **Egregious-error regression suite (D8.8).** Run the deliberately-broken-spec test cases from `validation_pipeline.md`. Each case MUST be caught at the layer documented (TS strict / ESLint / antipatterns / bundle coherence / smoke). No case may produce a written `.omnifocusjs` bundle. Confirm the existing happy-path generation still succeeds end-to-end with the tightened gates.
-8. **Acceptance test — Foundation Models walkthrough.** Spawn a fresh sub-agent with only the new references available. Prompt: *"Build a standalone OmniFocus plugin that uses Foundation Models to organize a project's tasks into thematic groups and suggests tags. Use the references in `plugins/attache/skills/omnifocus-generator/references/`."* Measure: (a) which reference files it reads (must include `40_patterns/system_map_dependency.md`), (b) does it correctly consume `ofoCore` AND read the System Map for convention tags (not hardcoded `@waiting`), (c) does it pick the right format (`solitary-fm`), (d) does it produce a passing `validate-plugin.sh`, (e) does it WebFetch anything beyond the protocol described in `web_fetch_protocol.md`. Pass if ≤3 reference files read (excluding the schema doc) AND `ofoCore` + System Map both consumed AND validate passes.
+8. **Acceptance test — Foundation Models walkthrough.** Spawn a fresh sub-agent with only the new references available. Prompt: *"Build a standalone OmniFocus plugin that uses Foundation Models to organize a project's tasks into thematic groups and suggests tags. Use the references in `plugins/attache/skills/omnifocus-generator/references/`."* Measure: (a) which reference files it reads (must include `system_map_dependency.md`), (b) does it correctly consume `ofoCore` AND read the System Map for convention tags (not hardcoded `@waiting`), (c) does it pick the right format (`solitary-fm`), (d) does it produce a passing `validate-plugin.sh`, (e) does it WebFetch anything beyond the protocol described in `web_fetch_protocol.md`. Pass if ≤3 reference files read (excluding the schema doc) AND `ofoCore` + System Map both consumed AND validate passes.
 9. **Channel-selection regression.** Spot-check 3 scenarios in a fresh attache invocation: *"create a task tagged Question❓"* (expect ofo CLI), *"set up my daily review workflow"* (expect Attache action), *"build a plugin that estimates project completion dates with FM"* (expect standalone plugin). Agent should pick correctly without prompting.
 10. **Follow-up issue updates.** Comment on #141 and #161 listing which sub-items were closed by D6 and which remain. Comment on #135, #152, #177 linking to the new reference docs that document the gaps.
 11. **Repo convention.** Copy the executed plan to `plugins/attache/docs/plans/2026-06-15-001-attache-references-routing-plan.md` per the repo's plan-tracking convention (this harness path is ephemeral).
