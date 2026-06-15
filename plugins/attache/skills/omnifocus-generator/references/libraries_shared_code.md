@@ -4,13 +4,13 @@
 
 **What this covers:** `PlugIn.Library` pattern, `PlugIn.find()`, consuming `ofoCore` from a generated plugin, creating standalone shared libraries, and the `solitary-library` format.
 
-**What this does NOT cover:** ofoCore function list (see `40_patterns/library_consumer_pattern.md`), System Map dependency (see `40_patterns/system_map_dependency.md`).
+**What this does NOT cover:** ofoCore function list (see `library_consumer_pattern.md`), System Map dependency (see `system_map_dependency.md`).
 
 ---
 
 ## 1. First-Stop Solution: Check `ofoCore`
 
-If you need task/project/tag CRUD, `ofoCore` already has it. See `40_patterns/library_consumer_pattern.md` for the full exports table. The pattern in this doc is HOW to call it, not what it contains.
+If you need task/project/tag CRUD, `ofoCore` already has it. See `library_consumer_pattern.md` for the full exports table. The pattern in this doc is HOW to call it, not what it contains.
 
 ---
 
@@ -168,7 +168,7 @@ Consumer code:
 var helpers = PlugIn.find("com.yourname.myhelpers").library("myHelpers");
 ```
 
-**When to create vs. add to ofoCore:** If the function would be useful to 2+ plugins OR the CLI, add to `ofoCore`. Otherwise inline in the plugin or create a standalone library. See `40_patterns/library_consumer_pattern.md` for the full decision rule.
+**When to create vs. add to ofoCore:** If the function would be useful to 2+ plugins OR the CLI, add to `ofoCore`. Otherwise inline in the plugin or create a standalone library. See `library_consumer_pattern.md` for the full decision rule.
 
 ---
 
@@ -186,4 +186,4 @@ var syncedPrefs = PlugIn.find("com.omnigroup.omnifocus2.sharedsettings").library
 
 ## 8. Reach-Out Trigger
 
-PlugIn API is not on a dedicated omni-automation.com page. The full API is in `30_api_reference/omnifocus_api.md` under `PlugIn`, `PlugIn.Action`, `PlugIn.Library`. No WebFetch needed — use the local reference.
+PlugIn API is not on a dedicated omni-automation.com page. The full API is in `omnifocus_api.md` under `PlugIn`, `PlugIn.Action`, `PlugIn.Library`. No WebFetch needed — use the local reference.

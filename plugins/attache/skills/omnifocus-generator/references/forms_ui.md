@@ -4,7 +4,7 @@
 
 **What this covers:** Form class, Form.Field subtypes, Alert, FilePicker, FileSaver — all UI primitives for collecting user input or presenting information in OmniFocus plugins.
 
-**What this does NOT cover:** Foundation Models (AI prompting). See `04_foundation_models.md`.
+**What this does NOT cover:** Foundation Models (AI prompting). See `foundation_models.md`.
 
 ---
 
@@ -160,4 +160,4 @@ alert.show(function(idx) {
 
 ## 7. Reach-Out Trigger
 
-Form and Alert are not on omni-automation.com as standalone pages. The full API is in `30_api_reference/omnifocus_api.md` under `Form`, `Form.Field`, `Alert`, `FilePicker`, `FileSaver`. No WebFetch needed.
+Form and Alert are not on omni-automation.com as standalone pages. The full API is in `omnifocus_api.md` under `Form`, `Form.Field`, `Alert`, `FilePicker`, `FileSaver`. No WebFetch needed.

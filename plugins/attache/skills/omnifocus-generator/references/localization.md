@@ -4,7 +4,7 @@
 
 **What this covers:** `.lproj` resource files, `.strings` format, manifest localization, action label localization — the full localization setup required for OmniFocus plugins.
 
-**What this does NOT cover:** Unicode or date formatting classes. See `30_api_reference/omnifocus_api.md` for `Formatter.Date` and `Locale`.
+**What this does NOT cover:** Unicode or date formatting classes. See `omnifocus_api.md` for `Formatter.Date` and `Locale`.
 
 ---
 

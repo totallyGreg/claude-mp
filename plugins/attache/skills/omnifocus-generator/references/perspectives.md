@@ -4,7 +4,7 @@
 
 **What this covers:** Perspective.BuiltIn, Perspective.Custom, ForecastDay, and window-level perspective navigation.
 
-**What this does NOT cover:** Task filtering logic, Forms for perspective-driven UI. See `01_tasks_projects_tags.md`, `03_forms_ui.md`.
+**What this does NOT cover:** Task filtering logic, Forms for perspective-driven UI. See `tasks_projects_tags.md`, `forms_ui.md`.
 
 ---
 

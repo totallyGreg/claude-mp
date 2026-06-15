@@ -4,7 +4,7 @@
 
 **What this covers:** Creating, reading, updating, and organizing Tasks, Projects, Tags, and Folders via the Omni Automation API.
 
-**What this does NOT cover:** Perspectives, UI/Forms, Foundation Models. See `02_perspectives.md`, `03_forms_ui.md`, `04_foundation_models.md`.
+**What this does NOT cover:** Perspectives, UI/Forms, Foundation Models. See `perspectives.md`, `forms_ui.md`, `foundation_models.md`.
 
 ---
 
@@ -280,11 +280,11 @@ database.cleanUp()               // file inbox items into projects
 
 ## 4. Reach-Out Trigger
 
-If the method you need isn't documented here or in `30_api_reference/omnifocus_api.md`:
+If the method you need isn't documented here or in `omnifocus_api.md`:
 
 ```
 WebFetch https://omni-automation.com/omnifocus/task.html   (or project.html / tag.html / folder.html / database.html)
 Prompt: "I need the exact signature for [METHOD]. List parameters, return type, and version requirements."
 ```
 
-See `50_external/web_fetch_protocol.md` for the full fetch template.
+See `web_fetch_protocol.md` for the full fetch template.

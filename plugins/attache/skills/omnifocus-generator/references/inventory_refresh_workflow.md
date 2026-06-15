@@ -71,7 +71,7 @@ The Big Picture, Application, Document, Window|Selection, Perspective, Outline, 
 - `shortcuts.html`, `tasks-to-projects.html`, `text-style.html`
 - `languagemodel-classes.html`, `languagemodel.html`
 
-**Topics NOT found as standalone pages (use local `30_api_reference/omnifocus_api.md`):**
+**Topics NOT found as standalone pages (use local `omnifocus_api.md`):**
 Arrays (FolderArray/TaskArray/etc.), Repeating Tasks (Task.RepetitionRule), Attachments, File Links, Notifications (Task.Notification), Tasks-to-Projects conversion, eMail class, Plug-Ins, PlugIn.Action, Action Forms (Form class), Libraries (PlugIn.Library), Finding Items — all thoroughly covered in `omnifocus_api.md`.
 
 ### STEP 2 — Fetch each known topic page
@@ -102,7 +102,7 @@ Produce a single table:
 |-------|--------|------|-------------|------------|----------------|
 
 `local-coverage` values:
-- `covered` — documented in one of the local `20_capabilities/*.md` or `30_api_reference/` files
+- `covered` — documented in one of the local `*.md` or `` files
 - `partial` — mentioned but not with full signature/description
 - `missing` — not referenced anywhere locally
 
@@ -111,14 +111,14 @@ Sort the table: `missing` rows first, then `partial`, then `covered`.
 ### STEP 4 — Compare against local refs
 
 For each `(class, member)` row, grep under:
-- `plugins/attache/skills/omnifocus-generator/references/20_capabilities/`
+- `plugins/attache/skills/omnifocus-generator/references/`
 - `plugins/attache/skills/omnifocus-core/references/omnifocus_api.md` (the canonical reference)
 
 Mark coverage accordingly.
 
 ### STEP 5 — Write capability_inventory.md
 
-Write to `50_external/capability_inventory.md` with:
+Write to `capability_inventory.md` with:
 1. Timestamp (`generatedAt: ISO8601`)
 2. Source commit hash (`sourceCommit: <hash>`)
 3. The capability table sorted by coverage
@@ -132,7 +132,7 @@ For any `missing` rows judged high-value, draft issue titles and labels (`attach
 
 ## Anti-Patterns
 
-- **DO NOT** read every topic page during normal plugin-building work. Read `capability_inventory.md` and the relevant `20_capabilities/*.md` docs instead.
+- **DO NOT** read every topic page during normal plugin-building work. Read `capability_inventory.md` and the relevant `*.md` docs instead.
 - **DO NOT** inline the full inventory into `00_index.md`. It lives here and is referenced from the capability map only as a fallback.
 - **DO NOT** fetch the same URL twice in one run. The 15-minute cache handles it if you use the same URL string.
 - **DO NOT** retry 404'd slugs without first finding evidence that the page exists (e.g., a link from another page).
@@ -142,5 +142,5 @@ For any `missing` rows judged high-value, draft issue titles and labels (`attach
 ## Refresh Cadence
 
 - **Quarterly** (roughly): run the full workflow
-- **On-demand**: when a specific capability is suspected missing and `20_capabilities/*.md` doesn't cover it
+- **On-demand**: when a specific capability is suspected missing and `*.md` doesn't cover it
 - **Never**: during normal plugin generation work — too expensive in tokens

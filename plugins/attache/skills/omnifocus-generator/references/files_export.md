@@ -4,7 +4,7 @@
 
 **What this covers:** FileWrapper, FilePicker, FileSaver, `document.makeFileWrapper()`, TaskPaper export, JSON/CSV/Markdown export patterns.
 
-**What this does NOT cover:** UI dialogs beyond FilePicker/FileSaver. See `03_forms_ui.md`.
+**What this does NOT cover:** UI dialogs beyond FilePicker/FileSaver. See `forms_ui.md`.
 
 ---
 
@@ -77,7 +77,7 @@ var formats = document.writableTypes;
 
 ## 4. FilePicker and FileSaver
 
-See `03_forms_ui.md` for usage. Quick reference:
+See `forms_ui.md` for usage. Quick reference:
 
 ```js
 // Open picker

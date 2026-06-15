@@ -4,7 +4,7 @@
 
 **What this covers:** `omnifocus://` URL schemes, `omnijs-run` script URL pattern, `x-callback-url` protocol, cross-app automation URLs, and how the `ofo` CLI uses script URLs.
 
-**What this does NOT cover:** Apple Shortcuts (see JXA channel). FileWrapper export. See `05_files_export.md`.
+**What this does NOT cover:** Apple Shortcuts (see JXA channel). FileWrapper export. See `files_export.md`.
 
 ---
 

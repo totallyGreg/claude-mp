@@ -4,7 +4,7 @@
 
 **What this covers:** OmniFocus `Settings` class (database-level preferences), `Preferences` (plugin-level, ephemeral), and SyncedPreferences (cross-device sync). Does NOT cover user convention truth — that lives in the System Map.
 
-**What this does NOT cover:** System Map conventions (`waitingTag`, `somedayFolder`, etc.). See `40_patterns/system_map_dependency.md` and `attache-analyst/references/system_map_schema.md`.
+**What this does NOT cover:** System Map conventions (`waitingTag`, `somedayFolder`, etc.). See `system_map_dependency.md` and `attache-analyst/references/system_map_schema.md`.
 
 ---
 

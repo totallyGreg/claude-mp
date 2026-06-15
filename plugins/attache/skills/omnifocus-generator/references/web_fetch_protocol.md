@@ -2,7 +2,7 @@
 
 <!-- DRAFT — review during D2 integration -->
 
-**Purpose:** When a `20_capabilities/*.md` doc says "if your specific case isn't covered here, fetch X" — this file defines the contract for that one-off fetch.
+**Purpose:** When a `*.md` doc says "if your specific case isn't covered here, fetch X" — this file defines the contract for that one-off fetch.
 
 Use this protocol **sparingly** — each WebFetch costs tokens and time. If you find yourself fetching 3+ pages for a single plugin-building task, that's a signal to update the capability docs instead.
 
@@ -16,7 +16,7 @@ Use a one-off WebFetch when:
 3. You're writing the inventory refresh workflow (see `inventory_refresh_workflow.md`)
 
 Do NOT use when:
-- You're looking for something that's clearly in `20_capabilities/*.md`
+- You're looking for something that's clearly in `*.md`
 - You're tempted to "double-check" the local docs — trust them until you have evidence of drift
 - The token budget for this generation task is already high
 
@@ -62,7 +62,7 @@ Show the JSON schema format with a one-line example."
 | LanguageModel | `https://omni-automation.com/shared/alm.html` |
 | LM Schema | `https://omni-automation.com/shared/alm-schema.html` |
 
-**Note:** Form, PlugIn, and Library API is NOT on omni-automation.com as a standalone page. Use `30_api_reference/omnifocus_api.md` for those classes.
+**Note:** Form, PlugIn, and Library API is NOT on omni-automation.com as a standalone page. Use `omnifocus_api.md` for those classes.
 
 ---
 
@@ -72,6 +72,6 @@ Each WebFetch + processing costs roughly 1,000–3,000 tokens. For a plugin-buil
 
 - **≤3 reference files** (~3KB each) before generating code
 - **≤2 WebFetches** for gap-filling
-- If you need more, that's a signal to update `20_capabilities/*.md` after the task
+- If you need more, that's a signal to update `*.md` after the task
 
 Record what you fetched and what you learned in the commit message so the docs can be improved.

@@ -3,7 +3,7 @@
 **Generated:** 2026-06-15T00:00:00Z  
 **Method:** Phase 1 Research Agent — fetched omni-automation.com topic pages (two rounds; full sidebar mapped)  
 **Source:** https://omni-automation.com/omnifocus/index.html (navigation JS-driven; individual pages fetched by slug)  
-**Local comparison base:** `omnifocus-core/references/omnifocus_api.md` + `omnifocus-generator/references/20_capabilities/`
+**Local comparison base:** `omnifocus-core/references/omnifocus_api.md` + `omnifocus-generator/references/`
 
 **Plugin format note:** `.omnijs` files run in ALL Omni apps (OmniFocus, OmniGraffle, OmniOutliner, OmniPlan). `.omnifocusjs` files are OmniFocus-specific. The generator skill primarily targets `.omnifocusjs` but can generate `.omnijs` for cross-app automation. The capability docs below apply to `.omnifocusjs` unless noted.
 
@@ -20,7 +20,7 @@
 | `missing` | ~20 (LanguageModel, ForecastDay, Tree/TreeNode, Text/Style, new v4.x members) |
 
 **Topics with no findable standalone page (covered by omnifocus_api.md instead):**  
-Arrays, Repeating Tasks, Attachments, File Links, Notifications, Tasks to Projects, eMail, Plug-Ins, Actions, Action Forms, Libraries, Finding Items — these are all covered in the local `30_api_reference/omnifocus_api.md`.
+Arrays, Repeating Tasks, Attachments, File Links, Notifications, Tasks to Projects, eMail, Plug-Ins, Actions, Action Forms, Libraries, Finding Items — these are all covered in the local `omnifocus_api.md`.
 
 ---
 
@@ -107,7 +107,7 @@ Arrays, Repeating Tasks, Attachments, File Links, Notifications, Tasks to Projec
 
 ## Covered Classes (from omnifocus_api.md)
 
-All of the following are documented in the existing `30_api_reference/omnifocus_api.md`:
+All of the following are documented in the existing `omnifocus_api.md`:
 
 | class | local-coverage |
 |-------|----------------|
@@ -149,11 +149,11 @@ All of the following are documented in the existing `30_api_reference/omnifocus_
 
 2. **ForecastDay API** — `missing` locally. 
    Medium value: needed for Forecast perspective automation.
-   Suggested issue: `feat(references): document ForecastDay class in 02_perspectives.md`
+   Suggested issue: `feat(references): document ForecastDay class in perspectives.md`
 
 3. **Window.contentTree / sidebarTree / Node** — `missing` locally.
    Medium value: needed for outline-based plugins, tree navigation.
-   Suggested issue: `feat(references): document Window tree API (contentTree, Node) in 20_capabilities`
+   Suggested issue: `feat(references): document Window tree API (contentTree, Node) in references/outline_tree_ui.md`
 
 4. **Tag v4.0+/v4.7+ members** — `partial` in omnifocus_api.md, `missing` from capability docs.
    Medium value: tag ordering important for organization plugins.
@@ -161,14 +161,14 @@ All of the following are documented in the existing `30_api_reference/omnifocus_
 
 5. **Task plannedDate (v4.7+)** — `missing` locally.
    Low-medium value: useful for Forecast/planned-date plugins.
-   Suggested issue: `fix(references): add Task.plannedDate to 01_tasks_projects_tags.md`
+   Suggested issue: `fix(references): add Task.plannedDate to tasks_projects_tags.md`
 
 ---
 
 ## TODO for Capability Docs
 
-After Phase 2 creates the `20_capabilities/` docs:
-- `04_foundation_models.md` — must cover full LanguageModel.Session + Schema (missing)
-- `02_perspectives.md` — must cover ForecastDay API (missing)
-- `01_tasks_projects_tags.md` — must note v4.0+ tag ordering methods (partial)
+After Phase 2 creates the `` docs:
+- `foundation_models.md` — must cover full LanguageModel.Session + Schema (missing)
+- `perspectives.md` — must cover ForecastDay API (missing)
+- `tasks_projects_tags.md` — must note v4.0+ tag ordering methods (partial)
 - New entry in `00_index.md` capability map row for ForecastDay and Window tree API

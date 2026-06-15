@@ -4,7 +4,7 @@
 
 **What this covers:** `DocumentWindow`, `Tree`, `TreeNode` — the programmatic interface to the OmniFocus outline view and sidebar. Selection manipulation, node traversal, expand/collapse.
 
-**What this does NOT cover:** Task/Project/Tag data model (see `01_tasks_projects_tags.md`), Perspectives (see `02_perspectives.md`).
+**What this does NOT cover:** Task/Project/Tag data model (see `tasks_projects_tags.md`), Perspectives (see `perspectives.md`).
 
 ---
 

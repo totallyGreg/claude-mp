@@ -4,7 +4,7 @@
 
 **What this covers:** On-device Apple Foundation Models via `LanguageModel.Session`, `LanguageModel.Schema`, and `LanguageModel.GenerationOptions`. Includes a worked walkthrough for D5 (Organize Project Tasks via Foundation Models).
 
-**What this does NOT cover:** Cloud LLMs, Forms (UI collection), ofoCore task CRUD. See `03_forms_ui.md`, `01_tasks_projects_tags.md`.
+**What this does NOT cover:** Cloud LLMs, Forms (UI collection), ofoCore task CRUD. See `forms_ui.md`, `tasks_projects_tags.md`.
 
 ---
 
@@ -126,7 +126,7 @@ Pass as third argument to `respondWithSchema`. Pass `null` for defaults.
 
 ## 6. Worked Example: Organize Project Tasks via Foundation Models
 
-**This is the D5 acceptance test walkthrough.** A fresh agent reading only this doc + `08_libraries_shared_code.md` + `40_patterns/library_consumer_pattern.md` + `10_decision_framework/plugin_format_selection.md` should be able to build the plugin end-to-end.
+**This is the D5 acceptance test walkthrough.** A fresh agent reading only this doc + `libraries_shared_code.md` + `library_consumer_pattern.md` + `plugin_format_selection.md` should be able to build the plugin end-to-end.
 
 ### Step 1: Channel Selection
 
@@ -276,11 +276,11 @@ Bump version in `manifest.json`. Double-click to install, or copy to Plug-Ins di
 
 ### References used by this walkthrough
 
-- `08_libraries_shared_code.md` — PlugIn.Library consumption pattern
-- `40_patterns/library_consumer_pattern.md` — ofoCore null-check skeleton  
-- `40_patterns/system_map_dependency.md` — System Map consumption pattern
-- `10_decision_framework/plugin_format_selection.md` — why `solitary-fm`
-- `03_forms_ui.md` — Form API for preview step
+- `libraries_shared_code.md` — PlugIn.Library consumption pattern
+- `library_consumer_pattern.md` — ofoCore null-check skeleton  
+- `system_map_dependency.md` — System Map consumption pattern
+- `plugin_format_selection.md` — why `solitary-fm`
+- `forms_ui.md` — Form API for preview step
 
 ---
 
