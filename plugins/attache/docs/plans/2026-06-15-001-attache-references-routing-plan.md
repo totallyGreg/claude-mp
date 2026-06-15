@@ -754,6 +754,14 @@ Representative paths (not exhaustive — the executing agent will discover the f
 - **#177** — Broader attache orchestration scope. Plan's channel-selection section is a partial down payment, but the full agent-description expansion is a separate pass.
 
 RESEARCH COMPLETE: 2026-06-15
+RETROFIT COMPLETE: 2026-06-15
+
+**Phase 1.5 (Skill Compliance Retrofit) executed in 3 commits:**
+- `e13fe7b` — Flatten 13 files via `git mv` (pure renames, 100% similarity, no content change)
+- `3e33f67` — Sed sweep for internal cross-links (+43/-43 symmetric diff, CLEAN residual check)
+- `0f94d59` — SKILL.md router table per D2 spec (PostToolUse skillsmith eval: 100/100 across all metrics, no regression)
+
+Phase 2 hard precondition satisfied. Implementation agent may now begin per Constraints execution order: D8.1 + D8.2 (config tightening) → D7.1 → D7.2 → ...
 
 ---
 
