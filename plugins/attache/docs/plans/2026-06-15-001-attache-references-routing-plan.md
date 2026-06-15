@@ -663,6 +663,83 @@ Representative paths (not exhaustive — the executing agent will discover the f
 - **#152** — Plugin structure validation handoff. Plan documents the contract in `40_patterns/validation_pipeline.md`; fix is its own issue.
 - **#177** — Broader attache orchestration scope. Plan's channel-selection section is a partial down payment, but the full agent-description expansion is a separate pass.
 
+RESEARCH COMPLETE: 2026-06-15
+
+---
+
+## Phase 1 Research Complete — Appendix
+
+**Completed by:** Phase 1 Research Agent, 2026-06-15
+
+### Files Written
+
+All new files under `plugins/attache/skills/omnifocus-generator/references/`:
+
+**`50_external/`**
+- `inventory_refresh_workflow.md` — D4 workflow doc (re-runnable fetch process; full sidebar topic list; confirmed working/404'd slugs from 2 rounds)
+- `web_fetch_protocol.md` — One-off WebFetch contract (URL table, prompt template, token-cost reminder)
+- `capability_inventory.md` — Populated capability table (covered/partial/missing rows; gap TODO list; `.omnijs` vs `.omnifocusjs` distinction noted)
+
+**`20_capabilities/`**
+- `01_tasks_projects_tags.md` — Task, Project, Tag, Folder full API + ofoCore first-stop table
+- `02_perspectives.md` — Perspective.BuiltIn, Perspective.Custom, ForecastDay (NEW — missing from local refs)
+- `03_forms_ui.md` — Form + Form.Field subtypes, Alert, FilePicker, FileSaver
+- `04_foundation_models.md` — LanguageModel.Session + Schema + GenerationOptions (NEW — missing from local refs) + full D5 worked walkthrough
+- `05_files_export.md` — FileWrapper, document.makeFileWrapper, TaskPaper, JSON/CSV patterns
+- `06_localization.md` — .strings files, manifest.strings, action label localization
+- `07_url_scheme_callbacks.md` — omnifocus:// URL scheme, omnijs-run, x-callback-url, app-to-app, Shortcuts integration
+- `08_libraries_shared_code.md` — PlugIn.Library, PlugIn.find, ofoCore consumption skeleton, solitary-library format; `.omnijs` vs `.omnifocusjs` distinction
+- `09_settings_preferences.md` — Settings, Preferences (with IIFE footgun warning), SyncedPreferences
+- `10_outline_tree_ui.md` — DocumentWindow, Tree, TreeNode (NEW — missing from local refs; outline API for plugin actions)
+
+### Capabilities Surfaced (Key Finds)
+
+Research was done in two rounds against the full sidebar (all 35 topics confirmed from `index.html`).
+
+1. **Foundation Models API** — `LanguageModel.Session`, `LanguageModel.Schema.fromJSON()`, `LanguageModel.GenerationOptions` — ALL missing from local refs. Now documented in `04_foundation_models.md`. Source: `shared/alm.html` + `shared/alm-schema.html`.
+
+2. **ForecastDay API** — `ForecastDay`, `ForecastDay.Kind`, `ForecastDay.Status`, `Window.forecastDayForDate()`, `Window.selectForecastDays()` — missing locally. Now in `02_perspectives.md`. Source: `forecast.html`.
+
+3. **Outline / Tree API** — `DocumentWindow.content`, `DocumentWindow.sidebar`, `Tree`, `TreeNode` — missing from all local refs. New dedicated doc `10_outline_tree_ui.md`. Source: `outline.html`.
+
+4. **DatabaseObject class hierarchy** — `DatabaseObject.url`, `ObjectIdentifier.objectClass`, `DatedObject`, `ActiveObject.active/effectiveActive` — partial locally. Added to `capability_inventory.md`. Source: `database-object.html`.
+
+5. **Text and Style API** — `Text`, `Text.Range`, `Text.Position`, `Text.FindOption`, `TextComponent`, `Style`, `Style.Attribute` (30+ attributes) — missing from capability docs. Added to `capability_inventory.md`. Source: `text.html` + `style.html`.
+
+6. **Tag v4.0+/v4.7+ members** — `childrenAreMutuallyExclusive`, `moveTasks()`, `beginningOfTasks`, `beforeTask()` — now in `01_tasks_projects_tags.md`. Source: `tag.html`.
+
+7. **Task v4.7+ members** — `plannedDate`, `effectivePlannedDate` — now in `01_tasks_projects_tags.md`. Source: `task.html`.
+
+8. **Shortcuts integration** — Omni Automation Script Action in Shortcuts, cross-platform support. Now in `07_url_scheme_callbacks.md`. Source: `../shortcuts/index.html`.
+
+9. **Plugin format distinction confirmed** — `.omnijs` = all Omni apps; `.omnifocusjs` = OmniFocus-specific. Noted in `capability_inventory.md`, `08_libraries_shared_code.md`, `10_outline_tree_ui.md`, `inventory_refresh_workflow.md`.
+
+10. **URL pattern confirmed** — Singular slugs only. 20+ slug patterns confirmed 404. "Action Forms", "Libraries", "Plug-Ins", "Arrays", "Repeating Tasks", "Attachments", "File Links", "Notifications" have NO standalone pages — all covered by local `omnifocus_api.md`.
+
+### Unsurfaced Capabilities (Not Found — Recommended Follow-Up Issues)
+
+Issues to file after Phase 2 (do NOT scope into D6/D7/D8):
+
+1. **Task.RepetitionRule detailed API** — `repeating-task.html` 404'd. Only summary in `OF-API.html`. Filing: `feat(references): document Task.RepetitionRule API (repetition rule editing was already out of D6 scope)`
+
+2. **Email class** — `email.html` 404'd. Only `Email` class summary in `OF-API.html`. Filing: `feat(references): document Email class for notification/export patterns`
+
+3. **Text and Style classes** — `text-style.html` 404'd. Filing: `feat(references): document Text/Style/AttributedString API in 20_capabilities`
+
+4. **Shortcuts integration** — `shortcuts.html` 404'd. Only brief mention via JXA/osascript pattern. Filing: `feat(references): document Apple Shortcuts integration (osascript x-callback-url) for Attache`
+
+5. **Window.Node tree traversal** — `Node` class has no dedicated page; only mentioned in `automation-new.html`. Filing: `feat(references): add Window.contentTree / Node API to 20_capabilities (missing for outline-based plugins)`
+
+### Phase 2 Start Condition
+
+Phase 2 can begin. All Phase 1 files are written. Phase 2 must NOT re-execute D4 or regenerate capability docs from scratch. When integrating Phase 1 drafts in D2:
+- Polish the `<!-- DRAFT -->` sections
+- Add cross-links between docs
+- Remove `<!-- DRAFT -->` markers after review
+- Integrate into the `00_index.md` capability map
+
+---
+
 ## Verification
 
 The executing agent (via foundry plugin) should run, in order:
