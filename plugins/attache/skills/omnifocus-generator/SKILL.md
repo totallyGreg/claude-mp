@@ -70,7 +70,26 @@ See `references/code_generation_validation.md` for TypeScript validation details
 
 ## Reference Documentation
 
-- `references/code_generation_validation.md` - TypeScript validation rules, build pipeline
-- `references/omni_automation_guide.md` - Plugin development patterns
-- `references/automation_best_practices.md` - Patterns and anti-patterns
-- `references/channel_selection.md` - Mac vs iOS routing, library composition
+This skill's references are flat (per AgentSkills spec: "Keep reference chains one-level deep from SKILL.md"). Each reference covers one topic and is loaded only when relevant — do not pre-read all of them.
+
+| Reference | Use When |
+|-----------|----------|
+| `references/tasks_projects_tags.md` | Generating Task / Project / Tag / Folder CRUD code — check ofoCore exports first |
+| `references/perspectives.md` | Generating perspective queries or configuring filter rules |
+| `references/forms_ui.md` | Building Form, Alert, Picker, or TextField UI inside a plugin action |
+| `references/foundation_models.md` | Using `LanguageModel.Session` / `Schema` / `GenerationOptions` for on-device AI; includes the Foundation Models task-organizer worked example |
+| `references/files_export.md` | FileWrapper, FileType, FileSaver, JSON / CSV / TaskPaper / Markdown export |
+| `references/localization.md` | `Resources/<locale>.lproj/*.strings` setup for action labels |
+| `references/url_scheme_callbacks.md` | `omnifocus://` URLs, `omnijs-run`, `x-callback-url`, app-to-app, Shortcuts integration |
+| `references/libraries_shared_code.md` | `PlugIn.Library` pattern; how to consume Attache's `ofoCore` library from a generated plugin |
+| `references/settings_preferences.md` | `Settings`, `Preferences` (with IIFE footgun), `SyncedPreferences` |
+| `references/outline_tree_ui.md` | `DocumentWindow.content` / `sidebar`, `Tree`, `TreeNode` — outline-based plugin actions |
+| `references/capability_inventory.md` | Coverage map of `omni-automation.com` → local refs (covered / partial / missing). Read when you suspect a capability isn't documented locally. |
+| `references/web_fetch_protocol.md` | One-off WebFetch contract for reaching out to `omni-automation.com` mid-task — URL template + prompt + token-cost reminder |
+| `references/inventory_refresh_workflow.md` | Re-runnable workflow that refreshes `capability_inventory.md` (quarterly cadence or on-demand) |
+| `references/channel_selection.md` | CLI vs Plugin action vs standalone plugin vs JXA — which channel for which use case |
+| `references/code_generation_validation.md` | TypeScript validation rules + build pipeline (read before any generator changes) |
+| `references/omni_automation_guide.md` | General plugin development patterns (legacy — content being absorbed into the topic-specific capability docs above) |
+| `references/automation_best_practices.md` | Patterns and anti-patterns (legacy — content being absorbed) |
+
+For the full OmniFocus Omni Automation API (Task, Project, Tag, Folder, Database class reference), see `../../omnifocus-core/references/omnifocus_api.md` — single source of truth, not duplicated here.
