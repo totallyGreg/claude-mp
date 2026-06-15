@@ -26,6 +26,34 @@
       "severity": "warning",
       "message": "Exact tag name matching fails when names contain Unicode/emoji. Use .toLowerCase().includes() for lookup.",
       "reference": "references/jxa_guide.md#looking-up-tags"
+    },
+    {
+      "id": "require-byname-null-check",
+      "pattern": "\\.byName\\([^)]+\\)\\.[a-zA-Z]",
+      "severity": "error",
+      "message": ".byName() returns null when not found. Assign to a variable and null-check before property access. Example: var t = flattenedTags.byName(x); if (!t) return; t.use();",
+      "reference": "references/tasks_projects_tags.md"
+    },
+    {
+      "id": "require-selection-guard",
+      "pattern": "selection\\.(tasks|projects|folders|tags)\\[0\\]",
+      "severity": "error",
+      "message": "selection arrays may be empty. Check .length before [0] access. Example: if (selection.tasks.length === 0) { return; } var t = selection.tasks[0];",
+      "reference": "references/forms_ui.md"
+    },
+    {
+      "id": "require-plugin-find-check",
+      "pattern": "PlugIn\\.find\\([^)]+\\)\\.library",
+      "severity": "error",
+      "message": "PlugIn.find() returns null when the plugin is missing. Assign and null-check before .library() access. Example: var p = PlugIn.find(id); if (!p) { new Alert('Required plugin missing', '...').show(); return; }",
+      "reference": "references/libraries_shared_code.md"
+    },
+    {
+      "id": "no-language-model-schema-constructor",
+      "pattern": "new\\s+LanguageModel\\.Schema\\b",
+      "severity": "error",
+      "message": "Use LanguageModel.Schema.fromJSON({...}) factory, not the constructor. The constructor doesn't accept JSON schema input.",
+      "reference": "references/foundation_models.md"
     }
   ],
   "blocked_always": [
