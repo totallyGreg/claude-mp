@@ -23,7 +23,11 @@
     var lib = new PlugIn.Library(new Version("1.0"));
 
     // Keep in sync with manifest.json version
-    const ATTACHE_VERSION = "1.4.4";
+    const ATTACHE_VERSION = "1.5.0";
+
+    // System Map schema version — bump when output structure changes in incompatible ways.
+    // Documented in attache-analyst/references/system_map_schema.md.
+    const SCHEMA_VERSION = 1;
 
     // ==================== Pattern Constants ====================
 
@@ -320,6 +324,7 @@
             withDuration: 0,
             withTags: 0,
             withNotes: 0,
+            withProject: 0,
             overdue: 0,
             flagged: 0,
             inInbox: 0
@@ -340,6 +345,8 @@
             if (task.note && task.note.length > 0) stats.withNotes++;
             if (task.flagged) stats.flagged++;
             if (task.inInbox) stats.inInbox++;
+            // D7.2 — track project assignment for dataQuality.percentWithProject
+            if (task.containingProject) stats.withProject++;
         });
 
         // Calculate percentages
@@ -347,8 +354,64 @@
         stats.percentWithDueDate = Math.round((stats.withDueDate / total) * 100);
         stats.percentWithDuration = Math.round((stats.withDuration / total) * 100);
         stats.percentWithTags = Math.round((stats.withTags / total) * 100);
+        stats.percentWithProject = Math.round((stats.withProject / total) * 100);
 
         return stats;
+    };
+
+    /**
+     * D7.2 — derive durationModel from percentWithDuration.
+     * See attache-analyst/references/system_map_schema.md for threshold rationale.
+     */
+    lib.deriveDurationModel = function(percentWithDuration: number): string {
+        if (percentWithDuration >= 50) return "native";
+        if (percentWithDuration >= 10) return "mixed";
+        if (percentWithDuration >= 1) return "tags";
+        return "none";
+    };
+
+    /**
+     * D7.2 — resolve GTD-essential conventions from inferred tag/folder categories.
+     * Consumers (D6 GTD queries) MUST read from conventions.* rather than re-deriving.
+     * See attache-analyst/references/system_map_schema.md "Convention Resolution Rules".
+     */
+    lib.resolveConventions = function(inferences, topLevelFolders) {
+        const findFirstMatching = (entries, regex) => {
+            const match = entries.find(e => regex.test(e.tag));
+            return match ? match.tag : null;
+        };
+
+        // waitingTag: first in people matching /wait/i; fallback to status
+        const waitingTag =
+            findFirstMatching(inferences.tagCategories.people, /wait/i) ||
+            findFirstMatching(inferences.tagCategories.status, /wait/i);
+
+        // somedayTag: first in status matching /someday|maybe/i
+        const somedayTag = findFirstMatching(inferences.tagCategories.status, /someday|maybe/i);
+
+        // somedayFolder: first topLevelFolder with inferredType=='someday'; fallback name match
+        const somedayFolder =
+            (topLevelFolders.find(f => f.inferredType === "someday") || {}).name ||
+            (topLevelFolders.find(f => /someday|maybe/i.test(f.name)) || {}).name ||
+            null;
+
+        // waitingForFolder: rare — most users tag-based
+        const waitingForFolder =
+            (topLevelFolders.find(f => /wait/i.test(f.name)) || {}).name || null;
+
+        // defaultContextTag: most-used context tag
+        const sortedContexts = (inferences.tagCategories.contexts || [])
+            .slice()
+            .sort((a, b) => (b.usage || 0) - (a.usage || 0));
+        const defaultContextTag = sortedContexts.length > 0 ? sortedContexts[0].tag : null;
+
+        return {
+            waitingTag,
+            somedayTag,
+            somedayFolder,
+            waitingForFolder,
+            defaultContextTag,
+        };
     };
 
     // ==================== Pattern Inference ====================
@@ -733,14 +796,31 @@
         // Build recommendations based on findings
         const recommendations = this.generateRecommendations(rawData, inferences, gtdHealth);
 
+        // D7.2 — derive durationModel (omit when tasks is null per quick-mode)
+        const durationModel = rawData.tasks
+            ? this.deriveDurationModel(rawData.tasks.percentWithDuration)
+            : null;
+
+        // D7.2 — resolve GTD-essential conventions from inferred categories + folders
+        const resolvedConventions = this.resolveConventions(inferences, topLevelFolders);
+
+        // D7.2 — discoveryMode now signals FM availability, not depth.
+        // Depth moves to discoveryDepth.
+        const fmAvailable = typeof LanguageModel !== "undefined";
+
         return {
-            // Metadata
+            // ──────── Versioning (D7.2 schema v1) ────────
+            schemaVersion: SCHEMA_VERSION,
             attacheVersion: ATTACHE_VERSION,
-            discoveredAt: new Date().toISOString(),
-            discoveryMode: depth,
+            generatedAt: new Date().toISOString(),
+            discoveryMode: fmAvailable ? "rules-plus-fm" : "rules-only",
+            discoveryDepth: depth,
             aiEnhanced: false,
 
-            // Structure
+            // ──────── Resolved Conventions (the GTD-essential block) ────────
+            conventions: resolvedConventions,
+
+            // ──────── Structure ────────
             structure: {
                 folderDepth: Math.max(...rawData.folders.map(f => f.depth), 0),
                 totalFolders: rawData.folders.length,
@@ -780,22 +860,29 @@
                 inInbox: rawData.tasks.inInbox,
                 flagged: rawData.tasks.flagged,
                 overdue: rawData.tasks.overdue,
+                // D7.2 — field names match schema: percentWithDuration not withDuration
                 dataQuality: {
-                    withDuration: rawData.tasks.percentWithDuration,
-                    withTags: rawData.tasks.percentWithTags,
-                    withDueDate: rawData.tasks.percentWithDueDate
+                    percentWithDuration: rawData.tasks.percentWithDuration,
+                    percentWithTags: rawData.tasks.percentWithTags,
+                    percentWithDueDate: rawData.tasks.percentWithDueDate,
+                    percentWithProject: rawData.tasks.percentWithProject
                 }
             } : null,
+
+            // D7.2 — durationModel derived (null in quick mode)
+            durationModel: durationModel,
 
             // GTD Health
             gtdHealth: gtdHealth,
 
-            // Conventions
-            conventions: inferences.conventions,
-
             // Recommendations
             recommendations: recommendations
         };
+        // NOTE: D7.2 promoted resolved conventions to top-level `conventions: {...}` above.
+        // Raw pattern signals live nested:
+        //   - tag conventions: tags.conventions (set at line ~838)
+        //   - folder pattern signals: see inferences.conventions.folderConventions (not currently emitted in schema; consumers use structure.* directly)
+        //   - task pattern signals: see inferences.conventions.taskConventions (not currently emitted; consumers use tasks.dataQuality.* directly)
     };
 
     /**
@@ -1020,7 +1107,11 @@ Focus on semantic understanding - what do these names MEAN to the user, not just
         lines.push("# OmniFocus System Discovery Report");
         lines.push("");
         lines.push(`**Generated:** ${new Date().toLocaleString()}`);
+        // D7.2 — discoveryMode now signals FM availability (rules-only|rules-plus-fm);
+        // depth (quick|full) is discoveryDepth.
+        lines.push(`**Discovery Depth:** ${systemMap.discoveryDepth || systemMap.discoveryMode}`);
         lines.push(`**Discovery Mode:** ${systemMap.discoveryMode}`);
+        lines.push(`**Schema Version:** ${systemMap.schemaVersion || "(legacy — pre-D7.2)"}`);
         lines.push(`**AI Enhanced:** ${systemMap.aiEnhanced ? "Yes" : "No"}`);
         lines.push("");
         lines.push("---");
@@ -1090,7 +1181,23 @@ Focus on semantic understanding - what do these names MEAN to the user, not just
         // Conventions
         lines.push("## Detected Conventions");
         lines.push("");
-        const tc = systemMap.conventions.tagConventions;
+        // D7.2 — resolved GTD conventions at top level
+        if (systemMap.conventions) {
+            lines.push("### GTD Conventions");
+            const c = systemMap.conventions;
+            lines.push(`- Waiting tag: ${c.waitingTag || "_(none detected)_"}`);
+            lines.push(`- Someday tag: ${c.somedayTag || "_(none detected)_"}`);
+            lines.push(`- Someday folder: ${c.somedayFolder || "_(none detected)_"}`);
+            lines.push(`- Waiting-For folder: ${c.waitingForFolder || "_(none detected)_"}`);
+            lines.push(`- Default context tag: ${c.defaultContextTag || "_(none detected)_"}`);
+            lines.push("");
+            if (systemMap.durationModel) {
+                lines.push(`**Duration model:** ${systemMap.durationModel}`);
+                lines.push("");
+            }
+        }
+        const tc = systemMap.tags && systemMap.tags.conventions;
+        if (!tc) return lines.join("\n");
         lines.push("### Tag Naming");
         lines.push(`- Uses @ prefix: ${tc.usesAtPrefix ? "Yes" : "No"}`);
         lines.push(`- Uses colon nesting: ${tc.usesColonNesting ? "Yes" : "No"}`);

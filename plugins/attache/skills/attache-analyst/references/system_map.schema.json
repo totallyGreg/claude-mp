@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/totallyGreg/claude-mp/blob/main/plugins/attache/skills/attache-analyst/references/system_map.schema.json",
+  "title": "Attache System Map",
+  "description": "Schema for the JSON document stored in the note field of the 'Attache System Map' task. Companion to system_map_schema.md.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "attacheVersion",
+    "generatedAt",
+    "discoveryMode",
+    "discoveryDepth",
+    "conventions",
+    "tags",
+    "structure",
+    "projects"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1,
+      "description": "Schema version. Consumers compare against expected and refuse mismatched schemas."
+    },
+    "attacheVersion": {
+      "type": "string",
+      "description": "Version of the Attache plugin that produced this map.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of last discoverSystem() call."
+    },
+    "discoveryMode": {
+      "enum": ["rules-only", "rules-plus-fm"],
+      "description": "Whether Foundation Models was available at discovery time."
+    },
+    "discoveryDepth": {
+      "enum": ["quick", "full"],
+      "description": "discoverSystem() depth argument. 'full' includes task sample."
+    },
+    "aiEnhanced": {
+      "type": "boolean",
+      "description": "True if discoverWithAI() was layered on top of rules-based discovery."
+    },
+
+    "conventions": {
+      "type": "object",
+      "description": "Resolved GTD-essential conventions. D6 GTD queries depend on these.",
+      "required": ["waitingTag", "somedayTag", "somedayFolder", "waitingForFolder", "defaultContextTag"],
+      "properties": {
+        "waitingTag": {
+          "type": ["string", "null"],
+          "description": "Name of the Waiting-For tag (e.g., '@waiting'). Null if user has no such tag."
+        },
+        "somedayTag": {
+          "type": ["string", "null"],
+          "description": "Name of the Someday/Maybe tag (e.g., '@someday'). Null if user uses a folder instead."
+        },
+        "somedayFolder": {
+          "type": ["string", "null"],
+          "description": "Name of the Someday/Maybe folder. Null if user uses a tag instead or has no such folder."
+        },
+        "waitingForFolder": {
+          "type": ["string", "null"],
+          "description": "Name of the Waiting-For folder. Most users are tag-based — usually null."
+        },
+        "defaultContextTag": {
+          "type": ["string", "null"],
+          "description": "Most-used context tag (e.g., '@computer'). Null if no context tags found."
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "tags": {
+      "type": "object",
+      "required": ["totalTags", "taxonomyStyle", "categories"],
+      "properties": {
+        "totalTags": { "type": "integer", "minimum": 0 },
+        "taxonomyStyle": { "enum": ["flat", "hierarchical", "mixed"] },
+        "categories": {
+          "type": "object",
+          "required": ["contexts", "people", "status", "duration", "schedulingContext"],
+          "properties": {
+            "contexts": { "$ref": "#/$defs/tagEntryArray" },
+            "people": { "$ref": "#/$defs/tagEntryArray" },
+            "status": { "$ref": "#/$defs/tagEntryArray" },
+            "energy": { "$ref": "#/$defs/tagEntryArray" },
+            "duration": { "$ref": "#/$defs/tagEntryArray" },
+            "schedulingContext": { "$ref": "#/$defs/tagEntryArray" },
+            "time": { "$ref": "#/$defs/tagEntryArray" },
+            "areas": { "$ref": "#/$defs/tagEntryArray" },
+            "uncategorized": { "$ref": "#/$defs/tagEntryArray" }
+          },
+          "additionalProperties": false
+        },
+        "categoryCounts": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "conventions": {
+          "type": "object",
+          "description": "Raw pattern signals — input to top-level conventions.* resolution.",
+          "properties": {
+            "usesAtPrefix": { "type": "boolean" },
+            "usesColonNesting": { "type": "boolean" },
+            "usesEmoji": { "type": "boolean" },
+            "usesCamelCase": { "type": "boolean" },
+            "averageNameLength": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+
+    "structure": {
+      "type": "object",
+      "required": ["folderDepth", "totalFolders", "totalProjects", "topLevelFolders"],
+      "properties": {
+        "folderDepth": { "type": "integer", "minimum": 0 },
+        "totalFolders": { "type": "integer", "minimum": 0 },
+        "totalProjects": { "type": "integer", "minimum": 0 },
+        "totalActiveTasks": { "type": ["integer", "null"], "minimum": 0 },
+        "topLevelFolders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "inferredType", "confidence", "projectCount", "activeProjectCount", "subfolderCount"],
+            "properties": {
+              "name": { "type": "string" },
+              "inferredType": { "enum": ["area", "archive", "someday", "reference", "general"] },
+              "confidence": { "enum": ["high", "medium", "low"] },
+              "projectCount": { "type": "integer", "minimum": 0 },
+              "activeProjectCount": { "type": "integer", "minimum": 0 },
+              "subfolderCount": { "type": "integer", "minimum": 0 },
+              "aiInferredType": { "type": "string" },
+              "aiConfidence": { "enum": ["high", "medium", "low"] },
+              "aiReasoning": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "projects": {
+      "type": "object",
+      "required": ["total", "active", "onHold", "completed", "stalled"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "active": { "type": "integer", "minimum": 0 },
+        "onHold": { "type": "integer", "minimum": 0 },
+        "completed": { "type": "integer", "minimum": 0 },
+        "dropped": { "type": "integer", "minimum": 0 },
+        "stalled": { "type": "integer", "minimum": 0 },
+        "overdue": { "type": "integer", "minimum": 0 },
+        "typeBreakdown": {
+          "type": "object",
+          "properties": {
+            "sequential": { "type": "integer", "minimum": 0 },
+            "parallel": { "type": "integer", "minimum": 0 },
+            "singleAction": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+
+    "tasks": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["total", "active", "inInbox", "dataQuality"],
+          "properties": {
+            "total": { "type": "integer", "minimum": 0 },
+            "active": { "type": "integer", "minimum": 0 },
+            "inInbox": { "type": "integer", "minimum": 0 },
+            "flagged": { "type": "integer", "minimum": 0 },
+            "overdue": { "type": "integer", "minimum": 0 },
+            "dataQuality": {
+              "type": "object",
+              "required": ["percentWithDuration", "percentWithTags", "percentWithDueDate"],
+              "properties": {
+                "percentWithDuration": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "percentWithTags": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "percentWithDueDate": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "percentWithProject": { "type": "integer", "minimum": 0, "maximum": 100 }
+              }
+            }
+          }
+        }
+      ]
+    },
+
+    "durationModel": {
+      "enum": ["native", "tags", "mixed", "none"],
+      "description": "Derived from tasks.dataQuality.percentWithDuration. Omitted when tasks is null (quick mode)."
+    },
+
+    "gtdHealth": {
+      "type": "object",
+      "properties": {
+        "overallScore": { "type": "number", "minimum": 0, "maximum": 10 },
+        "phases": { "type": "object" }
+      }
+    },
+
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["area", "severity", "finding", "suggestion"],
+        "properties": {
+          "area": { "type": "string" },
+          "severity": { "enum": ["high", "medium", "low"] },
+          "finding": { "type": "string" },
+          "suggestion": { "type": "string" }
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "tagEntry": {
+      "type": "object",
+      "required": ["tag", "usage", "hasChildren"],
+      "properties": {
+        "tag": { "type": "string" },
+        "usage": { "type": "integer", "minimum": 0 },
+        "meaning": { "type": ["string", "null"] },
+        "hasChildren": { "type": "boolean" }
+      }
+    },
+    "tagEntryArray": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/tagEntry" }
+    }
+  }
+}
