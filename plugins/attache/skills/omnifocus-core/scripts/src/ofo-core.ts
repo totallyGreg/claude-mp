@@ -27,7 +27,9 @@ function normalizeTask(t: Task): OfoTask {
     try {
       var st = String(t.repetitionRule.scheduleType);
       var m = st.match(/:\s*(\w+)\]$/);
-      schedType = m ? m[1] : st;
+      // noUncheckedIndexedAccess: m[1] is `string | undefined` even after a successful match.
+      // In practice this regex always populates group 1 when it matches, but type system can't prove it.
+      schedType = m ? (m[1] ?? st) : st;
     } catch (_) {}
   }
   return {
