@@ -67,13 +67,31 @@
             const folderOptions = [ALL_FOLDERS_MARKER, ...allFoldersOption.map(f => f.folder)];
             const folderNames = ["All Folders", ...allFoldersOption.map(f => f.name)];
 
+            // #185 Bug 1 — Default to the folder containing the user's currently
+            // selected project (or task's project). Falls back to "All Folders".
+            let defaultFolder = folderOptions[0]; // ALL_FOLDERS_MARKER
+            let preselectedFromSelection = false;
+            const selectedProject = (selection.projects && selection.projects.length > 0)
+                ? selection.projects[0]
+                : ((selection.tasks && selection.tasks.length > 0 && selection.tasks[0].containingProject)
+                    ? selection.tasks[0].containingProject
+                    : null);
+            if (selectedProject && selectedProject.parentFolder) {
+                const parentFolder = selectedProject.parentFolder;
+                const idx = allFoldersOption.findIndex(f => f.folder === parentFolder);
+                if (idx !== -1) {
+                    defaultFolder = folderOptions[idx + 1]; // +1 for ALL_FOLDERS at index 0
+                    preselectedFromSelection = true;
+                }
+            }
+
             // @ts-ignore — 6th arg (nullOptionTitle) is optional at runtime
             const folderField = new Form.Field.Option(
                 "selectedFolder",
-                "Starting Folder",
+                preselectedFromSelection ? "Starting Folder (from selection)" : "Starting Folder",
                 folderOptions,
                 folderNames,
-                folderOptions[0]  // Default to "All Folders"
+                defaultFolder
             );
             configForm.addField(folderField);
 
@@ -224,7 +242,21 @@
 
                     const wrapper = FileWrapper.withContents(filename, Data.fromString(report));
                     const fileSaver = new FileSaver();
-                    await fileSaver.show(wrapper);
+                    // #185 Bug 2 — FileSaver.show() throws when the user cancels
+                    // the OS save panel. Treat cancellation as a silent exit; only
+                    // surface genuine save failures.
+                    try {
+                        await fileSaver.show(wrapper);
+                    } catch (saveErr) {
+                        const msg = (saveErr && saveErr.message) ? saveErr.message : String(saveErr);
+                        if (/cancel/i.test(msg)) {
+                            console.log("FileSaver cancelled by user");
+                        } else {
+                            new Alert("Save failed", msg).show();
+                            console.error("FileSaver error:", saveErr);
+                        }
+                        return;
+                    }
                 } else {
                     // Copy to clipboard
                     Pasteboard.general.string = report;
@@ -237,14 +269,31 @@
                     alert.show();
                 }
             } else {
-                // Display in alert
+                // Display in alert — adds "Flag Bottlenecks…" option when the
+                // analysis surfaced project bottlenecks the user can flag. This
+                // is the [P] apply path for Project Health: report-only → report
+                // + dispatch, using the shared applyForm helper.
+                const applyForm = this.plugIn.library("applyForm");
+                const ofoCore = this.plugIn.library("ofoCore");
+                const flaggableBottlenecks = collectFlaggableBottlenecks(aggregatedInsights);
+
                 const alert = new Alert("Project Health", report);
                 alert.addOption("Copy to Clipboard");
+                if (flaggableBottlenecks.length > 0 && applyForm && ofoCore) {
+                    alert.addOption("Flag Bottlenecks…");
+                }
                 alert.addOption("Done");
 
                 const buttonIndex = await alert.show();
                 if (buttonIndex === 0) {
                     Pasteboard.general.string = report;
+                } else if (
+                    flaggableBottlenecks.length > 0
+                    && applyForm
+                    && ofoCore
+                    && buttonIndex === 1
+                ) {
+                    await applyBottleneckFlags(flaggableBottlenecks, applyForm, ofoCore);
                 }
             }
 
@@ -255,6 +304,82 @@
     });
 
     // Helper Functions
+
+    /**
+     * Extract bottlenecks that can be flagged in OmniFocus (those with a
+     * projectId that resolves to a real project). Drops any unflaggable
+     * entries (missing projectId or already-flagged project).
+     */
+    function collectFlaggableBottlenecks(insights) {
+        if (!insights.flowAndBottlenecks || !insights.flowAndBottlenecks.bottlenecks) {
+            return [];
+        }
+        const flaggable = [];
+        const seen = {};
+        insights.flowAndBottlenecks.bottlenecks.forEach(b => {
+            if (!b.projectId || seen[b.projectId]) return;
+            const proj = Project.byIdentifier(b.projectId);
+            if (!proj || proj.flagged) return;
+            seen[b.projectId] = true;
+            flaggable.push({
+                projectId: b.projectId,
+                projectName: b.projectName || proj.name,
+                issue: b.issue || '',
+                recommendation: b.recommendation || ''
+            });
+        });
+        return flaggable;
+    }
+
+    /**
+     * Walk each flaggable bottleneck, show per-project confirmation Form,
+     * dispatch accepted flags via ofoCore.updateProject. Surface a summary at
+     * the end. Mirrors the analyzeSelected apply-path shape so the caller flow
+     * is consistent across actions.
+     */
+    async function applyBottleneckFlags(bottlenecks, applyForm, ofoCore) {
+        let appliedCount = 0;
+        let skippedCount = 0;
+        const issues = [];
+
+        for (const b of bottlenecks) {
+            const issueSnippet = b.issue ? ` — ${b.issue}` : '';
+            const decision = await applyForm.confirmApply({
+                itemName: b.projectName,
+                title: 'Flag Bottleneck',
+                confirmLabel: 'Apply',
+                changes: [
+                    {
+                        key: 'flag',
+                        label: `Flag project for attention${issueSnippet}`
+                    }
+                ]
+            });
+
+            if (decision.cancelled || !applyForm.anyAccepted(decision)) {
+                skippedCount++;
+                continue;
+            }
+
+            if (decision.apply.flag) {
+                const res = ofoCore.updateProject({ id: b.projectId, flagged: true });
+                if (!res.success) {
+                    issues.push(`${b.projectName}: ${res.error || 'updateProject failed'}`);
+                    continue;
+                }
+                appliedCount++;
+            }
+        }
+
+        let summary = `Flagged ${appliedCount} project${appliedCount === 1 ? '' : 's'}.`;
+        if (skippedCount > 0) {
+            summary += `\nSkipped ${skippedCount}.`;
+        }
+        if (issues.length > 0) {
+            summary += `\n\nIssues:\n  · ${issues.join('\n  · ')}`;
+        }
+        new Alert('Project Health — Flag Summary', summary).show();
+    }
 
     /**
      * Aggregate insights from all batch results
