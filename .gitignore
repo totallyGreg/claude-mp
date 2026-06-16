@@ -47,3 +47,4 @@ htmlcov/
 
 # WTF friction reports (local only, never commit)
 .local/
+**/scripts/build/
