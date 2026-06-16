@@ -4,7 +4,10 @@
 set -euo pipefail
 
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SRC_DIR="${SCRIPTS_DIR}/src"
+# ofoCore lives in omnifocus-core/scripts/src/ (consolidated layout).
+# Attache libraries live in attache-analyst/scripts/src/attache/.
+OFOCORE_SRC_DIR="${SCRIPTS_DIR}/../../omnifocus-core/scripts/src"
+SRC_DIR="${SCRIPTS_DIR}/src"  # Attache libraries source
 BUILD_DIR="${SCRIPTS_DIR}/build"
 ASSETS_DIR="${SCRIPTS_DIR}/../assets/Attache.omnifocusjs"
 BUNDLE_DIR="${BUILD_DIR}/Attache.omnifocusjs"
@@ -18,7 +21,9 @@ mkdir -p "${BUNDLE_DIR}/Resources/en.lproj" "${INTERMEDIATE_DIR}"
 
 # 2. Compile ofoCore TypeScript to intermediate JS
 echo "  Compiling ofoCore TypeScript..."
-npx tsc --project "${SRC_DIR}/tsconfig.plugin.json"
+# tsc outputs to ../build/intermediate/ relative to OFOCORE_SRC_DIR per tsconfig.plugin.json.
+# We need the output in OUR INTERMEDIATE_DIR — override via --outDir.
+npx tsc --project "${OFOCORE_SRC_DIR}/tsconfig.plugin.json" --outDir "${INTERMEDIATE_DIR}"
 
 # 3. Wrap compiled ofoCore in PlugIn.Library IIFE
 echo "  Wrapping ofoCore in PlugIn.Library IIFE..."
@@ -59,14 +64,25 @@ cat >> "${BUNDLE_DIR}/Resources/ofoCore.js" << 'IIFE_FOOTER'
   lib.assessClarity = assessClarity;
   lib.stalledProjects = stalledProjects;
   lib.getHealth = getHealth;
+  // D6.2 — GTD-essential queries (System Map convention-dependent)
+  lib.listWaitingFor = listWaitingFor;
+  lib.listSomedayMaybe = listSomedayMaybe;
+  lib.listNeglectedProjects = listNeglectedProjects;
+  lib.listRecentlyCompleted = listRecentlyCompleted;
+  lib.listProjectsForReview = listProjectsForReview;
+  // D6.2 — Project lifecycle
+  lib.markProjectReviewed = markProjectReviewed;
+  lib.listFolders = listFolders;
+  lib.createProject = createProject;
+  lib.updateProject = updateProject;
   lib.dispatch = dispatch;
   return lib;
 })();
 IIFE_FOOTER
 
-# 4. Compile Attache TypeScript libraries
+# 4. Compile Attache TypeScript libraries (tsconfig lives alongside ofoCore's)
 echo "  Compiling Attache TypeScript libraries..."
-npx tsc --project "${SRC_DIR}/tsconfig.attache-libs.json"
+npx tsc --project "${OFOCORE_SRC_DIR}/tsconfig.attache-libs.json" --outDir "${INTERMEDIATE_DIR}/attache"
 
 ATTACHE_LIBS=(
   taskMetrics exportUtils foundationModelsUtils folderParser
