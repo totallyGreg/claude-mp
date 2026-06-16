@@ -89,10 +89,17 @@
               description: 'Suggested priority level (high, medium, or low)',
             },
             {
+              // Schema type intentionally omitted: Foundation Models' schema
+              // language only recognizes `string` (and composite forms like
+              // arrayOf). `type: 'number'` was tried in v2.8.1 and rejected
+              // with "Invalid schema specification: Unrecognized Type: number".
+              // The dispatch path's runtime coercion (coerceEstimateMinutes,
+              // below) is the actual safety net — it accepts whatever the
+              // model returns (string or number) and normalizes to a positive
+              // integer or null.
               name: 'estimatedMinutes',
-              description: 'Estimated time to complete in minutes (numeric only, e.g. 30)',
+              description: 'Estimated time to complete in minutes (an integer like 30, 60, 90)',
               isOptional: true,
-              schema: { type: 'number' },
             },
             {
               name: 'improvements',
@@ -150,13 +157,14 @@ Be specific and practical in your suggestions.`
           existingTagsByName
         )
 
-        // Coerce estimatedMinutes to a Number. The schema now declares
-        // `type: 'number'`, but Foundation Models has been observed to
-        // still return string values for numeric properties — and
-        // Task.estimatedMinutes is strict ("requires a Number, but was
-        // passed value of type String"). Normalize once here so every
-        // downstream consumer (display, comparison, dispatch) sees a
-        // Number or null.
+        // Coerce estimatedMinutes to a Number. Foundation Models' schema
+        // language doesn't accept `type: 'number'` (it rejects with
+        // "Invalid schema specification: Unrecognized Type: number") — so
+        // there's no way to pin the model's output type at the schema layer.
+        // The only safety net is here: accept whatever the model returns
+        // and normalize to a positive integer or null. Task.estimatedMinutes
+        // is strict ("requires a Number, but was passed value of type
+        // String"); every downstream consumer below sees a Number or null.
         analysis.estimatedMinutes = coerceEstimateMinutes(analysis.estimatedMinutes)
 
         results.push({
@@ -203,11 +211,13 @@ Be specific and practical in your suggestions.`
 
   /**
    * Coerce the AI's estimatedMinutes value to a positive integer or null.
-   * Foundation Models has been observed to return string values ("30")
-   * even when the schema declares type: 'number'; this is the dispatch-
-   * site safety net. Returns null for empty/invalid/non-positive values
-   * (which makes downstream truthiness guards just-work — null short-
-   * circuits the apply prompt).
+   * Foundation Models' schema language doesn't accept `type: 'number'`
+   * (it rejects with "Invalid schema specification: Unrecognized Type:
+   * number"), so the model is free to return whatever JSON primitive
+   * matches its interpretation of the description — usually a string.
+   * This is the dispatch-site safety net. Returns null for empty,
+   * invalid, or non-positive values (downstream truthiness guards then
+   * just-work — null short-circuits the apply prompt).
    */
   function coerceEstimateMinutes(value) {
     if (value === null || value === undefined || value === '') return null
