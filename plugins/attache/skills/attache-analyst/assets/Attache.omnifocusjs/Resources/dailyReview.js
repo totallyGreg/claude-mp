@@ -30,6 +30,36 @@
             const core = this.plugIn.library("ofoCore");
             const metrics = this.plugIn.library("taskMetrics");
 
+            // D7.4 — System Map drift check (non-blocking).
+            // Surfaces a soft warning prepended to the review output if the
+            // cached map is missing, corrupt, schema-stale, or older than
+            // 30 days. Daily Review still proceeds — drift is information,
+            // not failure. Full drift signals: ofo system-map --drift-check.
+            const SYSTEM_MAP_TASK_NAME = "Attache System Map";
+            const EXPECTED_SCHEMA_VERSION = 1;
+            const MAX_AGE_DAYS = 30;
+            let systemMapDriftWarning = "";
+            try {
+                const smTasks = flattenedTasks.filter(t => t.name === SYSTEM_MAP_TASK_NAME);
+                if (smTasks.length === 0) {
+                    systemMapDriftWarning = "⚠️ System Map not found — coaching will use generic GTD terms. Run: `ofo system-map --refresh`";
+                } else {
+                    const sm = JSON.parse(smTasks[0].note || "{}");
+                    if (typeof sm.schemaVersion !== "number") {
+                        systemMapDriftWarning = "⚠️ System Map predates schema versioning. Run: `ofo system-map --refresh`";
+                    } else if (sm.schemaVersion < EXPECTED_SCHEMA_VERSION) {
+                        systemMapDriftWarning = `⚠️ System Map schema v${sm.schemaVersion} is stale (expected v${EXPECTED_SCHEMA_VERSION}). Run: \`ofo system-map --refresh\``;
+                    } else if (sm.generatedAt) {
+                        const ageDays = Math.floor((Date.now() - Date.parse(sm.generatedAt)) / 86400000);
+                        if (ageDays > MAX_AGE_DAYS) {
+                            systemMapDriftWarning = `⚠️ System Map is ${ageDays} days old (threshold ${MAX_AGE_DAYS}d). Conventions may have drifted. Run: \`ofo system-map --drift-check\` for details.`;
+                        }
+                    }
+                }
+            } catch (_) {
+                systemMapDriftWarning = "⚠️ System Map note is corrupt. Run: `ofo system-map --refresh`";
+            }
+
             // Single-pass collection for all metrics
             const all = metrics.collectAllMetrics(core);
 
@@ -144,6 +174,12 @@ Using GTD principles, provide:
             // Format display message
             let message = "";
             let md = "";
+
+            // D7.4 — Prepend System Map drift warning (non-blocking; informational only)
+            if (systemMapDriftWarning) {
+                message += systemMapDriftWarning + "\n\n";
+                md += `> ${systemMapDriftWarning}\n\n`;
+            }
 
             // Calendar prompt (GTD: date-specific commitments are non-negotiable anchors)
             message += "Review your calendar for today's commitments.\n\n";
