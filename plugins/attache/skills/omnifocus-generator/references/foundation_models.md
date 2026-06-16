@@ -1,8 +1,6 @@
 # Foundation Models (LanguageModel API)
 
-<!-- DRAFT — review during D2 integration -->
-
-**What this covers:** On-device Apple Foundation Models via `LanguageModel.Session`, `LanguageModel.Schema`, and `LanguageModel.GenerationOptions`. Includes a worked walkthrough for D5 (Organize Project Tasks via Foundation Models).
+**What this covers:** On-device Apple Foundation Models via `LanguageModel.Session`, `LanguageModel.Schema`, and `LanguageModel.GenerationOptions`. Includes a worked walkthrough for D5 (Organize Project Tasks via Foundation Models) that doubles as the epic #181 D5 acceptance test.
 
 **What this does NOT cover:** Cloud LLMs, Forms (UI collection), ofoCore task CRUD. See `forms_ui.md`, `tasks_projects_tags.md`.
 
@@ -274,13 +272,26 @@ bash plugins/attache/skills/omnifocus-generator/scripts/validate-plugin.sh ~/Lib
 
 Bump version in `manifest.json`. Double-click to install, or copy to Plug-Ins directory.
 
-### References used by this walkthrough
+### Acceptance Criteria (epic #181 D5)
 
-- `libraries_shared_code.md` — PlugIn.Library consumption pattern
-- `library_consumer_pattern.md` — ofoCore null-check skeleton  
-- `system_map_dependency.md` — System Map consumption pattern
-- `plugin_format_selection.md` — why `solitary-fm`
-- `forms_ui.md` — Form API for preview step
+A fresh agent attempting this walkthrough passes if:
+
+1. **Reads only this doc** (Section 6 inline patterns are self-sufficient; `library_consumer_pattern.md` and `system_map_dependency.md` are RECOMMENDED supplementary reading but not required to produce a working plugin).
+2. **Consumes ofoCore** via `PlugIn.find(...).library("ofoCore")` with the dual null-check (no inline task CRUD reinvention).
+3. **Consumes the System Map** via the `flattenedTasks.filter(t => t.name === "Attache System Map")` pattern with schema version + null checks.
+4. **Picks format `solitary-fm`** (Foundation Models required; specialized → standalone plugin per channel selection in agents/attache.md).
+5. **Passes `validate-plugin.sh`** without errors (tsc strict + ESLint no-undef + antipatterns clean per `validation_pipeline.md`).
+6. **Does NOT WebFetch** anything beyond the reach-out trigger pattern documented in Section 7 (i.e., does not crawl omni-automation.com for basic Schema syntax — that's already inlined in Section 4).
+
+If a fresh agent's output fails any of these, the walkthrough needs more inline detail (open a follow-up issue).
+
+### References used by this walkthrough (supplementary, not required)
+
+- `library_consumer_pattern.md` — full ofoCore consumer doctrine + 29-function inventory
+- `system_map_dependency.md` — full System Map consumer doctrine + drift handling
+- `plugin_format_selection.md` — why `solitary-fm` over `bundle` for this case
+- `forms_ui.md` — full Form API for preview step
+- `libraries_shared_code.md` — broader PlugIn.Library pattern beyond ofoCore
 
 ---
 
