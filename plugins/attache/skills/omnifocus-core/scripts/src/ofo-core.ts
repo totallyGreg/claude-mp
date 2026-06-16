@@ -795,6 +795,327 @@ function getHealth(args: OfoArgs): OfoResult {
   };
 }
 
+// === D6.2 — GTD-ESSENTIAL QUERIES (System Map convention-dependent) ===
+
+/**
+ * listWaitingFor — tasks with the waitingTag, optionally filtered by age.
+ * @requires SystemMap.conventions.waitingTag (caller passes via args.tag)
+ */
+function listWaitingFor(args: OfoArgs): OfoResult {
+  const tagName = args['tag'] as string;
+  if (!tagName) return { success: false, error: 'Missing required arg: tag (resolve from SystemMap.conventions.waitingTag)' };
+  const limit = (args['limit'] as number) || 100;
+  const ageThresholdDays = (args['ageThresholdDays'] as number) || 0;
+
+  const tag = flattenedTags.byName(tagName);
+  if (!tag) return { success: false, error: 'Waiting tag not found: ' + tagName };
+
+  const cutoff = ageThresholdDays > 0 ? new Date(Date.now() - ageThresholdDays * 86400000) : null;
+  const results: object[] = [];
+  tag.remainingTasks.forEach(function(t: Task) {
+    if (results.length >= limit) return;
+    if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
+    if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
+    if (cutoff && t.modified && t.modified >= cutoff) return;
+    results.push(normalizeTask(t));
+  });
+  return { success: true, tag: tagName, ageThresholdDays: ageThresholdDays, count: results.length, tasks: results };
+}
+
+/**
+ * listSomedayMaybe — tasks in the somedayTag, or all tasks under projects in the somedayFolder.
+ * @requires SystemMap.conventions.somedayTag AND/OR SystemMap.conventions.somedayFolder
+ */
+function listSomedayMaybe(args: OfoArgs): OfoResult {
+  const tagName = args['tag'] as string | undefined;
+  const folderName = args['folder'] as string | undefined;
+  if (!tagName && !folderName) {
+    return { success: false, error: 'Missing required arg: at least one of tag or folder (resolve from SystemMap.conventions.{somedayTag, somedayFolder})' };
+  }
+  const limit = (args['limit'] as number) || 100;
+  const results: object[] = [];
+  const seenIds: Record<string, boolean> = {};
+
+  if (tagName) {
+    const tag = flattenedTags.byName(tagName);
+    if (tag) {
+      tag.remainingTasks.forEach(function(t: Task) {
+        if (results.length >= limit) return;
+        if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
+        if (t.effectivelyCompleted || t.effectivelyDropped) return;
+        const idKey = t.id.primaryKey;
+        if (seenIds[idKey]) return;
+        seenIds[idKey] = true;
+        results.push(normalizeTask(t));
+      });
+    }
+  }
+
+  if (folderName) {
+    const folder = flattenedFolders.byName(folderName);
+    if (folder) {
+      folder.flattenedProjects.forEach(function(p: Project) {
+        if (results.length >= limit) return;
+        if (p.status !== Project.Status.Active && p.status !== Project.Status.OnHold) return;
+        p.flattenedTasks.forEach(function(t: Task) {
+          if (results.length >= limit) return;
+          if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
+          if (t.effectivelyCompleted || t.effectivelyDropped) return;
+          const idKey = t.id.primaryKey;
+          if (seenIds[idKey]) return;
+          seenIds[idKey] = true;
+          results.push(normalizeTask(t));
+        });
+      });
+    }
+  }
+
+  return { success: true, count: results.length, tasks: results };
+}
+
+/**
+ * listNeglectedProjects — active projects not modified in N days (default 30).
+ * No System Map dependency (date-based only).
+ */
+function listNeglectedProjects(args: OfoArgs): OfoResult {
+  const daysSinceModified = (args['daysSinceModified'] as number) || 30;
+  const cutoff = new Date(Date.now() - daysSinceModified * 86400000);
+  const limit = (args['limit'] as number) || 50;
+  const results: object[] = [];
+  flattenedProjects.forEach(function(p: Project) {
+    if (results.length >= limit) return;
+    if (p.status !== Project.Status.Active) return;
+    if (p.modified && p.modified >= cutoff) return;
+    const ageDays = p.modified ? Math.floor((Date.now() - p.modified.getTime()) / 86400000) : null;
+    results.push({
+      id: p.id.primaryKey,
+      name: p.name,
+      folder: p.parentFolder ? p.parentFolder.name : null,
+      modified: p.modified ? p.modified.toISOString() : null,
+      daysSinceModified: ageDays,
+      taskCount: p.flattenedTasks.length
+    });
+  });
+  return { success: true, daysSinceModified: daysSinceModified, count: results.length, projects: results };
+}
+
+/**
+ * listRecentlyCompleted — tasks completed since the given date.
+ * Optionally groups results by tag for "What did I accomplish?" reports.
+ */
+function listRecentlyCompleted(args: OfoArgs): OfoResult {
+  const sinceDateStr = args['sinceDate'] as string | undefined;
+  const groupByTag = args['groupByTag'] as boolean | undefined;
+  const limit = (args['limit'] as number) || 200;
+  const since = sinceDateStr ? new Date(sinceDateStr) : new Date(Date.now() - 7 * 86400000);
+
+  const results: any[] = [];
+  flattenedTasks.forEach(function(t: Task) {
+    if (results.length >= limit) return;
+    if (t.taskStatus !== Task.Status.Completed) return;
+    if (!t.completionDate || t.completionDate < since) return;
+    results.push({
+      id: t.id.primaryKey,
+      name: t.name,
+      project: t.containingProject ? t.containingProject.name : null,
+      completionDate: t.completionDate.toISOString(),
+      tags: t.tags.map(function(tag: Tag) { return tag.name; })
+    });
+  });
+
+  if (groupByTag) {
+    const grouped: Record<string, any[]> = {};
+    results.forEach(function(r: any) {
+      if (!r.tags || r.tags.length === 0) {
+        if (!grouped['(untagged)']) grouped['(untagged)'] = [];
+        grouped['(untagged)'].push(r);
+        return;
+      }
+      r.tags.forEach(function(tagName: string) {
+        if (!grouped[tagName]) grouped[tagName] = [];
+        grouped[tagName].push(r);
+      });
+    });
+    return { success: true, since: since.toISOString(), count: results.length, grouped: grouped };
+  }
+  return { success: true, since: since.toISOString(), count: results.length, tasks: results };
+}
+
+/**
+ * listProjectsForReview — active or on-hold projects whose nextReviewDate ≤ beforeDate (default now).
+ */
+function listProjectsForReview(args: OfoArgs): OfoResult {
+  const beforeDateStr = args['beforeDate'] as string | undefined;
+  const before = beforeDateStr ? new Date(beforeDateStr) : new Date();
+  const limit = (args['limit'] as number) || 100;
+
+  const results: object[] = [];
+  flattenedProjects.forEach(function(p: Project) {
+    if (results.length >= limit) return;
+    if (p.status !== Project.Status.Active && p.status !== Project.Status.OnHold) return;
+    if (!p.nextReviewDate || p.nextReviewDate > before) return;
+    results.push({
+      id: p.id.primaryKey,
+      name: p.name,
+      folder: p.parentFolder ? p.parentFolder.name : null,
+      nextReviewDate: p.nextReviewDate.toISOString(),
+      lastReviewDate: p.lastReviewDate ? p.lastReviewDate.toISOString() : null,
+      status: String(p.status)
+    });
+  });
+  return { success: true, beforeDate: before.toISOString(), count: results.length, projects: results };
+}
+
+// === D6.2 — PROJECT LIFECYCLE ===
+
+/**
+ * markProjectReviewed — set lastReviewDate (default: now). OmniFocus advances nextReviewDate
+ * automatically based on reviewInterval.
+ */
+function markProjectReviewed(args: OfoArgs): OfoResult {
+  const id = args['id'] as string;
+  if (!id) return { success: false, error: 'Missing required arg: id' };
+  const reviewDateStr = args['reviewDate'] as string | undefined;
+  const p = Project.byIdentifier(id);
+  if (!p) return { success: false, error: 'Project not found: ' + id };
+  const reviewDate = reviewDateStr ? new Date(reviewDateStr) : new Date();
+  p.lastReviewDate = reviewDate;
+  return {
+    success: true,
+    project: {
+      id: p.id.primaryKey,
+      name: p.name,
+      lastReviewDate: p.lastReviewDate ? p.lastReviewDate.toISOString() : null,
+      nextReviewDate: p.nextReviewDate ? p.nextReviewDate.toISOString() : null
+    }
+  };
+}
+
+/**
+ * listFolders — folder hierarchy as a tree. Optionally includes projects under each folder.
+ */
+function listFolders(args: OfoArgs): OfoResult {
+  const includeProjects = args['includeProjects'] as boolean | undefined;
+
+  function buildTree(folderList: FolderArray | Folder[]): object[] {
+    const result: object[] = [];
+    folderList.forEach(function(f: Folder) {
+      if (f.status === Folder.Status.Dropped) return;
+      const node: any = {
+        id: f.id.primaryKey,
+        name: f.name,
+        children: f.folders.length > 0 ? buildTree(f.folders) : []
+      };
+      if (includeProjects) {
+        node.projects = f.projects.map(function(p: Project) {
+          return {
+            id: p.id.primaryKey,
+            name: p.name,
+            status: String(p.status),
+            taskCount: p.flattenedTasks.length
+          };
+        });
+      }
+      result.push(node);
+    });
+    return result;
+  }
+  return { success: true, folders: buildTree(folders) };
+}
+
+/**
+ * createProject — create a project at root or inside a named folder.
+ * Status mapping (Project.Status):
+ *   'active'    → Project.Status.Active   (default for new projects)
+ *   'onHold'    → Project.Status.OnHold
+ *   'completed' → Project.Status.Done     (OmniFocus uses "Done" not "Completed")
+ *   'dropped'   → Project.Status.Dropped
+ */
+function createProject(args: OfoArgs): OfoResult {
+  const name = args['name'] as string;
+  if (!name) return { success: false, error: 'Missing required arg: name' };
+
+  let location: Folder.ChildInsertionLocation | null = null;
+  if (args['folder']) {
+    const folder = flattenedFolders.byName(args['folder'] as string);
+    if (!folder) return { success: false, error: 'Folder not found: ' + args['folder'] };
+    location = folder.ending;
+  }
+
+  const p = new Project(name, location);
+  if (args['note']) p.note = args['note'] as string;
+  if (args['sequential'] !== undefined) p.sequential = args['sequential'] as boolean;
+  if (args['flagged']) p.flagged = true;
+  if (args['due']) p.dueDate = new Date(args['due'] as string);
+  if (args['defer']) p.deferDate = new Date(args['defer'] as string);
+  // reviewInterval: { steps: number, unit: 'days'|'weeks'|'months'|... } per Project.ReviewInterval
+  if (args['reviewInterval']) {
+    try {
+      p.reviewInterval = args['reviewInterval'] as any;
+    } catch (_) {}
+  }
+
+  return {
+    success: true,
+    project: {
+      id: p.id.primaryKey,
+      name: p.name,
+      folder: p.parentFolder ? p.parentFolder.name : null,
+      sequential: p.sequential,
+      status: String(p.status)
+    }
+  };
+}
+
+/**
+ * updateProject — mutate any combination of name / note / status / folder / sequential / due / defer.
+ * Status mapping documented in createProject above.
+ */
+function updateProject(args: OfoArgs): OfoResult {
+  const id = args['id'] as string;
+  if (!id) return { success: false, error: 'Missing required arg: id' };
+  const p = Project.byIdentifier(id);
+  if (!p) return { success: false, error: 'Project not found: ' + id };
+
+  if (args['name'] !== undefined) p.name = args['name'] as string;
+  if (args['note'] !== undefined) p.note = args['note'] as string;
+  if (args['flagged'] !== undefined) p.flagged = args['flagged'] as boolean;
+  if (args['sequential'] !== undefined) p.sequential = args['sequential'] as boolean;
+  if (args['due'] !== undefined) p.dueDate = args['due'] === null ? null : new Date(args['due'] as string);
+  if (args['defer'] !== undefined) p.deferDate = args['defer'] === null ? null : new Date(args['defer'] as string);
+
+  if (args['status'] !== undefined) {
+    const statusStr = String(args['status']).toLowerCase().replace(/[-_]/g, '');
+    if (statusStr === 'active') p.status = Project.Status.Active;
+    else if (statusStr === 'onhold') p.status = Project.Status.OnHold;
+    else if (statusStr === 'completed' || statusStr === 'done') p.status = Project.Status.Done;
+    else if (statusStr === 'dropped') p.status = Project.Status.Dropped;
+    else return { success: false, error: 'Invalid status: ' + args['status'] + ' (expected active|onHold|completed|dropped)' };
+  }
+
+  if (args['folder'] !== undefined) {
+    const folderName = args['folder'] as string;
+    if (folderName && folderName !== '') {
+      const folder = flattenedFolders.byName(folderName);
+      if (!folder) return { success: false, error: 'Folder not found: ' + folderName };
+      moveSections([p], folder.ending);
+    }
+    // Note: moving project to root (no folder) isn't directly supported via moveSections;
+    // would require a different API. Skipping for now.
+  }
+
+  return {
+    success: true,
+    project: {
+      id: p.id.primaryKey,
+      name: p.name,
+      folder: p.parentFolder ? p.parentFolder.name : null,
+      status: String(p.status),
+      sequential: p.sequential
+    }
+  };
+}
+
 // === DISPATCH ===
 
 function dispatch(args: OfoArgs): OfoResult {
@@ -817,6 +1138,17 @@ function dispatch(args: OfoArgs): OfoResult {
     case 'ofo-clarity':     return assessClarity(args);
     case 'ofo-stalled':     return stalledProjects(args);
     case 'ofo-health':      return getHealth(args);
+    // D6.2 — GTD-essential queries
+    case 'ofo-list-waiting-for':         return listWaitingFor(args);
+    case 'ofo-list-someday-maybe':       return listSomedayMaybe(args);
+    case 'ofo-list-neglected-projects':  return listNeglectedProjects(args);
+    case 'ofo-list-recently-completed':  return listRecentlyCompleted(args);
+    case 'ofo-list-projects-for-review': return listProjectsForReview(args);
+    // D6.2 — project lifecycle
+    case 'ofo-mark-project-reviewed':    return markProjectReviewed(args);
+    case 'ofo-list-folders':             return listFolders(args);
+    case 'ofo-create-project':           return createProject(args);
+    case 'ofo-update-project':           return updateProject(args);
     default: {
       // Exhaustiveness check: TypeScript will error here if a new OfoAction
       // is added to the union in ofo-types.ts / ofo-core-ambient.d.ts but

@@ -27,7 +27,18 @@ export type OfoAction =
   | 'ofo-clarity'
   | 'ofo-stalled'
   | 'ofo-drop'
-  | 'ofo-health';
+  | 'ofo-health'
+  // D6.2 — GTD-essential queries (System Map convention-dependent)
+  | 'ofo-list-waiting-for'
+  | 'ofo-list-someday-maybe'
+  | 'ofo-list-neglected-projects'
+  | 'ofo-list-recently-completed'
+  | 'ofo-list-projects-for-review'
+  // D6.2 — Project lifecycle
+  | 'ofo-mark-project-reviewed'
+  | 'ofo-list-folders'
+  | 'ofo-create-project'
+  | 'ofo-update-project';
 
 export interface OfoArgs {
   action: OfoAction;

@@ -280,15 +280,69 @@ function cmdSearch(args: string[]): void {
 
 function cmdList(args: string[]): void {
   const filter = args[0] || 'inbox';
-  if (!['inbox', 'flagged', 'today', 'overdue', 'due-soon'].includes(filter)) {
-    die('Unknown filter: ' + filter + '. Use: inbox, flagged, today, overdue, due-soon [N]');
+  if (!['inbox', 'flagged', 'today', 'overdue', 'due-soon', 'waiting-for', 'someday-maybe'].includes(filter)) {
+    die('Unknown filter: ' + filter + '. Use: inbox, flagged, today, overdue, due-soon [N], waiting-for, someday-maybe');
   }
   if (filter === 'due-soon') {
     const days = args[1] ? parseInt(args[1], 10) : 7;
     if (isNaN(days) || days < 1) die('due-soon requires a positive number of days (e.g. ofo list due-soon 3)');
     runAction('ofo-list', { filter, days });
-  } else {
-    runAction('ofo-list', { filter });
+    return;
+  }
+  // D6.3 + D7.5 — waiting-for and someday-maybe need conventions from explicit flag → System Map
+  if (filter === 'waiting-for') {
+    let tag: string | null = null;
+    let ageThresholdDays = 0;
+    for (let i = 1; i < args.length; i++) {
+      if (args[i] === '--tag') tag = args[++i] || null;
+      else if (args[i] === '--days') ageThresholdDays = parseInt(args[++i] || '0', 10);
+    }
+    if (!tag) {
+      tag = resolveSystemMapConvention('waitingTag');
+      if (!tag) die('No --tag provided and SystemMap.conventions.waitingTag is not set. Run: ofo system-map --refresh');
+    }
+    runAction('ofo-list-waiting-for', { tag, ageThresholdDays });
+    return;
+  }
+  if (filter === 'someday-maybe') {
+    let tag: string | null = null;
+    let folder: string | null = null;
+    for (let i = 1; i < args.length; i++) {
+      if (args[i] === '--tag') tag = args[++i] || null;
+      else if (args[i] === '--folder') folder = args[++i] || null;
+    }
+    if (!tag && !folder) {
+      tag = resolveSystemMapConvention('somedayTag');
+      folder = resolveSystemMapConvention('somedayFolder');
+      if (!tag && !folder) die('No --tag or --folder provided and SystemMap.conventions.{somedayTag, somedayFolder} are not set. Run: ofo system-map --refresh');
+    }
+    const payload: Record<string, unknown> = {};
+    if (tag) payload['tag'] = tag;
+    if (folder) payload['folder'] = folder;
+    runAction('ofo-list-someday-maybe', payload);
+    return;
+  }
+  runAction('ofo-list', { filter });
+}
+
+/**
+ * D7.5 — read a convention field from the cached System Map task note.
+ * Returns null on missing/corrupt map or missing field; caller decides error UX.
+ */
+function resolveSystemMapConvention(field: string): string | null {
+  const script = `(() => {
+  const tasks = flattenedTasks.filter(t => t.name === ${JSON.stringify(SYSTEM_MAP_TASK_NAME)});
+  if (tasks.length === 0) { Pasteboard.general.string = JSON.stringify({success:false, error:"missing"}); return; }
+  Pasteboard.general.string = JSON.stringify({success:true, note: tasks[0].note || "{}"});
+})()`;
+  const raw = runInlineScript(script);
+  try {
+    const wrap = JSON.parse(raw);
+    if (!wrap.success) return null;
+    const map = JSON.parse(wrap.note);
+    return map.conventions?.[field] ?? null;
+  } catch {
+    return null;
   }
 }
 
@@ -574,6 +628,14 @@ Commands:
   clarity [--limit N]               Tasks with lowest clarity score (no estimate/tags/project); default limit 10
   stalled [--days N]                Active projects with no available next action or not modified in N days (default 14)
   health                            System health: inbox, overdue (with Catch Up metadata), flagged — single call
+  completed --since <date> [--by-tag]   Tasks completed since date; optional grouping by tag (gtd-coach "what did you accomplish?")
+  folders [--with-projects]         Folder hierarchy as tree; optionally include projects under each folder
+  projects neglected [--days N]     Active projects not modified in N days (default 30)
+  projects review [--before <ISO>]  Active/onHold projects whose nextReviewDate ≤ before date (default now)
+  project review <id> [--date <ISO>]    Mark project as reviewed (sets lastReviewDate; advances nextReviewDate)
+  project create --name "..." [--folder NAME] [--sequential|--parallel] [--note] [--due] [--defer] [--review-every N <unit>]
+  project update <id> [--name|--note|--status|--folder|--due|--defer|--sequential|--parallel|--flagged|--unflag]
+                                    Status values: active | onHold | completed | dropped
   system-map [flags]                Inspect or refresh the Attache System Map (per D7.2 schema v1).
                                     Flags: --show (human summary), --json (raw JSON, default),
                                            --refresh [--depth quick|full] (re-discover + write to task note),
@@ -583,10 +645,15 @@ Commands:
   help                              Show this help
 
 Filters for 'list':
-  inbox       Inbox tasks
-  flagged     Flagged active tasks
-  today       Due today, flagged, or planned today
-  overdue     Past due date
+  inbox                      Inbox tasks
+  flagged                    Flagged active tasks
+  today                      Due today, flagged, or planned today
+  overdue                    Past due date
+  due-soon [N]               Due in next N days (default 7)
+  waiting-for [--tag NAME] [--days N]  Tasks tagged as Waiting For. If --tag omitted,
+                             resolves from SystemMap.conventions.waitingTag (D7.5).
+  someday-maybe [--tag NAME] [--folder NAME]  Tasks in Someday/Maybe tag or folder.
+                             If both omitted, resolves from SystemMap.conventions.{somedayTag,somedayFolder}.
 
 Create options:
   --name "Task name"        Task name (required)
@@ -845,6 +912,134 @@ function cmdSystemMap(args: string[]): void {
   }
 }
 
+// --- D6.3 — Projects, project, completed, folders ---
+
+function cmdProjects(args: string[]): void {
+  const sub = args[0];
+  if (!sub) die('Usage: ofo projects <subcommand> — try: neglected, review');
+  if (sub === 'neglected') {
+    let days = 30;
+    for (let i = 1; i < args.length; i++) {
+      if (args[i] === '--days') days = parseInt(args[++i] || '30', 10);
+    }
+    runAction('ofo-list-neglected-projects', { daysSinceModified: days });
+    return;
+  }
+  if (sub === 'review') {
+    let before: string | null = null;
+    for (let i = 1; i < args.length; i++) {
+      if (args[i] === '--before') before = args[++i] || null;
+    }
+    const payload: Record<string, unknown> = {};
+    if (before) payload['beforeDate'] = before;
+    runAction('ofo-list-projects-for-review', payload);
+    return;
+  }
+  die('Unknown projects subcommand: ' + sub + ' (try: neglected, review)');
+}
+
+function cmdProject(args: string[]): void {
+  const sub = args[0];
+  if (!sub) die('Usage: ofo project <subcommand> [args] — try: review <id>, create, update <id>');
+
+  if (sub === 'review') {
+    const id = args[1];
+    if (!id) die('Usage: ofo project review <id> [--date <ISO>]');
+    let date: string | null = null;
+    for (let i = 2; i < args.length; i++) {
+      if (args[i] === '--date') date = args[++i] || null;
+    }
+    const payload: Record<string, unknown> = { id: parseOmniFocusUrl(id) };
+    if (date) payload['reviewDate'] = date;
+    runAction('ofo-mark-project-reviewed', payload);
+    return;
+  }
+
+  if (sub === 'create') {
+    let name = '', folder = '', note = '', due = '', defer_ = '';
+    let sequential: boolean | undefined;
+    let flagged = false;
+    let reviewIntervalSteps = 0;
+    let reviewIntervalUnit = 'weeks';
+    for (let i = 1; i < args.length; i++) {
+      switch (args[i]) {
+        case '--name':       name = args[++i] || ''; break;
+        case '--folder':     folder = args[++i] || ''; break;
+        case '--note':       note = args[++i] || ''; break;
+        case '--due':        due = args[++i] || ''; break;
+        case '--defer':      defer_ = args[++i] || ''; break;
+        case '--sequential': sequential = true; break;
+        case '--parallel':   sequential = false; break;
+        case '--flagged':    flagged = true; break;
+        case '--review-every': {
+          // Format: "--review-every 1 week" or "--review-every 7 days"
+          reviewIntervalSteps = parseInt(args[++i] || '0', 10);
+          reviewIntervalUnit = args[++i] || 'weeks';
+          break;
+        }
+        default: die('Unknown flag: ' + args[i]);
+      }
+    }
+    if (!name) die('--name is required');
+    const payload: Record<string, unknown> = { name };
+    if (folder) payload['folder'] = folder;
+    if (note) payload['note'] = note;
+    if (due) payload['due'] = due;
+    if (defer_) payload['defer'] = defer_;
+    if (sequential !== undefined) payload['sequential'] = sequential;
+    if (flagged) payload['flagged'] = true;
+    if (reviewIntervalSteps > 0) payload['reviewInterval'] = { steps: reviewIntervalSteps, unit: reviewIntervalUnit };
+    runAction('ofo-create-project', payload);
+    return;
+  }
+
+  if (sub === 'update') {
+    const id = args[1];
+    if (!id) die('Usage: ofo project update <id> [flags]');
+    const payload: Record<string, unknown> = { id: parseOmniFocusUrl(id) };
+    for (let i = 2; i < args.length; i++) {
+      switch (args[i]) {
+        case '--name':       payload['name'] = args[++i] || ''; break;
+        case '--note':       payload['note'] = args[++i] || ''; break;
+        case '--status':     payload['status'] = args[++i] || ''; break;
+        case '--folder':     payload['folder'] = args[++i] || ''; break;
+        case '--due':        payload['due'] = args[++i] === 'clear' ? null : args[i]; break;
+        case '--defer':      payload['defer'] = args[++i] === 'clear' ? null : args[i]; break;
+        case '--sequential': payload['sequential'] = true; break;
+        case '--parallel':   payload['sequential'] = false; break;
+        case '--flagged':    payload['flagged'] = true; break;
+        case '--unflag':     payload['flagged'] = false; break;
+        default: die('Unknown flag: ' + args[i]);
+      }
+    }
+    runAction('ofo-update-project', payload);
+    return;
+  }
+
+  die('Unknown project subcommand: ' + sub + ' (try: review, create, update)');
+}
+
+function cmdCompleted(args: string[]): void {
+  let since: string | null = null;
+  let byTag = false;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--since') since = args[++i] || null;
+    else if (args[i] === '--by-tag') byTag = true;
+  }
+  const payload: Record<string, unknown> = {};
+  if (since) payload['sinceDate'] = since;
+  if (byTag) payload['groupByTag'] = true;
+  runAction('ofo-list-recently-completed', payload);
+}
+
+function cmdFolders(args: string[]): void {
+  let withProjects = false;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--with-projects') withProjects = true;
+  }
+  runAction('ofo-list-folders', withProjects ? { includeProjects: true } : {});
+}
+
 const argv = process.argv.slice(2);
 const command = argv[0] || 'help';
 const commandArgs = argv.slice(1);
@@ -877,6 +1072,11 @@ switch (command) {
   case 'clarity':               cmdClarity(commandArgs); break;
   case 'stalled':               cmdStalled(commandArgs); break;
   case 'health':                cmdHealth(); break;
+  // D6.3 — GTD-essential commands
+  case 'projects':              cmdProjects(commandArgs); break;
+  case 'project':               cmdProject(commandArgs); break;
+  case 'completed':             cmdCompleted(commandArgs); break;
+  case 'folders':               cmdFolders(commandArgs); break;
   case 'system-map':            cmdSystemMap(commandArgs); break;
   case 'help':
   case '--help':
