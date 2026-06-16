@@ -243,23 +243,26 @@ When the omnifocus-agent provides a `**System Map context:**` block, use the use
 
 ### Data-Grounded Coaching
 
-When using OmniFocus, ground coaching in actual data rather than assumptions. Use `gtd-queries.js` for deterministic answers at each coaching step:
+Ground coaching in actual data via the `ofo` CLI. **STEP 0:** always start with `ofo system-map --drift-check`; if stale, run `ofo system-map --refresh` before answering. `waiting-for` and `someday-maybe` auto-resolve their tag/folder from `SystemMap.conventions.*` (see `../attache-analyst/references/system_map_schema.md`). Legacy `gtd-queries.js` (JXA) is retained for Apple Shortcuts only — not for coaching.
 
 | Coaching Question | Command |
 |---|---|
-| "How many items in your inbox?" | `osascript -l JavaScript scripts/gtd-queries.js --action inbox-count` |
-| "Which projects are stalled?" | `osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects` |
-| "What's aging in Waiting For?" | `osascript -l JavaScript scripts/gtd-queries.js --action waiting-for` |
-| "Any someday/maybe to review?" | `osascript -l JavaScript scripts/gtd-queries.js --action someday-maybe` |
-| "Which projects are neglected?" | `osascript -l JavaScript scripts/gtd-queries.js --action neglected-projects` |
-| "What did you accomplish?" | `osascript -l JavaScript scripts/gtd-queries.js --action recently-completed` |
-| "Overall system health?" | `osascript -l JavaScript scripts/gtd-queries.js --action system-health` |
+| Inbox count | `ofo health` |
+| Stalled projects | `ofo stalled [--days N]` |
+| Waiting For aging | `ofo list waiting-for [--days N]` |
+| Someday/Maybe to review | `ofo list someday-maybe` |
+| Neglected projects | `ofo projects neglected [--days N]` |
+| Projects due for review | `ofo projects review [--before <ISO>]` |
+| Recent accomplishments | `ofo completed --since <date> [--by-tag]` |
+| Overall system health | `ofo health` |
 
 ```bash
-# Run from plugins/omnifocus-core/skills/omnifocus-core/
-osascript -l JavaScript scripts/gtd-queries.js --action system-health
-osascript -l JavaScript scripts/gtd-queries.js --action stalled-projects
-osascript -l JavaScript scripts/gtd-queries.js --action inbox-count
+# Typical coaching session
+ofo system-map --drift-check   # STEP 0
+ofo health                     # inbox + overdue + flagged
+ofo stalled --days 14
+ofo list waiting-for --days 7
+ofo completed --since 2026-06-08 --by-tag
 ```
 
 Use the returned data to make coaching specific and actionable rather than generic.

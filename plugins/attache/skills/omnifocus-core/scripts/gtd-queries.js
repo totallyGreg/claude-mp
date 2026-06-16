@@ -1,11 +1,18 @@
 #!/usr/bin/osascript -l JavaScript
 /**
- * GTD Diagnostic Queries for OmniFocus
+ * GTD Diagnostic Queries for OmniFocus (LEGACY)
  *
- * Provides data-grounded answers to common GTD coaching questions.
- * Designed for use by gtd-coach skill and omnifocus-agent during guided reviews.
+ * Superseded by the `ofo` CLI (epic #181 Phase 2 D6.2/D6.3). Retained for
+ * ad-hoc exploration and Apple Shortcuts integration where `osascript` is
+ * the only available channel. gtd-coach no longer references these actions
+ * — see gtd-coach/SKILL.md "Data-Grounded Coaching" for the `ofo` CLI
+ * commands that consume the System Map convention resolution (D7.5).
  *
- * Usage:
+ * The 4 of 7 coaching queries that previously required this script
+ * (waiting-for, someday-maybe, neglected-projects, recently-completed) are
+ * now implemented in ofo-core.ts (D6.2) and exposed via ofo CLI (D6.3).
+ *
+ * Usage (legacy):
  *     osascript -l JavaScript scripts/gtd-queries.js --action <action> [options]
  *
  * Actions:
