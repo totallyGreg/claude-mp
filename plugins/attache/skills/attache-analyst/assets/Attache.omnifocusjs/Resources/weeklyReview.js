@@ -93,6 +93,7 @@
             const core = this.plugIn.library("ofoCore");
             const metrics = this.plugIn.library("taskMetrics");
             const projectParser = this.plugIn.library("projectParser");
+            const applyForm = this.plugIn.library("applyForm");
 
             // Waiting For detection — uses canonical patterns from taskMetrics library
             function isWaitingFor(task) {
@@ -269,6 +270,17 @@
 
             const cont3 = await showStep(3, "Waiting For Review", step3Message);
             if (!cont3) { return; }
+
+            // [P] Apply path — turn the AI's per-item follow-up/drop
+            // recommendations into actionable dispatch via ofoCore. "keep-waiting"
+            // is informational only (no dispatch); "follow-up" → flag the task so
+            // it surfaces in the next review; "drop" → ofoCore.dropTask.
+            if (waitingTasks.length > 0 && coaching && coaching.actions && applyForm) {
+                const applyableWaiting = matchWaitingActions(waitingTasks, coaching.actions);
+                if (applyableWaiting.length > 0) {
+                    await applyWaitingActions(applyableWaiting, applyForm, core);
+                }
+            }
 
             // == Step 4: Someday/Maybe (on-hold, 90+ days) ==
             const onHoldProjects = metrics.getOnHoldProjects();
@@ -505,6 +517,96 @@
             _reviewInProgress = false;
         }
     });
+
+    /**
+     * Match AI-generated waiting-for action items back to actual Task objects.
+     * The AI sees item names formatted as "name (Nd)" (with age), so we strip
+     * the "(Nd)" suffix and fall back to substring matching. Filters out
+     * "keep-waiting" (informational) and any task that's no longer
+     * actionable (completed/dropped).
+     */
+    function matchWaitingActions(tasks, actions) {
+        if (!Array.isArray(actions)) return [];
+        const taskByName = {};
+        tasks.forEach(t => { taskByName[t.name] = t; });
+
+        const matched = [];
+        const seen = {};
+        actions.forEach(a => {
+            if (!a || !a.item || !a.recommendation) return;
+            if (a.recommendation === 'keep-waiting') return;
+            if (a.recommendation !== 'follow-up' && a.recommendation !== 'drop') return;
+
+            const stripped = String(a.item).replace(/\s*\(\d+d\)\s*$/, '').trim();
+            let task = taskByName[stripped] || taskByName[a.item];
+            if (!task) {
+                for (const t of tasks) {
+                    if (String(a.item).indexOf(t.name) !== -1 || t.name.indexOf(stripped) !== -1) {
+                        task = t; break;
+                    }
+                }
+            }
+            if (!task || task.completed || task.dropped) return;
+            const key = task.id.primaryKey;
+            if (seen[key]) return;
+            seen[key] = true;
+            matched.push({ task: task, recommendation: a.recommendation });
+        });
+        return matched;
+    }
+
+    /**
+     * Walk each matched waiting-for item, show per-item confirmation Form,
+     * dispatch via ofoCore (updateTask for follow-up flag, dropTask for drop).
+     * Summary alert at the end. Mirrors the analyzeSelected / analyzeHierarchy
+     * apply-path shape for consistency across actions.
+     */
+    async function applyWaitingActions(items, applyForm, ofoCore) {
+        let applied = 0;
+        let skipped = 0;
+        const issues = [];
+
+        for (const item of items) {
+            const task = item.task;
+            const change = item.recommendation === 'follow-up'
+                ? { key: 'flag', label: 'Flag for follow-up (surfaces in next review)' }
+                : { key: 'drop', label: 'Drop this waiting-for item' };
+
+            const decision = await applyForm.confirmApply({
+                itemName: task.name,
+                title: 'Waiting-For Action',
+                confirmLabel: 'Apply',
+                changes: [change]
+            });
+
+            if (decision.cancelled || !applyForm.anyAccepted(decision)) {
+                skipped++;
+                continue;
+            }
+
+            let res = null;
+            if (decision.apply.flag) {
+                res = ofoCore.updateTask({ id: task.id.primaryKey, flagged: true });
+            } else if (decision.apply.drop) {
+                res = ofoCore.dropTask({ id: task.id.primaryKey });
+            }
+
+            if (res && !res.success) {
+                issues.push(`${task.name}: ${res.error || 'dispatch failed'}`);
+                continue;
+            }
+            applied++;
+        }
+
+        let summary = `Applied ${applied} waiting-for action${applied === 1 ? '' : 's'}.`;
+        if (skipped > 0) {
+            summary += `\nSkipped ${skipped}.`;
+        }
+        if (issues.length > 0) {
+            summary += `\n\nIssues:\n  · ${issues.join('\n  · ')}`;
+        }
+        new Alert('Waiting For — Apply Summary', summary).show();
+    }
 
     action.validate = function(selection, sender) {
         return Device.current.operatingSystemVersion.atLeast(new Version("26"));
