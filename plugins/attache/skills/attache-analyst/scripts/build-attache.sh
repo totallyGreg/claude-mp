@@ -13,6 +13,18 @@ ASSETS_DIR="${SCRIPTS_DIR}/../assets/Attache.omnifocusjs"
 BUNDLE_DIR="${BUILD_DIR}/Attache.omnifocusjs"
 INTERMEDIATE_DIR="${BUILD_DIR}/intermediate"
 
+# Find tsc reliably: prefer a local install (npm install typescript in this
+# scripts dir, or sibling skill node_modules), then global, then npx.
+if [ -x "${SCRIPTS_DIR}/node_modules/.bin/tsc" ]; then
+  TSC="${SCRIPTS_DIR}/node_modules/.bin/tsc"
+elif [ -x "${SCRIPTS_DIR}/../../omnifocus-core/scripts/node_modules/.bin/tsc" ]; then
+  TSC="${SCRIPTS_DIR}/../../omnifocus-core/scripts/node_modules/.bin/tsc"
+elif command -v tsc >/dev/null 2>&1; then
+  TSC="tsc"
+else
+  TSC="npx --yes -p typescript tsc"
+fi
+
 echo "Building consolidated Attache plugin..."
 
 # 1. Clean previous plugin build (preserve CLI output)
@@ -23,7 +35,7 @@ mkdir -p "${BUNDLE_DIR}/Resources/en.lproj" "${INTERMEDIATE_DIR}"
 echo "  Compiling ofoCore TypeScript..."
 # tsc outputs to ../build/intermediate/ relative to OFOCORE_SRC_DIR per tsconfig.plugin.json.
 # We need the output in OUR INTERMEDIATE_DIR — override via --outDir.
-npx tsc --project "${OFOCORE_SRC_DIR}/tsconfig.plugin.json" --outDir "${INTERMEDIATE_DIR}"
+$TSC --project "${OFOCORE_SRC_DIR}/tsconfig.plugin.json" --outDir "${INTERMEDIATE_DIR}"
 
 # 3. Wrap compiled ofoCore in PlugIn.Library IIFE
 echo "  Wrapping ofoCore in PlugIn.Library IIFE..."
@@ -82,7 +94,7 @@ IIFE_FOOTER
 
 # 4. Compile Attache TypeScript libraries (tsconfig lives alongside ofoCore's)
 echo "  Compiling Attache TypeScript libraries..."
-npx tsc --project "${OFOCORE_SRC_DIR}/tsconfig.attache-libs.json" --outDir "${INTERMEDIATE_DIR}/attache"
+$TSC --project "${OFOCORE_SRC_DIR}/tsconfig.attache-libs.json" --outDir "${INTERMEDIATE_DIR}/attache"
 
 ATTACHE_LIBS=(
   taskMetrics exportUtils foundationModelsUtils folderParser
@@ -114,18 +126,28 @@ cp "${ASSETS_DIR}/manifest.json" "${BUNDLE_DIR}/manifest.json"
 cp "${ASSETS_DIR}/Resources/en.lproj/"*.strings "${BUNDLE_DIR}/Resources/en.lproj/"
 
 # 7. Copy stub script
-cp "${SRC_DIR}/ofo-stub.js" "${BUILD_DIR}/ofo-stub.js"
+cp "${OFOCORE_SRC_DIR}/ofo-stub.js" "${BUILD_DIR}/ofo-stub.js"
 
 # 8. Assert every IIFE-exported function exists in the compiled ofoCore
 echo "  Verifying ofoCore IIFE exports..."
 BUILT_JS="${BUNDLE_DIR}/Resources/ofoCore.js"
-for fn in normalizeTask getTask completeTask dropTask createTask updateTask searchTasks listTasks \
-          getPerspective configurePerspective tagTask getTags createBatch \
-          getPerspectiveRules dumpDatabase getStats assessClarity stalledProjects getHealth dispatch; do
+# D6.2 additions: listWaitingFor, listSomedayMaybe, listNeglectedProjects,
+# listRecentlyCompleted, listProjectsForReview, markProjectReviewed,
+# listFolders, createProject, updateProject (+ deriveDurationModel,
+# resolveConventions as helpers if added).
+EXPECTED_FNS=(
+  normalizeTask getTask completeTask dropTask createTask updateTask searchTasks listTasks
+  getPerspective configurePerspective tagTask getTags createBatch
+  getPerspectiveRules dumpDatabase getStats assessClarity stalledProjects getHealth
+  listWaitingFor listSomedayMaybe listNeglectedProjects listRecentlyCompleted
+  listProjectsForReview markProjectReviewed listFolders createProject updateProject
+  dispatch
+)
+for fn in "${EXPECTED_FNS[@]}"; do
   grep -q "^function ${fn}(" "${BUILT_JS}" || \
     { echo "ERROR: '${fn}' missing from compiled ofoCore.js — update IIFE footer or fix rename"; exit 1; }
 done
-echo "  ofoCore IIFE exports OK (20 functions)"
+echo "  ofoCore IIFE exports OK (${#EXPECTED_FNS[@]} functions)"
 
 # 9. Verify all Attache libraries have PlugIn.Library IIFE structure
 echo "  Verifying Attache library IIFE structure..."
@@ -138,8 +160,14 @@ echo "  Attache library IIFEs OK (${#ATTACHE_LIBS[@]} libraries)"
 
 # 10. Regenerate ofo-core-ambient.d.ts from ofo-types.ts
 echo "  Regenerating ofo-core-ambient.d.ts..."
-node "${SCRIPTS_DIR}/generate-ambient.js"
-echo "  ofo-core-ambient.d.ts regenerated"
+# generate-ambient.js lives in omnifocus-generator/scripts/ (consolidated layout)
+AMBIENT_GEN="${SCRIPTS_DIR}/../../omnifocus-generator/scripts/generate-ambient.js"
+if [ -f "$AMBIENT_GEN" ]; then
+  node "$AMBIENT_GEN"
+  echo "  ofo-core-ambient.d.ts regenerated"
+else
+  echo "  WARNING: generate-ambient.js not found at ${AMBIENT_GEN} — ofo-core-ambient.d.ts may be stale"
+fi
 
 # 11. Clean intermediate files
 rm -rf "${INTERMEDIATE_DIR}"

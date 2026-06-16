@@ -4,7 +4,7 @@
     "lib": ["ES2020"],
     "module": "ES2020",
     "outDir": "../build/intermediate/attache",
-    "rootDir": "attache",
+    "rootDir": "../../../attache-analyst/scripts/src/attache",
     "strict": false,
     "noImplicitAny": false,
     "noUncheckedIndexedAccess": true,
@@ -14,7 +14,7 @@
     "sourceMap": false
   },
   "include": [
-    "attache/*.ts",
+    "../../../attache-analyst/scripts/src/attache/*.ts",
     "ofo-contract.d.ts",
     "ofo-core-ambient.d.ts",
     "omni-attache-ambient.d.ts",

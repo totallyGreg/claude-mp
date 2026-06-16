@@ -16,7 +16,9 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SRC_DIR = join(__dirname, 'src');
+// ofo-types.ts + ofo-core-ambient.d.ts live in omnifocus-core/scripts/src/
+// (consolidated layout). This script lives in omnifocus-generator/scripts/.
+const SRC_DIR = join(__dirname, '..', '..', 'omnifocus-core', 'scripts', 'src');
 const typesPath = join(SRC_DIR, 'ofo-types.ts');
 const outPath = join(SRC_DIR, 'ofo-core-ambient.d.ts');
 
