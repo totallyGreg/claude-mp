@@ -1,0 +1,11 @@
+{
+  "identifier": "com.test.regression.smoke-passing",
+  "version": "0.0.1",
+  "author": "regression-suite",
+  "description": "FIXTURE: a clean plugin that should pass D8.4 + D8.6 cleanly. Positive control to confirm the test runner can distinguish pass from fail.",
+  "defaultLocale": "en",
+  "actions": [
+    { "identifier": "cleanAction", "label": "Clean Action" }
+  ],
+  "libraries": []
+}

@@ -1,0 +1,11 @@
+{
+  "identifier": "com.test.regression.coherence-mismatch",
+  "version": "0.0.1",
+  "author": "regression-suite",
+  "description": "FIXTURE: manifest declares an action whose .js file is missing the PlugIn.Action constructor. D8.4 bundle-coherence check MUST reject.",
+  "defaultLocale": "en",
+  "actions": [
+    { "identifier": "missingConstructor", "label": "Missing Constructor" }
+  ],
+  "libraries": []
+}

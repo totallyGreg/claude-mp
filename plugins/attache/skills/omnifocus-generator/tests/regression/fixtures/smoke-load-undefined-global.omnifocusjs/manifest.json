@@ -1,0 +1,11 @@
+{
+  "identifier": "com.test.regression.smoke-undefined",
+  "version": "0.0.1",
+  "author": "regression-suite",
+  "description": "FIXTURE: action references a typo'd global. D8.6 smoke-load gate MUST reject.",
+  "defaultLocale": "en",
+  "actions": [
+    { "identifier": "typoAction", "label": "Typo Action" }
+  ],
+  "libraries": []
+}
