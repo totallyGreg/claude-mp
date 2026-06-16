@@ -35,6 +35,12 @@ interface PluginOptions {
   author?: string;
   description?: string;
   outputDir?: string;
+  // D8.5 — auto-emit runtime contract skeletons at the top of the action body.
+  // 'ofoCore' → check Attache plugin + ofoCore library presence + function check
+  //   (per references/library_consumer_pattern.md skeleton)
+  // 'systemMap' → check "Attache System Map" task exists + valid JSON + schema version
+  //   (per references/system_map_dependency.md skeleton)
+  requires?: Array<'ofoCore' | 'systemMap'>;
 }
 
 interface TemplateVariables {
@@ -126,6 +132,85 @@ function substituteVariables(content: string, variables: TemplateVariables): str
 }
 
 /**
+ * D8.5 — Runtime contract skeletons (injected at top of action body when
+ * spec declares `requires: [...]`).
+ *
+ * Per references/library_consumer_pattern.md (D3) and
+ * references/system_map_dependency.md (D7.7), generated plugins that depend
+ * on Attache's ofoCore library or the System Map MUST guard for those
+ * dependencies at startup with explicit error UX rather than crashing on
+ * first method call.
+ *
+ * Injection strategy: prepend skeletons BEFORE the first `try {` line in
+ * the action body. This relies on the template convention of wrapping
+ * action logic in a try/catch. If no try block is found, the skeleton
+ * isn't injected and the generator emits a warning.
+ */
+
+const ATTACHE_PLUGIN_ID = 'com.totallytools.omnifocus.attache';
+const EXPECTED_SYSTEM_MAP_SCHEMA_VERSION = 1;
+
+function ofoCoreSkeleton(): string {
+  return `        // D8.5 — Runtime contract: Attache + ofoCore presence (per references/library_consumer_pattern.md)
+        const attache = PlugIn.find(${JSON.stringify(ATTACHE_PLUGIN_ID)});
+        if (!attache) {
+            new Alert("Attache Required", "This plugin requires the Attache plugin (v1.5+). Install from <repo URL>.").show();
+            return;
+        }
+        const ofoCore = attache.library("ofoCore");
+        if (!ofoCore || typeof ofoCore.getTask !== "function") {
+            new Alert("Attache Out of Date", "Attache 'ofoCore' library is missing required functions. Please update Attache.").show();
+            return;
+        }
+`;
+}
+
+function systemMapSkeleton(): string {
+  return `        // D8.5 — Runtime contract: Attache System Map currency (per references/system_map_dependency.md)
+        const EXPECTED_SYSTEM_MAP_SCHEMA_VERSION = ${EXPECTED_SYSTEM_MAP_SCHEMA_VERSION};
+        const _smCandidates = flattenedTasks.filter(t => t.name === "Attache System Map");
+        if (_smCandidates.length === 0) {
+            new Alert("System Map Missing", "Run: ofo system-map --refresh").show();
+            return;
+        }
+        let sm;
+        try { sm = JSON.parse(_smCandidates[0].note || "{}"); }
+        catch (_) { new Alert("System Map Corrupt", "Run: ofo system-map --refresh").show(); return; }
+        if (typeof sm.schemaVersion !== "number" || sm.schemaVersion < EXPECTED_SYSTEM_MAP_SCHEMA_VERSION) {
+            new Alert("System Map Schema Stale", "Cached map predates schema v" + EXPECTED_SYSTEM_MAP_SCHEMA_VERSION + ". Run: ofo system-map --refresh").show();
+            return;
+        }
+        if (sm.schemaVersion > EXPECTED_SYSTEM_MAP_SCHEMA_VERSION) {
+            console.log("System Map schema v" + sm.schemaVersion + " newer than expected; proceeding.");
+        }
+`;
+}
+
+function injectRuntimeSkeletons(code: string, requires: Array<'ofoCore' | 'systemMap'> | undefined): { code: string; warning?: string } {
+  if (!requires || requires.length === 0) return { code };
+
+  // Anchor: the first `try {` after `new PlugIn.Action(`. This is the
+  // template convention. If absent, we can't safely inject.
+  const anchorRegex = /(new\s+PlugIn\.Action\s*\([^)]*\)\s*\{[\s\S]*?try\s*\{\s*\n)/;
+  const match = code.match(anchorRegex);
+  if (!match) {
+    return {
+      code,
+      warning: 'D8.5 skeleton injection requested but no `try {` anchor found in action body. ' +
+               'Skeletons NOT injected. Add a try/catch wrapper to the action body, or ' +
+               'inject skeletons manually per references/library_consumer_pattern.md and ' +
+               'references/system_map_dependency.md.',
+    };
+  }
+
+  let skeletons = '';
+  if (requires.indexOf('ofoCore') !== -1) skeletons += ofoCoreSkeleton();
+  if (requires.indexOf('systemMap') !== -1) skeletons += systemMapSkeleton();
+
+  return { code: code.replace(anchorRegex, '$1' + skeletons) };
+}
+
+/**
  * Prepare template variables from options
  */
 function prepareVariables(options: PluginOptions): TemplateVariables {
@@ -186,7 +271,18 @@ class PluginGenerator {
 
       // 2. Prepare variables and substitute
       const variables = prepareVariables(options);
-      const code = substituteVariables(template, variables);
+      let code = substituteVariables(template, variables);
+
+      // 2.5. D8.5 — inject runtime contract skeletons if requires declared
+      if (options.requires && options.requires.length > 0) {
+        const injected = injectRuntimeSkeletons(code, options.requires);
+        if (injected.warning) {
+          console.log(`⚠️  ${injected.warning}\n`);
+        } else {
+          console.log(`✅ D8.5 — Injected runtime skeletons: ${options.requires.join(', ')}\n`);
+        }
+        code = injected.code;
+      }
 
       // 3. CRITICAL: Validate with TypeScript compiler
       console.log('🔍 Validating TypeScript...');
@@ -439,6 +535,20 @@ function parseArgs(args: string[]): PluginOptions | null {
         }
         break;
 
+      case '--requires':
+        // D8.5 — comma-separated: --requires ofoCore,systemMap (or single value)
+        if (next) {
+          const tokens = next.split(',').map(s => s.trim()).filter(Boolean);
+          const valid = tokens.filter((t): t is 'ofoCore' | 'systemMap' => t === 'ofoCore' || t === 'systemMap');
+          if (valid.length !== tokens.length) {
+            console.error('❌ Error: --requires accepts only "ofoCore" and/or "systemMap"\n');
+            return null;
+          }
+          options.requires = valid;
+          i++;
+        }
+        break;
+
       case '--help':
       case '-h':
         printUsage();
@@ -485,6 +595,16 @@ Optional Options:
   --author, -a <author>         Plugin author (default: "OmniFocus User")
   --description, -d <desc>      Plugin description (default: auto-generated)
   --output, -o <dir>            Output directory (default: assets/)
+  --requires <list>             D8.5 — auto-emit runtime contract skeletons.
+                                Comma-separated: ofoCore, systemMap (or both).
+                                ofoCore   → checks Attache plugin + ofoCore library
+                                            presence at action start (per
+                                            references/library_consumer_pattern.md).
+                                systemMap → checks "Attache System Map" task exists,
+                                            valid JSON, schemaVersion >= expected
+                                            (per references/system_map_dependency.md).
+                                Requires the template to wrap action body in try { } —
+                                injection anchors on the first try after PlugIn.Action(...).
   --help, -h                    Show this help message
 
 Examples:
