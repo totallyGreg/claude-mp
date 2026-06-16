@@ -51,6 +51,15 @@
         "vocabulary: next actions, projects, contexts. Focus on what is actionable right now."
       )
 
+      // Collect the user's existing tag taxonomy so we can constrain the AI's
+      // tag suggestions to tags that already exist. Without this constraint the
+      // AI invents new tags every call, producing unbounded tag sprawl over
+      // time. (User feedback on v2.5.0; design principle: automated actions
+      // use the user's existing organization, not invented structure.)
+      const existingTagNames = collectExistingTagNames()
+      const existingTagsByName = {}
+      existingTagNames.forEach(n => { existingTagsByName[n.toLowerCase()] = n })
+
       const results = []
 
       for (const task of tasks) {
@@ -72,7 +81,7 @@
             },
             {
               name: 'suggestedTags',
-              description: '2-3 relevant tags based on task content',
+              description: '2-3 relevant tags chosen ONLY from the user\'s existing tag list (provided in the prompt). Do not invent new tags.',
               schema: { arrayOf: { type: 'string' } },
             },
             {
@@ -98,16 +107,25 @@
           ],
         })
 
-        // Craft the prompt
+        // Craft the prompt. The user's existing tag list is passed verbatim
+        // so the AI selects FROM it rather than inventing new tags. If the
+        // user has no tags yet, we tell the model to return an empty array
+        // (a downstream post-filter also drops any invented tags).
+        const tagListSection = existingTagNames.length > 0
+          ? `EXISTING TAGS (choose ONLY from this list — do not invent new tags):\n${existingTagNames.join(', ')}`
+          : `EXISTING TAGS: (none — return an empty suggestedTags array)`
+
         const prompt = `Analyze this OmniFocus task and provide structured feedback:
 
 TASK DETAILS:
 ${taskContext}
 
+${tagListSection}
+
 Please analyze:
 1. How clear and actionable is this task? (Rate 1-10)
 2. Would a different task name be clearer? If yes, suggest one.
-3. What 2-3 tags would be most relevant?
+3. What 2-3 tags from the EXISTING TAGS list above would be most relevant? Do NOT invent new tags — if no existing tags fit, return an empty array.
 4. What priority should this have? (high/medium/low)
 5. How long might this take? (in minutes)
 6. What specific improvements would make this task better?
@@ -120,6 +138,16 @@ Be specific and practical in your suggestions.`
         opts.maximumResponseTokens = 400
         const response = await session.respondWithSchema(prompt, schema, opts)
         const analysis = JSON.parse(response)
+
+        // Defence-in-depth: even with prompt + schema-description constraint,
+        // the model can still hallucinate tags. Post-filter to only tags that
+        // actually exist in the user's OF database (case-insensitive match,
+        // re-mapped to the canonical case). This is the user-visible safety
+        // net — the apply-path never offers a tag the user didn't define.
+        analysis.suggestedTags = constrainTagsToExisting(
+          analysis.suggestedTags,
+          existingTagsByName
+        )
 
         results.push({
           task: task,
@@ -138,6 +166,57 @@ Be specific and practical in your suggestions.`
   })
 
   // Helper Functions
+
+  /**
+   * Collect every tag name in the user's OmniFocus database (walks the tag
+   * tree recursively so nested tags are included). Returns canonical-case
+   * names in document order, deduped. Dropped tags are excluded.
+   */
+  function collectExistingTagNames() {
+    const out = []
+    const seen = {}
+    function walk(tagList) {
+      tagList.forEach(t => {
+        if (t.status === Tag.Status.Dropped) return
+        if (!seen[t.name]) {
+          seen[t.name] = true
+          out.push(t.name)
+        }
+        if (t.children && t.children.length > 0) {
+          walk(t.children)
+        }
+      })
+    }
+    walk(tags) // top-level OF global
+    return out
+  }
+
+  /**
+   * Filter AI-suggested tag names down to those that actually exist in the
+   * user's OmniFocus tag list. Case-insensitive comparison; the returned
+   * names are remapped to canonical case (so dispatch via tagTask
+   * always matches the right Tag object via flattenedTags.byName).
+   *
+   * This is the user-visible "no invented tags" gate: even if the model
+   * ignores the prompt constraint, hallucinated tags are dropped before
+   * they reach displayResults or the apply-path form.
+   */
+  function constrainTagsToExisting(suggestedTags, existingTagsByName) {
+    if (!Array.isArray(suggestedTags)) return []
+    const out = []
+    const used = {}
+    suggestedTags.forEach(raw => {
+      if (typeof raw !== 'string') return
+      const key = raw.trim().toLowerCase()
+      if (!key) return
+      const canonical = existingTagsByName[key]
+      if (!canonical) return
+      if (used[canonical]) return
+      used[canonical] = true
+      out.push(canonical)
+    })
+    return out
+  }
 
   /**
    * Build comprehensive context about a task for AI analysis
