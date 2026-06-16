@@ -1,6 +1,6 @@
 {
   "identifier": "com.totallytools.omnifocus.attache",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "defaultLocale": "en",
   "author": "totally-tools",
   "description": "Attache — your quiet diplomatic aide for GTD in OmniFocus. AI-powered daily and weekly reviews, project analysis, system discovery with persistent memory. Requires macOS 26+ for Apple Intelligence features.",
@@ -15,6 +15,11 @@
       "identifier": "weeklyReview",
       "label": "Weekly Review",
       "image": "calendar.badge.checkmark"
+    },
+    {
+      "identifier": "processInbox",
+      "label": "Process Inbox",
+      "image": "tray.and.arrow.down.fill"
     },
     {
       "identifier": "analyzeSelected",
