@@ -99,7 +99,7 @@ $TSC --project "${OFOCORE_SRC_DIR}/tsconfig.attache-libs.json" --outDir "${INTER
 ATTACHE_LIBS=(
   taskMetrics exportUtils foundationModelsUtils folderParser
   projectParser taskParser hierarchicalBatcher insightPatterns
-  systemDiscovery preferencesManager
+  systemDiscovery preferencesManager applyForm
 )
 for lib in "${ATTACHE_LIBS[@]}"; do
   COMPILED_LIB="${INTERMEDIATE_DIR}/attache/${lib}.js"

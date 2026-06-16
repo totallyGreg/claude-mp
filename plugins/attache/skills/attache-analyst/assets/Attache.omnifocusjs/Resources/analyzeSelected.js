@@ -127,8 +127,10 @@ Be specific and practical in your suggestions.`
         })
       }
 
-      // Display Results
-      displayResults(results)
+      // Display Results (with apply-path)
+      const applyForm = this.plugIn.library('applyForm')
+      const ofoCore = this.plugIn.library('ofoCore')
+      await displayResults(results, applyForm, ofoCore)
     } catch (err) {
       new Alert(err.name, err.message).show()
       console.error(err)
@@ -179,7 +181,7 @@ Be specific and practical in your suggestions.`
   /**
    * Display analysis results in a formatted alert
    */
-  function displayResults(results) {
+  async function displayResults(results, applyForm, ofoCore) {
     let message = ''
 
     results.forEach((result, index) => {
@@ -228,17 +230,152 @@ Be specific and practical in your suggestions.`
       }
     })
 
-    // Show results
+    // Show results — offer Apply Changes when libs are available and at least
+    // one task has a structured suggestion that can be dispatched via ofoCore.
+    const anyApplyable = results.some(hasApplyableChanges)
     const alert = new Alert('Clarify Tasks', message)
     alert.addOption('Copy to Clipboard')
+    if (anyApplyable && applyForm && ofoCore) {
+      alert.addOption('Apply Changes…')
+    }
     alert.addOption('Done')
 
-    alert.show().then((buttonIndex) => {
-      if (buttonIndex === 0) {
-        // Copy to clipboard
-        Pasteboard.general.string = message
+    const buttonIndex = await alert.show()
+    if (buttonIndex === 0) {
+      // Copy to clipboard
+      Pasteboard.general.string = message
+    } else if (anyApplyable && applyForm && ofoCore && buttonIndex === 1) {
+      await applyChanges(results, applyForm, ofoCore)
+    }
+  }
+
+  /**
+   * Are any of the AI's suggestions for this task actually applyable?
+   * (i.e., differ from the current task state).
+   */
+  function hasApplyableChanges(result) {
+    const { task, analysis } = result
+    if (analysis.suggestedName && analysis.suggestedName !== task.name) return true
+    if (analysis.estimatedMinutes && analysis.estimatedMinutes !== task.estimatedMinutes) return true
+    if (analysis.suggestedTags && analysis.suggestedTags.length > 0) {
+      const existing = task.tags.map((t) => t.name)
+      if (analysis.suggestedTags.some((t) => existing.indexOf(t) === -1)) return true
+    }
+    const priority = (analysis.priority || '').toLowerCase()
+    if (priority === 'high' && !task.flagged) return true
+    return false
+  }
+
+  /**
+   * Walk each task with applyable suggestions, show per-task confirmation Form,
+   * dispatch accepted changes via ofoCore. Surface a summary alert at the end.
+   */
+  async function applyChanges(results, applyForm, ofoCore) {
+    let appliedCount = 0
+    let skippedCount = 0
+    const issues = []
+
+    for (const result of results) {
+      const { task, analysis } = result
+      if (!hasApplyableChanges(result)) continue
+
+      const changes = []
+
+      if (analysis.suggestedName && analysis.suggestedName !== task.name) {
+        changes.push({
+          key: 'name',
+          label: `Rename to: "${analysis.suggestedName}"`,
+        })
       }
-    })
+
+      if (analysis.estimatedMinutes && analysis.estimatedMinutes !== task.estimatedMinutes) {
+        const currentEst = task.estimatedMinutes
+          ? ` (currently ${task.estimatedMinutes} min)`
+          : ''
+        changes.push({
+          key: 'estimate',
+          label: `Set estimate: ${analysis.estimatedMinutes} min${currentEst}`,
+        })
+      }
+
+      let newTags = []
+      if (analysis.suggestedTags && analysis.suggestedTags.length > 0) {
+        const existing = task.tags.map((t) => t.name)
+        newTags = analysis.suggestedTags.filter((t) => existing.indexOf(t) === -1)
+        if (newTags.length > 0) {
+          changes.push({
+            key: 'tags',
+            label: `Add tags: ${newTags.join(', ')}`,
+          })
+        }
+      }
+
+      const priority = (analysis.priority || '').toLowerCase()
+      if (priority === 'high' && !task.flagged) {
+        changes.push({
+          key: 'flag',
+          label: 'Flag as high priority',
+        })
+      }
+
+      if (changes.length === 0) continue
+
+      const decision = await applyForm.confirmApply({
+        itemName: task.name,
+        changes: changes,
+      })
+
+      if (decision.cancelled || !applyForm.anyAccepted(decision)) {
+        skippedCount++
+        continue
+      }
+
+      // Single updateTask call for name/estimate/flag
+      const updateArgs = { id: task.id.primaryKey }
+      let hasUpdate = false
+      if (decision.apply.name) {
+        updateArgs.name = analysis.suggestedName
+        hasUpdate = true
+      }
+      if (decision.apply.estimate) {
+        updateArgs.estimate = analysis.estimatedMinutes
+        hasUpdate = true
+      }
+      if (decision.apply.flag) {
+        updateArgs.flagged = true
+        hasUpdate = true
+      }
+      if (hasUpdate) {
+        const upd = ofoCore.updateTask(updateArgs)
+        if (!upd.success) {
+          issues.push(`${task.name}: ${upd.error || 'updateTask failed'}`)
+          continue
+        }
+      }
+
+      // Separate tagTask call (additive, preserves existing tags)
+      if (decision.apply.tags && newTags.length > 0) {
+        const tagRes = ofoCore.tagTask({ id: task.id.primaryKey, add: newTags })
+        if (!tagRes.success) {
+          issues.push(`${task.name} (tags): ${tagRes.error || 'tagTask failed'}`)
+          continue
+        }
+        if (tagRes.warnings && tagRes.warnings.length > 0) {
+          tagRes.warnings.forEach((w) => issues.push(`${task.name}: ${w}`))
+        }
+      }
+
+      appliedCount++
+    }
+
+    let summary = `Applied changes to ${appliedCount} task${appliedCount === 1 ? '' : 's'}.`
+    if (skippedCount > 0) {
+      summary += `\nSkipped ${skippedCount}.`
+    }
+    if (issues.length > 0) {
+      summary += `\n\nIssues:\n  · ${issues.join('\n  · ')}`
+    }
+    new Alert('Clarify Tasks — Apply Summary', summary).show()
   }
 
   // Require tasks selected AND macOS 26+ for Apple Foundation Models
