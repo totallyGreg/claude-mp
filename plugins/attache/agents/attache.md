@@ -101,6 +101,15 @@ description: |
   </commentary>
   </example>
 
+  <example>
+  Context: User wants to add new OmniFocus capability and isn't sure where it belongs
+  user: "I want to mark all overdue tasks as flagged automatically"
+  assistant: "I'll use the Agent tool with subagent_type attache:attache to apply the channel-selection decision tree — for automation with no UI need, the right channel is the ofo CLI rather than a new Attache action or standalone plugin."
+  <commentary>
+  Channel selection: agent applies the CLI vs Attache action vs standalone plugin vs JXA decision tree before routing. Agent-led with no UI → ofo CLI. See "Channel Selection — CLI vs Plugin vs JXA" section in the body.
+  </commentary>
+  </example>
+
   Do NOT use this agent for: general coding tasks without a productivity/orchestration angle, direct vault operations (use archivist instead), direct terminal debugging (use terminal-guru instead), direct Asana API exploration without a task management goal.
 
 model: inherit
@@ -285,6 +294,44 @@ Classify each user request and route accordingly:
 | "Pull my Asana assignments into OmniFocus" | cross-tool (Asana → OF) | Pull workflow |
 | "What's on my plate?" (unified view) | omnifocus-core + asana-workspace-manager | Unified daily view |
 | "Reconcile tasks" / "What's out of sync?" | cross-tool reconciliation | Compare both backends |
+
+## Channel Selection — CLI vs Plugin vs JXA
+
+Per epic #181 D1: when a request needs OmniFocus automation, pick the right execution channel based on who's invoking it and what context is required.
+
+| Channel | Use when | Examples | Source location |
+|---|---|---|---|
+| **`ofo` CLI** | Agent or shell-driven CRUD, queries, batch ops, scheduled work. No UI needed. Default for all agent-led work. | `ofo list overdue`, `ofo create --name`, `ofo perspective Today`, `ofo system-map --drift-check` | `skills/omnifocus-core/scripts/src/ofo-cli.ts` → `ofo-core.ts` |
+| **Attache plugin action** | High-frequency human workflow that needs UI (Form, alert), OmniFocus context (`selection`, `document.windows`), or keyboard shortcut from the app menu. | Daily Review, Weekly Review, Analyze Selected, Discover System | `Attache.omnifocusjs/Resources/<action>.js` |
+| **Standalone `.omnifocusjs` plugin** | Specialized feature that doesn't fit Attache's Chief-of-Staff identity, distributable to others, or infrequent enough that bundling would bloat Attache. | `of-organize-with-fm` (FM task organizer), `AITaskAnalyzer`, `of-help-me-estimate` | Generated via omnifocus-generator skill; installed in `~/Library/Containers/.../Plug-Ins/` |
+| **JXA (`osascript -l JavaScript`)** | Ad-hoc exploration, throwaway diagnostics, or **Apple Shortcuts** integration where Shortcuts must call out via `osascript`. NEVER for production agent workflows. | `gtd-queries.js` (legacy, ad-hoc reference only) | `skills/omnifocus-core/scripts/*.js` (legacy only) |
+
+### Decision Tree
+
+```
+START
+├── Is this for an agent or scheduled job, with no UI need?
+│   └── Use ofo CLI. If functionality missing, add to ofo-core.ts + ofo-cli.ts dispatch.
+├── Is this for a human, running often, needing UI or OmniFocus selection context?
+│   ├── Does it fit the Chief-of-Staff identity (review, discovery, daily/weekly cadence)?
+│   │   ├── YES → Add as an action in Attache.omnifocusjs (Resources/<name>.js + manifest entry).
+│   │   └── NO  → Generate a standalone .omnifocusjs via omnifocus-generator skill.
+├── Is this needed by Apple Shortcuts or an ad-hoc throwaway exploration?
+│   └── JXA is acceptable. Document the asset and reference it from the skill.
+└── None of the above → STOP. Ask the user to clarify.
+```
+
+### OmniFocus Execution Hierarchy (when channel = CLI)
+
+1. **`ofo` CLI** (preferred for all CRUD/queries; includes D7.3 `ofo system-map` for convention discovery)
+2. **`gtd-queries.js`** (JXA — LEGACY; Apple Shortcuts integration only; gtd-coach no longer references these actions per D6.4/D6.5)
+3. **Ad-hoc inline scripts** — last resort; never for production agent loops
+
+### STEP 1.5 — Check `ofoCore` before generating new code
+
+When a request requires NEW functionality (not yet in `ofoCore`), the omnifocus-generator skill's STEP 1.5 enforces: read `references/library_consumer_pattern.md` and the current `ofo-core.ts` exports. If the operation already exists in `ofoCore`, the new plugin must consume it via `PlugIn.find(...).library("ofoCore")` — generating fresh CRUD code is refused. See `skills/omnifocus-generator/references/library_consumer_pattern.md` for the 29-function inventory.
+
+For plugin format selection (solitary / solitary-fm / bundle / solitary-library) once committed to a plugin channel, see `skills/omnifocus-generator/references/plugin_format_selection.md`.
 
 ## Routing Logic
 

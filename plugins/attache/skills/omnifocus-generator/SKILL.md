@@ -84,6 +84,9 @@ This skill's references are flat (per AgentSkills spec: "Keep reference chains o
 | `references/libraries_shared_code.md` | `PlugIn.Library` pattern; how to consume Attache's `ofoCore` library from a generated plugin |
 | `references/settings_preferences.md` | `Settings`, `Preferences` (with IIFE footgun), `SyncedPreferences` |
 | `references/outline_tree_ui.md` | `DocumentWindow.content` / `sidebar`, `Tree`, `TreeNode` — outline-based plugin actions |
+| `references/library_consumer_pattern.md` | **DOCTRINE.** ofoCore is the shared library — generated plugins consume it via `PlugIn.find(...).library("ofoCore")` rather than reimplementing CRUD. Includes the 29-function inventory. (D3) |
+| `references/system_map_dependency.md` | **DOCTRINE.** GTD-flavored plugins MUST consume the Attache System Map for user conventions (waiting tag, someday folder, etc.). Schema version contract + consumer skeleton. (D7.7) |
+| `references/validation_pipeline.md` | The 5-layer validation pipeline (pre-gen, pre-emit, post-emit, runtime, deviations) — single source of truth for how generator output is validated. (D8.7) |
 | `references/capability_inventory.md` | Coverage map of `omni-automation.com` → local refs (covered / partial / missing). Read when you suspect a capability isn't documented locally. |
 | `references/web_fetch_protocol.md` | One-off WebFetch contract for reaching out to `omni-automation.com` mid-task — URL template + prompt + token-cost reminder |
 | `references/inventory_refresh_workflow.md` | Re-runnable workflow that refreshes `capability_inventory.md` (quarterly cadence or on-demand) |
