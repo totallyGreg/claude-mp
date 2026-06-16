@@ -90,8 +90,9 @@
             },
             {
               name: 'estimatedMinutes',
-              description: 'Estimated time to complete in minutes',
+              description: 'Estimated time to complete in minutes (numeric only, e.g. 30)',
               isOptional: true,
+              schema: { type: 'number' },
             },
             {
               name: 'improvements',
@@ -149,6 +150,15 @@ Be specific and practical in your suggestions.`
           existingTagsByName
         )
 
+        // Coerce estimatedMinutes to a Number. The schema now declares
+        // `type: 'number'`, but Foundation Models has been observed to
+        // still return string values for numeric properties — and
+        // Task.estimatedMinutes is strict ("requires a Number, but was
+        // passed value of type String"). Normalize once here so every
+        // downstream consumer (display, comparison, dispatch) sees a
+        // Number or null.
+        analysis.estimatedMinutes = coerceEstimateMinutes(analysis.estimatedMinutes)
+
         results.push({
           task: task,
           analysis: analysis,
@@ -189,6 +199,21 @@ Be specific and practical in your suggestions.`
     }
     walk(tags) // top-level OF global
     return out
+  }
+
+  /**
+   * Coerce the AI's estimatedMinutes value to a positive integer or null.
+   * Foundation Models has been observed to return string values ("30")
+   * even when the schema declares type: 'number'; this is the dispatch-
+   * site safety net. Returns null for empty/invalid/non-positive values
+   * (which makes downstream truthiness guards just-work — null short-
+   * circuits the apply prompt).
+   */
+  function coerceEstimateMinutes(value) {
+    if (value === null || value === undefined || value === '') return null
+    const n = Number(value)
+    if (!Number.isFinite(n) || n <= 0) return null
+    return Math.round(n)
   }
 
   /**
