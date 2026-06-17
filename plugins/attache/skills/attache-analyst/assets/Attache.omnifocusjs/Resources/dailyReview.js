@@ -181,6 +181,20 @@ Using GTD principles, provide:
                 md += `> ${systemMapDriftWarning}\n\n`;
             }
 
+            // Cadence badges — surface "time for a monthly/horizons review"
+            // when the user is overdue per the recommended cadence. Read
+            // timestamps written by monthlyReview / horizonsReview at their
+            // closing-step completion. Never blocks the review; pure nudge.
+            const cadenceBadges = getCadenceBadges();
+            if (cadenceBadges.length > 0) {
+                cadenceBadges.forEach(badge => {
+                    message += badge + "\n";
+                    md += `> ${badge}\n`;
+                });
+                message += "\n";
+                md += "\n";
+            }
+
             // Calendar prompt (GTD: date-specific commitments are non-negotiable anchors).
             // Plain text in the message; an "📅 Open Calendar" button below the
             // alert invokes calshow: to launch Apple Calendar to today's view.
@@ -279,6 +293,50 @@ Using GTD principles, provide:
             errorAlert.show();
         }
     });
+
+    /**
+     * Read the last-run timestamps for the upper-cadence reviews and return
+     * any badges that should surface to the user as nudges. monthlyReview
+     * threshold is 35 days (slightly longer than 4 weeks so a once-monthly
+     * cadence doesn't pop a badge the moment it's overdue); horizonsReview
+     * threshold is 100 days (quarterly cadence with a buffer).
+     *
+     * Inlined here AND in weeklyReview.js (~30 lines duplicated). Per
+     * AGENTS.md design principle 3, extract to a shared library when a
+     * third reader emerges (likely candidate: healthCheck's missing-
+     * cadence indicators, which could grow from monthly-only to a richer
+     * cadence-grid). Until then, inline is the right trade-off.
+     *
+     * Never throws — Preferences failures log to console and return an
+     * empty badge list. Cadence nudges are informational, not blocking.
+     */
+    function getCadenceBadges() {
+        const badges = [];
+        try {
+            const prefs = new Preferences("com.totallytools.omnifocus.attache");
+            const monthlyRaw = prefs.readString("lastReviewed_monthly");
+            if (monthlyRaw) {
+                const days = Math.floor((Date.now() - Date.parse(monthlyRaw)) / 86400000);
+                if (days > 35) {
+                    badges.push(`🗓 Time for a monthly review — last ran ${days} days ago. Run Attache › Monthly Review.`);
+                }
+            } else {
+                badges.push("🗓 You haven't run a monthly review yet. Try Attache › Monthly Review for an Areas-of-Focus check.");
+            }
+            const horizonsRaw = prefs.readString("lastReviewed_horizons");
+            if (horizonsRaw) {
+                const days = Math.floor((Date.now() - Date.parse(horizonsRaw)) / 86400000);
+                if (days > 100) {
+                    badges.push(`🌅 Time for a horizons review — last ran ${days} days ago. Run Attache › Horizons Review.`);
+                }
+            }
+            // No "never-run" nudge for horizons — fresh installs shouldn't
+            // be pushed into Horizon 3-5 work on day one.
+        } catch (e) {
+            console.error("dailyReview getCadenceBadges:", e);
+        }
+        return badges;
+    }
 
     action.validate = function(selection, sender) {
         return Device.current.operatingSystemVersion.atLeast(new Version("26"));

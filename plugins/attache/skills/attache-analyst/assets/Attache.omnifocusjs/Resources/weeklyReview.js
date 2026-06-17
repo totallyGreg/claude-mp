@@ -494,6 +494,18 @@
                 }
             }
 
+            // Cadence badges — surface "time for a monthly/horizons review"
+            // when overdue. Read timestamps written by monthlyReview /
+            // horizonsReview at their closing-step completion. Pure nudge.
+            const cadenceBadges = getCadenceBadges();
+            if (cadenceBadges.length > 0) {
+                step7Message += "\n";
+                cadenceBadges.forEach(badge => {
+                    step7Message += `\n${badge}`;
+                });
+                step7Message += "\n";
+            }
+
             if (!hasCachedPrefs) {
                 step7Message += `\n\nTip: Run Attache › Setup to cache your system map for richer reviews.`;
             }
@@ -606,6 +618,45 @@
             summary += `\n\nIssues:\n  · ${issues.join('\n  · ')}`;
         }
         new Alert('Waiting For — Apply Summary', summary).show();
+    }
+
+    /**
+     * Read the last-run timestamps for the upper-cadence reviews and return
+     * any badges that should surface. monthlyReview threshold is 35 days
+     * (slightly longer than 4 weeks); horizonsReview threshold is 100 days
+     * (quarterly cadence with a buffer).
+     *
+     * Inlined here AND in dailyReview.js (~30 lines duplicated). Per
+     * AGENTS.md design principle 3, extract to a shared library when a
+     * third reader emerges (likely healthCheck's missing-cadence
+     * indicators).
+     *
+     * Never throws — Preferences failures log and return empty badge list.
+     */
+    function getCadenceBadges() {
+        const badges = [];
+        try {
+            const prefs = new Preferences("com.totallytools.omnifocus.attache");
+            const monthlyRaw = prefs.readString("lastReviewed_monthly");
+            if (monthlyRaw) {
+                const days = Math.floor((Date.now() - Date.parse(monthlyRaw)) / 86400000);
+                if (days > 35) {
+                    badges.push(`🗓 Time for a monthly review — last ran ${days} days ago. Run Attache › Monthly Review.`);
+                }
+            } else {
+                badges.push("🗓 You haven't run a monthly review yet. Try Attache › Monthly Review for an Areas-of-Focus check.");
+            }
+            const horizonsRaw = prefs.readString("lastReviewed_horizons");
+            if (horizonsRaw) {
+                const days = Math.floor((Date.now() - Date.parse(horizonsRaw)) / 86400000);
+                if (days > 100) {
+                    badges.push(`🌅 Time for a horizons review — last ran ${days} days ago. Run Attache › Horizons Review.`);
+                }
+            }
+        } catch (e) {
+            console.error("weeklyReview getCadenceBadges:", e);
+        }
+        return badges;
     }
 
     action.validate = function(selection, sender) {

@@ -118,6 +118,19 @@
                 writeHorizons(updated);
             }
 
+            // === Persist last-run timestamp (separate from horizons blob's
+            // lastUpdated, which only fires on change). Tracks "user
+            // completed a horizons review" for the cadence-badge system in
+            // dailyReview / weeklyReview to surface "🌅 Time for a horizons
+            // review" when stale (>100d). Always written on completion —
+            // a review where nothing changed still counts as a review.
+            try {
+                new Preferences("com.totallytools.omnifocus.attache")
+                    .write("lastReviewed_horizons", new Date().toISOString());
+            } catch (e) {
+                console.error("horizonsReview lastReviewed write:", e);
+            }
+
             // === Closing ===
             const closingMessage = buildClosingMessage(current, updated, anyChanged);
             const closingAlert = new Alert("Horizons Review", closingMessage);

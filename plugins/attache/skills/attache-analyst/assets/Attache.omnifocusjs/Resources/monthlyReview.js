@@ -92,6 +92,19 @@
                 reviewedCount++;
             }
 
+            // === Persist last-run timestamp ===
+            // Written only when the user completes the per-area walk (after
+            // the for-loop above) — not at action start. Cancelling mid-walk
+            // doesn't fool the cadence-badge system into thinking the
+            // review happened. Read by dailyReview / weeklyReview to surface
+            // a "🗓 Time for a monthly review" badge when stale (>35d).
+            try {
+                new Preferences("com.totallytools.omnifocus.attache")
+                    .write("lastReviewed_monthly", new Date().toISOString());
+            } catch (e) {
+                console.error("monthlyReview lastReviewed write:", e);
+            }
+
             // === Closing step ===
             const closingLines = [
                 section("Monthly Review Complete"),
