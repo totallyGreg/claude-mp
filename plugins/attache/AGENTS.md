@@ -106,13 +106,45 @@ When an action needs to persist user-stated values between sessions:
 
 Hard-learned things. If you remove or refactor any of these, document the new replacement in this section.
 
-### G1. Foundation Models schema language only accepts `string` + composites
+### G1. Foundation Models schema — use documented types, NOT `number`
 
-`schema: { type: 'string' }` and `schema: { arrayOf: { type: 'string' } }` are the supported primitives. **`type: 'number'` is rejected at runtime** with `Invalid schema specification: Unrecognized Type: number` — the whole action fails when the schema is submitted.
+Per the authoritative docs at <https://omni-automation.com/shared/alm-schema.html>, supported `type` values are:
 
-**Implication:** numeric fields in AI output must be **runtime-coerced** in the caller. The schema description can say "an integer like 30, 60, 90" to nudge the model, but the dispatch layer is the only real safety net.
+| `type` value | Use for |
+|---|---|
+| `"string"` | text |
+| `"integer"` | whole numbers (e.g. minutes, counts, scores 1-10) |
+| `"decimal"` | floating-point |
 
-Discovered: v2.10.1 regression introduced by v2.8.1. Fixed in commit `86ed9d2`. Helper pattern: `coerceEstimateMinutes` in `analyzeSelected.js`.
+**`type: 'number'` is NOT documented and is rejected** with `Invalid schema specification: Unrecognized Type: number`. This was the v2.10.1 regression (commit `86ed9d2`). The fix at the time removed the schema hint entirely, but the correct fix is `type: "integer"` for whole-number fields like `estimatedMinutes`. See also G6 — runtime coercion stays as defence in depth (FM does not always honor the schema type), but the schema CAN constrain properly when the right type name is used.
+
+Discovered/corrected by checking the docs rather than guessing — verify against the source before introducing a schema type the codebase hasn't used yet.
+
+#### Schema composites worth remembering
+
+```js
+// Numeric, optional (CORRECT replacement for what got removed in 86ed9d2)
+{ name: 'estimatedMinutes', isOptional: true, schema: { type: 'integer' } }
+
+// Restricted enum — preferred over free-text + post-filter
+{ name: 'priority', schema: { anyOf: [
+    { constant: 'high' }, { constant: 'medium' }, { constant: 'low' }
+]}}
+
+// Array with size bound
+{ name: 'tags', schema: { arrayOf: { type: 'string' }, maximumElements: 3 } }
+
+// Recursive (for trees/nested steps)
+{ arrayOf: {
+    name: 'step',
+    properties: [
+      { name: 'title' },
+      { name: 'substeps', isOptional: true, schema: { arrayOf: { referenceTo: 'step' } } }
+    ]
+}}
+```
+
+The codebase already uses `anyOf` + `constant` (search `weeklyReview.js` for `waiting-rec-enum`). Use enums in preference to free-text + post-filter whenever the value space is small + closed.
 
 ### G2. `Task.estimatedMinutes` strictly requires Number
 
