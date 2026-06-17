@@ -181,9 +181,11 @@ Using GTD principles, provide:
                 md += `> ${systemMapDriftWarning}\n\n`;
             }
 
-            // Calendar prompt (GTD: date-specific commitments are non-negotiable anchors)
-            message += "Review your calendar for today's commitments.\n\n";
-            md += "> Review your calendar for today's commitments.\n\n";
+            // Calendar prompt (GTD: date-specific commitments are non-negotiable anchors).
+            // Plain text in the message; an "📅 Open Calendar" button below the
+            // alert invokes calshow: to launch Apple Calendar to today's view.
+            message += "📅 Review your calendar for today's commitments. (Open Calendar button below.)\n\n";
+            md += "> 📅 Review your calendar for today's commitments.\n\n";
 
             if (review) {
                 const healthIcon = {
@@ -238,6 +240,14 @@ Using GTD principles, provide:
             message += `\n${'─'.repeat(44)}\n✅ ${completedTasks.length} done · 📋 ${todayTasks.length} today · ⚠️ ${overdueTasks.length} overdue · 🚩 ${flaggedTasks.length} flagged · 📥 ${inboxTasks.length} inbox`;
             md += `\n---\n✅ ${completedTasks.length} done · 📋 ${todayTasks.length} today · ⚠️ ${overdueTasks.length} overdue · 🚩 ${flaggedTasks.length} flagged · 📥 ${inboxTasks.length} inbox`;
 
+            // GTD Engage cross-link: dailyReview surfaces a static "top N
+            // next actions" list, but Engage criteria (context / time /
+            // energy) re-filter that list situationally. whatNow already
+            // does this — cross-link rather than duplicate the form +
+            // filter logic in two places (AGENTS.md design principle 3).
+            message += `\n\n💡 For a context / time / energy filter on these actions, run Attache › What Now.`;
+            md += `\n\n> 💡 **Engage filter:** run Attache › What Now to narrow these actions by current context, time available, and energy.`;
+
             if (!hasCachedPrefs) {
                 message += `\n\nTip: Run Attache › Setup to cache your system map for richer reviews.`;
                 md += `\n\n> **Tip:** Run Attache › Setup to cache your system map for richer reviews.`;
@@ -245,11 +255,20 @@ Using GTD principles, provide:
 
             const resultAlert = new Alert("Daily Review", message);
             resultAlert.addOption("Copy to Clipboard");
+            resultAlert.addOption("📅 Open Calendar");
             resultAlert.addOption("Done");
             const choice = await resultAlert.show();
 
             if (choice === 0) {
                 Pasteboard.general.string = md;
+            } else if (choice === 1) {
+                // calshow: opens Apple Calendar to the default view (Today on
+                // current day). Failure is non-fatal — log and continue.
+                try {
+                    URL.fromString("calshow:").open();
+                } catch (e) {
+                    console.error("Could not open Calendar:", e);
+                }
             }
 
         } catch (error) {
