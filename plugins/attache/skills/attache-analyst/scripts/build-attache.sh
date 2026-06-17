@@ -114,8 +114,8 @@ echo "  Attache libraries compiled (${#ATTACHE_LIBS[@]} libraries)"
 # 5. Copy Attache action scripts into bundle (actions remain JS)
 echo "  Copying Attache actions..."
 ATTACHE_ACTIONS=(
-  healthCheck dailyReview whatNow weeklyReview monthlyReview processInbox
-  analyzeSelected analyzeHierarchy quickOrganize completedSummary
+  healthCheck dailyReview whatNow weeklyReview monthlyReview horizonsReview
+  processInbox analyzeSelected analyzeHierarchy quickOrganize completedSummary
   systemSetup discoverSystem
 )
 for act in "${ATTACHE_ACTIONS[@]}"; do
