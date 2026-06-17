@@ -506,6 +506,19 @@
                 step7Message += "\n";
             }
 
+            // Duration-estimate health nudge (Option C from the #186
+            // duration-estimation thread). If the System Map's derived
+            // durationModel is 'none' or 'tags', most active tasks lack
+            // native estimates — `whatNow`'s time-filter is degraded and
+            // GTD Engage criteria can't match by duration. Cross-link to
+            // Clarify Tasks (analyzeSelected already pre-fills estimates
+            // since v2.17.0 / 4a5e353+follow-up). No new action launch;
+            // user invokes Clarify Tasks themselves.
+            const durationTip = buildDurationTip();
+            if (durationTip) {
+                step7Message += `\n\n${durationTip}`;
+            }
+
             if (!hasCachedPrefs) {
                 step7Message += `\n\nTip: Run Attache › Setup to cache your system map for richer reviews.`;
             }
@@ -633,6 +646,44 @@
      *
      * Never throws — Preferences failures log and return empty badge list.
      */
+    /**
+     * Read the System Map's derived durationModel + percentWithDuration
+     * signals and return a one-line tip when the user's task-estimate
+     * coverage is thin. Returns "" when coverage is healthy, when the
+     * map is missing/stale, or when the field isn't populated (quick-
+     * mode discovery omits tasks.dataQuality).
+     *
+     * Per the System Map schema (see system_map_schema.md):
+     *   durationModel === 'none'  → 0% estimate coverage
+     *   durationModel === 'tags'  → 1-9% (relies on duration tags only)
+     *   durationModel === 'mixed' → 10-49% (mixed practice)
+     *   durationModel === 'native' → 50%+ (healthy)
+     *
+     * Surface the tip for 'none' and 'tags'. 'mixed' is good-enough —
+     * don't pester the user when they're already partway there.
+     */
+    function buildDurationTip() {
+        try {
+            const candidates = flattenedTasks.filter(t => t.name === "Attache System Map");
+            if (candidates.length === 0) return "";
+            const sm = JSON.parse(candidates[0].note || "{}");
+            if (typeof sm.schemaVersion !== "number" || sm.schemaVersion < 1) return "";
+            const model = sm.durationModel;
+            if (model !== "none" && model !== "tags") return "";
+
+            const pct = sm.tasks && sm.tasks.dataQuality
+                ? sm.tasks.dataQuality.percentWithDuration
+                : null;
+            const pctText = (pct != null)
+                ? `Only ${pct}% of your active tasks have time estimates`
+                : "Most of your active tasks lack time estimates";
+            return `⏱ ${pctText}. Select 3-5 of them and run Attache › Clarify Tasks — the AI now always proposes an estimate when one is missing, and the apply-form lets you accept or adjust per task. Better estimates make ${"`What Now`"}'s time-filter more useful.`;
+        } catch (e) {
+            console.error("weeklyReview buildDurationTip:", e);
+            return "";
+        }
+    }
+
     function getCadenceBadges() {
         const badges = [];
         try {

@@ -113,17 +113,15 @@
               description: 'Suggested priority level (high, medium, or low)',
             },
             {
-              // Schema type intentionally omitted: Foundation Models' schema
-              // language only recognizes `string` (and composite forms like
-              // arrayOf). `type: 'number'` was tried in v2.8.1 and rejected
-              // with "Invalid schema specification: Unrecognized Type: number".
-              // The dispatch path's runtime coercion (coerceEstimateMinutes,
-              // below) is the actual safety net — it accepts whatever the
-              // model returns (string or number) and normalizes to a positive
-              // integer or null.
+              // schema: { type: 'integer' } restored per AGENTS.md G1 correction
+              // (commit 4a5e353) — `integer` IS documented in omni-automation.com
+              // schema spec; only `number` is unsupported. coerceEstimateMinutes
+              // (G6) remains as runtime defence in depth because FM doesn't
+              // always honor schema type hints under load.
               name: 'estimatedMinutes',
-              description: 'Estimated time to complete in minutes (an integer like 30, 60, 90)',
+              description: 'Estimated time to complete in minutes (whole number, e.g. 15, 30, 60, 90). ALWAYS propose a value when the task currently has no estimate — better to suggest something the user can adjust than to leave it blank.',
               isOptional: true,
+              schema: { type: 'integer' },
             },
             {
               name: 'improvements',
@@ -159,7 +157,7 @@ Please analyze:
 2. Would a different task name be clearer? If yes, suggest one.
 3. What 2-3 tags from the EXISTING TAGS sections above would be most relevant? Prefer one tag per category (one context, one energy, etc.) — different categories. Do NOT invent new tags — if no existing tags fit, return an empty array.
 4. What priority should this have? (high/medium/low)
-5. How long might this take? (in minutes)
+5. How long might this take? (in minutes — propose a whole number; if the task currently has no estimate, ALWAYS suggest one even if uncertain, because a starting point the user can adjust is more useful than blank.)
 6. What specific improvements would make this task better?
 7. What information is missing that would help complete this task?
 
@@ -181,14 +179,13 @@ Be specific and practical in your suggestions.`
           existingTagsByName
         )
 
-        // Coerce estimatedMinutes to a Number. Foundation Models' schema
-        // language doesn't accept `type: 'number'` (it rejects with
-        // "Invalid schema specification: Unrecognized Type: number") — so
-        // there's no way to pin the model's output type at the schema layer.
-        // The only safety net is here: accept whatever the model returns
-        // and normalize to a positive integer or null. Task.estimatedMinutes
-        // is strict ("requires a Number, but was passed value of type
-        // String"); every downstream consumer below sees a Number or null.
+        // Coerce estimatedMinutes to a Number even though the schema
+        // declares `type: 'integer'` — Foundation Models has been observed
+        // to ignore type hints under load (the schema constrains INTENT,
+        // not OUTPUT). Task.estimatedMinutes is strict ("requires a Number,
+        // but was passed value of type String"); this normalizer is the
+        // user-visible safety net. Every downstream consumer below sees
+        // a Number or null. See AGENTS.md G1 + G6 for the full pattern.
         analysis.estimatedMinutes = coerceEstimateMinutes(analysis.estimatedMinutes)
 
         results.push({
@@ -319,13 +316,16 @@ Be specific and practical in your suggestions.`
 
   /**
    * Coerce the AI's estimatedMinutes value to a positive integer or null.
-   * Foundation Models' schema language doesn't accept `type: 'number'`
-   * (it rejects with "Invalid schema specification: Unrecognized Type:
-   * number"), so the model is free to return whatever JSON primitive
-   * matches its interpretation of the description — usually a string.
-   * This is the dispatch-site safety net. Returns null for empty,
-   * invalid, or non-positive values (downstream truthiness guards then
-   * just-work — null short-circuits the apply prompt).
+   *
+   * Even with `schema: { type: 'integer' }` on the field, FM has been
+   * observed to return strings (the schema is a constraint on intent,
+   * not a guarantee on output). Task.estimatedMinutes is strict
+   * ("requires a Number, but was passed value of type String"); this is
+   * the dispatch-site safety net. Returns null for empty / invalid /
+   * non-positive values (downstream truthiness guards then just-work —
+   * null short-circuits the apply prompt).
+   *
+   * See AGENTS.md G6 for the general parse-time-normalization pattern.
    */
   function coerceEstimateMinutes(value) {
     if (value === null || value === undefined || value === '') return null
