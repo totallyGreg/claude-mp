@@ -115,7 +115,17 @@
         form.addField(new Form.Field.String("folder", "Folder for new project (optional)", ""));
 
         const title = `Inbox ${position}/${total}: ${task.name}`;
-        const result = await form.show(title, "Apply");
+        // Defensive: Form.show() has been observed to REJECT rather than
+        // resolve-to-null on cancel in some OmniFocus builds (the form-
+        // level cancel guard with `if (!result)` is necessary but not
+        // sufficient). Wrap in try/catch so cancel always exits the loop
+        // cleanly instead of bubbling as a "Process Inbox Error" alert.
+        let result;
+        try {
+            result = await form.show(title, "Apply");
+        } catch (e) {
+            return { stopped: true };
+        }
         if (!result) {
             return { stopped: true };
         }

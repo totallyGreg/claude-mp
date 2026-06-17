@@ -56,6 +56,24 @@
             const contextTags = collectContextTagNames(sm);
             const missingNotes = collectMissingConventionNotes(waitingTag, somedayTag, contextTags);
 
+            // === Critical-missing pre-flight ===
+            // If NONE of the convention-driven options are available, the
+            // only remaining tasks-bucket choices are Skip / Active (no-ops
+            // without contexts) / Drop. That makes the action effectively
+            // useless beyond Drop, so confirm with the user before they
+            // walk N forms expecting "Organize" semantics.
+            const criticallyMissing = !waitingTag && !somedayTag && contextTags.length === 0;
+            if (criticallyMissing) {
+                const alert = new Alert(
+                    "Quick Organize — System Map Conventions Missing",
+                    "Your System Map has no waitingTag, somedayTag, or context tags configured. The only bucket that will change anything for tasks is \"Drop\".\n\nRun Attache → Setup to populate conventions for the full bucket picker, or continue with Drop-only available."
+                );
+                alert.addOption("Run Setup First");
+                alert.addOption("Continue Anyway");
+                const choice = await alert.show();
+                if (choice !== 1) return;
+            }
+
             // === Build the work list ===
             const tasks = (selection.tasks || []).filter(t => !t.completed && !t.dropped);
             const projects = (selection.projects || []);
@@ -86,6 +104,11 @@
                 const res = dispatchTaskDecision(r, t, ofoCore, waitingTag, somedayTag);
                 if (res && !res.success) {
                     issues.push(`${t.name}: ${res.error || 'dispatch failed'}`);
+                } else if (res && res.noop) {
+                    // True no-op (e.g. Active picked with no context tag). Count
+                    // as skipped so the summary truthfully says "I changed
+                    // nothing" instead of claiming an organization.
+                    skipped++;
                 } else {
                     organized++;
                 }
@@ -114,6 +137,14 @@
             }
             if (stopped) {
                 summary += `\nStopped before reviewing all ${total} items.`;
+            }
+            // Help the user when they walked items but ALL of them ended up
+            // as no-op (Skip / Active-without-context). The most common
+            // cause is missing conventions in the System Map.
+            if (organized === 0 && skipped > 0 && !stopped) {
+                summary += missingNotes
+                    ? `\n\nNothing was changed. Likely cause: ${missingNotes} The picker shows only the buckets your map can dispatch — pick "Drop" or run Setup to enable Waiting / Someday / context tagging.`
+                    : `\n\nNothing was changed. Pick a bucket other than Skip (Waiting / Someday / Drop), or add a context tag, to take action on an item.`;
             }
             if (issues.length > 0) {
                 summary += `\n\nIssues:\n  · ${issues.join('\n  · ')}`;
@@ -222,12 +253,20 @@
     async function promptForTask(task, position, total, waitingTag, somedayTag, contextTags, missingNotes) {
         const form = new Form();
 
-        // Build bucket choices dynamically — only include buckets whose
-        // convention is set. "Active" is always available (no-op), "Drop" is
-        // always available, "Waiting For" / "Someday-Maybe" require their
-        // respective tag convention.
-        const bucketKeys = ["skip", "active"];
-        const bucketLabels = ["Skip — leave unchanged", "Active — keep in normal flow"];
+        // Build bucket choices dynamically — only include buckets that DO
+        // something. "Skip" and "Drop" are always available. "Active" only
+        // appears when context tags exist (Active + context tag = tag the
+        // task; Active alone is functionally identical to Skip, so showing
+        // it as a separate choice without context tags is just confusing —
+        // the user picks Active expecting an outcome and gets a no-op).
+        // "Waiting For" / "Someday-Maybe" require their respective tag
+        // convention.
+        const bucketKeys = ["skip"];
+        const bucketLabels = ["Skip — leave unchanged"];
+        if (contextTags.length > 0) {
+            bucketKeys.push("active");
+            bucketLabels.push("Active — keep in flow (use with context tag below)");
+        }
         if (waitingTag) {
             bucketKeys.push("waiting");
             bucketLabels.push(`Waiting For — add tag "${waitingTag}"`);
@@ -264,9 +303,16 @@
         }
 
         const title = `Organize ${position}/${total} — Task: ${task.name}`;
-        const result = missingNotes
-            ? await form.show(`${title}\n\n${missingNotes}`, "Apply")
-            : await form.show(title, "Apply");
+        const fullTitle = missingNotes ? `${title}\n\n${missingNotes}` : title;
+        // Defensive: Form.show() rejects on cancel in some OmniFocus builds
+        // (the if (!result) guard alone isn't enough). Same pattern as
+        // processInbox per-item form.
+        let result;
+        try {
+            result = await form.show(fullTitle, "Apply");
+        } catch (e) {
+            return { stopped: true };
+        }
         if (!result) {
             return { stopped: true };
         }
@@ -291,6 +337,7 @@
     function dispatchTaskDecision(decision, task, ofoCore, waitingTag, somedayTag) {
         const id = task.id.primaryKey;
         const tagsToAdd = [];
+        let didSomething = false;
 
         switch (decision.bucket) {
             case "skip":
@@ -302,12 +349,14 @@
                     return { success: false, error: "waitingTag convention missing" };
                 }
                 tagsToAdd.push(waitingTag);
+                didSomething = true;
                 break;
             case "someday":
                 if (!somedayTag) {
                     return { success: false, error: "somedayTag convention missing" };
                 }
                 tagsToAdd.push(somedayTag);
+                didSomething = true;
                 break;
             case "drop":
                 return ofoCore.dropTask({ id: id });
@@ -317,11 +366,14 @@
 
         if (decision.contextTag) {
             tagsToAdd.push(decision.contextTag);
+            didSomething = true;
         }
 
-        if (tagsToAdd.length === 0) {
-            // "Active" with no context tag — true no-op
-            return { success: true };
+        if (!didSomething) {
+            // "Active" with no context tag (or "Skip" that slipped through) —
+            // genuinely nothing to dispatch. Mark as a non-dispatch so the
+            // outer loop counts it as skipped (not as a phantom "organized").
+            return { success: true, noop: true };
         }
 
         return ofoCore.tagTask({ id: id, add: tagsToAdd });
@@ -346,9 +398,13 @@
         ));
 
         const title = `Organize ${position}/${total} — Project: ${project.name}`;
-        const result = missingNotes
-            ? await form.show(`${title}\n\n${missingNotes}`, "Apply")
-            : await form.show(title, "Apply");
+        const fullTitle = missingNotes ? `${title}\n\n${missingNotes}` : title;
+        let result;
+        try {
+            result = await form.show(fullTitle, "Apply");
+        } catch (e) {
+            return { stopped: true };
+        }
         if (!result) {
             return { stopped: true };
         }
