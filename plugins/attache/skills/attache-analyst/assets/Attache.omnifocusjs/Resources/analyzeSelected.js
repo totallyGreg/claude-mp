@@ -5,6 +5,20 @@
  * detailed per-task analysis including clarity scoring, improvements, tags,
  * priority recommendations, and missing information.
  *
+ * SYSTEM MAP TAG CATEGORIZATION (v2.13.0+)
+ *
+ * When the System Map is present and current, tag suggestions are sourced
+ * from semantically-categorized lists (sm.tags.categories.contexts /
+ * energy / duration / areas) so the AI picks ONE context AND ONE energy
+ * (different categories) rather than two mutually-exclusive contexts.
+ * Falls back to a flat list of existing tags when the map is missing or
+ * stale — the no-invention constraint still holds either way.
+ *
+ * people / status / uncategorized are DELIBERATELY EXCLUDED from
+ * suggestion-time (user-managed; AI shouldn't auto-assign Waiting:Sarah
+ * or @hold without explicit signal). Same pattern as processInbox's AI
+ * pre-fill (commit 59957f7).
+ *
  * Requirements:
  * - OmniFocus 4.8+
  * - macOS 26+
@@ -12,6 +26,9 @@
  */
 
 ;(() => {
+  const SYSTEM_MAP_TASK_NAME = "Attache System Map";
+  const EXPECTED_SCHEMA_VERSION = 1;
+
   function section(title) {
     return `── ${title}`;
   }
@@ -59,6 +76,13 @@
       const existingTagNames = collectExistingTagNames()
       const existingTagsByName = {}
       existingTagNames.forEach(n => { existingTagsByName[n.toLowerCase()] = n })
+
+      // Load System Map (soft — null if missing/stale, not a hard block).
+      // When present, gives the AI semantic tag categorization rather than a
+      // flat name list. Same soft-load pattern as processInbox v2.12.0; see
+      // AGENTS.md design principle 2 (System Map for ALL conventions).
+      const sm = loadSystemMapSoft()
+      const categorizedTags = collectCategorizedTags(sm, existingTagNames)
 
       const results = []
 
@@ -115,13 +139,13 @@
           ],
         })
 
-        // Craft the prompt. The user's existing tag list is passed verbatim
-        // so the AI selects FROM it rather than inventing new tags. If the
-        // user has no tags yet, we tell the model to return an empty array
-        // (a downstream post-filter also drops any invented tags).
-        const tagListSection = existingTagNames.length > 0
-          ? `EXISTING TAGS (choose ONLY from this list — do not invent new tags):\n${existingTagNames.join(', ')}`
-          : `EXISTING TAGS: (none — return an empty suggestedTags array)`
+        // Craft the prompt. Tag section prefers semantic categorization from
+        // the System Map (gives the AI signal to pick across categories rather
+        // than within one) and falls back to a flat list when the map is
+        // unavailable. Either way the no-invention constraint holds — a
+        // downstream post-filter (constrainTagsToExisting) drops anything the
+        // model hallucinated.
+        const tagListSection = buildTagSection(categorizedTags)
 
         const prompt = `Analyze this OmniFocus task and provide structured feedback:
 
@@ -133,7 +157,7 @@ ${tagListSection}
 Please analyze:
 1. How clear and actionable is this task? (Rate 1-10)
 2. Would a different task name be clearer? If yes, suggest one.
-3. What 2-3 tags from the EXISTING TAGS list above would be most relevant? Do NOT invent new tags — if no existing tags fit, return an empty array.
+3. What 2-3 tags from the EXISTING TAGS sections above would be most relevant? Prefer one tag per category (one context, one energy, etc.) — different categories. Do NOT invent new tags — if no existing tags fit, return an empty array.
 4. What priority should this have? (high/medium/low)
 5. How long might this take? (in minutes)
 6. What specific improvements would make this task better?
@@ -207,6 +231,90 @@ Be specific and practical in your suggestions.`
     }
     walk(tags) // top-level OF global
     return out
+  }
+
+  /**
+   * Soft-load the System Map for tag categorization. Mirrors
+   * processInbox v2.12.0's soft-load (commit 59957f7) — null on missing
+   * / corrupt / stale rather than hard-blocking, because flat-list
+   * fallback still works and the no-invention constraint still holds.
+   *
+   * NOTE: this helper is duplicated in processInbox.js. When a third
+   * consumer needs it (likely the next AI-driven action), extract to a
+   * shared library (`Resources/tagTaxonomy.js`) and have both call it.
+   * AGENTS.md design principle 3 sets the 3-consumer threshold for
+   * extraction; we're at 2.
+   */
+  function loadSystemMapSoft() {
+    const candidates = flattenedTasks.filter(t => t.name === SYSTEM_MAP_TASK_NAME)
+    if (candidates.length === 0) return null
+    let sm
+    try {
+      sm = JSON.parse(candidates[0].note || "{}")
+    } catch (e) { return null }
+    if (typeof sm.schemaVersion !== "number") return null
+    if (sm.schemaVersion < EXPECTED_SCHEMA_VERSION) return null
+    return sm
+  }
+
+  /**
+   * Pull categorized tag names from the System Map's tags.categories.*
+   * (contexts / energy / duration / areas). `existingTagNames` is passed
+   * as the flat-list fallback when the map is missing or didn't categorize
+   * a given category.
+   *
+   * DELIBERATELY EXCLUDES people / status / uncategorized — those are
+   * user-managed; AI shouldn't auto-assign Waiting:Sarah or @hold without
+   * explicit signal. Same exclusion as processInbox v2.12.0.
+   */
+  function collectCategorizedTags(sm, existingTagNames) {
+    const result = {
+      contexts: [],
+      energy: [],
+      duration: [],
+      areas: [],
+      flat: existingTagNames || []
+    }
+    if (!sm || !sm.tags || !sm.tags.categories) return result
+    const cats = sm.tags.categories
+    result.contexts = extractCategoryNames(cats.contexts)
+    result.energy = extractCategoryNames(cats.energy)
+    result.duration = extractCategoryNames(cats.duration)
+    result.areas = extractCategoryNames(cats.areas)
+    return result
+  }
+
+  function extractCategoryNames(catList) {
+    if (!Array.isArray(catList)) return []
+    return catList
+      .map(entry => entry && entry.name)
+      .filter(name => typeof name === "string" && name.length > 0)
+      .filter(name => flattenedTags.byName(name) !== null) // user-deleted-since-refresh
+  }
+
+  /**
+   * Build the EXISTING TAGS prompt section. Prefers categorized layout
+   * when the System Map gave us one; falls back to flat list when not.
+   * The categorized form gives the AI semantic signal to pick across
+   * categories (one context AND one energy) rather than within one
+   * (two mutually-exclusive contexts).
+   */
+  function buildTagSection(cats) {
+    const sections = []
+    if (cats.contexts.length > 0) sections.push(`CONTEXTS (pick 0-1, where the task happens): ${cats.contexts.join(", ")}`)
+    if (cats.energy.length > 0)   sections.push(`ENERGY   (pick 0-1, effort needed):      ${cats.energy.join(", ")}`)
+    if (cats.duration.length > 0) sections.push(`DURATION (pick 0-1, how long):           ${cats.duration.join(", ")}`)
+    if (cats.areas.length > 0)    sections.push(`AREAS    (pick 0-1, life area):          ${cats.areas.join(", ")}`)
+
+    if (sections.length > 0) {
+      return "EXISTING TAGS (choose ONLY from these — never invent):\n" + sections.join("\n")
+    }
+
+    // Fallback: flat list (System Map missing or didn't categorize).
+    if (cats.flat.length === 0) {
+      return "EXISTING TAGS: (none configured — return empty suggestedTags array)"
+    }
+    return "EXISTING TAGS (choose ONLY from this list — never invent):\n" + cats.flat.join(", ")
   }
 
   /**
