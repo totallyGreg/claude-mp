@@ -10,7 +10,7 @@ description: >-
   Do NOT use for fixing the friction itself (use skillsmith or agentsmith instead).
 metadata:
   author: J. Greg Williams
-  version: "1.0.0"
+  version: "1.1.0"
 compatibility: claude-code
 license: MIT
 ---
@@ -48,7 +48,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/skills/wtf/scripts/submit-issue.sh \
 | `--name` | Plugin-qualified name, e.g. `foundry:skillsmith`, `archivist:archivist` | No |
 | `--category` | `bad-docs`, `broken-tool`, `misleading-skill`, `missing-prereq`, `auth-failure`, `flaky`, `other` | No (defaults to `other`) |
 | `--description` | One-line friction summary | **Yes** |
-| `--project` | Current working directory path | No |
+| `--project` | Current working directory path | No (defaults to `$(pwd)`) |
 | `--session` | Current session ID | No |
 
 ### Identifying the Source
@@ -73,4 +73,6 @@ bash ${CLAUDE_PLUGIN_ROOT}/skills/wtf/scripts/submit-issue.sh \
 
 ## Where Reports Go
 
-Reports are stored in `.local/agent-issues/reports/` (gitignored, never committed). They are consumed by `/ss-improve` and `/as-improve` as advisory context when improving the reported skill or agent.
+Reports are stored in `~/.claude/agent-issues/reports/` — a per-user global store, not a per-repo `.local/` directory. This is intentional: friction filed while working in repo A (e.g., a downstream consumer) needs to be visible to `/ss-improve` and `/as-improve` runs in repo B (where the skill or agent actually lives). The `project:` frontmatter records where each report was filed.
+
+The improvement loops (`/ss-improve` Step 0d, `/as-improve` Step 0b) scan this directory, filter by skill or agent name, and surface matching reports — including the originating project — as advisory context. They never replace evaluation scores; they highlight real user pain to prioritize.

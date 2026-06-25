@@ -1,21 +1,30 @@
 ---
 name: ss-refresh
 description: Detect stale references and guide updates for any skill with provenance-tracked references
-argument-hint: [skill-path]
+argument-hint: [skill-path] [optional context lines...]
 allowed_tools: Bash, Read, Edit, Write, Glob, Grep, Agent, AskUserQuestion
 ---
 
-Run the reference freshness checker and guide updates for a skill at `$ARGUMENTS`.
+Run the reference freshness checker and guide updates for a skill.
 
-If no skill path provided, ask the user for it before proceeding.
+## Step 0: Parse arguments
+
+`$ARGUMENTS` is structured: the **first non-empty line (trimmed)** is the skill path; any **remaining lines** are optional context (e.g., a `Focus: ...` hint).
+
+- **TARGET** = first non-empty line of `$ARGUMENTS` (also referred to as `SKILL_PATH` in bash snippets below)
+- **CONTEXT** = remaining lines (may be empty)
+
+For the rest of this command, every reference to the skill path means TARGET — substitute the parsed value literally wherever you see `<TARGET>` or `"$SKILL_PATH"` below, including inside bash commands. **Never paste the raw multi-line `$ARGUMENTS` into a path argument.** If TARGET is empty, ask the user for the skill path before proceeding.
+
+If CONTEXT is non-empty, treat it as advisory framing for the refresh work (e.g., a hint about which references to prioritize). Do NOT substitute CONTEXT into any bash command.
 
 ## Step 1: Verify target is a skill
 
-Check that `$ARGUMENTS` points to a directory containing `SKILL.md`. If not found, inform the user and stop.
+Check that `<TARGET>` points to a directory containing `SKILL.md`. If not found, inform the user and stop.
 
 ## Step 1a: Remap installed-cache paths to source
 
-Resolve `$ARGUMENTS` to a real absolute path, following any symlinks (`realpath` or Python `Path.resolve()`).
+Resolve `<TARGET>` to a real absolute path, following any symlinks (`realpath` or Python `Path.resolve()`).
 
 Check whether the resolved path starts with `$HOME/.claude/plugins/`. If it does, remap to source using `marketplace.json` (same logic as `/ss-improve` Step 0a).
 

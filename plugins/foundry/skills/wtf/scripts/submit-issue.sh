@@ -1,5 +1,10 @@
 #!/bin/bash
-# submit-issue.sh — Write a friction report to .local/agent-issues/reports/
+# submit-issue.sh — Write a friction report to ~/.claude/agent-issues/reports/
+#
+# Reports are stored in a global per-user store so improvement loops
+# (/ss-improve, /as-improve) can surface friction filed from any repo,
+# not just the one currently being improved. The `project:` frontmatter
+# records where the friction was hit.
 #
 # Usage:
 #   submit-issue.sh --type <type> --name <name> --category <category> \
@@ -7,7 +12,7 @@
 #
 # Exit codes:
 #   0 — Report filed successfully
-#   1 — Error (missing args, not in a git repo, etc.)
+#   1 — Error (missing required args)
 
 set -uo pipefail
 
@@ -46,18 +51,12 @@ if [[ -z "$category" ]]; then
   category="other"
 fi
 
-repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
-  echo "Error: not inside a git repository" >&2
-  exit 1
-}
-
-reports_dir="$repo_root/.local/agent-issues/reports"
-mkdir -p "$reports_dir"
-
-gitignore="$repo_root/.gitignore"
-if ! grep -qx '\.local/' "$gitignore" 2>/dev/null; then
-  printf '\n# WTF friction reports (local only, never commit)\n.local/\n' >> "$gitignore"
+if [[ -z "$project" ]]; then
+  project="$(pwd)"
 fi
+
+reports_dir="$HOME/.claude/agent-issues/reports"
+mkdir -p "$reports_dir"
 
 timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 filename_ts=$(date -u +"%Y-%m-%d-%H%M%S")
@@ -76,4 +75,4 @@ date: ${timestamp}
 ${description}
 REPORT
 
-echo "Friction report filed: .local/agent-issues/reports/$filename"
+echo "Friction report filed: ~/.claude/agent-issues/reports/$filename"

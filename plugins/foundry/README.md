@@ -110,7 +110,7 @@ Analyzes saved Claude Code session transcripts to identify where a skill failed 
 
 ### Current Metrics
 
-**Score: 100/100** (Excellent) — 2026-05-08
+**Score: 100/100** (Excellent) — 2026-06-25
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -120,6 +120,7 @@ Analyzes saved Claude Code session transcripts to identify where a skill failed 
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.1.0 | 2026-06-25 | - | Global per-user report store (`~/.claude/agent-issues/reports/`) so friction filed from any repo is visible to improvement loops; default `--project` to `$(pwd)`; drop git-repo requirement. Pairs with foundry command arg-parsing fix. | 100 | 100 | 100 | 100 | 100 | 100 |
 | 1.0.0 | 2026-05-08 | [#173](https://github.com/totallyGreg/claude-mp/issues/173) | Initial release — proactive friction reporter with submit script and improve integration | 100 | 100 | 100 | 100 | 100 | 100 |
 
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
