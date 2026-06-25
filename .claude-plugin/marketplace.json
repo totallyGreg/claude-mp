@@ -6,7 +6,7 @@
     "email": "283704+totallyGreg@users.noreply.github.com"
   },
   "metadata": {
-    "version": "2.0.0",
+    "version": "2.0.1",
     "description": "Totally Tools - a Playground for Claude extensions including skills, commands, agents, hooks, and MCP servers"
   },
   "plugins": [
