@@ -199,7 +199,13 @@ function dropTask(args: OfoArgs): OfoResult {
 
 function createTask(args: OfoArgs): OfoResult {
   let location = inbox.ending;
-  if (args.project) {
+  // `parent` (task ID) wins over `project` when both are supplied — nesting
+  // a task under an existing parent implies that parent's containing project.
+  if (args.parent) {
+    const parentTask = Task.byIdentifier(args.parent as string);
+    if (!parentTask) return { success: false, error: 'Parent task not found: ' + args.parent };
+    location = parentTask.ending;
+  } else if (args.project) {
     const proj = flattenedProjects.byName(args.project as string);
     if (proj) location = proj.task.ending;
   }
@@ -245,6 +251,7 @@ function updateTask(args: OfoArgs): OfoResult {
     t.note = existing + sep + (args.noteAppend as string);
   }
   if (args.flagged !== undefined) t.flagged = args.flagged as boolean;
+  if (args.sequential !== undefined) t.sequential = args.sequential as boolean;
   if (args.due !== undefined) t.dueDate = args.due === null ? null : new Date(args.due as string);
   if (args.defer !== undefined) t.deferDate = args.defer === null ? null : new Date(args.defer as string);
   if (args.estimate !== undefined) t.estimatedMinutes = args.estimate as number;
@@ -277,6 +284,7 @@ function updateTask(args: OfoArgs): OfoResult {
       name: t.name,
       project: t.containingProject ? t.containingProject.name : 'Inbox',
       flagged: t.flagged,
+      sequential: t.sequential,
       dueDate: t.dueDate ? t.dueDate.toISOString() : null,
       deferDate: t.deferDate ? t.deferDate.toISOString() : null,
       plannedDate: updatePlannedDate

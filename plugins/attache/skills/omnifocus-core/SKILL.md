@@ -6,7 +6,7 @@ description: |
   Do NOT trigger for: "create OmniFocus plugin" (use omnifocus-generator skill), "analyze my system" or "discover my patterns" (use attache-analyst skill), pure GTD methodology questions (use gtd-coach skill).
 license: MIT
 metadata:
-  version: 11.0.0
+  version: 11.1.0
   author: totally-tools
 compatibility:
   platforms: [macos]
@@ -39,7 +39,10 @@ scripts/ofo drop <id-or-omnifocus-url>       # Drop single occurrence (recurrenc
 scripts/ofo drop <id-or-omnifocus-url> --all # Drop all occurrences (stops repeating)
 scripts/ofo health                           # System health: inbox, overdue, flagged (single call)
 scripts/ofo create --name "Task" --project "Work" --due 2026-12-31
+scripts/ofo create --name "Subtask" --parent <id|url>  # Nest under existing task (action-group child)
 scripts/ofo update <id> --name "New name" --flagged
+scripts/ofo update <id> --sequential                 # Make children run sequentially (action group)
+scripts/ofo update <id> --parallel                   # Make children run in parallel
 scripts/ofo update <id> --note "text"                # Replace task note entirely
 scripts/ofo update <id> --note-append "text"         # Append text to existing note
 scripts/ofo update <id> --project "Project Name"     # Move task to a project
@@ -81,7 +84,9 @@ osascript -l JavaScript scripts/gtd-queries.js --action analyze-projects --thres
 osascript -l JavaScript scripts/gtd-queries.js --action folder-structure
 ```
 
-**Legacy:** `scripts/manage_omnifocus.js` retained only for `bulk-create` (structured projects with action groups). All other commands covered by ofo CLI.
+**Action groups via ofo:** build N children with `ofo create --parent <id>` (UUID or `omnifocus://` URL), then `ofo update <id> --sequential` to flip the parent. Replaces the legacy `manage_omnifocus.js bulk-create` workflow for the common case.
+
+**Legacy:** `scripts/manage_omnifocus.js` retained only for whole-project-with-nested-groups creation from a single JSON file. All other commands covered by ofo CLI.
 
 ## Perspectives
 

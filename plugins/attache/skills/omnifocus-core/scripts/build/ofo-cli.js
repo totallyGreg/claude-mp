@@ -137,7 +137,7 @@ function parseStdinInput(raw) {
 }
 function cmdCreate(args) {
     // Parse CLI flags
-    let name = '', project = '', note = '', due = '', defer_ = '', tags = '', estimate = '', plannedDate = '';
+    let name = '', project = '', parent = '', note = '', due = '', defer_ = '', tags = '', estimate = '', plannedDate = '';
     let flagged = false;
     let i = 0;
     while (i < args.length) {
@@ -147,6 +147,9 @@ function cmdCreate(args) {
                 break;
             case '--project':
                 project = args[++i] || '';
+                break;
+            case '--parent':
+                parent = parseOmniFocusUrl(args[++i] || '');
                 break;
             case '--note':
                 note = args[++i] || '';
@@ -184,6 +187,8 @@ function cmdCreate(args) {
                 const merged = { ...item };
                 if (project && !merged.project)
                     merged.project = project;
+                if (parent && !merged.parent)
+                    merged.parent = parent;
                 if (tags && !merged.tags)
                     merged.tags = tags.split(',').map(t => t.trim());
                 if (due && !merged.due)
@@ -213,6 +218,8 @@ function cmdCreate(args) {
         // CLI flags override stdin fields
         if (project)
             stdinObj.project = project;
+        if (parent)
+            stdinObj.parent = parent;
         if (note)
             stdinObj.note = note;
         if (due)
@@ -232,10 +239,12 @@ function cmdCreate(args) {
     }
     // No stdin: require --name
     if (!name)
-        die('Usage: ofo create --name "Task name" [--project P] [--tags t1,t2] [--due YYYY-MM-DD]');
+        die('Usage: ofo create --name "Task name" [--project P | --parent <id>] [--tags t1,t2] [--due YYYY-MM-DD]');
     const argObj = { name };
     if (project)
         argObj.project = project;
+    if (parent)
+        argObj.parent = parent;
     if (note)
         argObj.note = note;
     if (due)
@@ -254,7 +263,7 @@ function cmdCreate(args) {
 }
 function cmdUpdate(args) {
     if (args.length < 1)
-        die('Usage: ofo update <id> [--name N] [--due D] [--flagged] [--tags t1,t2] [--project P]');
+        die('Usage: ofo update <id> [--name N] [--due D] [--flagged] [--sequential|--parallel] [--tags t1,t2] [--project P]');
     const id = parseOmniFocusUrl(args[0]);
     const argObj = { id };
     let i = 1;
@@ -285,6 +294,12 @@ function cmdUpdate(args) {
             case '--flagged':
                 argObj.flagged = true;
                 break;
+            case '--sequential':
+                argObj.sequential = true;
+                break;
+            case '--parallel':
+                argObj.sequential = false;
+                break;
             case '--estimate':
                 argObj.estimate = parseInt(args[++i] || '0', 10);
                 break;
@@ -310,17 +325,79 @@ function cmdSearch(args) {
 }
 function cmdList(args) {
     const filter = args[0] || 'inbox';
-    if (!['inbox', 'flagged', 'today', 'overdue', 'due-soon'].includes(filter)) {
-        die('Unknown filter: ' + filter + '. Use: inbox, flagged, today, overdue, due-soon [N]');
+    if (!['inbox', 'flagged', 'today', 'overdue', 'due-soon', 'waiting-for', 'someday-maybe'].includes(filter)) {
+        die('Unknown filter: ' + filter + '. Use: inbox, flagged, today, overdue, due-soon [N], waiting-for, someday-maybe');
     }
     if (filter === 'due-soon') {
         const days = args[1] ? parseInt(args[1], 10) : 7;
         if (isNaN(days) || days < 1)
             die('due-soon requires a positive number of days (e.g. ofo list due-soon 3)');
         runAction('ofo-list', { filter, days });
+        return;
     }
-    else {
-        runAction('ofo-list', { filter });
+    // D6.3 + D7.5 — waiting-for and someday-maybe need conventions from explicit flag → System Map
+    if (filter === 'waiting-for') {
+        let tag = null;
+        let ageThresholdDays = 0;
+        for (let i = 1; i < args.length; i++) {
+            if (args[i] === '--tag')
+                tag = args[++i] || null;
+            else if (args[i] === '--days')
+                ageThresholdDays = parseInt(args[++i] || '0', 10);
+        }
+        if (!tag) {
+            tag = resolveSystemMapConvention('waitingTag');
+            if (!tag)
+                die('No --tag provided and SystemMap.conventions.waitingTag is not set. Run: ofo system-map --refresh');
+        }
+        runAction('ofo-list-waiting-for', { tag, ageThresholdDays });
+        return;
+    }
+    if (filter === 'someday-maybe') {
+        let tag = null;
+        let folder = null;
+        for (let i = 1; i < args.length; i++) {
+            if (args[i] === '--tag')
+                tag = args[++i] || null;
+            else if (args[i] === '--folder')
+                folder = args[++i] || null;
+        }
+        if (!tag && !folder) {
+            tag = resolveSystemMapConvention('somedayTag');
+            folder = resolveSystemMapConvention('somedayFolder');
+            if (!tag && !folder)
+                die('No --tag or --folder provided and SystemMap.conventions.{somedayTag, somedayFolder} are not set. Run: ofo system-map --refresh');
+        }
+        const payload = {};
+        if (tag)
+            payload['tag'] = tag;
+        if (folder)
+            payload['folder'] = folder;
+        runAction('ofo-list-someday-maybe', payload);
+        return;
+    }
+    runAction('ofo-list', { filter });
+}
+/**
+ * D7.5 — read a convention field from the cached System Map task note.
+ * Returns null on missing/corrupt map or missing field; caller decides error UX.
+ */
+function resolveSystemMapConvention(field) {
+    const script = `(() => {
+  const tasks = flattenedTasks.filter(t => t.name === ${JSON.stringify(SYSTEM_MAP_TASK_NAME)});
+  if (tasks.length === 0) { Pasteboard.general.string = JSON.stringify({success:false, error:"missing"}); return; }
+  Pasteboard.general.string = JSON.stringify({success:true, note: tasks[0].note || "{}"});
+})()`;
+    const raw = runInlineScript(script);
+    try {
+        const wrap = JSON.parse(raw);
+        if (!wrap.success)
+            return null;
+        const map = JSON.parse(wrap.note);
+        return map.conventions?.[field] ?? null;
+    }
+    catch {
+        return null;
     }
 }
 function cmdPerspective(args) {
@@ -597,17 +674,37 @@ Commands:
   clarity [--limit N]               Tasks with lowest clarity score (no estimate/tags/project); default limit 10
   stalled [--days N]                Active projects with no available next action or not modified in N days (default 14)
   health                            System health: inbox, overdue (with Catch Up metadata), flagged — single call
+  completed --since <date> [--by-tag]   Tasks completed since date; optional grouping by tag (gtd-coach "what did you accomplish?")
+  folders [--with-projects]         Folder hierarchy as tree; optionally include projects under each folder
+  projects neglected [--days N]     Active projects not modified in N days (default 30)
+  projects review [--before <ISO>]  Active/onHold projects whose nextReviewDate ≤ before date (default now)
+  project review <id> [--date <ISO>]    Mark project as reviewed (sets lastReviewDate; advances nextReviewDate)
+  project create --name "..." [--folder NAME] [--sequential|--parallel] [--note] [--due] [--defer] [--review-every N <unit>]
+  project update <id> [--name|--note|--status|--folder|--due|--defer|--sequential|--parallel|--flagged|--unflag]
+                                    Status values: active | onHold | completed | dropped
+  system-map [flags]                Inspect or refresh the Attache System Map (per D7.2 schema v1).
+                                    Flags: --show (human summary), --json (raw JSON, default),
+                                           --refresh [--depth quick|full] (re-discover + write to task note),
+                                           --drift-check (returns {stale, reasons, ageDays}),
+                                           --validate (check against schema v1 required fields).
+                                    Env: ATTACHE_MAP_MAX_AGE_DAYS (default 30) — drift-check age threshold.
   help                              Show this help
 
 Filters for 'list':
-  inbox       Inbox tasks
-  flagged     Flagged active tasks
-  today       Due today, flagged, or planned today
-  overdue     Past due date
+  inbox                      Inbox tasks
+  flagged                    Flagged active tasks
+  today                      Due today, flagged, or planned today
+  overdue                    Past due date
+  due-soon [N]               Due in next N days (default 7)
+  waiting-for [--tag NAME] [--days N]  Tasks tagged as Waiting For. If --tag omitted,
+                             resolves from SystemMap.conventions.waitingTag (D7.5).
+  someday-maybe [--tag NAME] [--folder NAME]  Tasks in Someday/Maybe tag or folder.
+                             If both omitted, resolves from SystemMap.conventions.{somedayTag,somedayFolder}.
 
 Create options:
   --name "Task name"        Task name (required)
-  --project "Project"       Target project
+  --project "Project"       Target project (ignored if --parent given)
+  --parent <id|url>         Nest under an existing task (becomes action-group child)
   --tags "tag1,tag2"        Comma-separated tags
   --due YYYY-MM-DD          Due date
   --defer YYYY-MM-DD        Defer date
@@ -622,6 +719,8 @@ Update options:
   --defer YYYY-MM-DD|clear  Set or clear defer date
   --tags "tag1,tag2"        Replace all tags
   --flagged                 Flag the task
+  --sequential              Make this task's children run sequentially (action group)
+  --parallel                Make this task's children run in parallel
   --note "Note text"        Set task note
   --estimate N              Set estimated minutes
   --planned-date YYYY-MM-DD|clear  Set or clear planned date
@@ -636,7 +735,9 @@ Stdin support (create):
   echo "Task name" | ofo create              Plain text: first line = name, rest = note
   echo '{"name":"X"}' | ofo create           JSON object with task fields
   echo '[{"name":"A"},...]' | ofo create     JSON array for batch creation
-  Flags (--project, --tags) merge with stdin; --name overrides stdin name
+  Flags (--project, --parent, --tags) merge with stdin; --name overrides stdin name
+  Build an action group: feed N items with the same --parent <id>, then
+    ofo update <parent-id> --sequential
 
 Perspective-configure options:
   --name "Name"             Perspective to configure (by name)
@@ -662,6 +763,387 @@ Prerequisites:
 `);
 }
 // --- Main ---
+// --- D7.3 — System Map CLI ---
+const ATTACHE_PLUGIN_ID = 'com.totallytools.omnifocus.attache';
+const SYSTEM_MAP_TASK_NAME = 'Attache System Map';
+const EXPECTED_SCHEMA_VERSION = 1;
+const DEFAULT_MAX_AGE_DAYS = 30;
+/**
+ * Run an inline omnijs-run script and return its pasteboard output.
+ * Same polling pattern as runAction() but takes the script body inline
+ * (not the ofo-stub.js). Used for system-map operations that cross
+ * libraries (ofoCore + systemDiscovery).
+ */
+function runInlineScript(scriptBody) {
+    pbcopy('__ofo_pending__');
+    const encoded = urlEncode(scriptBody);
+    execSync(`open "omnifocus://localhost/omnijs-run?script=${encoded}"`, { stdio: 'ignore' });
+    for (let attempt = 0; attempt < 50; attempt++) {
+        execSync('sleep 0.2');
+        const result = pbpaste();
+        if (result !== '__ofo_pending__')
+            return result;
+    }
+    die('Timeout waiting for OmniFocus response (system-map). Is external script execution enabled?');
+    return ''; // unreachable
+}
+function cmdSystemMap(args) {
+    let mode = 'json';
+    let depth = 'full';
+    for (let i = 0; i < args.length; i++) {
+        switch (args[i]) {
+            case '--show':
+                mode = 'show';
+                break;
+            case '--refresh':
+                mode = 'refresh';
+                break;
+            case '--drift-check':
+                mode = 'drift-check';
+                break;
+            case '--validate':
+                mode = 'validate';
+                break;
+            case '--json':
+                mode = 'json';
+                break;
+            case '--depth':
+                depth = args[++i] || 'full';
+                break;
+            default: die('Unknown flag: ' + args[i] + '. Usage: ofo system-map [--show|--refresh|--drift-check|--validate|--json] [--depth quick|full]');
+        }
+    }
+    if (mode === 'refresh') {
+        // Inline script: invoke systemDiscovery, write to task note, return JSON.
+        const script = `(() => {
+  const p = PlugIn.find(${JSON.stringify(ATTACHE_PLUGIN_ID)});
+  if (!p) { Pasteboard.general.string = JSON.stringify({success:false, error:"Attache plugin not installed"}); return; }
+  const lib = p.library("systemDiscovery");
+  if (!lib) { Pasteboard.general.string = JSON.stringify({success:false, error:"systemDiscovery library not found in Attache plugin (rebuild required?)"}); return; }
+  let map;
+  try { map = lib.discoverSystem({depth: ${JSON.stringify(depth)}}); }
+  catch (e) { Pasteboard.general.string = JSON.stringify({success:false, error:"discoverSystem threw: " + String(e)}); return; }
+  const mapJson = JSON.stringify(map);
+  // Find or create the Attache System Map task at inbox root
+  const existing = flattenedTasks.filter(t => t.name === ${JSON.stringify(SYSTEM_MAP_TASK_NAME)});
+  let task;
+  if (existing.length > 0) { task = existing[0]; task.note = mapJson; }
+  else { task = new Task(${JSON.stringify(SYSTEM_MAP_TASK_NAME)}, inbox.ending); task.note = mapJson; }
+  Pasteboard.general.string = JSON.stringify({success:true, refreshed:true, taskId: task.id.primaryKey, schemaVersion: map.schemaVersion, generatedAt: map.generatedAt, discoveryMode: map.discoveryMode, conventions: map.conventions, durationModel: map.durationModel});
+})()`;
+        const result = runInlineScript(script);
+        process.stdout.write(result);
+        return;
+    }
+    // For show/drift-check/validate/json: first read the map from the task note.
+    const readScript = `(() => {
+  const tasks = flattenedTasks.filter(t => t.name === ${JSON.stringify(SYSTEM_MAP_TASK_NAME)});
+  if (tasks.length === 0) { Pasteboard.general.string = JSON.stringify({success:false, error:"System Map not found. Run: ofo system-map --refresh"}); return; }
+  const task = tasks[0];
+  const note = task.note || "{}";
+  // Also collect live counts for drift detection
+  const liveTagCount = flattenedTags.length;
+  const liveTopLevelFolderCount = folders.length;
+  Pasteboard.general.string = JSON.stringify({success:true, note: note, liveTagCount: liveTagCount, liveTopLevelFolderCount: liveTopLevelFolderCount, taskId: task.id.primaryKey});
+})()`;
+    const readResult = runInlineScript(readScript);
+    let readData;
+    try {
+        readData = JSON.parse(readResult);
+    }
+    catch {
+        die('Failed to parse OmniFocus response: ' + readResult.slice(0, 200));
+    }
+    if (!readData.success) {
+        process.stdout.write(readResult);
+        process.exit(1);
+    }
+    let map;
+    try {
+        map = JSON.parse(readData.note);
+    }
+    catch {
+        process.stdout.write(JSON.stringify({ success: false, error: 'System Map task note is not valid JSON. Run: ofo system-map --refresh' }));
+        process.exit(1);
+    }
+    if (mode === 'json' || mode === 'show') {
+        if (mode === 'json') {
+            process.stdout.write(JSON.stringify(map, null, 2));
+            return;
+        }
+        // Human-readable summary
+        const ageDays = map.generatedAt
+            ? Math.floor((Date.parse(new Date().toISOString()) - Date.parse(map.generatedAt)) / 86400000)
+            : '?';
+        const lines = [
+            'Attache System Map',
+            '==================',
+            `Schema version:    ${map.schemaVersion ?? '(legacy, pre-D7.2)'}`,
+            `Attache version:   ${map.attacheVersion ?? '?'}`,
+            `Generated at:      ${map.generatedAt ?? map.discoveredAt ?? '?'} (${ageDays} days ago)`,
+            `Discovery mode:    ${map.discoveryMode ?? '?'} (depth: ${map.discoveryDepth ?? map.discoveryMode ?? '?'})`,
+            `Duration model:    ${map.durationModel ?? '?'}`,
+            '',
+            'Conventions:',
+            `  waitingTag:        ${map.conventions?.waitingTag ?? '(none)'}`,
+            `  somedayTag:        ${map.conventions?.somedayTag ?? '(none)'}`,
+            `  somedayFolder:     ${map.conventions?.somedayFolder ?? '(none)'}`,
+            `  waitingForFolder:  ${map.conventions?.waitingForFolder ?? '(none)'}`,
+            `  defaultContextTag: ${map.conventions?.defaultContextTag ?? '(none)'}`,
+            '',
+            `Folders: ${map.structure?.totalFolders ?? '?'} total, ${map.structure?.topLevelFolders?.length ?? '?'} top-level`,
+            `Projects: ${map.projects?.total ?? '?'} (${map.projects?.active ?? '?'} active, ${map.projects?.stalled ?? '?'} stalled)`,
+            map.tasks ? `Tasks: ${map.tasks.active ?? '?'} active (${map.tasks.inInbox ?? '?'} in inbox)` : 'Tasks: (quick mode, no task data)',
+            `Tags: ${map.tags?.totalTags ?? '?'} total (${map.tags?.taxonomyStyle ?? '?'})`,
+        ];
+        process.stdout.write(lines.join('\n') + '\n');
+        return;
+    }
+    if (mode === 'validate') {
+        const errors = [];
+        if (map.schemaVersion !== EXPECTED_SCHEMA_VERSION) {
+            errors.push(`schemaVersion: expected ${EXPECTED_SCHEMA_VERSION}, got ${map.schemaVersion}`);
+        }
+        const requiredTopLevel = ['attacheVersion', 'generatedAt', 'discoveryMode', 'discoveryDepth', 'conventions', 'tags', 'structure', 'projects'];
+        for (const field of requiredTopLevel) {
+            if (!(field in map))
+                errors.push(`missing required field: ${field}`);
+        }
+        if (map.conventions) {
+            const reqConventions = ['waitingTag', 'somedayTag', 'somedayFolder', 'waitingForFolder', 'defaultContextTag'];
+            for (const c of reqConventions) {
+                if (!(c in map.conventions))
+                    errors.push(`missing required field: conventions.${c}`);
+            }
+        }
+        if (errors.length === 0) {
+            process.stdout.write(JSON.stringify({ valid: true, schemaVersion: map.schemaVersion }) + '\n');
+            return;
+        }
+        process.stdout.write(JSON.stringify({ valid: false, errors }) + '\n');
+        process.exit(1);
+    }
+    if (mode === 'drift-check') {
+        const maxAgeDays = parseInt(process.env['ATTACHE_MAP_MAX_AGE_DAYS'] || String(DEFAULT_MAX_AGE_DAYS), 10);
+        const reasons = [];
+        if (map.schemaVersion !== EXPECTED_SCHEMA_VERSION) {
+            reasons.push(`schema-stale: map v${map.schemaVersion}, current schema v${EXPECTED_SCHEMA_VERSION}`);
+        }
+        const generatedAt = map.generatedAt || map.discoveredAt;
+        let ageDays = 0;
+        if (generatedAt) {
+            ageDays = Math.floor((Date.parse(new Date().toISOString()) - Date.parse(generatedAt)) / 86400000);
+            if (ageDays > maxAgeDays)
+                reasons.push(`age-stale: refreshed ${ageDays} days ago (threshold ${maxAgeDays}d)`);
+        }
+        // Tag-count delta: sum of all tags.categories.* arrays vs current flattenedTags.length
+        let mapTagCount = 0;
+        if (map.tags?.categories) {
+            for (const cat of Object.values(map.tags.categories)) {
+                if (Array.isArray(cat))
+                    mapTagCount += cat.length;
+            }
+        }
+        const tagDelta = Math.abs(readData.liveTagCount - mapTagCount);
+        const tagDeltaPct = mapTagCount > 0 ? (tagDelta / mapTagCount) * 100 : 0;
+        if (tagDeltaPct > 10) {
+            reasons.push(`tag-drift: ${tagDelta} tags difference (${tagDeltaPct.toFixed(1)}% drift)`);
+        }
+        // Folder-count delta
+        const mapFolderCount = map.structure?.topLevelFolders?.length ?? 0;
+        const folderDelta = Math.abs(readData.liveTopLevelFolderCount - mapFolderCount);
+        const folderDeltaPct = mapFolderCount > 0 ? (folderDelta / mapFolderCount) * 100 : 0;
+        if (folderDeltaPct > 10) {
+            reasons.push(`folder-drift: top-level folder count changed (${folderDelta} difference)`);
+        }
+        // Broken convention check (rough — checks if convention tag/folder name still exists)
+        // Note: full check requires another roundtrip; the live counts already give a strong signal.
+        process.stdout.write(JSON.stringify({
+            stale: reasons.length > 0,
+            reasons,
+            lastRefresh: generatedAt,
+            ageDays,
+        }, null, 2) + '\n');
+        return;
+    }
+}
+// --- D6.3 — Projects, project, completed, folders ---
+function cmdProjects(args) {
+    const sub = args[0];
+    if (!sub)
+        die('Usage: ofo projects <subcommand> — try: neglected, review');
+    if (sub === 'neglected') {
+        let days = 30;
+        for (let i = 1; i < args.length; i++) {
+            if (args[i] === '--days')
+                days = parseInt(args[++i] || '30', 10);
+        }
+        runAction('ofo-list-neglected-projects', { daysSinceModified: days });
+        return;
+    }
+    if (sub === 'review') {
+        let before = null;
+        for (let i = 1; i < args.length; i++) {
+            if (args[i] === '--before')
+                before = args[++i] || null;
+        }
+        const payload = {};
+        if (before)
+            payload['beforeDate'] = before;
+        runAction('ofo-list-projects-for-review', payload);
+        return;
+    }
+    die('Unknown projects subcommand: ' + sub + ' (try: neglected, review)');
+}
+function cmdProject(args) {
+    const sub = args[0];
+    if (!sub)
+        die('Usage: ofo project <subcommand> [args] — try: review <id>, create, update <id>');
+    if (sub === 'review') {
+        const id = args[1];
+        if (!id)
+            die('Usage: ofo project review <id> [--date <ISO>]');
+        let date = null;
+        for (let i = 2; i < args.length; i++) {
+            if (args[i] === '--date')
+                date = args[++i] || null;
+        }
+        const payload = { id: parseOmniFocusUrl(id) };
+        if (date)
+            payload['reviewDate'] = date;
+        runAction('ofo-mark-project-reviewed', payload);
+        return;
+    }
+    if (sub === 'create') {
+        let name = '', folder = '', note = '', due = '', defer_ = '';
+        let sequential;
+        let flagged = false;
+        let reviewIntervalSteps = 0;
+        let reviewIntervalUnit = 'weeks';
+        for (let i = 1; i < args.length; i++) {
+            switch (args[i]) {
+                case '--name':
+                    name = args[++i] || '';
+                    break;
+                case '--folder':
+                    folder = args[++i] || '';
+                    break;
+                case '--note':
+                    note = args[++i] || '';
+                    break;
+                case '--due':
+                    due = args[++i] || '';
+                    break;
+                case '--defer':
+                    defer_ = args[++i] || '';
+                    break;
+                case '--sequential':
+                    sequential = true;
+                    break;
+                case '--parallel':
+                    sequential = false;
+                    break;
+                case '--flagged':
+                    flagged = true;
+                    break;
+                case '--review-every': {
+                    // Format: "--review-every 1 week" or "--review-every 7 days"
+                    reviewIntervalSteps = parseInt(args[++i] || '0', 10);
+                    reviewIntervalUnit = args[++i] || 'weeks';
+                    break;
+                }
+                default: die('Unknown flag: ' + args[i]);
+            }
+        }
+        if (!name)
+            die('--name is required');
+        const payload = { name };
+        if (folder)
+            payload['folder'] = folder;
+        if (note)
+            payload['note'] = note;
+        if (due)
+            payload['due'] = due;
+        if (defer_)
+            payload['defer'] = defer_;
+        if (sequential !== undefined)
+            payload['sequential'] = sequential;
+        if (flagged)
+            payload['flagged'] = true;
+        if (reviewIntervalSteps > 0)
+            payload['reviewInterval'] = { steps: reviewIntervalSteps, unit: reviewIntervalUnit };
+        runAction('ofo-create-project', payload);
+        return;
+    }
+    if (sub === 'update') {
+        const id = args[1];
+        if (!id)
+            die('Usage: ofo project update <id> [flags]');
+        const payload = { id: parseOmniFocusUrl(id) };
+        for (let i = 2; i < args.length; i++) {
+            switch (args[i]) {
+                case '--name':
+                    payload['name'] = args[++i] || '';
+                    break;
+                case '--note':
+                    payload['note'] = args[++i] || '';
+                    break;
+                case '--status':
+                    payload['status'] = args[++i] || '';
+                    break;
+                case '--folder':
+                    payload['folder'] = args[++i] || '';
+                    break;
+                case '--due':
+                    payload['due'] = args[++i] === 'clear' ? null : args[i];
+                    break;
+                case '--defer':
+                    payload['defer'] = args[++i] === 'clear' ? null : args[i];
+                    break;
+                case '--sequential':
+                    payload['sequential'] = true;
+                    break;
+                case '--parallel':
+                    payload['sequential'] = false;
+                    break;
+                case '--flagged':
+                    payload['flagged'] = true;
+                    break;
+                case '--unflag':
+                    payload['flagged'] = false;
+                    break;
+                default: die('Unknown flag: ' + args[i]);
+            }
+        }
+        runAction('ofo-update-project', payload);
+        return;
+    }
+    die('Unknown project subcommand: ' + sub + ' (try: review, create, update)');
+}
+function cmdCompleted(args) {
+    let since = null;
+    let byTag = false;
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--since')
+            since = args[++i] || null;
+        else if (args[i] === '--by-tag')
+            byTag = true;
+    }
+    const payload = {};
+    if (since)
+        payload['sinceDate'] = since;
+    if (byTag)
+        payload['groupByTag'] = true;
+    runAction('ofo-list-recently-completed', payload);
+}
+function cmdFolders(args) {
+    let withProjects = false;
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--with-projects')
+            withProjects = true;
+    }
+    runAction('ofo-list-folders', withProjects ? { includeProjects: true } : {});
+}
 const argv = process.argv.slice(2);
 const command = argv[0] || 'help';
 const commandArgs = argv.slice(1);
@@ -726,6 +1208,22 @@ switch (command) {
         break;
     case 'health':
         cmdHealth();
+        break;
+    // D6.3 — GTD-essential commands
+    case 'projects':
+        cmdProjects(commandArgs);
+        break;
+    case 'project':
+        cmdProject(commandArgs);
+        break;
+    case 'completed':
+        cmdCompleted(commandArgs);
+        break;
+    case 'folders':
+        cmdFolders(commandArgs);
+        break;
+    case 'system-map':
+        cmdSystemMap(commandArgs);
         break;
     case 'help':
     case '--help':

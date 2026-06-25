@@ -26,6 +26,8 @@ Pure GTD methodology coaching without OmniFocus automation.
 
 | Version | Changes |
 |---------|---------|
+| 12.1.1 | **attache routing alignment + Gap-Detection rule**: Updated routing table to point action-group creation at the new `ofo create --parent` / `ofo update --sequential` flags shipped in 12.1.0; legacy `bulk-create` retained as documented JXA escape hatch for whole-project-from-JSON only. Added "Gap-Detection" rule: when reaching for inline `osascript`, file friction via `ss-wtf` first so the gap closes in TypeScript next ss-improve loop. New triggering example covers the rule. Agent score 96/100 (no regression). |
+| 12.1.0 | **ofo create --parent + ofo update --sequential\|--parallel**: Build action groups via the CLI (closes friction report 2026-06-24-224859-71447, slots under #141). Replaces the legacy `manage_omnifocus.js bulk-create` workaround for the common case. omnifocus-core 11.1.0. Score 98/100. |
 | 12.0.1 | **ofo update --project**: Add --project flag to move tasks between projects (#161 partial). Fix build-attache.sh echo expansion corrupting string literals. Skill score 98/100. |
 | 12.0.0 | **Tool-agnostic GTD router**: Asana as peer backend alongside OmniFocus. Cross-tool workflows (task mirroring, pulling, reconciliation, unified daily view). Write safety classification. Output format section. Agent score 97/100 (was 82). |
 | 11.0.0 | **Attache rename**: omnifocus-manager → attache. Skill decomposition: omnifocus-core + omnifocus-generator + attache-analyst. Cross-tool delegation (archivist, terminal-guru). Tool stack awareness via Tools.base. Agent score 82/100. |
@@ -60,16 +62,17 @@ Pure GTD methodology coaching without OmniFocus automation.
 
 ### Current Metrics
 
-**Score: 94/100** (Good) — 2026-04-09
+**Score: 98/100** (Excellent) — 2026-06-25
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
-| 83 | 90 | 100 | 100 | 100 |
+| 100 | 90 | 100 | 100 | 100 |
 
 ### Version History
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 11.1.0 | 2026-06-25 | [#141](https://github.com/totallyGreg/claude-mp/issues/141) | `ofo create --parent <id>` (UUID or `omnifocus://` URL) + `ofo update <id> --sequential\|--parallel`: build action groups via CLI. Closes friction `2026-06-24-224859-71447` — replaces the 5-task-flat + tag + manual-drag + inspector-toggle workaround. `createTask` accepts `parent` (wins over `project`); `updateTask` accepts `sequential` and returns it in response. Verified live: `--parent` placed 3 children, `--sequential` flipped parent to Blocked (sequential parent blocks behind first child). | 100 | 90 | 100 | 100 | 100 | 98 |
 | 10.4.1 | 2026-04-09 | - | Doc: add missing --note (replace) to ofo update command table; --note-append already documented | 83 | 90 | 100 | 100 | 100 | 94 |
 | 10.4.0 | 2026-04-09 | - | Agent: add inline-script RED FLAG (tool-agnostic wording) to Pillar 4, add structured-project → bulk-create intent row, make agent default entry point in CLAUDE.md |
 | 10.3.0 | 2026-04-09 | - | Add RED FLAG gate: inline Omni Automation script → STOP, check ofo CLI or use bulk-create for structured projects; strengthen STEP 1 classify to route structured-project creation explicitly | 83 | 90 | 100 | 100 | 100 | 94 |

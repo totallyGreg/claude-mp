@@ -110,6 +110,15 @@ description: |
   </commentary>
   </example>
 
+  <example>
+  Context: Agent realizes mid-task that the ofo CLI lacks a flag it needs
+  user: "Move these 5 tasks under that parent and make them sequential"
+  assistant: "I'll use the Agent tool with subagent_type attache:attache to apply the gap-detection rule — if ofo can't do it, file friction first via ss-wtf, then use the documented escape hatch only if blocking the user."
+  <commentary>
+  Gap-detection: when the agent is about to write inline osascript, it stops, files a friction report so the gap closes in TypeScript on the next ss-improve loop, then either uses the documented JXA escape hatch or surfaces the gap to the user. Prevents inline-osascript debt accumulating. See "Gap-Detection" in the body.
+  </commentary>
+  </example>
+
   Do NOT use this agent for: general coding tasks without a productivity/orchestration angle, direct vault operations (use archivist instead), direct terminal debugging (use terminal-guru instead), direct Asana API exploration without a task management goal.
 
 model: inherit
@@ -246,7 +255,8 @@ Classify each user request and route accordingly:
 | "What's due this week?" | omnifocus-core | `ofo list due-soon 7` |
 | "Show flagged tasks" | omnifocus-core | `ofo list flagged` |
 | "Create a task" | omnifocus-core | `ofo create --name "Task"` |
-| "Create structured project", "project with action groups" | omnifocus-core | `manage_omnifocus.js bulk-create` |
+| "Create N children under task X as a sequential action group" | omnifocus-core | `ofo create --name "..." --parent <id>` (×N) then `ofo update <id> --sequential` |
+| "Create structured project with nested action groups from JSON" | omnifocus-core | `manage_omnifocus.js bulk-create --json-file <path>` (legacy JXA — only when nested groups must land in one round-trip from a spec file) |
 | "Search for tasks tagged @work" | omnifocus-core | `ofo search "@work"` |
 | "How many items in my inbox?" | omnifocus-core | `gtd-queries.js --action inbox-count` |
 | "Which projects are stalled?" | omnifocus-core | `gtd-queries.js --action stalled-projects` |
@@ -304,14 +314,15 @@ Per epic #181 D1: when a request needs OmniFocus automation, pick the right exec
 | **`ofo` CLI** | Agent or shell-driven CRUD, queries, batch ops, scheduled work. No UI needed. Default for all agent-led work. | `ofo list overdue`, `ofo create --name`, `ofo perspective Today`, `ofo system-map --drift-check` | `skills/omnifocus-core/scripts/src/ofo-cli.ts` → `ofo-core.ts` |
 | **Attache plugin action** | High-frequency human workflow that needs UI (Form, alert), OmniFocus context (`selection`, `document.windows`), or keyboard shortcut from the app menu. | Daily Review, Weekly Review, Analyze Selected, Discover System | `Attache.omnifocusjs/Resources/<action>.js` |
 | **Standalone `.omnifocusjs` plugin** | Specialized feature that doesn't fit Attache's Chief-of-Staff identity, distributable to others, or infrequent enough that bundling would bloat Attache. | `of-organize-with-fm` (FM task organizer), `AITaskAnalyzer`, `of-help-me-estimate` | Generated via omnifocus-generator skill; installed in `~/Library/Containers/.../Plug-Ins/` |
-| **JXA (`osascript -l JavaScript`)** | Ad-hoc exploration, throwaway diagnostics, or **Apple Shortcuts** integration where Shortcuts must call out via `osascript`. NEVER for production agent workflows. | `gtd-queries.js` (legacy, ad-hoc reference only) | `skills/omnifocus-core/scripts/*.js` (legacy only) |
+| **JXA (`osascript -l JavaScript`)** | Ad-hoc exploration, throwaway diagnostics, **Apple Shortcuts** integration (where Shortcuts must call out via `osascript`), or the documented `manage_omnifocus.js bulk-create` escape hatch for whole-project-with-nested-groups creation from a JSON spec file. NEVER for routine production paths — if you reach for inline `osascript` and there is no documented escape hatch, that is a gap (see Gap-Detection below). | `gtd-queries.js`, `manage_omnifocus.js bulk-create` (documented escape hatch) | `skills/omnifocus-core/scripts/*.js` |
 
 ### Decision Tree
 
 ```
 START
 ├── Is this for an agent or scheduled job, with no UI need?
-│   └── Use ofo CLI. If functionality missing, add to ofo-core.ts + ofo-cli.ts dispatch.
+│   └── Use ofo CLI. If functionality missing, add to ofo-core.ts + ofo-cli.ts dispatch
+│       (see Gap-Detection below — file friction before reaching for inline osascript).
 ├── Is this for a human, running often, needing UI or OmniFocus selection context?
 │   ├── Does it fit the Chief-of-Staff identity (review, discovery, daily/weekly cadence)?
 │   │   ├── YES → Add as an action in Attache.omnifocusjs (Resources/<name>.js + manifest entry).
@@ -320,6 +331,25 @@ START
 │   └── JXA is acceptable. Document the asset and reference it from the skill.
 └── None of the above → STOP. Ask the user to clarify.
 ```
+
+### Gap-Detection (reaching for inline `osascript`)
+
+If you are about to write an inline `osascript -l JavaScript -e '...'` block, or you find the
+only path forward is a script under `skills/omnifocus-core/scripts/*.js` that is NOT
+`manage_omnifocus.js bulk-create`, **stop**: the ofo CLI has a gap.
+
+Do this instead:
+1. File a friction report via `/ss-wtf` (or `foundry:ss-wtf` skill) with `type: tool`, `name: ofo`,
+   `category: broken-tool`, describing the missing flag or action and the OmniFocus API surface
+   that already exposes it.
+2. If the user needs the operation done **now**, fall back to the documented escape hatch
+   (`manage_omnifocus.js bulk-create` if it fits, else surface the gap and ask) — but the report
+   must be filed first.
+
+The friction report ensures the gap is closed in TypeScript on the next `foundry:ss-improve`
+loop instead of accumulating as inline-osascript debt. See friction
+`2026-06-24-224859-71447.md` for the canonical example that closed via `--parent` + `--sequential`
+in omnifocus-core 11.1.0.
 
 ### OmniFocus Execution Hierarchy (when channel = CLI)
 

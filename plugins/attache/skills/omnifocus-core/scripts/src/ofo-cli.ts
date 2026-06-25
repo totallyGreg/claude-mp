@@ -149,7 +149,7 @@ function parseStdinInput(raw: string): Record<string, unknown> | Record<string, 
 
 function cmdCreate(args: string[]): void {
   // Parse CLI flags
-  let name = '', project = '', note = '', due = '', defer_ = '', tags = '', estimate = '', plannedDate = '';
+  let name = '', project = '', parent = '', note = '', due = '', defer_ = '', tags = '', estimate = '', plannedDate = '';
   let flagged = false;
 
   let i = 0;
@@ -157,6 +157,7 @@ function cmdCreate(args: string[]): void {
     switch (args[i]) {
       case '--name':    name = args[++i] || ''; break;
       case '--project': project = args[++i] || ''; break;
+      case '--parent':  parent = parseOmniFocusUrl(args[++i] || ''); break;
       case '--note':    note = args[++i] || ''; break;
       case '--due':     due = args[++i] || ''; break;
       case '--defer':   defer_ = args[++i] || ''; break;
@@ -181,6 +182,7 @@ function cmdCreate(args: string[]): void {
       const items = parsed.map(item => {
         const merged = { ...item };
         if (project && !merged.project) merged.project = project;
+        if (parent && !merged.parent) merged.parent = parent;
         if (tags && !merged.tags) merged.tags = tags.split(',').map(t => t.trim());
         if (due && !merged.due) merged.due = due;
         if (defer_ && !merged.defer) merged.defer = defer_;
@@ -206,6 +208,7 @@ function cmdCreate(args: string[]): void {
 
     // CLI flags override stdin fields
     if (project) stdinObj.project = project;
+    if (parent) stdinObj.parent = parent;
     if (note) stdinObj.note = note;
     if (due) stdinObj.due = due;
     if (defer_) stdinObj.defer = defer_;
@@ -219,10 +222,11 @@ function cmdCreate(args: string[]): void {
   }
 
   // No stdin: require --name
-  if (!name) die('Usage: ofo create --name "Task name" [--project P] [--tags t1,t2] [--due YYYY-MM-DD]');
+  if (!name) die('Usage: ofo create --name "Task name" [--project P | --parent <id>] [--tags t1,t2] [--due YYYY-MM-DD]');
 
   const argObj: Record<string, unknown> = { name };
   if (project) argObj.project = project;
+  if (parent) argObj.parent = parent;
   if (note) argObj.note = note;
   if (due) argObj.due = due;
   if (defer_) argObj.defer = defer_;
@@ -235,7 +239,7 @@ function cmdCreate(args: string[]): void {
 }
 
 function cmdUpdate(args: string[]): void {
-  if (args.length < 1) die('Usage: ofo update <id> [--name N] [--due D] [--flagged] [--tags t1,t2] [--project P]');
+  if (args.length < 1) die('Usage: ofo update <id> [--name N] [--due D] [--flagged] [--sequential|--parallel] [--tags t1,t2] [--project P]');
   const id = parseOmniFocusUrl(args[0]!);
 
   const argObj: Record<string, unknown> = { id };
@@ -257,6 +261,8 @@ function cmdUpdate(args: string[]): void {
       }
       case '--tags':     argObj.tags = (args[++i] || '').split(',').map(t => t.trim()); break;
       case '--flagged':  argObj.flagged = true; break;
+      case '--sequential': argObj.sequential = true; break;
+      case '--parallel':   argObj.sequential = false; break;
       case '--estimate': argObj.estimate = parseInt(args[++i] || '0', 10); break;
       case '--project': argObj.project = args[++i] || ''; break;
       case '--planned-date': {
@@ -657,7 +663,8 @@ Filters for 'list':
 
 Create options:
   --name "Task name"        Task name (required)
-  --project "Project"       Target project
+  --project "Project"       Target project (ignored if --parent given)
+  --parent <id|url>         Nest under an existing task (becomes action-group child)
   --tags "tag1,tag2"        Comma-separated tags
   --due YYYY-MM-DD          Due date
   --defer YYYY-MM-DD        Defer date
@@ -672,6 +679,8 @@ Update options:
   --defer YYYY-MM-DD|clear  Set or clear defer date
   --tags "tag1,tag2"        Replace all tags
   --flagged                 Flag the task
+  --sequential              Make this task's children run sequentially (action group)
+  --parallel                Make this task's children run in parallel
   --note "Note text"        Set task note
   --estimate N              Set estimated minutes
   --planned-date YYYY-MM-DD|clear  Set or clear planned date
@@ -686,7 +695,9 @@ Stdin support (create):
   echo "Task name" | ofo create              Plain text: first line = name, rest = note
   echo '{"name":"X"}' | ofo create           JSON object with task fields
   echo '[{"name":"A"},...]' | ofo create     JSON array for batch creation
-  Flags (--project, --tags) merge with stdin; --name overrides stdin name
+  Flags (--project, --parent, --tags) merge with stdin; --name overrides stdin name
+  Build an action group: feed N items with the same --parent <id>, then
+    ofo update <parent-id> --sequential
 
 Perspective-configure options:
   --name "Name"             Perspective to configure (by name)
