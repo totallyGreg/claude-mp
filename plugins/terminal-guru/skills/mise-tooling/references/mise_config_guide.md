@@ -34,16 +34,16 @@ Order tasks by application lifecycle, not alphabetically. A reader should scan t
 
 Within each group, keep related tasks adjacent (`backup` next to `restore`, `build` next to `release`). When adding a new task to an existing file, slot it into its lifecycle group rather than appending to the end.
 
-### Inline vs File-based Tasks
+### Inline vs Extracted Script
 
-Keep one-liners inline. Extract to a standalone script (e.g. `scripts/<name>.sh`, or a file-based task under `.mise/tasks/`) once the task has:
+Keep one-liners inline. Once a task has any of:
 
 - Conditionals or loops
 - More than roughly five lines of shell
 - Multiple jq calls with `\(...)` interpolation (TOML escape collision — see `mise_task_patterns.md`)
 - Shared functions that other tasks `source`
 
-Invoke from mise:
+…extract it to a standalone script in `scripts/` and invoke from mise:
 
 ```toml
 [tasks.deploy]
@@ -51,7 +51,24 @@ description = "Deploy the app"
 run = "scripts/deploy.sh"
 ```
 
-Standalone scripts are easier to maintain, shellcheck, test, and read than multi-line inline `run` blocks.
+`scripts/` is the default extraction target — plain shell, easy to shellcheck and test, runs without mise, and any dev recognizes the convention at a glance.
+
+### When to Upgrade to `.mise/tasks/`
+
+Promote from `scripts/` to a file-based task under `.mise/tasks/` (or `mise-tasks/`, `.mise-tasks/`, `mise/tasks/`, `.config/mise/tasks/` — all auto-discovered) only when you want **mise-native features**:
+
+| Feature | `scripts/` | `.mise/tasks/` |
+|---|---|---|
+| Discovery | Manual — declare `[tasks.X]` with `run = "scripts/X.sh"` | **Auto-discovered** — drop file in, it's a task |
+| Namespacing | Whatever you put in `[tasks.X]` | **Auto-prefixed by subdirectory** (`build/docker.sh` → `build:docker`) |
+| Metadata | All in `mise.toml` (`description`, `depends`, `env`, `sources`, `outputs`) | `#MISE description=...`, `#MISE depends=[...]`, `#MISE sources=[...]`, `#MISE env={...}` at top of file |
+| CLI args | `usage = '''…'''` in `mise.toml` | `#USAGE arg "[lookup]"` directly in the script |
+| Portability | Runs without mise; shellchecks as a plain script | mise-coupled — needs mise to discover and run |
+| Best for | Shell extracted from a task for readability/reuse | First-class mise tasks that have outgrown inline TOML |
+
+Heuristic: if the script would be useful when invoked directly (`./scripts/deploy.sh` from CI, a teammate's terminal, a Makefile), keep it in `scripts/`. If it's only meaningful as a mise task and benefits from mise's directives, put it in `.mise/tasks/`.
+
+See `mise_task_patterns.md` for the `#MISE` / `#USAGE` directive reference and the auto-discovered task directory list.
 
 ### Editing Discipline
 
