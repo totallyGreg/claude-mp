@@ -73,6 +73,12 @@ Tool composition engine and workflow discovery:
 - Environment lifecycle workflows (setup, teardown, decay detection)
 - Lens framework (Selection, Arrangement, Purpose, Activation)
 
+### Commands
+
+- **`/team-spawn <subagent-type> <name> <prompt...>`** — Forcing-function for the persistent-teammate spawn pattern. Calls the `Agent` tool with all three required fields (`subagent_type`, `name`, `prompt`); the `name` field is what distinguishes a persistent, `SendMessage`-addressable teammate from an ephemeral one-shot subagent. Verifies the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` prerequisite, validates the agent type, and surfaces the new teammate's pane ID and addressing pattern after spawn.
+- **`/team-list`** — Lists active teammates in the current session's team by reading `~/.claude/teams/session-*/config.json`. Shows name, agent type, agent ID, and `%N` pane ID (split-pane mode). Includes addressing reminders for SendMessage and graceful shutdown.
+- **`/workflow-discover`** — Scans command history, brew inventory, XDG configs, and git log to surface workflow patterns and graduation candidates (zsh function vs mise task vs fzf composition).
+
 ### Skill: mise-tooling
 mise (jdx/mise) configuration, task automation, and environment management:
 - Configuration hierarchy, profiles, lifecycle hooks, monorepo support
@@ -108,6 +114,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Changes |
 |---------|---------|
+| 5.8.0 | **New commands: `/team-spawn` + `/team-list`** for the persistent-teammate spawn pattern (Agent tool with `name` field + `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` prerequisite). Forcing function prevents the silent-degrade-to-one-shot failure mode. Broadens plugin description to include multi-Claude team orchestration. |
 | 5.7.0 | **terminal-guru agent → 100/100** (was 96). System prompt prompt: Quality Standards rationale + IMPORTANT call-out, structured Output Format report template with fenced markdown, "Profile missing or unreadable" edge-case bullet with fallback/limitation language. All three dimensions now 100/100. |
 | 5.6.1 | **mise-tooling v2.2.1**: reframe script-extraction default to plain `scripts/`; `.mise/tasks/` becomes the upgrade path for mise-native features only. Added `scripts/` vs `.mise/tasks/` comparison table to `mise_config_guide.md`. |
 | 5.6.0 | **mise-tooling v2.2.0**: added "Authoring Conventions" section to SKILL.md and "Style & Layout" to `mise_config_guide.md` — section order, lifecycle task ordering, ~5-line script-extraction threshold, editing discipline. Borrowed from comparison with `engineers/mise-toml` skill on the AIRS marketplace. Skill score steady at 98/100, agent unchanged at 96/100. |
