@@ -9,6 +9,7 @@ Terminal and shell expert that diagnoses problems, composes tools into workflows
 
 | Version | Date | Trigger | Prompt | Coherence | Overall |
 |---------|------|---------|--------|-----------|---------|
+| 5.7.0 | 2026-06-30 | 100 | 100 | 100 | **100** |
 | 5.5.0 | 2026-06-05 | 100 | 90 | 100 | 96 |
 | 5.3.0 | 2026-05-03 | 100 | 90 | 100 | 96 |
 | 5.2.0 | 2026-05-03 | 100 | 90 | 80 | 90 |
@@ -107,6 +108,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Changes |
 |---------|---------|
+| 5.7.0 | **terminal-guru agent → 100/100** (was 96). System prompt prompt: Quality Standards rationale + IMPORTANT call-out, structured Output Format report template with fenced markdown, "Profile missing or unreadable" edge-case bullet with fallback/limitation language. All three dimensions now 100/100. |
 | 5.6.1 | **mise-tooling v2.2.1**: reframe script-extraction default to plain `scripts/`; `.mise/tasks/` becomes the upgrade path for mise-native features only. Added `scripts/` vs `.mise/tasks/` comparison table to `mise_config_guide.md`. |
 | 5.6.0 | **mise-tooling v2.2.0**: added "Authoring Conventions" section to SKILL.md and "Style & Layout" to `mise_config_guide.md` — section order, lifecycle task ordering, ~5-line script-extraction threshold, editing discipline. Borrowed from comparison with `engineers/mise-toml` skill on the AIRS marketplace. Skill score steady at 98/100, agent unchanged at 96/100. |
 | 5.5.0 | **Stack model correction + 2 new skills.** Promoted terminal-emulation to first-class substrate layer (Unix substrate: $TERM, terminfo, ANSI/256/truecolor, $COLORTERM, Unicode); promoted tmux out of terminal-emulation into its own first-class skill (tmux-dev). New skills: **tmux-dev** (pane/window/session unique-ID addressing, send/receive, options, format strings, plugins, hooks, testing patterns — closes #70) and **tui-experience** (fzf/television/gum/btop/lazygit/k9s/glow theming + asciinema/agg/vhs recording). Added ansi_colors.md reference to terminal-emulation (90→92). Added unix_composition_primer.md to environment-composition (piping/filtering/transforming + tool preference matrix). Agent stack model expanded to 8 layers with explicit substrate-vs-multiplexer boundary; routing table adds ~20 rows; 5 new routing-guidance paragraphs. Five Skills → Seven Skills. Scores: agent 96, all skills ≥ 90 (zsh-dev 98, mise-tooling 98, tmux-dev 91, tui-experience 92, terminal-emulation 92, signals-monitoring 92, environment-composition 90). |

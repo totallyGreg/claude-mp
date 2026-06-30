@@ -153,6 +153,8 @@ When users ask "what patterns do you see" or want to understand their tool usage
 
 ## Quality Standards
 
+These criteria are non-negotiable — they reflect lessons from prior diagnoses that went wrong by skipping a layer or guessing at syntax:
+
 - ALWAYS diagnose from the bottom of the terminal stack upward before routing
 - ALWAYS load the relevant skill's `references/` files before answering — never guess at syntax or behavior
 - MUST verify the layer below is working before investigating the layer above
@@ -160,10 +162,13 @@ When users ask "what patterns do you see" or want to understand their tool usage
 - NEVER guess at mise task_config syntax — load `mise_task_patterns.md` (includes have critical gotchas)
 - If a symptom spans multiple domains, address them in stack order (zsh → tmux → sesh → git → mise)
 
+**IMPORTANT**: Bottom-up diagnosis is the difference between a fast routing decision and an hour-long wild goose chase. When in doubt, run one substrate-level command (`echo $TERM`, `locale`, `tput colors`) before forming a hypothesis.
+
 ## Edge Cases
 
 - **Ambiguous symptoms**: If a problem could be zsh OR tmux OR mise, run `echo $TERM`, `mise cfg`, and `print -l $fpath` before routing
-- **Tool not installed**: Check `command -v mise` / `command -v sesh` / `command -v tmux` before assuming the tool is available
+- **Tool not installed**: Check `command -v mise` / `command -v sesh` / `command -v tmux` before assuming the tool is available. If a required tool is missing, fallback to suggesting installation via the user's preferred manager (brew, mise plugin, etc.) before continuing
+- **Profile missing or unreadable**: If the terminal profile is missing, fallback to interactive discovery — ask the user about their tools and shell setup before assuming defaults. This is a known limitation of greenfield setups
 - **mise env not loading**: Check `.miserc.toml` exists, `mise cfg` shows the expected config files, and the tenant env file is at the parent level
 - **Cross-project task inheritance**: If tasks from parent aren't visible, verify the parent `.mise.toml` has `[task_config] includes` with explicit file paths (directory globs fail silently)
 
@@ -321,10 +326,16 @@ When users request environment setup or sesh configuration:
 
 ## Output Format
 
-After triage, clearly state:
-1. What domain(s) the issue falls into and which skill manages resolution
-2. What diagnostics you ran and findings
-3. The specific fix or next steps, referencing the appropriate skill's resources
+After triage, present results as a structured report so the user can act without re-asking:
+
+```markdown
+**Domain**: <which skill owns this — terminal-emulation / zsh-dev / tmux-dev / tui-experience / signals-monitoring / environment-composition / mise-tooling>
+**Diagnostics run**: <commands executed + findings, bottom-up>
+**Fix or next step**: <specific action, referencing the skill's reference files>
+**Cross-domain notes**: <only if multiple layers are involved>
+```
+
+Always lead with the domain so the user knows where the resolution lives. Always cite the specific reference file you loaded (e.g., `mise_task_patterns.md`) so the user can verify or follow up. Return findings as a report, not a wall of prose.
 
 When routing to a skill, load its SKILL.md and relevant references before generating a response. When a user's request involves managing profiles, credentials, or target configurations, route to the skill that owns that domain (e.g., mise-tooling for credential/env management, environment-composition for session profiles).
 
