@@ -2,7 +2,7 @@
 name: mise-tooling
 description: This skill should be used when the user asks to "configure mise.toml", "create a mise task", "set up tool versions", "manage environments with mise", "debug mise config", "task_config includes", "mise task DRY", "mise profiles", "mise env not loading", "create mise run command", or needs help with mise (jdx/mise) for tool versioning, environment variables, or task automation. Also trigger on mentions of mise.toml, .miserc.toml, mise run, mise env, mise tasks, mise profiles, task_config, or exec() in env. Do NOT use for shell configuration or function generation (use zsh-dev instead). Do NOT use for sesh/tmux session management (use environment-composition instead). Do NOT use for signal handling or logging (use signals-monitoring instead). Mise + sesh integration questions should route here for the mise side and environment-composition for the sesh side.
 metadata:
-  version: "2.1.0"
+  version: "2.2.0"
 license: MIT
 compatibility: claude-code
 ---
@@ -108,6 +108,17 @@ See `references/mise_cli_reference.md` for compact command tables covering task 
 
 ### "Apply a proven automation pattern"
 See `references/mise_use_case_patterns.md` for milestone aggregation, hardware discovery, interactive confirmation, post-task cleanup, CI/CD adaptation, and cross-project task sharing decision trees.
+
+## Authoring Conventions
+
+When writing or editing `mise.toml`, apply these conventions:
+
+- **Section order** (top-to-bottom, omit empty): `[settings]` → `[env]` → `[tools]` → `[hooks]` / `[vars]` / `[task_config]` / `[task_templates]` (if present) → `[tasks.*]`.
+- **Task ordering**: lifecycle, not alphabetical — setup/install first, run/operate next, maintenance/occasional last. Slot new tasks into the right group; don't append blindly.
+- **Inline vs script**: one-liners stay inline; once a task needs conditionals, loops, or more than ~5 lines, extract to `scripts/<task>.sh` (or `.mise/tasks/<task>`) and invoke via `run = "scripts/<task>.sh"`. Easier to shellcheck, test, and read.
+- **Editing discipline**: if a task could fit in more than one lifecycle group, ask the user. Do not reorder unrelated existing tasks unless cleanup was explicitly requested.
+
+See `references/mise_config_guide.md` (Style & Layout) for rationale and worked examples.
 
 ## Resources
 

@@ -12,6 +12,53 @@ sources:
 
 # Mise Configuration Guide
 
+## Style & Layout
+
+### Section Order
+
+Top-to-bottom in `mise.toml`, omitting any empty section:
+
+1. `[settings]` — mise behavior, visible immediately
+2. `[env]` — environment variables
+3. `[tools]` — tool versions
+4. `[hooks]` / `[vars]` / `[task_config]` / `[task_templates]` — grouped by purpose, between tools and tasks
+5. `[tasks.*]` — last, ordered by lifecycle (see below)
+
+### Task Ordering
+
+Order tasks by application lifecycle, not alphabetically. A reader should scan top-to-bottom and follow how the project is used over time:
+
+1. **Setup / install** — `install`, `setup`, `bootstrap`, `deps`, migrations, code generation
+2. **Run / operate** — `start`, `serve`, `dev`, `test`, `build`, the day-to-day loop
+3. **Maintenance / occasional** — `backup`, `restore`, `clean`, `release`, `deploy`, one-off admin
+
+Within each group, keep related tasks adjacent (`backup` next to `restore`, `build` next to `release`). When adding a new task to an existing file, slot it into its lifecycle group rather than appending to the end.
+
+### Inline vs File-based Tasks
+
+Keep one-liners inline. Extract to a standalone script (e.g. `scripts/<name>.sh`, or a file-based task under `.mise/tasks/`) once the task has:
+
+- Conditionals or loops
+- More than roughly five lines of shell
+- Multiple jq calls with `\(...)` interpolation (TOML escape collision — see `mise_task_patterns.md`)
+- Shared functions that other tasks `source`
+
+Invoke from mise:
+
+```toml
+[tasks.deploy]
+description = "Deploy the app"
+run = "scripts/deploy.sh"
+```
+
+Standalone scripts are easier to maintain, shellcheck, test, and read than multi-line inline `run` blocks.
+
+### Editing Discipline
+
+- If a task could fit in more than one lifecycle group, ask the user where it belongs rather than guessing.
+- Do not reorder unrelated existing tasks unless cleanup was explicitly requested.
+- Preserve existing comments and grouping conventions in the file.
+
 ## Configuration Hierarchy
 
 mise walks **up** the directory tree (child finds parent). Files are loaded with this precedence (top overrides bottom):
