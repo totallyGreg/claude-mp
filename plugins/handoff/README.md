@@ -22,7 +22,8 @@ This plugin fills that gap. The same payload schema works whether you're:
 /handoff                              # auto-select transport
 /handoff to:teammate <name>           # SendMessage to a teammate
 /handoff to:tmux                      # first claude-running pane (--filter claude)
-/handoff to:tmux <session:window.pane> # explicit pane address
+/handoff to:tmux %N                   # persistent pane_id (preferred — survives pane moves)
+/handoff to:tmux <session:window.pane> # positional address (fragile across pane moves)
 /handoff to:clipboard                 # pbcopy / xclip / wl-copy
 /handoff to:file <path>               # chmod 600 + write
 ```
@@ -84,7 +85,7 @@ If the standalone `tmux-send` capability planned for `terminal-guru` ever ships,
 
 ### Current Metrics
 
-**Score: 98/100** (Excellent) — 2026-06-06
+**Score: 98/100** (Excellent) — 2026-07-01
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -94,6 +95,7 @@ If the standalone `tmux-send` capability planned for `terminal-guru` ever ships,
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 0.3.0 | 2026-07-01 | - | `tmux:%N` persistent pane_id accepted as a target form (resolved to `session:window.pane` up-front, then flows through existing filter/existence logic). Preferred over positional addresses because pane_id survives pane moves and window renumbering. SKILL.md, tmux-targeting.md, README, and command usage docs updated with the third form and a "which should callers use" heuristic. Score 98 (no change). | 100 | 90 | 100 | 100 | 100 | 98 |
 | 0.2.0 | 2026-06-06 | [#176](https://github.com/totallyGreg/claude-mp/issues/176) | Pass D (friction batch 2026-06-05). D1: regex broadened to allow `/` in session names; path-traversal rejection (leading `-`, `..` sequences); SKILL.md and tmux-targeting.md document valid session-name shapes. D2: `--filter-address <regex>` flag added — AND-composed with `--filter` via awk; disambiguates multiple claude panes by session address; SKILL.md and tmux-targeting.md updated with disambiguation examples and combined-filter docs. Score 98 (no change). | 100 | 90 | 100 | 100 | 100 | 98 |
 | 0.1.0 | 2026-06-04 | - | Initial release. Three transports: SendMessage (via calling agent), tmux send-keys with two-call Enter delivery, clipboard, file. Four required sections + Additional context Markdown payload schema. Standalone tmux pane discovery (no terminal-guru dependency). Security: chmod 600 temp files, mandatory `--filter claude` default, user-path validation. | 100 | 90 | 100 | 100 | 100 | 98 |
 

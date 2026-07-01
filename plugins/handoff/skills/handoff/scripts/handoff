@@ -12,6 +12,7 @@
 #   handoff --to clipboard                                      # pbcopy / xclip / wl-copy
 #   handoff --to file:<path>                                    # write to path with chmod 600
 #   handoff --to tmux:<address> [--filter <re>]                 # send to session:window.pane
+#   handoff --to tmux:%N [--filter <re>]                        # send to persistent pane_id (%N)
 #   handoff --to tmux:auto [--filter <re>]                      # pick first pane matching filter
 #
 # Options:
@@ -94,8 +95,11 @@ transport_file() {
   echo "handoff: wrote payload to $path (mode 600)"
 }
 
-# Resolve a tmux pane address. Two forms accepted:
-#   "auto"               → first pane matching --filter
+# Resolve a tmux pane address. Three forms accepted:
+#   "auto"                → first pane matching --filter
+#   "%N"                  → persistent pane_id; resolved to session:window.pane up-front,
+#                           then flows through the existing matching logic. Preferred when
+#                           available — pane_id survives pane moves, positional addresses don't.
 #   "session:window.pane" → used as-is (must pass --filter)
 resolve_tmux_target() {
   local target="$1"
@@ -103,6 +107,16 @@ resolve_tmux_target() {
   local filter_address="${3:-}"
 
   command -v tmux >/dev/null 2>&1 || die "tmux not found on PATH" 2
+
+  # Resolve persistent pane_id (%N) to the positional form up-front so the rest
+  # of the function's filter/existence logic runs unchanged.
+  if [[ "$target" =~ ^%[0-9]+$ ]]; then
+    local resolved
+    resolved="$(tmux list-panes -a -F '#{pane_id} #{session_name}:#{window_index}.#{pane_index}' 2>/dev/null \
+      | awk -v id="$target" '$1 == id { print $2; exit }')"
+    [[ -n "$resolved" ]] || die "pane $target not found (no such pane_id)" 2
+    target="$resolved"
+  fi
 
   local panes
   panes="$(tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index}	#{pane_current_command}' 2>/dev/null)" \
@@ -140,7 +154,7 @@ resolve_tmux_target() {
     die "pane $target not found (or did not pass --filter / --filter-address)" 2
   fi
 
-  die "invalid tmux target: $target (expected 'auto' or 'session:window.pane'; session names may contain letters, digits, _, -, ., / but must not start with - or contain ..)" 1
+  die "invalid tmux target: $target (expected 'auto', '%N' pane_id, or 'session:window.pane'; session names may contain letters, digits, _, -, ., / but must not start with - or contain ..)" 1
 }
 
 transport_tmux() {

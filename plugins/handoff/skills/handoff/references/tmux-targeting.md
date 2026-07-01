@@ -15,9 +15,12 @@ This skill ships its own pane discovery — **no dependency on terminal-guru or 
 | Target | Behavior |
 |---|---|
 | `tmux:auto` | Pick the first pane that passes `--filter`. Warns to stderr if multiple match and lists them. |
-| `tmux:my-session:1.0` | Explicit `session:window.pane` address. Used as-is. Must still pass `--filter`. |
+| `tmux:%N` | Persistent pane_id (e.g. `tmux:%6`). Resolved up-front to `session:window.pane`, then flows through the normal filter/existence check. **Preferred when available** — pane_id survives pane moves and window renumbering; positional `session:window.pane` addresses don't. |
+| `tmux:my-session:1.0` | Explicit `session:window.pane` address. Used as-is. Must still pass `--filter`. Fragile across pane moves — use `%N` when the caller has it. |
 
 Note: bare session names (without `window.pane`) are NOT supported. If the caller knows the session name, they're one `tmux list-panes -t <session>` away from the full address — explicit beats one extra resolution branch in the script.
+
+**Which form should callers use?** If you have a `%N` from `tmux list-panes -a -F '#{pane_id} ...'` (or grabbed at spawn time from the returned pane_id), pass `%N`. It survives the user rearranging windows and panes between spawn and delivery. Use positional `session:window.pane` only when you don't have (or can't compute) the persistent id.
 
 ## Pane discovery algorithm
 

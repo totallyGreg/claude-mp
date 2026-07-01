@@ -49,7 +49,10 @@ echo "$PAYLOAD" | scripts/handoff --to clipboard
 # File (chmod 600 enforced)
 echo "$PAYLOAD" | scripts/handoff --to file:/tmp/handoff-myrun.md
 
-# Tmux: explicit pane address
+# Tmux: persistent pane_id (preferred — survives pane moves)
+echo "$PAYLOAD" | scripts/handoff --to tmux:%6 --from "archivist"
+
+# Tmux: explicit positional pane address (fragile if panes move)
 echo "$PAYLOAD" | scripts/handoff --to tmux:my-session:1.0 --from "archivist"
 
 # Tmux: pick the first claude-running pane

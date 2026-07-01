@@ -9,7 +9,8 @@ Usage:
   /handoff                              → auto-select transport (teammate if available, else clipboard)
   /handoff to:teammate <name>           → SendMessage to a teammate
   /handoff to:tmux                      → pick first claude-running pane (--filter claude)
-  /handoff to:tmux <session:window.pane> → explicit pane address
+  /handoff to:tmux %N                   → persistent pane_id (preferred — survives pane moves)
+  /handoff to:tmux <session:window.pane> → positional pane address (fragile across pane moves)
   /handoff to:clipboard                 → pbcopy / xclip / wl-copy
   /handoff to:file <path>               → write to path (chmod 600)
 
