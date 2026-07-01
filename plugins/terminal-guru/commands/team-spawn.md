@@ -68,4 +68,4 @@ Present:
 - List active teammates: `/team-list`
 ```
 
-If a new tmux pane was created and the user is using the pane-labeling pattern (`tmux set -p -t %N @label NAME`), offer to set the label so the pane border shows the teammate name.
+If a new tmux pane was created and the user is using the pane-aliasing pattern (`tmux set -p -t %N @alias NAME`), offer to set the alias so the pane border shows the teammate name. The user's `pane-border-format` reads `@alias` (not `@label`) — setting the wrong user-option leaves the border blank.

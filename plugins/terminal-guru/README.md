@@ -114,6 +114,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Changes |
 |---------|---------|
+| 5.8.1 | **Fix**: `/team-spawn` narrative now references `@alias` (not `@label`) to match the user's live tmux.conf convention — `@powerkit_pane_border_format` reads `@alias`, so setting `@label` left the pane border blank. Discovered by the archivist during the v5.8.0 PKM capture. |
 | 5.8.0 | **New commands: `/team-spawn` + `/team-list`** for the persistent-teammate spawn pattern (Agent tool with `name` field + `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` prerequisite). Forcing function prevents the silent-degrade-to-one-shot failure mode. Broadens plugin description to include multi-Claude team orchestration. |
 | 5.7.0 | **terminal-guru agent → 100/100** (was 96). System prompt prompt: Quality Standards rationale + IMPORTANT call-out, structured Output Format report template with fenced markdown, "Profile missing or unreadable" edge-case bullet with fallback/limitation language. All three dimensions now 100/100. |
 | 5.6.1 | **mise-tooling v2.2.1**: reframe script-extraction default to plain `scripts/`; `.mise/tasks/` becomes the upgrade path for mise-native features only. Added `scripts/` vs `.mise/tasks/` comparison table to `mise_config_guide.md`. |
