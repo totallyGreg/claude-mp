@@ -83,3 +83,90 @@ Tasks using `source` or file paths should use `{{config_root}}` to resolve relat
 ## Profile-Specific Tasks
 
 Tasks can be conditionally available based on the active profile by defining them in `mise.<env>.toml` files. This keeps tenant-specific operations (like profile cleanup) separate from general tasks.
+
+## Multi-Cluster / Multi-Target Overlay Pattern
+
+One base config with per-environment overlays — each overlay carries its own endpoint, kubeconfig, secrets, and host references. Switching clusters is a single env var.
+
+### Layout
+
+```
+project/
+├── .mise.toml                  # base defaults, CLUSTER_TARGET="dev", task_config.includes
+├── .mise.staging.toml          # staging overrides
+├── .mise.production.toml       # production overrides
+├── .miserc.toml                # env = ["staging"]  (gitignored — sets local default)
+├── bootstrap/
+│   └── talos/
+│       ├── secrets.dev.yaml
+│       └── secrets.staging.yaml
+└── tasks/
+    ├── talos.toml
+    └── infra.toml
+```
+
+### Base config
+
+```toml
+# .mise.toml
+[env]
+CLUSTER_TARGET   = "dev"
+CLUSTER_NAME     = "homestack"
+CLUSTER_ENDPOINT = "https://192.168.1.201:6443"
+TALOS_ENDPOINT   = "192.168.1.201"
+KUBECONFIG       = "{{env.HOME}}/.kube/config.d/{{env.CLUSTER_NAME}}.yaml"
+TALOSCONFIG      = "{{config_root}}/bootstrap/talos/{{env.CLUSTER_TARGET}}.talosconfig"
+SECRETS          = "{{config_root}}/bootstrap/talos/secrets.{{env.CLUSTER_TARGET}}.yaml"
+
+[task_config]
+includes = ["tasks/talos.toml", "tasks/infra.toml"]
+```
+
+### Per-target overlay
+
+```toml
+# .mise.staging.toml
+[env]
+CLUSTER_TARGET   = "staging"
+CLUSTER_NAME     = "staging"                    # drives KUBECONFIG filename
+# IMPORTANT: define CLUSTER_ENDPOINT explicitly — do NOT rely on template composition
+# from other env vars in the same profile (evaluation order is not guaranteed).
+CLUSTER_ENDPOINT = "https://10.0.1.50:6443"
+TALOS_ENDPOINT   = "10.0.1.50"
+TRUENAS_HOST     = "nas.staging.internal"
+TRUENAS_API_KEY  = "{{exec(command='keychainctl get STAGING-NAS-API')}}"
+```
+
+### Activation
+
+```bash
+MISE_ENV=staging mise run bootstrap:apply   # one-shot override
+export MISE_ENV=staging                     # shell-session override
+echo 'env = ["staging"]' > .miserc.toml    # persistent local default (gitignore this)
+```
+
+### Key constraints
+
+- **`CLUSTER_ENDPOINT` must be explicit** in each overlay — if it's composed from another env var defined in the same profile file, evaluation order is not guaranteed and it may resolve to the base value. Define it as a literal string in each profile.
+- **`KUBECONFIG` should use `{{env.CLUSTER_NAME}}`**, not the target name — `CLUSTER_NAME` drives what `talosctl gen config` writes, so the kubeconfig filename must match.
+- Per-target secrets and API keys: use `exec()` with a per-target keychain entry name so switching profiles also switches credentials automatically.
+
+## Bootstrap Output Capture with `mise set`
+
+When a task discovers a dynamic value (IP address, LB endpoint, generated ID), write it back into the profile with `mise set` so downstream tasks in the same session can use it without manual intervention.
+
+```bash
+# Task discovers the gateway LoadBalancer IP after install
+LB_IP=$(kubectl get svc gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+mise set -E "${CLUSTER_TARGET}" GATEWAY_LB_IP="${LB_IP}"
+echo "==> Saved GATEWAY_LB_IP=${LB_IP} to .mise.${CLUSTER_TARGET}.toml"
+```
+
+The `-E <env>` flag writes to the profile-specific file (`.mise.staging.toml`) rather than the base `.mise.toml`. The value persists across subsequent `mise run` invocations — no need to re-discover it or export it manually.
+
+**When to use:** Any value that is:
+- Discovered at runtime (not known at config-write time)
+- Needed by downstream tasks in the same bootstrap sequence
+- Worth persisting so recovery/re-runs don't need to rediscover it
+
+**Avoid** state files (fragile, separate from mise's env system) and `export` in task bodies (does not propagate to the next `mise run` invocation).
