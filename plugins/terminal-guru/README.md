@@ -93,7 +93,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 ### Current Metrics
 
-**Score: 98/100** (Excellent) — 2026-06-30
+**Score: 98/100** (Excellent) — 2026-07-03
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -103,6 +103,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 2.3.0 | 2026-07-03 | - | Two real-migration gotchas from a homestack-2026 review: (1) Tera doesn't render file-based task scripts at all — `{{config_root}}`-sourced libs silently resolve to a nonexistent path once promoted from inline TOML, fixed with `SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"`; (2) unquoted heredocs used for shell-side variable interpolation aren't a "quote it and move on" fix — export vars first, read via the child language's env mechanism, then quote. Added `${#arr[@]}` Tera comment-opener collision (previously undocumented) alongside it in `mise_task_patterns.md`. Disambiguated SKILL.md's `{{config_root}}` guidance to inline `run` blocks only. | 100 | 90 | 100 | 100 | 100 | 98 |
 | 2.2.1 | 2026-06-30 | - | Reframe script-extraction default: `scripts/` for plain-shell extractions, `.mise/tasks/` only when you want mise-native features (auto-discovery, `#USAGE`, `#MISE` directives, namespacing). Added `scripts/` vs `.mise/tasks/` comparison table to `mise_config_guide.md`. | 100 | 90 | 100 | 100 | 100 | 98 |
 | 2.2.0 | 2026-06-30 | - | Authoring conventions: section order (`[settings]`→`[env]`→`[tools]`→`[tasks.*]`), lifecycle task ordering (setup→run→maintenance), ~5-line script-extraction threshold, editing discipline. Borrowed from engineers/mise-toml comparison. | 100 | 90 | 100 | 100 | 100 | 98 |
 | 2.0.0 | 2026-05-03 | - | Enriched references: DAG model, task templates, file-based discovery, hooks, monorepo, watch, CLI reference, use case patterns. Freshness metadata on all references. | 100 | 80 | 80 | 100 | 100 | 91 |
@@ -114,6 +115,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Changes |
 |---------|---------|
+| 5.9.0 | **mise-tooling v2.3.0**: documented two Tera gotchas surfaced during a real inline-task migration — file-based task scripts aren't Tera-rendered (breaks `{{config_root}}`-sourced libs silently), and unquoted heredocs used for shell-side interpolation can't be fixed by just quoting the delimiter. Also documented the previously-undocumented `${#arr[@]}` Tera comment-opener collision. |
 | 5.8.1 | **Fix**: `/team-spawn` narrative now references `@alias` (not `@label`) to match the user's live tmux.conf convention — `@powerkit_pane_border_format` reads `@alias`, so setting `@label` left the pane border blank. Discovered by the archivist during the v5.8.0 PKM capture. |
 | 5.8.0 | **New commands: `/team-spawn` + `/team-list`** for the persistent-teammate spawn pattern (Agent tool with `name` field + `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` prerequisite). Forcing function prevents the silent-degrade-to-one-shot failure mode. Broadens plugin description to include multi-Claude team orchestration. |
 | 5.7.0 | **terminal-guru agent → 100/100** (was 96). System prompt prompt: Quality Standards rationale + IMPORTANT call-out, structured Output Format report template with fenced markdown, "Profile missing or unreadable" edge-case bullet with fallback/limitation language. All three dimensions now 100/100. |

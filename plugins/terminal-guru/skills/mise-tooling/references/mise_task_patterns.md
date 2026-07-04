@@ -234,7 +234,7 @@ curl -sf "$API_BASE/targets" -H "Authorization: Bearer $ACCESS_TOKEN" | jq '.'
 '''
 ```
 
-`{{config_root}}` resolves to the directory of the `mise.toml` that defined the task — critical for tasks inherited by child projects.
+`{{config_root}}` resolves to the directory of the `mise.toml` that defined the task — critical for tasks inherited by child projects. This only works inside inline TOML `run` blocks; file-based task scripts aren't Tera-rendered at all (see `mise_config_guide.md`'s file-based task caveat).
 
 ## usage Field (CLI Arg Parsing)
 
@@ -338,3 +338,27 @@ run = '''
 - TOML parse errors on backslash characters
 - Script exceeds ~30 lines inline
 - Need to share functions with other tasks via `source`
+
+### Comment-Opener Collision (`${#arr[@]}`)
+
+Tera's comment syntax is `{# ... #}`. Bash's array-length expansion `${#arr[@]}` contains that exact `{#` sequence — Tera reads it as an unterminated comment opener and swallows everything after it, usually surfacing as a misleading EOF-style parse error nowhere near the real cause. `bash -n` on the extracted script won't catch this: the file never reaches bash, Tera breaks it first while templating `mise.toml`. Fixes:
+
+- Move the task to a file-based script — files aren't Tera-processed at all
+- Or avoid the syntax: `wc -w <<< "${arr[*]}"` instead of `${#arr[@]}`
+
+### Unquoted Heredocs for Shell-Side Interpolation
+
+A heredoc with an unquoted delimiter (`<<PYEOF`) lets bash interpolate `$var` into the embedded script *before* the child interpreter (Python, etc.) ever sees it — this is often intentional, not an oversight. Quoting the delimiter (`<<'PYEOF'`) to dodge a Tera conflict silently kills that interpolation instead of fixing anything; it is not a one-line fix.
+
+**Correct fix:** `export` the values first, read them inside the heredoc via the target language's own env mechanism, then quote the delimiter:
+
+```bash
+export CLUSTER_NAME NODES_FILE
+python3 <<'PYEOF'
+import os
+cluster = os.environ["CLUSTER_NAME"]
+nodes_file = os.environ["NODES_FILE"]
+PYEOF
+```
+
+This preserves the substitution, is immune to the Tera comment-opener collision above (quoted heredocs are inert to Tera the same way `'''` strings are), and reads cleaner than escaped `${...}` scattered through the embedded script.

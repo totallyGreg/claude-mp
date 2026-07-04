@@ -68,6 +68,17 @@ Promote from `scripts/` to a file-based task under `.mise/tasks/` (or `mise-task
 
 Heuristic: if the script would be useful when invoked directly (`./scripts/deploy.sh` from CI, a teammate's terminal, a Makefile), keep it in `scripts/`. If it's only meaningful as a mise task and benefits from mise's directives, put it in `.mise/tasks/`.
 
+**Caveat — Tera stops at the file boundary.** Tera only renders inline TOML `run` strings; a file-based task script is executed directly with zero templating. Any script that relied on `{{config_root}}`, `{{env.X}}`, `{{vars.x}}`, or `exec()` to build a path needs that replaced before conversion, or the line silently resolves to a literal, nonexistent path:
+
+```bash
+#!/usr/bin/env bash
+# was: source "{{config_root}}/scripts/lib.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../scripts/lib.sh"
+```
+
+This is the most common silent break when promoting an inline task that sources a shared lib — the task still runs (no error), but the `source` target doesn't exist so functions it defines are simply missing.
+
 See `mise_task_patterns.md` for the `#MISE` / `#USAGE` directive reference and the auto-discovered task directory list.
 
 ### Editing Discipline

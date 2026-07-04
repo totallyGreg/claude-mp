@@ -2,7 +2,7 @@
 name: mise-tooling
 description: This skill should be used when the user asks to "configure mise.toml", "create a mise task", "set up tool versions", "manage environments with mise", "debug mise config", "task_config includes", "mise task DRY", "mise profiles", "mise env not loading", "create mise run command", or needs help with mise (jdx/mise) for tool versioning, environment variables, or task automation. Also trigger on mentions of mise.toml, .miserc.toml, mise run, mise env, mise tasks, mise profiles, task_config, or exec() in env. Do NOT use for shell configuration or function generation (use zsh-dev instead). Do NOT use for sesh/tmux session management (use environment-composition instead). Do NOT use for signal handling or logging (use signals-monitoring instead). Mise + sesh integration questions should route here for the mise side and environment-composition for the sesh side.
 metadata:
-  version: "2.2.1"
+  version: "2.3.0"
 license: MIT
 compatibility: claude-code
 ---
@@ -91,7 +91,7 @@ For complex tasks, use file-based scripts in `.mise/tasks/` with `#USAGE` direct
 ### "Share tasks across projects"
 1. Define tasks in a parent directory's `mise.toml` or `tasks/` directory
 2. Child projects inherit automatically via mise's directory walk
-3. Use `{{config_root}}` in task scripts to resolve paths relative to the config that defined the task
+3. Use `{{config_root}}` in inline TOML `run` blocks (not file-based scripts — Tera doesn't render those, see `mise_config_guide.md`) to resolve paths relative to the config that defined the task
 
 ### "Set up credentials for a new tenant"
 
