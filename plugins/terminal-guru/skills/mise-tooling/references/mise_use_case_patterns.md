@@ -1,5 +1,5 @@
 ---
-last_verified: 2026-05-03
+last_verified: 2026-07-03
 sources:
   - type: web
     url: "https://mise.jdx.dev/tasks/"
@@ -145,21 +145,36 @@ workspace/.mise.toml          # defines auth:check, scan:all
 
 ### task_config.includes
 
-Pull task files from a specific location:
+Pull task files from a specific location — a directory entry now loads every `.toml` file *and* file-based task script inside it (mise ≥ ~2026.6.0; older versions only picked up file tasks from a directory, never `.toml` files — list them explicitly on those versions):
 
 ```toml
 [task_config]
 includes = [
-  "../shared-tasks/auth.toml",
-  "../shared-tasks/deploy.toml",
+  "../shared-tasks",              # directory: loads all .toml + file tasks inside
+  "../shared-tasks/deploy.toml",  # or list a specific file
 ]
 ```
 
-**Use when:** Task files live in a separate repo or non-parent directory. Remember: must list files explicitly (directory globs silently fail).
+**Use when:** Task files live in a separate repo or non-parent directory checked out locally.
+
+### git:: remote includes (new, experimental)
+
+Pull tasks straight from a remote git repo, no local checkout needed:
+
+```toml
+[task_config]
+includes = [
+  "git::https://github.com/myorg/shared-tasks.git//tasks?ref=v1.0.0",
+  ".mise/tasks",  # local tasks listed after — same-named local task wins (last entry wins)
+]
+```
+
+**Use when:** Sharing tasks across repos you don't want to vendor or symlink — mise clones/caches the repo under `MISE_CACHE_DIR/remote-git-tasks-cache`. Pin `?ref=` to a tag/commit for reproducibility; omit it to track the default branch.
 
 ### Decision tree
 
 1. Are projects in the same workspace? → Parent inheritance (simpler, automatic)
-2. Are tasks in a separate repo? → `task_config.includes` with explicit paths
-3. Need per-project task overrides? → Child config redefines the task (same name wins)
-4. Need tasks that reference project-local files? → Use `{{config_root}}` for portability
+2. Are tasks in a separate repo you already have checked out? → `task_config.includes` with a directory or explicit file path
+3. Are tasks in a repo you don't want to check out locally? → `git::` remote include
+4. Need per-project task overrides? → Child config redefines the task (same name wins); with multiple includes, remember **last entry wins** for same-named tasks
+5. Need tasks that reference project-local files? → Use `{{config_root}}` for portability — but note this only resolves inside inline TOML `run` blocks, not file-based task scripts (see `mise_config_guide.md`)

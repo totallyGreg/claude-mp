@@ -1,12 +1,12 @@
 ---
-last_verified: 2026-05-03
+last_verified: 2026-07-03
 sources:
   - type: web
     url: "https://mise.jdx.dev/cli/"
     description: "Official mise CLI documentation"
   - type: github
     repo: "jdx/mise"
-    paths: ["docs/cli/"]
+    paths: ["docs/cli/", "docs/bootstrap.md"]
     description: "mise documentation source for CLI commands"
 ---
 
@@ -74,10 +74,18 @@ mise run --timings build test       # show per-task timing
 |---------|-------------|
 | `mise install` | Install all configured tools |
 | `mise install <TOOL>@<VERSION>` | Install a specific tool version |
+| `mise install --monorepo` | Aggregate + install tool versions across all monorepo config roots (new, mise ≥ 2026.7.0) |
 | `mise ls` | List installed tools |
+| `mise ls --monorepo` | List tools across all monorepo config roots (new) |
 | `mise use <TOOL>@<VERSION>` | Pin a tool version in config |
 | `mise outdated` | Check for outdated tools |
+| `mise outdated --inactive` | Include tools not currently active in the check |
+| `mise upgrade --inactive` | Upgrade tools not currently active |
 | `mise prune` | Remove unused tool versions |
+
+## Bootstrap (experimental, new)
+
+`mise bootstrap` declaratively provisions a machine — system packages, git repos, dotfiles, shell activation, macOS defaults/LaunchAgents, Linux systemd units, login shell — before installing project `[tools]`. See `mise_bootstrap_system.md` for the full `[bootstrap.*]` config shape, the 11-step run order, and `--skip`/`--only` part names.
 
 ## Watch Mode
 

@@ -2,7 +2,7 @@
 name: mise-tooling
 description: This skill should be used when the user asks to "configure mise.toml", "create a mise task", "set up tool versions", "manage environments with mise", "debug mise config", "task_config includes", "mise task DRY", "mise profiles", "mise env not loading", "create mise run command", or needs help with mise (jdx/mise) for tool versioning, environment variables, or task automation. Also trigger on mentions of mise.toml, .miserc.toml, mise run, mise env, mise tasks, mise profiles, task_config, or exec() in env. Do NOT use for shell configuration or function generation (use zsh-dev instead). Do NOT use for sesh/tmux session management (use environment-composition instead). Do NOT use for signal handling or logging (use signals-monitoring instead). Mise + sesh integration questions should route here for the mise side and environment-composition for the sesh side.
 metadata:
-  version: "2.4.0"
+  version: "2.5.0"
 license: MIT
 compatibility: claude-code
 ---
@@ -61,6 +61,12 @@ Multiple versions, per-tool postinstall hooks, and backends (npm, pipx, GitHub r
 ### 5. Watch Mode & Hooks
 
 Continuous file watching (`mise watch`) for rebuild-on-change workflows. Lifecycle hooks (`[hooks]`) for enter/leave/cd events. See `references/mise_config_guide.md`.
+
+### 6. Bootstrap (Declarative Machine Setup, experimental)
+
+`mise bootstrap` provisions a whole machine — `[bootstrap.packages]` (brew/apt/dnf/pacman/apk/mas), `[bootstrap.repos]` (declarative git clones), `[dotfiles]`, shell activation, macOS defaults/LaunchAgents, Linux systemd user units, login shell — before installing project `[tools]`. Separate concern from `[tools]`: machine-global, not version-pinned, no shims.
+
+See `references/mise_bootstrap_system.md` for the full config shape, the 11-step run order, and `--skip`/`--only` part names.
 
 ## Common Workflows
 
@@ -123,11 +129,12 @@ See `references/mise_config_guide.md` (Style & Layout) for rationale and worked 
 ## Resources
 
 ### references/
-- **`mise_config_guide.md`** — Configuration hierarchy, precedence, env patterns, exec(), hooks, monorepo, settings
-- **`mise_task_patterns.md`** — Task organization, includes, DRY patterns, DAG model, templates, visibility, caching, usage field
-- **`mise_environment_management.md`** — Multi-tenant credentials, profiles, keychain integration
+- **`mise_config_guide.md`** — Configuration hierarchy, precedence, env patterns, exec(), hooks, monorepo, settings, auto_env platform environments
+- **`mise_task_patterns.md`** — Task organization, includes (ordering, git:: remote includes), DRY patterns, DAG model, templates, visibility, caching, usage field
+- **`mise_environment_management.md`** — Multi-tenant credentials, profiles, keychain integration, shell-style env var expansion, sops secrets
 - **`mise_cli_reference.md`** — CLI commands, run flags, task listing, environment and tool management
 - **`mise_use_case_patterns.md`** — Milestone aggregation, hardware discovery, confirmation, cleanup, CI/CD, cross-project sharing
+- **`mise_bootstrap_system.md`** — Declarative machine bootstrap: packages, repos, dotfiles, macOS/Linux system config, login shell
 
 ### Cross-references
 - **environment-composition** `sesh_config_guide.md` — sesh + mise integration for dev environments

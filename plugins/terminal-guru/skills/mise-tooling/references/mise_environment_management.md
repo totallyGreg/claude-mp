@@ -1,16 +1,45 @@
 ---
-last_verified: 2026-05-03
+last_verified: 2026-07-03
 sources:
   - type: web
     url: "https://mise.jdx.dev/environments/"
     description: "Official mise environments documentation"
   - type: github
     repo: "jdx/mise"
-    paths: ["docs/environments/"]
+    paths: ["docs/environments/", "docs/environments/secrets/sops.md"]
     description: "mise documentation source for environments"
 ---
 
 # Mise Environment Management
+
+## Env Var Ergonomics (mise ≥ 2026.6.0–2026.7.0)
+
+**Shell-style variable expansion — enabled by default since 2026.7.0 (PR #10702).** As an alternative to Tera templates, `[env]` values now expand shell-style `$VAR`/`${VAR}` syntax, run *after* Tera rendering so both can be mixed:
+
+```toml
+[env]
+MY_PROJ_LIB = "{{config_root}}/lib"       # Tera, resolved first
+LD_LIBRARY_PATH = "$MY_PROJ_LIB:$LD_LIBRARY_PATH"  # shell-style, resolved second
+```
+
+| Syntax | Behavior |
+|---|---|
+| `$VAR` / `${VAR}` | Expands to `VAR`'s value (`${VAR}` when followed by alphanumerics, e.g. `${VAR}_suffix`) |
+| `${VAR:-default}` | Uses `default` if `VAR` is unset or empty |
+| `${VAR:-}` | Empty string if unset, suppresses the undefined-variable warning |
+
+Undefined variables with no default are left unexpanded and warn. Controlled by a setting (`true`/unset = enabled, `false` = disabled) — was opt-in before 2026.7.0, now on by default.
+
+**`{ default = "..." }` fallback shorthand (PR #10441).** Sets a value only if the variable is unset or empty — preserves a pre-existing non-empty value from the shell or an earlier config file:
+
+```toml
+[env]
+NODE_ENV = { default = "development" }   # keeps existing NODE_ENV if already set/non-empty
+```
+
+**`required = true` / `required = "help text"`.** Marks a variable that must be set by the shell environment or a later-loaded config file (e.g. `mise.local.toml`); `mise env` fails with a clear error (optionally showing your help text) if it's missing, while shell activation (`hook-env`) only warns so it doesn't break `cd`.
+
+**sops-encrypted `.env.toml` files (PR #10201, experimental).** `env._.file` already supported sops-encrypted `.env.json`/`.env.yaml`; TOML is now supported too — but only via mise's built-in decryption (`sops.rops = true`, the default). The external `sops` CLI itself doesn't support TOML in/out, so setting `sops.rops = false` breaks encrypted `.env.toml` — use `.env.json`/`.env.yaml` if you need the external CLI path. Same age-key setup as JSON/YAML (`MISE_SOPS_AGE_KEY_FILE` / `SOPS_AGE_KEY_FILE`).
 
 ## Multi-Tenant Credential Pattern
 

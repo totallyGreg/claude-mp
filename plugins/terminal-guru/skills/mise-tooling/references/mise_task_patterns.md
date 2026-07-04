@@ -1,5 +1,5 @@
 ---
-last_verified: 2026-05-03
+last_verified: 2026-07-03
 sources:
   - type: web
     url: "https://mise.jdx.dev/tasks/"
@@ -37,7 +37,19 @@ includes = [
 ]
 ```
 
-**Critical: directory paths silently fail.** `includes = ["tasks/"]` does NOT work — you must list each file explicitly.
+**Updated (mise ≥ ~2026.6.0, PR #10219): directory paths now work.** `includes = ["tasks/"]` loads every `.toml` task file *and* every file-based task script inside that directory — this used to silently fail (pre-2026.6.0 versions only picked up file-based tasks from a directory entry, never `.toml` files). If you're on an older mise, list `.toml` files explicitly.
+
+**Ordering matters: last entry wins.** When more than one `includes` entry defines a task with the same name, the **last** entry in the list wins — uniformly across directory, `.toml`-file, and `git::` remote includes. To let a local task override one pulled from a shared remote, list the local directory *after* the remote entry:
+
+```toml
+[task_config]
+includes = [
+  "git::https://github.com/myorg/shared-tasks.git//tasks?ref=main", # shared tasks…
+  ".mise/tasks",                                                    # …overridden here by same-named local tasks
+]
+```
+
+**Remote git includes** (experimental): `includes` entries can point at a git repo with `git::<ssh|https>://<url>//<path>?ref=<ref>` — `path` can be a directory (loads both file tasks and `.toml` files inside it) or a single `.toml` file. The repo is cloned/cached under `MISE_CACHE_DIR/remote-git-tasks-cache`; disable caching with `MISE_TASK_REMOTE_NO_CACHE=true` or `--no-cache`.
 
 Included files use **simplified schema** — no `[tasks]` prefix:
 
@@ -63,6 +75,23 @@ Place executable scripts in any of these auto-discovered directories:
 - `.config/mise/tasks/`
 
 Scripts in subdirectories get auto-prefixed: `mise-tasks/build/docker.sh` becomes task `build:docker`. The special filename `_default` strips the suffix.
+
+**Critical: `task_config.includes` replaces these defaults, it doesn't add to them.** Once `includes` is set for a scope, mise searches *only* the listed paths — the five default directories above stop being auto-scanned at that scope. A file-based task already sitting in `mise-tasks/` silently vanishes from `mise tasks ls`: it stays executable, `mise tasks validate` won't flag it, there's no error anywhere. Two ways to keep it working:
+
+```toml
+# Option A: list the bare directory name alongside your other includes
+[task_config]
+includes = ["tasks.toml", "mise-tasks"]
+
+# Option B: re-list all five defaults explicitly, then add yours
+[task_config]
+includes = [
+  "mise-tasks", ".mise-tasks", ".mise/tasks", ".config/mise/tasks", "mise/tasks",
+  "mytasks", "tasks.toml",
+]
+```
+
+**Project scope vs global scope:** the five defaults (and this override behavior) apply to a project's own config root. `~/.config/mise/tasks/` — the *global* user config directory, distinct from a project's own `.config/mise/tasks/` — is always scanned regardless of any project's `task_config.includes`, and its tasks show up in every mise project on the machine (`mise tasks --global` lists global-only tasks; `--local` excludes them). Use the global directory for tooling genuinely reusable across separate repos/projects — a task specific to one project's profiles belongs in that project's own file-task directory even when the project has multiple environments, since profiles within one repo already share it.
 
 Add metadata via `#MISE` comment directives at the top of scripts:
 

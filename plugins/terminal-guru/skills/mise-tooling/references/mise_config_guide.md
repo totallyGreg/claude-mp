@@ -1,12 +1,12 @@
 ---
-last_verified: 2026-05-03
+last_verified: 2026-07-03
 sources:
   - type: web
-    url: "https://mise.jdx.dev/configuration/"
-    description: "Official mise configuration documentation"
+    url: "https://mise.jdx.dev/configuration.html"
+    description: "Official mise configuration documentation (was docs/configuration/, now a single top-level page docs/configuration.md — old URL 404s)"
   - type: github
     repo: "jdx/mise"
-    paths: ["docs/configuration/"]
+    paths: ["docs/configuration.md", "docs/configuration/environments.md"]
     description: "mise documentation source for configuration"
 ---
 
@@ -79,6 +79,8 @@ source "$SCRIPT_DIR/../scripts/lib.sh"
 
 This is the most common silent break when promoting an inline task that sources a shared lib — the task still runs (no error), but the `source` target doesn't exist so functions it defines are simply missing.
 
+**Caveat — `task_config.includes` disables the "auto-discovered" row above.** If the project already sets `[task_config] includes = [...]` to pull in TOML task files, mise stops auto-scanning `mise-tasks/` (and siblings) at that scope — a file-based task dropped in afterward won't appear in `mise tasks ls`, with no error. Add the bare directory name to the same `includes` list to get it back. See `mise_task_patterns.md`'s "Included files" section for the exact fix and the project-scope-vs-global-scope distinction (`~/.config/mise/tasks/` is unaffected by any project's `includes`).
+
 See `mise_task_patterns.md` for the `#MISE` / `#USAGE` directive reference and the auto-discovered task directory list.
 
 ### Editing Discipline
@@ -111,6 +113,8 @@ Profiles load additional config files without modifying the base config.
 - CLI flag: `--env development`
 - Config file: `.miserc.toml` (gitignored, contains `env = ["name"]`)
 - Multiple envs: `MISE_ENV=ci,test` (last takes precedence)
+
+**Platform environments (`auto_env` setting, new):** with `auto_env` enabled, mise automatically activates `{os_family}` (`unix`, not on Windows), `{os}` (`linux`/`macos`/`windows`), and `{os}-{arch}` (e.g. `macos-arm64`, using mise's remapped arch names `x64`/`arm64`) as config environments based on the running platform — so `mise.macos-arm64.toml` or `mise.unix.toml` load automatically, no explicit `MISE_ENV` needed. Precedence (later overrides earlier): `unix` < `{os}` < `{os}-{arch}` < explicit `MISE_ENV` entries. Platform environments only affect config file/lockfile discovery — they do **not** populate `MISE_ENV` itself or the `{{ mise_env }}` template var passed to tasks. `auto_env` is **disabled by default** (opt in with `auto_env = true` in `.miserc.toml` or `MISE_AUTO_ENV=true`); it's slated to default to enabled starting mise `2027.6.0`. Like `MISE_ENV`, this is early-init — setting it in `mise.toml` has no effect, it must be in `.miserc.toml` or the environment.
 
 **File loading order with env set:**
 1. `mise.<env>.local.toml`
@@ -227,9 +231,11 @@ config_roots = ["packages/*", "apps/*"]
 
 - **`//` prefix** — resolves from monorepo root, not current directory
 - **`:` separator** — `//projects/frontend:build` targets a specific sub-project task
-- **`*` wildcards** — match across directories and task names
+- **`*` wildcards** — match task names; `...` (ellipsis, not `*`) matches any directory depth, e.g. `//...:test` runs `test` in every project, `//projects/...:build` matches any depth under `projects/`
 - **`config_roots`** — declares where mise should discover sub-project configs
 - **Subdirectory scripts** — auto-prefix with directory path (e.g., `web:test`)
+- **`monorepo_root = true`** (root `mise.toml` top-level key) — enables full monorepo mode: auto-discovers subdirectory configs and namespaces their tasks, layers `[tools]`/`[env]` from parent configs down into subprojects, auto-propagates trust from the root
+- **Tool installs + lockfiles (new, mise ≥ 2026.7.0):** `mise install --monorepo` / `mise ls --monorepo` aggregate tool versions across all monorepo config roots. `[monorepo] lockfile` is tri-state: unset preserves today's per-subproject colocated lockfiles (default through mise `2026.12.0`, then warns), `lockfile = true` opts into a single unified root lockfile, `lockfile = false` pins the old colocated behavior. Unset is planned to default to unified starting `2027.6.0`. Mixed-mise-version teams should pin `lockfile = false` until everyone's upgraded.
 
 ## Secret Handling
 
