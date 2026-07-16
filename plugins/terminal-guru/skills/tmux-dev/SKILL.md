@@ -178,6 +178,7 @@ Use the hypothesis-driven template in §6. Verify, don't reconfigure.
 - **`tmux_plugins.md`** — TPM layout; hook event taxonomy; option-watching recipe; testing template
 - **`tmux_mouse_bindings.md`** — named status ranges, correct mouse events, diagnostic technique, live binding vs bootstrap
 - **`tmux_session_management.md`** — sesh integration, naming conventions, direnv environment setup, pane logging, session persistence
+- **`herdr_alternative.md`** — `herdr`, an alternative AI-agent-focused multiplexer some users run instead of (or nested with) tmux; its config, theming, and a known sidebar-divider gap
 
 ## Related Skills
 

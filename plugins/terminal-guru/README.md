@@ -9,6 +9,7 @@ Terminal and shell expert that diagnoses problems, composes tools into workflows
 
 | Version | Date | Trigger | Prompt | Coherence | Overall |
 |---------|------|---------|--------|-----------|---------|
+| 5.12.0 | 2026-07-15 | 100 | 100 | 100 | **100** |
 | 5.7.0 | 2026-06-30 | 100 | 100 | 100 | **100** |
 | 5.5.0 | 2026-06-05 | 100 | 90 | 100 | 96 |
 | 5.3.0 | 2026-05-03 | 100 | 90 | 100 | 96 |
@@ -34,6 +35,7 @@ tmux as an automation and structural surface (no longer a sub-topic of terminal-
 - Plugin testing: verify-vs-configure-vs-debug discipline (from #41 retrospective)
 - Mouse bindings, named status-bar ranges
 - Programmatic session creation, sesh integration (tmux side)
+- Alternative multiplexers: `herdr`, an AI-agent-focused tmux alternative (`references/herdr_alternative.md`)
 
 ### Skill: tui-experience (NEW in 5.5.0)
 The "experience" layer — apps you live in, and recording what happens there:
@@ -117,6 +119,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Changes |
 |---------|---------|
+| 5.12.0 | **herdr awareness.** Agent: one `<example>` + a Terminal Stack parenthetical noting `herdr` as an alternative AI-agent-focused multiplexer to tmux (no procedural detail — routing awareness only, per user feedback that agent-level content should stay light). New tmux-dev reference `herdr_alternative.md`: config (`~/.config/herdr/config.toml`, `--default-config`, `config check` vs `reload-config`), theming (`ui.accent`, `theme.custom` tokens, light/dark sibling themes), an empirical probe-color diagnostic technique for undocumented tokens, and a confirmed sidebar-divider gap (no config workaround). No score regression: agent still 100/100, tmux-dev still 91/100. |
 | 5.11.0 | **mise-tooling v2.5.0**: full mise release-notes refresh (89 upstream commits reviewed). Corrected two now-stale claims (`task_config.includes` directory-TOML behavior; broken config-guide URL). Added includes ordering/`git::` remote includes, `auto_env`, monorepo install/lockfile union, shell-style env expansion, sops `.env.toml`. New `mise_bootstrap_system.md` reference for the experimental declarative machine-bootstrap feature. |
 | 5.10.0 | **mise-tooling v2.4.0**: added multi-cluster/multi-target overlay pattern and `mise set -E`-based bootstrap output capture to `mise_environment_management.md`, generalized from real homestack-2026 usage (per-target `CLUSTER_ENDPOINT`/`CLUSTER_NAME` conventions, gateway LB IP capture). |
 | 5.9.0 | **mise-tooling v2.3.0**: documented two Tera gotchas surfaced during a real inline-task migration — file-based task scripts aren't Tera-rendered (breaks `{{config_root}}`-sourced libs silently), and unquoted heredocs used for shell-side interpolation can't be fixed by just quoting the delimiter. Also documented the previously-undocumented `${#arr[@]}` Tera comment-opener collision. |
