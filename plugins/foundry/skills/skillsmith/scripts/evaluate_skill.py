@@ -50,6 +50,12 @@ Usage:
     # Generate/update README.md with capabilities prose + metrics + version history
     uv run scripts/evaluate_skill.py <skill-path> --update-readme
 
+    # Regenerate the plugin README What's-inside / Install / Components inventory
+    uv run scripts/evaluate_skill.py <skill-path> --update-components
+
+    # Audit a skill's Version History for stray PATCH rows (MINOR-only convention)
+    uv run scripts/evaluate_skill.py <skill-path> --check-version-history
+
 Options:
     --quick                   Fast validation mode (structure only)
     --strict                  Strict mode: treat warnings as errors (requires --quick)
@@ -58,11 +64,14 @@ Options:
     --validate-references     Validate references/ structure and mention coverage
     --detect-duplicates       Detect consolidation opportunities across reference files (opt-in)
     --update-readme           Generate/update README.md with capabilities prose + metrics + version history
+    --update-components       Regenerate plugin README What's-inside/Install/Components autogen blocks
+    --check-version-history   Audit the skill's Version History for stray PATCH rows (exit 1 if found)
     --compare <path>          Compare against original skill version
     --validate-functionality  Run functionality validation tests
     --store-metrics          Store metrics in SKILL.md metadata
     --export-table-row       Export version history table row (requires --version)
     --version <version>      Version number for table row export (e.g., 2.0.0)
+    --allow-patch            Allow --export-table-row to emit a standalone PATCH row (default: refuse/fold)
     --issue <number>         GitHub issue number for table row export (optional)
     --format json|text       Output format (default: text)
     --output <file>          Save results to file
@@ -1898,7 +1907,7 @@ def update_plugin_readme_metrics(skill_path, metrics):
     """
     from utils import find_plugin_root, validate_skill_name
 
-    sp = Path(skill_path)
+    sp = Path(skill_path).resolve()
     skill_name = sp.name
 
     # Validate skill name
@@ -1958,6 +1967,468 @@ def update_plugin_readme_metrics(skill_path, metrics):
 
     plugin_readme.write_text(content, encoding='utf-8')
     return plugin_readme
+
+
+# ============================================================================
+# Plugin README component inventory (--update-components) and
+# MINOR-only Version History enforcement (--export-table-row / --check-version-history)
+# ============================================================================
+
+AUTOGEN_BEGIN = ("<!-- BEGIN AUTOGEN:{id} "
+                 "(managed by skillsmith --update-components; edits overwritten) -->")
+AUTOGEN_END = "<!-- END AUTOGEN:{id} -->"
+
+
+def _frontmatter_field(md_path, key):
+    """Extract a single frontmatter field without a full YAML parse.
+
+    Robust to sibling fields that aren't valid YAML (e.g. an argument-hint with
+    juxtaposed `[..] [..]` flow sequences, which would make yaml.safe_load raise
+    and lose an otherwise-valid description). Handles inline `key: value` and
+    block `key: |` / `key: >` forms. Returns '' if absent or unreadable.
+    """
+    try:
+        text = Path(md_path).read_text(encoding='utf-8')
+    except Exception:
+        return ''
+    if not text.startswith('---'):
+        return ''
+    parts = text.split('---', 2)
+    if len(parts) < 3:
+        return ''
+    lines = parts[1].splitlines()
+    for idx, line in enumerate(lines):
+        m = re.match(rf'^{re.escape(key)}\s*:\s*(.*)$', line)
+        if not m:
+            continue
+        val = m.group(1).strip()
+        if val in ('|', '>', '|-', '>-', '|+', '>+'):
+            block = []
+            for cont in lines[idx + 1:]:
+                if cont.strip() == '':
+                    block.append('')
+                elif re.match(r'^\s', cont):
+                    block.append(cont.strip())
+                else:
+                    break
+            return ' '.join(block).strip()
+        return val.strip().strip('"').strip("'")
+    return ''
+
+
+def _first_sentence(text, limit=200):
+    """Collapse whitespace and return the first sentence, truncated to limit chars."""
+    if not text:
+        return ""
+    # Drop agent <example> blocks and normalize whitespace
+    text = str(text).split('<example>')[0]
+    text = re.sub(r'\s+', ' ', text).strip()
+    pieces = re.split(r'(?<=[.!?])\s+', text)
+    first = pieces[0] if pieces else text
+    if len(first) > limit:
+        first = first[:limit].rsplit(' ', 1)[0].rstrip('.,;:') + '…'
+    return first
+
+
+def _md_body(md_path):
+    """Return a markdown file's body (content after the frontmatter block)."""
+    try:
+        text = Path(md_path).read_text(encoding='utf-8')
+    except Exception:
+        return ''
+    if text.startswith('---'):
+        parts = text.split('---', 2)
+        if len(parts) >= 3:
+            return parts[2].strip()
+    return text.strip()
+
+
+def _first_prose_paragraph(body):
+    """First paragraph of body that is prose (not a heading, table, list, or code)."""
+    for para in body.split('\n\n'):
+        para = para.strip()
+        if not para or para.startswith(('#', '|', '-', '>', '*', '`', '<', '```')):
+            continue
+        return para
+    return ''
+
+
+def _component_brief(md_path, limit=200):
+    """Best available one-line brief for a component markdown file.
+
+    Prefers the frontmatter `description`; falls back to the first prose
+    paragraph of the body (useful for commands that omit a description field).
+    """
+    desc = _frontmatter_field(md_path, 'description')
+    if desc:
+        return _first_sentence(desc, limit)
+    return _first_sentence(_first_prose_paragraph(_md_body(md_path)), limit)
+
+
+def _skill_tagline(skill_dir):
+    """Prefer the tagline paragraph under the SKILL.md H1; fall back to description."""
+    skill_dir = Path(skill_dir)
+    tagline = _first_prose_paragraph(_md_body(skill_dir / 'SKILL.md'))
+    if tagline:
+        return _first_sentence(tagline)
+    return _first_sentence(_frontmatter_field(skill_dir / 'SKILL.md', 'description'))
+
+
+def _script_purpose(script_path):
+    """Return the first descriptive sentence from a script's comment header.
+
+    Skips the shebang and a leading 'filename — ...' echo line, then joins the
+    first block of comment lines into a single sentence. Returns '' if none.
+    """
+    try:
+        lines = Path(script_path).read_text(encoding='utf-8').splitlines()
+    except Exception:
+        return ''
+    name = Path(script_path).name
+    collected = []
+    started = False
+    for ln in lines:
+        s = ln.strip()
+        if s.startswith('#!'):
+            continue
+        if not s.startswith('#'):
+            break
+        c = s.lstrip('#').strip()
+        if not c:
+            if started:
+                break
+            continue
+        if c.startswith(name):
+            continue  # skip the 'filename — ...' echo line
+        collected.append(c)
+        started = True
+    return _first_sentence(' '.join(collected)) if collected else ''
+
+
+def _scan_plugin_components(plugin_root):
+    """Scan a plugin for skills, agents, commands, and hooks.
+
+    Returns a dict with keys 'skills', 'agents', 'commands' (lists of
+    (name, description) tuples) and 'hooks' (list of (name, trigger, purpose)).
+    """
+    comp = {'skills': [], 'agents': [], 'commands': [], 'hooks': []}
+    plugin_root = Path(plugin_root)
+
+    skills_dir = plugin_root / 'skills'
+    if skills_dir.exists():
+        for d in sorted(skills_dir.iterdir()):
+            if d.is_dir() and (d / 'SKILL.md').exists():
+                name = _frontmatter_field(d / 'SKILL.md', 'name') or d.name
+                comp['skills'].append((name, _skill_tagline(d)))
+
+    agents_dir = plugin_root / 'agents'
+    if agents_dir.exists():
+        agent_files = sorted(agents_dir.glob('*.md')) + sorted(agents_dir.glob('*/*.md'))
+        for f in agent_files:
+            name = _frontmatter_field(f, 'name')
+            desc = _frontmatter_field(f, 'description')
+            if not name and not desc:
+                continue
+            if not name:
+                name = f.parent.name if f.name.upper() == 'AGENT.md' else f.stem
+            comp['agents'].append((name, _first_sentence(desc)))
+
+    commands_dir = plugin_root / 'commands'
+    if commands_dir.exists():
+        for f in sorted(commands_dir.glob('*.md')):
+            name = _frontmatter_field(f, 'name') or f.stem
+            comp['commands'].append((name, _component_brief(f, limit=160)))
+
+    hooks_json = plugin_root / 'hooks' / 'hooks.json'
+    if hooks_json.exists():
+        try:
+            hd = json.loads(hooks_json.read_text(encoding='utf-8'))
+        except Exception:
+            hd = {}
+        for event, entries in (hd.get('hooks') or {}).items():
+            for entry in entries:
+                matcher = entry.get('matcher', '')
+                for h in entry.get('hooks', []):
+                    cmd = h.get('command', '')
+                    sm = re.search(r'([\w.-]+\.(?:sh|py))', cmd)
+                    label = sm.group(1) if sm else cmd[:40]
+                    purpose = ''
+                    if sm:
+                        rel = cmd.split('${CLAUDE_PLUGIN_ROOT}', 1)[-1].strip()
+                        rel = rel.split()[-1] if rel else ''
+                        purpose = _script_purpose(plugin_root / rel.lstrip('/'))
+                    trigger = f"{event} {matcher}".strip()
+                    comp['hooks'].append((label, trigger, purpose))
+    return comp
+
+
+def _cell(text):
+    """Sanitize a string for use inside a markdown table cell."""
+    return re.sub(r'\s+', ' ', str(text)).replace('|', r'\|').strip()
+
+
+def _md_table(headers, rows):
+    """Render a GitHub-flavored markdown table."""
+    out = ['| ' + ' | '.join(headers) + ' |',
+           '|' + '|'.join('-------' for _ in headers) + '|']
+    out.extend('| ' + ' | '.join(r) + ' |' for r in rows)
+    return '\n'.join(out)
+
+
+def _find_marketplace_json(start):
+    """Search upward for a .claude-plugin/marketplace.json (repo-level, not the
+    plugin's own plugin.json). Returns the Path or None."""
+    cur = Path(start).resolve()
+    for _ in range(10):
+        mj = cur / '.claude-plugin' / 'marketplace.json'
+        if mj.exists():
+            return mj
+        if cur.parent == cur:
+            break
+        cur = cur.parent
+    return None
+
+
+def _install_commands(plugin_root, plugin_name):
+    """Build the marketplace install commands for a plugin."""
+    mp_name = None
+    mj = _find_marketplace_json(plugin_root)
+    if mj:
+        try:
+            mp_name = json.loads(mj.read_text(encoding='utf-8')).get('name')
+        except Exception:
+            pass
+    slug = None
+    try:
+        r = subprocess.run(['git', 'config', '--get', 'remote.origin.url'],
+                           capture_output=True, text=True, cwd=str(plugin_root))
+        m = re.search(r'[:/]([^/:]+/[^/]+?)(?:\.git)?$', r.stdout.strip())
+        if m:
+            slug = m.group(1)
+    except Exception:
+        pass
+    return [
+        f"/plugin marketplace add {slug or '<owner>/<repo>'}",
+        f"/plugin install {plugin_name}@{mp_name or '<marketplace>'}",
+    ]
+
+
+def _render_overview(meta, counts, install_cmds):
+    """Render the What's inside + Install autogen body."""
+    parts = ["## What's inside", ""]
+    desc = (meta.get('description') or '').strip()
+    if desc:
+        parts += [desc, ""]
+    glance = ' · '.join(
+        f"{n} {label if n != 1 else label[:-1]}"
+        for label, n in [('skills', counts['skills']), ('agents', counts['agents']),
+                         ('commands', counts['commands']), ('hooks', counts['hooks'])]
+        if n
+    )
+    if glance:
+        parts += [f"**At a glance:** {glance}", ""]
+    parts += ["## Install", "", "```", *install_cmds, "```"]
+    return '\n'.join(parts)
+
+
+def _render_components(comp):
+    """Render the Components autogen body from a scan result."""
+    parts = ["## Components", ""]
+    specs = [
+        ('skills', 'Skills', 'Skill', lambda n: f'`{n}`'),
+        ('agents', 'Agents', 'Agent', lambda n: f'`{n}`'),
+        ('commands', 'Commands', 'Command', lambda n: f'`/{n}`'),
+    ]
+    for key, title, col, fmt in specs:
+        items = comp[key]
+        if not items:
+            continue
+        parts += [f"### {title} ({len(items)})", ""]
+        parts.append(_md_table([col, 'Description'],
+                               [[fmt(n), _cell(d)] for n, d in items]))
+        parts.append("")
+    if comp['hooks']:
+        parts += [f"### Hooks ({len(comp['hooks'])})", ""]
+        parts.append(_md_table(['Hook', 'Trigger', 'Purpose'],
+                               [[f'`{n}`', _cell(t), _cell(p)] for n, t, p in comp['hooks']]))
+        parts.append("")
+    return '\n'.join(parts).rstrip()
+
+
+def _upsert_fence(content, fence_id, body, insert_before=None, replace_section_heading=None):
+    """Insert or replace an autogen-fenced block. Returns (content, action)."""
+    begin = AUTOGEN_BEGIN.format(id=fence_id)
+    end = AUTOGEN_END.format(id=fence_id)
+    block = f"{begin}\n{body}\n{end}"
+
+    fence_re = re.compile(re.escape(begin) + r'.*?' + re.escape(end), re.DOTALL)
+    if fence_re.search(content):
+        return fence_re.sub(lambda _m: block, content), 'replaced'
+
+    if replace_section_heading:
+        sec_re = re.compile(
+            rf'(?ms)^## {re.escape(replace_section_heading)}\s*$.*?(?=\n## |\Z)')
+        if sec_re.search(content):
+            return sec_re.sub(lambda _m: block, content), 'replaced-section'
+
+    if insert_before:
+        m = re.search(insert_before, content, re.MULTILINE)
+        if m:
+            return content[:m.start()] + block + '\n\n' + content[m.start():], 'inserted'
+
+    return content.rstrip() + '\n\n' + block + '\n', 'appended'
+
+
+def update_plugin_readme_components(path):
+    """Regenerate the What's inside / Install / Components autogen blocks in a
+    plugin's README.md. Preserves all content outside the fenced blocks.
+
+    Args:
+        path: Path to a skill directory or anywhere inside the plugin.
+
+    Returns:
+        Path to the updated README, or None if no plugin root was found.
+    """
+    from utils import find_plugin_root
+
+    plugin_root = find_plugin_root(Path(path).resolve())
+    if plugin_root is None:
+        print(f"⚠️  No plugin root found for {path} — skipping components update")
+        return None
+
+    try:
+        meta = json.loads(
+            (plugin_root / '.claude-plugin' / 'plugin.json').read_text(encoding='utf-8'))
+    except Exception:
+        meta = {'name': plugin_root.name}
+    plugin_name = meta.get('name', plugin_root.name)
+
+    comp = _scan_plugin_components(plugin_root)
+    counts = {k: len(v) for k, v in comp.items()}
+    install_cmds = _install_commands(plugin_root, plugin_name)
+
+    readme = plugin_root / 'README.md'
+    if readme.exists():
+        content = readme.read_text(encoding='utf-8')
+    else:
+        content = f"# {plugin_name}\n\n{(meta.get('description') or '').strip()}\n"
+
+    content, _ = _upsert_fence(
+        content, 'overview', _render_overview(meta, counts, install_cmds),
+        insert_before=r'(?m)^## ', replace_section_heading="What's inside")
+    content, _ = _upsert_fence(
+        content, 'components', _render_components(comp),
+        insert_before=r'(?m)^## (?:Changelog|Skill:)', replace_section_heading='Components')
+
+    readme.write_text(content, encoding='utf-8')
+    print(f"✅ Updated components inventory in {readme}")
+    print(f"   {counts['skills']} skills · {counts['agents']} agents · "
+          f"{counts['commands']} commands · {counts['hooks']} hooks")
+    return readme
+
+
+def _parse_semver(v):
+    """Parse 'x.y.z' into an (x, y, z) int tuple, or None if not semver-shaped."""
+    m = re.match(r'^(\d+)\.(\d+)\.(\d+)', str(v).strip())
+    return tuple(int(x) for x in m.groups()) if m else None
+
+
+def fold_patch_into_minor(skill_path, version, metrics, today):
+    """Fold a PATCH release into its parent x.y.0 Version History row.
+
+    Updates the parent row's date and metric columns to current values and
+    appends a '+vX.Y.Z' marker to its summary. Returns (status, detail) where
+    status is 'folded', 'no-parent', or 'no-readme'.
+    """
+    from utils import find_plugin_root
+
+    sp = Path(skill_path).resolve()
+    skill_name = sp.name
+    plugin_root = find_plugin_root(sp)
+    if plugin_root is None:
+        return 'no-readme', None
+    readme = plugin_root / 'README.md'
+    if not readme.exists():
+        return 'no-readme', None
+
+    content = readme.read_text(encoding='utf-8')
+    start, end = _find_skill_section_range(content, skill_name)
+    if start is None:
+        return 'no-parent', None
+
+    section = content[start:end]
+    sv = _parse_semver(version)
+    if sv is None:
+        return 'no-parent', None
+    parent = f"{sv[0]}.{sv[1]}.0"
+    row_re = re.compile(rf'(?m)^\|\s*{re.escape(parent)}\s*\|.*\|\s*$')
+    m = row_re.search(section)
+    if not m:
+        return 'no-parent', None
+
+    cells = [c.strip() for c in m.group(0).strip().strip('|').split('|')]
+    if len(cells) < 10:
+        return 'no-parent', None
+
+    desc_q = metrics.get('description_quality', {}).get('score', '-')
+    desc_str = str(int(desc_q)) if desc_q != '-' else '-'
+    cells[1] = today
+    marker = f"+v{version}"
+    if marker not in cells[3]:
+        cells[3] = f"{cells[3]} {marker}".strip()
+    cells[4] = str(int(metrics['conciseness']['score']))
+    cells[5] = str(int(metrics['complexity']['score']))
+    cells[6] = str(int(metrics['spec_compliance']['score']))
+    cells[7] = str(int(metrics['progressive_disclosure']['score']))
+    cells[8] = desc_str
+    cells[9] = str(int(metrics['overall_score']))
+    new_row = '| ' + ' | '.join(cells) + ' |'
+
+    new_section = section[:m.start()] + new_row + section[m.end():]
+    content = content[:start] + new_section + content[end:]
+    readme.write_text(content, encoding='utf-8')
+    return 'folded', f"{parent} ({marker})"
+
+
+def audit_version_history(skill_path):
+    """Scan a skill's Version History table for stray PATCH rows.
+
+    Returns 0 if MINOR-only (or nothing to audit), 1 if patch rows are found.
+    """
+    from utils import find_plugin_root
+
+    sp = Path(skill_path).resolve()
+    skill_name = sp.name
+    plugin_root = find_plugin_root(sp)
+    readme = (plugin_root / 'README.md') if plugin_root else None
+    if not readme or not readme.exists():
+        print("⚠️  No plugin README found — nothing to audit")
+        return 0
+
+    content = readme.read_text(encoding='utf-8')
+    start, end = _find_skill_section_range(content, skill_name)
+    if start is None:
+        print(f"⚠️  No '## Skill: {skill_name}' section found in {readme}")
+        return 0
+
+    patch_rows = []
+    for line in content[start:end].splitlines():
+        hm = re.match(r'^\|\s*(\d+\.\d+\.\d+)\s*\|', line)
+        if hm:
+            v = _parse_semver(hm.group(1))
+            if v and v[2] != 0:
+                patch_rows.append(hm.group(1))
+
+    if patch_rows:
+        print(f"⚠️  Found {len(patch_rows)} PATCH-version row(s) in "
+              f"'{skill_name}' Version History (convention is MINOR-only):")
+        for v in patch_rows:
+            sv = _parse_semver(v)
+            major, minor = (sv[0], sv[1]) if sv else (0, 0)
+            print(f"   - {v}  → fold into {major}.{minor}.0")
+        return 1
+    print(f"✅ {skill_name} Version History is MINOR-only.")
+    return 0
 
 
 def generate_skill_readme(skill_path, metrics):
@@ -3001,10 +3472,13 @@ def main():
     validate_refs_mode = False
     detect_dups_mode = False
     update_readme_mode = False
+    update_components_mode = False
     compare_with = None
     validate_func = False
     store_metrics_flag = False
     export_table_row = False
+    allow_patch = False
+    check_version_history_mode = False
     check_freshness = False
     version_number = None
     issue_number = None
@@ -3035,6 +3509,15 @@ def main():
             i += 1
         elif arg == '--update-readme':
             update_readme_mode = True
+            i += 1
+        elif arg == '--update-components':
+            update_components_mode = True
+            i += 1
+        elif arg == '--allow-patch':
+            allow_patch = True
+            i += 1
+        elif arg == '--check-version-history':
+            check_version_history_mode = True
             i += 1
         elif arg == '--compare' and i + 1 < len(sys.argv):
             compare_with = sys.argv[i + 1]
@@ -3073,6 +3556,15 @@ def main():
         sys.exit(1)
 
     try:
+        # Update components inventory mode
+        if update_components_mode:
+            update_plugin_readme_components(skill_path)
+            sys.exit(0)
+
+        # Audit Version History for stray PATCH rows
+        if check_version_history_mode:
+            sys.exit(audit_version_history(skill_path))
+
         # Export table row mode
         if export_table_row:
             if not version_number:
@@ -3128,6 +3620,25 @@ def main():
 
             # Output table row for Version History (plugin-level README.md)
             table_row = f"| {version_number} | {today} | {issue_link} | {summary} | {conc} | {comp} | {spec} | {disc} | {desc_str} | {overall} |"
+
+            # Enforce MINOR-only Version History convention (x.Y.0).
+            sv = _parse_semver(version_number)
+            if sv is not None and sv[2] != 0 and not allow_patch:
+                status, detail = fold_patch_into_minor(
+                    skill_path, version_number, metrics, today)
+                if status == 'folded':
+                    print(f"✅ Folded patch v{version_number} into parent MINOR row {detail}.")
+                    print("   Version History stays MINOR-only. "
+                          "Re-run with --allow-patch to emit a standalone row instead.")
+                    sys.exit(0)
+                print(f"❌ ERROR: '{version_number}' is a PATCH version. "
+                      "Version History convention is MINOR-only (x.Y.0).")
+                print("   Options:")
+                print(f"     (a) rerun with --version {sv[0]}.{sv[1]}.0 "
+                      "to update the parent MINOR row")
+                print("     (b) pass --allow-patch to override this check (not recommended)")
+                sys.exit(1)
+
             print(table_row)
             sys.exit(0)
 
@@ -3209,7 +3720,7 @@ def main():
 
         # Update README mode — targets plugin-level README.md
         if update_readme_mode:
-            sp = Path(skill_path)
+            sp = Path(skill_path).resolve()
             metrics = calculate_all_metrics(sp)
             readme_path = update_plugin_readme_metrics(sp, metrics)
             if readme_path:

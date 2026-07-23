@@ -3,7 +3,7 @@ name: skillsmith
 description: This skill should be used when users ask to "create a skill", "validate a skill for quality", "evaluate skill improvements", "improve my skill", "update my skill", "fix skill", "iterate on skill", "optimize skill", "skill quality", "skill performance", "skill isn't working", "analyze skill metrics", "init a new skill", "check skill compliance", or "sync skill to marketplace". Provides comprehensive skill development with automated validation, metrics tracking, and improvement workflows.
 metadata:
   author: J. Greg Williams
-  version: "6.9.1"
+  version: "6.10.0"
 compatibility: Requires python3 and uv for script execution and validation
 license: Complete terms in LICENSE.txt
 ---
@@ -91,21 +91,36 @@ uv run scripts/evaluate_skill.py <skill-path> --explain
 # After fixes: re-evaluate and refresh README.md metrics
 uv run scripts/evaluate_skill.py <skill-path> --update-readme
 
-# Export version history row (paste into README.md Version History)
-uv run scripts/evaluate_skill.py <skill-path> --export-table-row --version X.Y.Z
+# Refresh the plugin README's What's-inside / Install / Components inventory
+uv run scripts/evaluate_skill.py <skill-path> --update-components
+
+# Export a MINOR version history row (paste into README.md Version History)
+uv run scripts/evaluate_skill.py <skill-path> --export-table-row --version X.Y.0
 ```
+
+**Plugin README (human-facing):** the plugin README opens with what-it-does, an
+auto-generated **What's inside** + **Install** block, and an auto-generated
+**Components** inventory (skills/agents/commands/hooks with brief descriptions).
+Regenerate these with `--update-components`; hand-authored Quickstart/Examples
+outside the autogen fences are preserved. The `on-component-edit.sh` hook warns
+(never writes) when a component changes so the inventory can be refreshed. See
+`references/plugin_readme_template.md`.
+
+**Version History is MINOR-only (`x.Y.0`).** `--export-table-row` refuses a PATCH
+version by default and auto-folds it into the parent MINOR row when one exists;
+pass `--allow-patch` to force a standalone row. Audit with `--check-version-history`.
 
 > **Before committing any skill improvement**, run the full evaluation (no flags) and confirm
 > no score regressed. `--quick` is for fast iteration only — it does not produce the metrics
 > captured in README.md Version History. This is the project-level gate documented in `CLAUDE.md`.
 
 **Improvement routing:**
-- **Quick updates** (<50 lines, single file): Fix directly, PATCH bump
-- **Complex improvements** (multi-file, structural): GitHub Issue + README.md version row
+- **Quick updates** (<50 lines, single file): Fix directly, PATCH bump — folds into the parent MINOR history row
+- **Complex improvements** (multi-file, structural): GitHub Issue + new MINOR history row
 
 **Version bumping:**
-- PATCH: Bug fixes, docs, minor updates
-- MINOR: New features, backward-compatible
+- PATCH: Bug fixes, docs, minor updates (folded into parent MINOR row in Version History)
+- MINOR: New features, backward-compatible (new Version History row)
 - MAJOR: Breaking changes
 
 After improvements, invoke **marketplace-manager** to sync `marketplace.json`.
