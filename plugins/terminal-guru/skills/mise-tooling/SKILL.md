@@ -1,5 +1,6 @@
 ---
 
+
 name: mise-tooling
 description: This skill should be used when the user asks to "configure mise.toml", "create a mise task", "set up tool versions", "manage environments with mise", "debug mise config", "task_config includes", "mise task DRY", "mise profiles", "mise env not loading", "create mise run command", or needs help with mise (jdx/mise) for tool versioning, environment variables, or task automation. Also trigger on mentions of mise.toml, .miserc.toml, mise run, mise env, mise tasks, mise profiles, task_config, or exec() in env. Do NOT use for shell configuration or function generation (use zsh-dev instead). Do NOT use for sesh/tmux session management (use environment-composition instead). Do NOT use for signal handling or logging (use signals-monitoring instead). Mise + sesh integration questions should route here for the mise side and environment-composition for the sesh side.
 metadata:
@@ -7,12 +8,13 @@ metadata:
   complexity: 90
   spec_compliance: 100
   progressive: 100
-  overall: 97
+  overall: 98
   last_evaluated: 2026-07-23
   reference_currency: 100
   version: "2.6.0"
 license: MIT
 compatibility: claude-code
+
 
 ---
 

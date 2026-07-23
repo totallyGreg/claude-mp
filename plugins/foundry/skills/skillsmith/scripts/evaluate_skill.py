@@ -686,9 +686,14 @@ def calculate_basic_metrics(skill_path):
     """Calculate basic metrics about the skill"""
     frontmatter, body, content = read_skill_md(skill_path)
 
-    # SKILL.md metrics
-    skill_md_lines = count_lines(skill_path / 'SKILL.md')
-    skill_md_tokens = estimate_tokens(content)
+    # SKILL.md metrics — measure the instructional BODY only, not the frontmatter.
+    # Frontmatter (name, description, stored metrics, license, keywords) is metadata,
+    # not guidance content. Counting it made evaluation non-idempotent: --store-metrics
+    # injects the metric block into frontmatter, which inflated the line/token count and
+    # lowered conciseness (and thus overall) on the very next evaluation — the source of
+    # the display-vs-receipt score discrepancy.
+    skill_md_lines = len(body.splitlines())
+    skill_md_tokens = estimate_tokens(body)
 
     # Bundled resources
     scripts_count = count_files_recursive(skill_path / 'scripts')

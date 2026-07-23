@@ -1,9 +1,9 @@
 {
   "skill_name": "mise-tooling",
-  "content_hash": "50d8a5f5933df7b324c9a42b986ecf296f6e89455f36dc6e80def8c0ffc8fbc5",
-  "score": 97,
+  "content_hash": "763e1e5aaa202c8f75b231c86147fdb8092881a5e917f0300f815fdf77db226d",
+  "score": 98,
   "metrics": {
-    "conciseness": 98,
+    "conciseness": 100,
     "complexity": 90,
     "spec_compliance": 100,
     "progressive_disclosure": 100,

@@ -6,7 +6,7 @@
     "email": "283704+totallyGreg@users.noreply.github.com"
   },
   "metadata": {
-    "version": "2.0.2",
+    "version": "2.0.3",
     "description": "Totally Tools - a Playground for Claude extensions including skills, commands, agents, hooks, and MCP servers"
   },
   "plugins": [
@@ -36,7 +36,7 @@
       "name": "foundry",
       "description": "Plugin development lifecycle toolkit — evaluate, improve, and publish skills and agents. Consolidates skillsmith, marketplace-manager, and agentsmith.",
       "category": "development",
-      "version": "1.6.0",
+      "version": "1.7.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"

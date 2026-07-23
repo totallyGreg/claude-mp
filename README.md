@@ -23,7 +23,7 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 |--------|---------|-------------|
 | **terminal-guru** | 5.13.0 | Terminal diagnostics, tool composition, workflow discovery, and multi-Claude tmux orchestration — triage agent routing to seven skills across the terminal stack (terminal-emulation, zsh-dev, tmux-dev, tui-experience, signals-monitoring, environment-composition, mise-tooling) |
 | **helm-chart-developer** | 2.0.0 | Expert guide for Helm chart development, testing, and security |
-| **foundry** | 1.6.0 | Plugin development lifecycle toolkit — evaluate, improve, and publish skills and agents. Consolidates skillsmith, marketplace-manager, and agentsmith. |
+| **foundry** | 1.7.0 | Plugin development lifecycle toolkit — evaluate, improve, and publish skills and agents. Consolidates skillsmith, marketplace-manager, and agentsmith. |
 | **swift-dev** | 1.2.0 | Swift development expert for SwiftUI, iOS/macOS frameworks, Server-side Swift, and Objective-C migration |
 | **chronicle** | 0.1.0 | Opinionated guidance for managing change across documents, code, and experiments. Covers git (primary), jujutsu, and historical VCS tools with strong opinions on commit craft, branching, merge strategy, and multi-agent worktree workflows. |
 | **handoff** | 0.3.0 | Hand off work to another Claude — teammate via SendMessage, tmux pane via send-keys, clipboard, or file. Structured Markdown payload with goal, state, decisions, and next steps. |
