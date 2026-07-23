@@ -92,6 +92,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 | Version | Changes |
 |---------|---------|
+| 1.6.0 | Eval-score integrity: skillsmith 6.11.0 verifiable receipts (`--write-receipt`/`--verify`), skill-observer confabulation detector (flags narrated scores with no eval run), and receipts-not-narration guidance across skillsmith/agentsmith/commands ([#191](https://github.com/totallyGreg/claude-mp/issues/191)) |
 | 1.5.0 | Human-useful, auto-maintained plugin READMEs (skillsmith 6.10.0): `--update-components` generates What's-inside/Install/Components inventory; MINOR-only Version History enforcement; `on-component-edit.sh` staleness hook ([#190](https://github.com/totallyGreg/claude-mp/issues/190)) |
 | 1.3.0 | Add WTF (Work the Foundry) friction reporter skill, `/ss-wtf` command, friction query integration in `/ss-improve` and `/as-improve` |
 | 1.0.0 | Initial release — consolidates skillsmith v6.9.0, marketplace-manager v4.0.0, and new agentsmith v1.0.0 |
@@ -110,6 +111,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 6.11.0 | 2026-07-23 | [#191](https://github.com/totallyGreg/claude-mp/issues/191) | Verifiable eval receipts: `--write-receipt` records score + content hash + provenance to `.skillsmith-receipt.json`; `--verify [--expect-score]` fails on stale/mismatched/README-inconsistent scores; `--update-readme` auto-writes a receipt. Anti-confabulation guidance in Step 6. Resolves confabulated-score friction (2026-06-10) | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.10.0 | 2026-07-23 | [#190](https://github.com/totallyGreg/claude-mp/issues/190) | Human-useful plugin READMEs: `--update-components` generates What's-inside/Install/Components inventory into autogen fences (hand-authored zones preserved); MINOR-only Version History enforcement (`--export-table-row` refuses/auto-folds PATCH, `--allow-patch` override, `--check-version-history` audit); `on-component-edit.sh` warn-only staleness hook | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.9.0 | 2026-04-28 | [#165](https://github.com/totallyGreg/claude-mp/issues/165) | Reference provenance tracking: provenance spec in agentskills_specification.md, check_freshness.py generic script, Reference Currency 6th evaluation dimension, /ss-refresh command, ss-improve/ss-research freshness integration, init_skill.py templates. +v6.9.1 (2026-04-28): refresh agentskills_specification.md — allowed-tools example, compatibility examples, metadata key uniqueness guidance | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.8.0 | 2026-03-25 | [#148](https://github.com/totallyGreg/claude-mp/issues/148) | Migrate skill README to plugin level: plugin-root discovery, scoped section replacement, auto-migration, compact metrics display, clearer column headers, validate_skill_name(), rename readme_template | 100 | 100 | 100 | 100 | 100 | 100 |
@@ -145,7 +147,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 ### Current Metrics
 
-**Score: 98/100** (Excellent) — 2026-04-28
+**Score: 98/100** (Excellent) — 2026-07-23
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -155,7 +157,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
-| 1.1.0 | 2026-04-28 | - | Add code examples, agent-improvement-guide.md reference with delegation model and improvement patterns | 100 | 90 | 100 | 100 | 100 | 98 |
+| 1.1.0 | 2026-07-23 | - | Add code examples, agent-improvement-guide.md reference with delegation model and improvement patterns. +v1.1.1 (2026-07-23): receipts-not-narration guidance in the improvement loop — report only tool-produced scores, require raw eval output from delegated subagents | 100 | 90 | 100 | 100 | 100 | 98 |
 | 1.0.0 | 2026-04-28 | - | Initial release — agent evaluation with 3 quality dimensions | 100 | 80 | 100 | 85 | 100 | 93 |
 
 ## Skill: wtf

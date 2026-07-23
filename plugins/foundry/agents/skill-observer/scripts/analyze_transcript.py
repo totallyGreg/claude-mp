@@ -38,6 +38,7 @@ Examples:
 import json
 import sys
 import os
+import re
 import glob
 import subprocess
 from pathlib import Path
@@ -165,6 +166,81 @@ def extract_tool_calls(messages: list[dict]) -> list[dict]:
                     'timestamp': msg.get('timestamp', ''),
                 })
     return tool_calls
+
+
+def extract_assistant_texts(messages: list[dict]) -> list[str]:
+    """Collect all assistant text blocks (the model's prose narration)."""
+    texts = []
+    for msg in messages:
+        if msg.get('type') != 'assistant':
+            continue
+        content = msg.get('message', {}).get('content', [])
+        if isinstance(content, str):
+            texts.append(content)
+        elif isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get('type') == 'text':
+                    texts.append(block.get('text', ''))
+    return texts
+
+
+# eval-score claim like "99/100" and eval-context words that make it a score claim
+_SCORE_CLAIM_RE = re.compile(r'\b\d{1,3}\s*/\s*100\b')
+_EVAL_CONTEXT_RE = re.compile(
+    r'\b(eval|evaluat\w*|scored?|passed|skillsmith|agentsmith|conciseness|'
+    r'spec compliance|progressive|metric)\b', re.IGNORECASE)
+_EVAL_RUN_RE = re.compile(r'evaluate_skill\.py|evaluate_agent\.py|ss-evaluate|as-evaluate')
+
+
+def detect_confabulated_scores(
+    messages: list[dict],
+    all_tool_calls: list[dict],
+    skill_invocations: list[dict],
+) -> list[dict]:
+    """Flag eval-score claims narrated in assistant text with no evidence of a
+    real eval run — the failure mode in friction report 2026-06-10.
+
+    Evidence of a real run = a skillsmith/agentsmith Skill invocation, or a Bash
+    command running evaluate_skill.py / evaluate_agent.py (or ss-/as-evaluate).
+    """
+    claims = []
+    seen = set()
+    for text in extract_assistant_texts(messages):
+        if not text:
+            continue
+        for m in _SCORE_CLAIM_RE.finditer(text):
+            window = re.sub(r'\s+', ' ', text[max(0, m.start() - 80):m.end() + 80]).strip()
+            if _EVAL_CONTEXT_RE.search(window) and window not in seen:
+                seen.add(window)
+                claims.append(window)
+
+    if not claims:
+        return []
+
+    evidence = any(
+        'skillsmith' in inv['skill'] or 'agentsmith' in inv['skill']
+        for inv in skill_invocations
+    ) or any(
+        tc['name'] == 'Bash' and _EVAL_RUN_RE.search(tc['input'].get('command', ''))
+        for tc in all_tool_calls
+    )
+    if evidence:
+        return []
+
+    return [{
+        'skill': 'eval-integrity',
+        'invocation_type': 'session',
+        'type': 'confabulated_score',
+        'tool': '-',
+        'count': len(claims),
+        'description': (f'{len(claims)} eval-score claim(s) narrated in assistant text with no '
+                        'evidence of an eval run (no skillsmith/agentsmith Skill call, no '
+                        'evaluate_skill.py/evaluate_agent.py execution).'),
+        'examples': claims[:5],
+        'suggestion': ('Never narrate eval scores. Run `evaluate_skill.py --verify` and cite the '
+                       'receipt; a score without a tool run is unverified (see friction 2026-06-10).'),
+        'source_path': None,
+    }]
 
 
 def group_tool_calls_by_skill(
@@ -534,6 +610,10 @@ def analyze(
     skill_invocations = extract_skill_invocations(messages)
     all_tool_calls = extract_tool_calls(messages)
 
+    # Eval-integrity check runs regardless of skill detection — the confabulation
+    # failure mode happens precisely when no eval was actually invoked.
+    confab_gaps = detect_confabulated_scores(messages, all_tool_calls, skill_invocations)
+
     session_id = session_path.stem
 
     if not skill_invocations:
@@ -544,7 +624,7 @@ def analyze(
             'hint': hint or '',
             'message': 'No Skill or Agent tool calls found in this session. Skills must be invoked via the Skill tool and agents via the Agent tool to be tracked.',
             'skills': [],
-            'gaps': [],
+            'gaps': confab_gaps,
         }
 
     # Apply filter
@@ -655,6 +735,9 @@ def analyze(
 
     gaps_sorted = sorted(all_gaps, key=lambda g: g.get('count', 0), reverse=True)
 
+    # Eval-integrity gaps always surface first — they signal fabricated results
+    gaps_sorted = confab_gaps + gaps_sorted
+
     # If a hint is provided, bubble hint-relevant gaps to the top
     if hint:
         hint_lower = hint.lower()
@@ -683,6 +766,23 @@ def analyze(
 # Output Formatting
 # ============================================================================
 
+def _eval_integrity_lines(result: dict) -> list[str]:
+    """Render the eval-integrity callout for any confabulated-score gaps."""
+    confab = [g for g in result.get('gaps', []) if g.get('type') == 'confabulated_score']
+    if not confab:
+        return []
+    lines = ['### ⚠ Eval Integrity', '']
+    for g in confab:
+        lines.append(f"**{g['description']}**")
+        lines.append('')
+        for ex in g.get('examples', []):
+            lines.append(f"- “…{ex}…”")
+        lines.append('')
+        lines.append(f"_{g['suggestion']}_")
+        lines.append('')
+    return lines
+
+
 def format_markdown(result: dict) -> str:
     lines = []
     lines.append(f"## Skill Observer Report — {result['session_id']}")
@@ -692,6 +792,9 @@ def format_markdown(result: dict) -> str:
         lines.append(f"> **Observation:** {result['hint']}")
         lines.append('> Gaps are sorted by relevance to this observation.')
         lines.append('')
+
+    # Eval-integrity callout surfaces in every branch (including no-skills sessions)
+    lines.extend(_eval_integrity_lines(result))
 
     if result['status'] != 'ok':
         lines.append(f"**Status:** {result['message']}")
@@ -723,6 +826,8 @@ def format_markdown(result: dict) -> str:
 
     by_skill: dict[str, list] = defaultdict(list)
     for gap in result['gaps']:
+        if gap.get('type') == 'confabulated_score':
+            continue  # shown in the Eval Integrity callout, not per-skill
         by_skill[gap['skill']].append(gap)
 
     for skill_name, gaps in by_skill.items():
@@ -762,7 +867,7 @@ def format_markdown(result: dict) -> str:
     seen = set()
     rank = 1
     for gap in result['gaps']:
-        if gap['type'] in ('third_party', 'agent_validation'):
+        if gap['type'] in ('third_party', 'agent_validation', 'confabulated_score'):
             continue
         key = (gap['skill'], gap['type'], gap.get('tool', ''))
         if key in seen:

@@ -59,10 +59,11 @@ uv run ${CLAUDE_PLUGIN_ROOT}/agents/skill-observer/scripts/analyze_transcript.py
 
 The script returns a structured report. Present findings as:
 
-1. **Skills active in session** — list with invocation count
-2. **Tool call summary per skill** — what tools were used while each skill was active
-3. **Structural gaps** — tool calls or file patterns not mentioned in the skill's SKILL.md
-4. **Suggested improvements** — specific additions to SKILL.md or references/
+1. **Eval integrity** — if present, lead with the `⚠ Eval Integrity` callout. It flags eval-score claims narrated in assistant text (e.g. "eval scored 99/100") with **no evidence of a real eval run** (no skillsmith/agentsmith Skill call, no `evaluate_skill.py`/`evaluate_agent.py`). This is confabulation — surface it first and recommend `evaluate_skill.py --verify` with a receipt.
+2. **Skills active in session** — list with invocation count
+3. **Tool call summary per skill** — what tools were used while each skill was active
+4. **Structural gaps** — tool calls or file patterns not mentioned in the skill's SKILL.md
+5. **Suggested improvements** — specific additions to SKILL.md or references/
 
 ## Edge Cases
 

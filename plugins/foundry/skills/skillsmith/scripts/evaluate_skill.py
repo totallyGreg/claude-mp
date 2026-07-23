@@ -56,6 +56,12 @@ Usage:
     # Audit a skill's Version History for stray PATCH rows (MINOR-only convention)
     uv run scripts/evaluate_skill.py <skill-path> --check-version-history
 
+    # Write a verifiable eval receipt (score + content hash + provenance)
+    uv run scripts/evaluate_skill.py <skill-path> --write-receipt
+
+    # Verify a claimed score against the receipt and current content
+    uv run scripts/evaluate_skill.py <skill-path> --verify [--expect-score 100]
+
 Options:
     --quick                   Fast validation mode (structure only)
     --strict                  Strict mode: treat warnings as errors (requires --quick)
@@ -66,6 +72,9 @@ Options:
     --update-readme           Generate/update README.md with capabilities prose + metrics + version history
     --update-components       Regenerate plugin README What's-inside/Install/Components autogen blocks
     --check-version-history   Audit the skill's Version History for stray PATCH rows (exit 1 if found)
+    --write-receipt           Write .skillsmith-receipt.json (score + content hash + provenance)
+    --verify                  Verify the receipt against current content/README (exit 1 on mismatch)
+    --expect-score <n>        With --verify: also assert the recomputed score equals n
     --compare <path>          Compare against original skill version
     --validate-functionality  Run functionality validation tests
     --store-metrics          Store metrics in SKILL.md metadata
@@ -2431,6 +2440,148 @@ def audit_version_history(skill_path):
     return 0
 
 
+# ============================================================================
+# Verifiable eval receipts (--write-receipt / --verify)
+#
+# A receipt ties a claimed score to the skill content it was computed from, so a
+# score narrated without a real tool run (or after the content changed) fails
+# verification. Resolves friction 2026-06-10 (confabulated eval scores).
+# ============================================================================
+
+RECEIPT_FILENAME = ".skillsmith-receipt.json"
+
+
+def _skillsmith_tool_version():
+    """Version of the running skillsmith tool (its own SKILL.md metadata.version)."""
+    try:
+        own = Path(__file__).resolve().parent.parent / 'SKILL.md'
+        m = re.search(r'(?m)^\s*version:\s*["\']?([\d.]+)', own.read_text(encoding='utf-8'))
+        return m.group(1) if m else 'unknown'
+    except Exception:
+        return 'unknown'
+
+
+def _skill_content_hash(skill_path):
+    """Deterministic SHA-256 over the skill's scored inputs: SKILL.md +
+    references/** + scripts/** (excluding __pycache__ and *.pyc). The receipt
+    file itself lives in the skill root and is excluded, avoiding self-reference.
+    """
+    import hashlib
+    sp = Path(skill_path).resolve()
+    files = []
+    skill_md = sp / 'SKILL.md'
+    if skill_md.exists():
+        files.append(skill_md)
+    for sub in ('references', 'scripts'):
+        d = sp / sub
+        if d.exists():
+            for f in d.rglob('*'):
+                if f.is_file() and '__pycache__' not in f.parts and f.suffix != '.pyc':
+                    files.append(f)
+    files = sorted(set(files), key=lambda f: str(f.relative_to(sp)))
+    h = hashlib.sha256()
+    for f in files:
+        h.update(str(f.relative_to(sp)).encode('utf-8'))
+        h.update(b'\0')
+        try:
+            h.update(f.read_bytes())
+        except Exception:
+            pass
+        h.update(b'\0')
+    return h.hexdigest()
+
+
+def write_receipt(skill_path, metrics):
+    """Write a .skillsmith-receipt.json capturing score + content hash + provenance."""
+    sp = Path(skill_path).resolve()
+    desc_q = metrics.get('description_quality', {}).get('score', '-')
+    receipt = {
+        'skill_name': sp.name,
+        'content_hash': _skill_content_hash(sp),
+        'score': int(metrics['overall_score']),
+        'metrics': {
+            'conciseness': int(metrics['conciseness']['score']),
+            'complexity': int(metrics['complexity']['score']),
+            'spec_compliance': int(metrics['spec_compliance']['score']),
+            'progressive_disclosure': int(metrics['progressive_disclosure']['score']),
+            'description_quality': int(desc_q) if desc_q != '-' else None,
+        },
+        'tool_version': _skillsmith_tool_version(),
+        'date': datetime.now().strftime('%Y-%m-%d'),
+    }
+    path = sp / RECEIPT_FILENAME
+    path.write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
+    return path, receipt
+
+
+def _readme_current_score(skill_path):
+    """Return the plugin README's Current Metrics score for this skill, or None."""
+    from utils import find_plugin_root
+    sp = Path(skill_path).resolve()
+    plugin_root = find_plugin_root(sp)
+    if not plugin_root:
+        return None
+    readme = plugin_root / 'README.md'
+    if not readme.exists():
+        return None
+    start, end = _find_skill_section_range(readme.read_text(encoding='utf-8'), sp.name)
+    if start is None:
+        return None
+    section = readme.read_text(encoding='utf-8')[start:end]
+    m = re.search(r'\*\*Score:\s*(\d{1,3})/100', section)
+    return int(m.group(1)) if m else None
+
+
+def verify_receipt(skill_path, expect_score=None):
+    """Verify a skill's eval receipt against current content and (if present) the
+    plugin README. Returns (ok: bool, lines: list[str])."""
+    sp = Path(skill_path).resolve()
+    lines = []
+    receipt_path = sp / RECEIPT_FILENAME
+    if not receipt_path.exists():
+        return False, [f"❌ No {RECEIPT_FILENAME} for {sp.name}. "
+                       "Run --update-readme or --write-receipt to create one — "
+                       "an eval score without a receipt is unverified."]
+    try:
+        receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
+    except Exception as e:
+        return False, [f"❌ Unreadable receipt: {e}"]
+
+    metrics = calculate_all_metrics(sp)
+    current_score = int(metrics['overall_score'])
+    ok = True
+
+    if receipt.get('content_hash') != _skill_content_hash(sp):
+        ok = False
+        lines.append("❌ Content changed since the receipt was written (hash "
+                     "mismatch) — recorded score is stale. Re-evaluate.")
+    else:
+        lines.append("✅ Content hash matches the receipt.")
+
+    if receipt.get('score') != current_score:
+        ok = False
+        lines.append(f"❌ Recomputed score {current_score} ≠ receipt score {receipt.get('score')}.")
+    else:
+        lines.append(f"✅ Score matches the receipt ({current_score}/100).")
+
+    if expect_score is not None:
+        if int(expect_score) != current_score:
+            ok = False
+            lines.append(f"❌ Claimed score {expect_score} ≠ recomputed score {current_score}.")
+        else:
+            lines.append(f"✅ Claimed score {expect_score} matches recomputed score.")
+
+    readme_score = _readme_current_score(sp)
+    if readme_score is not None and readme_score != current_score:
+        ok = False
+        lines.append(f"❌ Plugin README Current Metrics score {readme_score} "
+                     f"≠ recomputed score {current_score}.")
+    elif readme_score is not None:
+        lines.append(f"✅ Plugin README Current Metrics score matches ({readme_score}/100).")
+
+    return ok, lines
+
+
 def generate_skill_readme(skill_path, metrics):
     """
     Generate or update README.md content for a skill.
@@ -3479,6 +3630,9 @@ def main():
     export_table_row = False
     allow_patch = False
     check_version_history_mode = False
+    verify_mode = False
+    write_receipt_mode = False
+    expect_score = None
     check_freshness = False
     version_number = None
     issue_number = None
@@ -3519,6 +3673,15 @@ def main():
         elif arg == '--check-version-history':
             check_version_history_mode = True
             i += 1
+        elif arg == '--verify':
+            verify_mode = True
+            i += 1
+        elif arg == '--write-receipt':
+            write_receipt_mode = True
+            i += 1
+        elif arg == '--expect-score' and i + 1 < len(sys.argv):
+            expect_score = sys.argv[i + 1]
+            i += 2
         elif arg == '--compare' and i + 1 < len(sys.argv):
             compare_with = sys.argv[i + 1]
             i += 2
@@ -3564,6 +3727,21 @@ def main():
         # Audit Version History for stray PATCH rows
         if check_version_history_mode:
             sys.exit(audit_version_history(skill_path))
+
+        # Write an eval receipt (score + content hash + provenance)
+        if write_receipt_mode:
+            metrics = calculate_all_metrics(Path(skill_path).resolve())
+            path, receipt = write_receipt(skill_path, metrics)
+            print(f"✓ Wrote receipt: {path}")
+            print(f"  Score: {receipt['score']}/100  Hash: {receipt['content_hash'][:12]}…")
+            sys.exit(0)
+
+        # Verify a claimed score against the receipt and current content
+        if verify_mode:
+            ok, lines = verify_receipt(skill_path, expect_score=expect_score)
+            for ln in lines:
+                print(ln)
+            sys.exit(0 if ok else 1)
 
         # Export table row mode
         if export_table_row:
@@ -3727,6 +3905,9 @@ def main():
                 print(f"✓ Plugin README updated: {readme_path}")
                 print(f"  Skill: {sp.name}")
                 print(f"  Overall score: {metrics['overall_score']}/100")
+            # Record a verifiable receipt for the score just written
+            receipt_path, _ = write_receipt(sp, metrics)
+            print(f"✓ Eval receipt written: {receipt_path.name}")
             sys.exit(0)
 
         # Quick validation mode

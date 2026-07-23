@@ -41,6 +41,8 @@ uv run plugins/foundry/skills/skillsmith/scripts/evaluate_skill.py <skill-path>
 ```
 Record the eval score in the plugin-level README.md version history entry (under `## Skill: <name>`).
 
+**IMPORTANT**: Never state, commit, or record an eval/metric score you did not obtain from an actual tool run. A narrated score is unverified — this is the confabulation failure from friction report `2026-06-10`. Confirm skill scores with `evaluate_skill.py --verify --expect-score <n>` (exit 0 = the receipt matches a re-evaluation of current content). When delegating an improve loop to a subagent, require its raw eval output (or a passing `--verify`) as evidence — do not accept a narrated score.
+
 See WORKFLOW.md for details.
 
 ## Tool Preferences for Repository Examination

@@ -32,6 +32,7 @@ from evaluate_skill import (
     validate_file_references,
     calculate_conciseness_score,
     calculate_basic_metrics,
+    calculate_all_metrics,
     validate_skill,
     validate_agentskills_spec,
     validate_description_quality,
@@ -43,6 +44,10 @@ from evaluate_skill import (
     _scan_plugin_components,
     fold_patch_into_minor,
     audit_version_history,
+    _skill_content_hash,
+    write_receipt,
+    verify_receipt,
+    RECEIPT_FILENAME,
 )
 
 
@@ -516,6 +521,66 @@ class TestVersionHistoryEnforcement:
         rows = ["| 6.9.0 | 2026-01-01 | - | base | 100 | 100 | 100 | 100 | 100 | 100 |\n"]
         root, sk = self._plugin_with_history(tmp_path, rows)
         assert audit_version_history(str(sk)) == 0
+
+
+class TestEvalReceipts:
+    """Verifiable eval receipts: content hash, write, verify, staleness."""
+
+    def _make_skill(self, tmp_path):
+        sk = tmp_path / "alpha"
+        (sk / "references").mkdir(parents=True)
+        (sk / "SKILL.md").write_text(
+            "---\nname: alpha\ndescription: This skill should be used when "
+            '"do alpha", "run alpha", or "alpha things". Handles alpha work.\n'
+            "---\n# Alpha\n\nDoes alpha things well.\n", encoding="utf-8")
+        (sk / "references" / "guide.md").write_text("# Guide\n\ncontent\n", encoding="utf-8")
+        return sk
+
+    def test_hash_is_deterministic(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        assert _skill_content_hash(sk) == _skill_content_hash(sk)
+
+    def test_hash_changes_on_content_edit(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        before = _skill_content_hash(sk)
+        (sk / "references" / "guide.md").write_text("# Guide\n\nCHANGED\n", encoding="utf-8")
+        assert _skill_content_hash(sk) != before
+
+    def test_receipt_file_excluded_from_hash(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        before = _skill_content_hash(sk)
+        (sk / RECEIPT_FILENAME).write_text('{"x": 1}', encoding="utf-8")
+        # Writing the receipt into the skill root must not change the content hash
+        assert _skill_content_hash(sk) == before
+
+    def test_write_then_verify_passes(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        metrics = calculate_all_metrics(sk)
+        write_receipt(sk, metrics)
+        ok, lines = verify_receipt(sk)
+        assert ok, lines
+
+    def test_verify_fails_when_content_changed(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        write_receipt(sk, calculate_all_metrics(sk))
+        (sk / "references" / "guide.md").write_text("# Guide\n\nDIFFERENT\n", encoding="utf-8")
+        ok, lines = verify_receipt(sk)
+        assert not ok
+        assert any("hash mismatch" in ln for ln in lines)
+
+    def test_verify_fails_without_receipt(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        ok, lines = verify_receipt(sk)
+        assert not ok
+        assert any("No " in ln for ln in lines)
+
+    def test_verify_expect_score_mismatch(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        metrics = calculate_all_metrics(sk)
+        write_receipt(sk, metrics)
+        # Claim a score guaranteed not to equal the real one
+        ok, _ = verify_receipt(sk, expect_score=str((int(metrics['overall_score']) + 1) % 101))
+        assert not ok
 
 
 if __name__ == '__main__':
