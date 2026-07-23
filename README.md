@@ -11,36 +11,37 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 /plugin marketplace add totallyGreg/claude-mp
 
 # Install individual plugins
-/plugin install skillsmith@totally-tools
-/plugin install marketplace-manager@totally-tools
+/plugin install foundry@totally-tools
+/plugin install terminal-guru@totally-tools
 ```
 
 ## Available Plugins
 
-### Development (5 plugins)
+### Development (6 plugins)
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| **helm-chart-developer** | 1.0.0 | Expert guide for Helm chart development, testing, and security |
-| **marketplace-manager** | 4.0.0 | Manages Claude Code plugin marketplace operations including version syncing, skill publishing, and marketplace.json maintenance |
-| **skillsmith** | 6.8.0 | Guide for forging effective Claude skills with marketplace integration |
+| **terminal-guru** | 5.13.0 | Terminal diagnostics, tool composition, workflow discovery, and multi-Claude tmux orchestration — triage agent routing to seven skills across the terminal stack (terminal-emulation, zsh-dev, tmux-dev, tui-experience, signals-monitoring, environment-composition, mise-tooling) |
+| **helm-chart-developer** | 2.0.0 | Expert guide for Helm chart development, testing, and security |
+| **foundry** | 1.6.0 | Plugin development lifecycle toolkit — evaluate, improve, and publish skills and agents. Consolidates skillsmith, marketplace-manager, and agentsmith. |
 | **swift-dev** | 1.2.0 | Swift development expert for SwiftUI, iOS/macOS frameworks, Server-side Swift, and Objective-C migration |
-| **terminal-guru** | 4.0.0 | Terminal diagnostics, configuration, and zsh development expert with triage agent and three focused skills |
+| **chronicle** | 0.1.0 | Opinionated guidance for managing change across documents, code, and experiments. Covers git (primary), jujutsu, and historical VCS tools with strong opinions on commit craft, branching, merge strategy, and multi-agent worktree workflows. |
+| **handoff** | 0.3.0 | Hand off work to another Claude — teammate via SendMessage, tmux pane via send-keys, clipboard, or file. Structured Markdown payload with goal, state, decisions, and next steps. |
 
 ### Productivity (4 plugins)
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
+| **archivist** | 1.28.0 | Personal Knowledge Management expert for Obsidian vaults with dual-skill architecture: vault-architect (create structures) and vault-curator (evolve content) |
+| **attache** | 12.1.2 | Chief of Staff agent — personal advisor that orchestrates task management, delegates to specialist agents, learns workflow patterns, and manages the full tool stack |
 | **confluence-pages** | 1.1.0 | Create, update, move, and delete Confluence pages via REST API |
-| **attache** | 11.0.0 | Chief of Staff agent — personal advisor that orchestrates task management, delegates to specialist agents, learns workflow patterns, and manages the full tool stack |
-| **archivist** | 1.15.0 | Personal Knowledge Management expert for Obsidian vaults with dual-skill architecture: vault-architect (create structures) and vault-curator (evolve content) |
-| **slack-toolkit** | 1.1.0 | Slack Web API access via Python CLI — Canvas read/create/update/rewrite, reactions, threads, and channel history without MCP dependency |
+| **slack-toolkit** | 1.5.1 | Slack Web API access via Python CLI — Canvas read/create/update/rewrite, reactions, threads, and channel history without MCP dependency |
 
 ### Security (1 plugin)
 
 | Plugin | Version | Description |
 |--------|---------|-------------|
-| **ai-risk-mapper** | 5.1.0 | AI security risk assessment using CoSAI Risk Map framework |
+| **ai-risk-mapper** | 5.2.2 | AI security risk assessment using CoSAI Risk Map framework |
 
 ### Infrastructure (1 plugin)
 
@@ -52,40 +53,34 @@ A comprehensive marketplace for Claude Code extensions, providing plugins with s
 
 ```
 claude-mp/
-├── plugins/                 # Standalone plugins with commands
-│   ├── skillsmith/          # Skill creation and validation
-│   ├── marketplace-manager/ # Marketplace operations
-│   └── gateway-manager/      # Gateway configuration (kgateway + agentgateway)
-├── skills/                  # Legacy skill-only plugins
-│   ├── terminal-guru/
-│   ├── helm-chart-developer/
-│   ├── swift-dev/
-│   ├── obsidian-pkm-manager/
-│   ├── omnifocus-manager/
-│   └── ai-risk-mapper/
-├── commands/                # Shared commands
-├── agents/                  # Specialized AI agents
-├── hooks/                   # Event handlers
-├── mcp-servers/             # MCP server integrations
-└── .claude-plugin/          # Marketplace configuration
+├── plugins/                 # All plugins (each self-contained: skills, commands, agents, hooks)
+│   ├── foundry/             # Plugin dev lifecycle (skillsmith + marketplace-manager + agentsmith)
+│   ├── terminal-guru/       # Terminal stack diagnostics + composition (7 skills)
+│   ├── gateway-manager/     # Gateway configuration (kgateway + agentgateway)
+│   ├── archivist/           # Obsidian PKM (vault-architect + vault-curator)
+│   ├── attache/             # Chief of Staff task orchestration
+│   ├── chronicle/           # Change management across git/jujutsu
+│   ├── handoff/             # Work handoff between Claudes
+│   └── …                    # helm-chart-developer, swift-dev, confluence-pages,
+│                            #   slack-toolkit, ai-risk-mapper
+├── scripts/                 # Repo-level validate.py + sync.py (from marketplace-manager)
+├── docs/                    # plans/ (ephemeral planning) + lessons/ (cross-skill learnings)
+└── .claude-plugin/          # marketplace.json — source of truth for the plugin catalog
 ```
 
 ## Standalone Plugins
 
-Standalone plugins include slash commands for common operations:
+Several plugins include slash commands for common operations:
 
-### skillsmith Commands
-- `/ss-validate` - Quick skill validation
-- `/ss-evaluate` - Full evaluation with metrics
-- `/ss-init` - Initialize new skill from template
-- `/ss-research` - Research skill improvements
+### foundry Commands
+Skill lifecycle: `/ss-init`, `/ss-validate`, `/ss-evaluate`, `/ss-research`, `/ss-improve`, `/ss-observe`, `/ss-refresh`, `/ss-package`, `/ss-wtf`
+Agent lifecycle: `/as-evaluate`, `/as-improve`
+Marketplace: `/mp-sync`, `/mp-validate`, `/mp-add`, `/mp-list`, `/mp-status`
 
-### marketplace-manager Commands
-- `/mp-sync` - Sync versions to marketplace.json and README.md
-- `/mp-validate` - Validate marketplace structure
-- `/mp-add` - Add skill or create plugin
-- `/mp-list` - List marketplace plugins
-- `/mp-status` - Show version mismatches
+### terminal-guru Commands
+- `/team-spawn` - Spawn a persistent teammate agent (enforces the `name` field)
+- `/team-list` - List active teammates in the session
+- `/workflow-discover` - Scan history, brew, XDG configs, and git log for workflow patterns
 
 ### gateway-manager Commands
 - `/gw-status` - Check gateway status
@@ -93,6 +88,8 @@ Standalone plugins include slash commands for common operations:
 - `/gw-debug` - Debug gateway issues
 - `/gw-backend` - Configure backends
 - `/gw-route` - Manage routes
+- `/gw-upgrade` - Plan a chart upgrade
+- `/gw-versions` - Compare installed vs latest versions
 
 ## Contributing
 

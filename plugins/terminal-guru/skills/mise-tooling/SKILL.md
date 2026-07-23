@@ -1,10 +1,19 @@
 ---
+
 name: mise-tooling
 description: This skill should be used when the user asks to "configure mise.toml", "create a mise task", "set up tool versions", "manage environments with mise", "debug mise config", "task_config includes", "mise task DRY", "mise profiles", "mise env not loading", "create mise run command", or needs help with mise (jdx/mise) for tool versioning, environment variables, or task automation. Also trigger on mentions of mise.toml, .miserc.toml, mise run, mise env, mise tasks, mise profiles, task_config, or exec() in env. Do NOT use for shell configuration or function generation (use zsh-dev instead). Do NOT use for sesh/tmux session management (use environment-composition instead). Do NOT use for signal handling or logging (use signals-monitoring instead). Mise + sesh integration questions should route here for the mise side and environment-composition for the sesh side.
 metadata:
-  version: "2.5.0"
+  conciseness: 100
+  complexity: 90
+  spec_compliance: 100
+  progressive: 100
+  overall: 97
+  last_evaluated: 2026-07-23
+  reference_currency: 100
+  version: "2.6.0"
 license: MIT
 compatibility: claude-code
+
 ---
 
 # Mise Tooling
@@ -60,7 +69,7 @@ Multiple versions, per-tool postinstall hooks, and backends (npm, pipx, GitHub r
 
 ### 5. Watch Mode & Hooks
 
-Continuous file watching (`mise watch`) for rebuild-on-change workflows. Lifecycle hooks (`[hooks]`) for enter/leave/cd events. See `references/mise_config_guide.md`.
+Continuous file watching for rebuild-on-change workflows — but prefer a runtime-native watcher (`bun --watch`, `node --watch`, `uvicorn --reload`) over `mise watch`/`watchexec` when the runtime has one (zero extra processes). Use `mise watch` for runtimes without a built-in watcher (Go, Rust, shell) or multi-step task DAGs. Lifecycle hooks (`[hooks]`) for enter/leave/cd events. See `references/mise_config_guide.md`.
 
 ### 6. Bootstrap (Declarative Machine Setup, experimental)
 
@@ -113,7 +122,7 @@ Set default tenant in `.miserc.toml` (`env = ["prod"]`). Cloners use `_.source =
 See `references/mise_cli_reference.md` for compact command tables covering task management, run flags, environment, and tool operations.
 
 ### "Apply a proven automation pattern"
-See `references/mise_use_case_patterns.md` for milestone aggregation, hardware discovery, interactive confirmation, post-task cleanup, CI/CD adaptation, and cross-project task sharing decision trees.
+See `references/mise_use_case_patterns.md` for milestone aggregation, hardware discovery, interactive confirmation, post-task cleanup, CI/CD adaptation, release pipeline ordering (build-before-publish), implicit tool dependencies, monorepo affected detection, and cross-project task sharing decision trees.
 
 ## Authoring Conventions
 
@@ -121,6 +130,7 @@ When writing or editing `mise.toml`, apply these conventions:
 
 - **Section order** (top-to-bottom, omit empty): `[settings]` → `[env]` → `[tools]` → `[hooks]` / `[vars]` / `[task_config]` / `[task_templates]` (if present) → `[tasks.*]`.
 - **Task ordering**: lifecycle, not alphabetical — setup/install first, run/operate next, maintenance/occasional last. Slot new tasks into the right group; don't append blindly.
+- **Task descriptions**: the `description` is the primary signal an agent (or teammate) reads from `mise tasks ls` to decide whether and how to invoke a task — write it to answer *what it does, what it requires, what it produces, and when to run it*. `"Run test suite"` is too thin; `"Run pytest against src/ with coverage; requires uv; exits non-zero on failure; safe to re-run"` lets the caller act without opening the file.
 - **Inline vs script**: one-liners stay inline; once a task needs conditionals, loops, or more than ~5 lines, extract to `scripts/<task>.sh` and invoke via `run = "scripts/<task>.sh"` — easier to shellcheck, test, and reuse outside mise. Upgrade to a file-based task under `.mise/tasks/` only when you want mise-native features: auto-discovery, `#USAGE` arg parsing, `#MISE sources/outputs`, or directory-based namespacing. See `mise_task_patterns.md`.
 - **Editing discipline**: if a task could fit in more than one lifecycle group, ask the user. Do not reorder unrelated existing tasks unless cleanup was explicitly requested.
 
@@ -133,7 +143,7 @@ See `references/mise_config_guide.md` (Style & Layout) for rationale and worked 
 - **`mise_task_patterns.md`** — Task organization, includes (ordering, git:: remote includes), DRY patterns, DAG model, templates, visibility, caching, usage field
 - **`mise_environment_management.md`** — Multi-tenant credentials, profiles, keychain integration, shell-style env var expansion, sops secrets
 - **`mise_cli_reference.md`** — CLI commands, run flags, task listing, environment and tool management
-- **`mise_use_case_patterns.md`** — Milestone aggregation, hardware discovery, confirmation, cleanup, CI/CD, cross-project sharing
+- **`mise_use_case_patterns.md`** — Milestone aggregation, hardware discovery, confirmation, cleanup, CI/CD, release pipeline ordering, implicit tool dependencies, monorepo affected detection, cross-project sharing
 - **`mise_bootstrap_system.md`** — Declarative machine bootstrap: packages, repos, dotfiles, macOS/Linux system config, login shell
 
 ### Cross-references
