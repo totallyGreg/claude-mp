@@ -376,10 +376,154 @@ function listTasks(args: OfoArgs): OfoResult {
 
 // === PERSPECTIVE ===
 
+/** Normalize an aggregation value (string 'all'|'any'|'none' or numeric 0|1|2) → string. */
+function normAggregation(val: any): 'all' | 'any' | 'none' {
+  if (val === 'any' || val === 1) return 'any';
+  if (val === 'none' || val === 2) return 'none';
+  return 'all';
+}
+
+function startOfToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Does a task's tag set include the given tag id-or-name? */
+function taskHasTagRef(t: Task, ref: string): boolean {
+  return t.tags.some(function(tag: Tag) {
+    return tag.id.primaryKey === ref || tag.name === ref;
+  });
+}
+
+/**
+ * Evaluate one filter rule against a task.
+ * Returns true/false when the rule is understood, or null when the rule key is
+ * not supported (so the caller can log it and exclude it from the combination —
+ * never silently drop fidelity).
+ */
+function evalTaskRule(t: Task, rule: any, unsupported: string[]): boolean | null {
+  // Nested aggregation group: { rules: [...], aggregation|aggregateType }
+  if (rule && Array.isArray(rule.rules)) {
+    const agg = normAggregation(rule.aggregation !== undefined ? rule.aggregation : rule.aggregateType);
+    return evalTaskRules(t, rule.rules, agg, unsupported);
+  }
+  if (!rule || typeof rule !== 'object') return null;
+
+  const now = new Date();
+  const todayStart = startOfToday();
+  const done = t.completed || t.effectivelyCompleted || t.taskStatus === Task.Status.Completed;
+  const dropped = t.effectivelyDropped || t.taskStatus === Task.Status.Dropped;
+  let matched = false;
+
+  for (const key of Object.keys(rule)) {
+    const v = rule[key];
+    switch (key) {
+      case 'aggregation': case 'aggregateType': continue; // handled at group level
+      case 'actionAvailability': {
+        if (v === 'available') matched = t.taskStatus === Task.Status.Available;
+        else if (v === 'firstAvailable') matched = t.taskStatus === Task.Status.Available;
+        else if (v === 'remaining') matched = !done && !dropped;
+        else if (v === 'completed') matched = done;
+        else if (v === 'dropped') matched = dropped;
+        else return unsupported.push(key + '=' + v), null;
+        break;
+      }
+      case 'actionStatus': {
+        if (v === 'flagged') matched = t.flagged;
+        else if (v === 'due') matched = !!t.dueDate;
+        else return unsupported.push(key + '=' + v), null;
+        break;
+      }
+      case 'actionFlagged': matched = t.flagged === (v !== false); break;
+      case 'actionOverdue': matched = !done && !dropped && !!t.dueDate && t.dueDate < todayStart; break;
+      case 'actionHasDueDate': matched = (!!t.dueDate) === (v !== false); break;
+      case 'actionHasDeferDate': matched = (!!t.deferDate) === (v !== false); break;
+      case 'actionDueSoon': {
+        const days = Number(v) || 0;
+        const cutoff = new Date(todayStart.getTime() + days * 86400000);
+        matched = !done && !dropped && !!t.dueDate && t.dueDate >= todayStart && t.dueDate < cutoff;
+        break;
+      }
+      case 'actionCompletedWithinDays': {
+        const days = Number(v) || 0;
+        const since = new Date(now.getTime() - days * 86400000);
+        matched = !!t.completionDate && t.completionDate >= since;
+        break;
+      }
+      case 'actionHasAnyOfTags': matched = (v as string[]).some(function(r) { return taskHasTagRef(t, r); }); break;
+      case 'actionHasAllOfTags': matched = (v as string[]).every(function(r) { return taskHasTagRef(t, r); }); break;
+      case 'actionHasNoneOfTags': matched = !(v as string[]).some(function(r) { return taskHasTagRef(t, r); }); break;
+      case 'actionHasNoTags': matched = (t.tags.length === 0) === (v !== false); break;
+      case 'actionHasAnyTags': matched = (t.tags.length > 0) === (v !== false); break;
+      case 'actionHasText': case 'actionMatchText': {
+        const needle = String(v).toLowerCase();
+        const hay = (t.name + ' ' + (t.note || '')).toLowerCase();
+        matched = hay.indexOf(needle) !== -1;
+        break;
+      }
+      case 'actionDateField': {
+        // Paired with actionDateIsToday / relative flags on the same rule object.
+        const field = v === 'defer' ? t.deferDate : v === 'completed' ? t.completionDate : t.dueDate;
+        if (rule.actionDateIsToday === true) {
+          const end = new Date(todayStart.getTime() + 86400000);
+          matched = !!field && field >= todayStart && field < end;
+        } else {
+          return unsupported.push('actionDateField:' + JSON.stringify(rule)), null;
+        }
+        break;
+      }
+      case 'actionDateIsToday': continue; // consumed by actionDateField
+      case 'projectStatus': case 'actionHasProjectWithStatus': {
+        const proj = t.containingProject;
+        const s = String(v).toLowerCase().replace(/[-_ ]/g, '');
+        if (s === 'stalled') {
+          matched = !!proj && proj.status === Project.Status.Active &&
+            proj.flattenedTasks.every(function(x: Task) { return x.taskStatus !== Task.Status.Available; });
+        } else if (s === 'active') matched = !!proj && proj.status === Project.Status.Active;
+        else if (s === 'onhold') matched = !!proj && proj.status === Project.Status.OnHold;
+        else if (s === 'dropped') matched = !!proj && proj.status === Project.Status.Dropped;
+        else if (s === 'completed' || s === 'done') matched = !!proj && proj.status === Project.Status.Done;
+        else return unsupported.push(key + '=' + v), null;
+        break;
+      }
+      case 'actionWithinFocus': {
+        const ids = v as string[];
+        const proj = t.containingProject;
+        matched = !!proj && ids.some(function(fid) {
+          if (proj!.id.primaryKey === fid) return true;
+          let f = proj!.parentFolder;
+          while (f) { if (f.id.primaryKey === fid) return true; f = f.parent; }
+          return false;
+        });
+        break;
+      }
+      default:
+        return unsupported.push(key), null;
+    }
+    if (!matched) return false; // multiple keys on one rule = AND
+  }
+  return matched;
+}
+
+/** Combine a rule list against a task per aggregation (all/any/none). Unsupported rules are skipped + logged. */
+function evalTaskRules(t: Task, rules: any[], aggregation: string, unsupported: string[]): boolean {
+  const results: boolean[] = [];
+  for (const rule of rules) {
+    const r = evalTaskRule(t, rule, unsupported);
+    if (r !== null) results.push(r);
+  }
+  if (results.length === 0) return true; // nothing evaluable → don't exclude
+  if (aggregation === 'any') return results.some(function(x) { return x; });
+  if (aggregation === 'none') return !results.some(function(x) { return x; });
+  return results.every(function(x) { return x; }); // 'all'
+}
+
 function getPerspective(args: OfoArgs): OfoResult {
   const name = (args.name as string) || null;
   const id = (args.id as string) || null;
-  const limit = (args.limit as number) || 100;
+  // limit 0 (or unset) = uncapped; the old silent 100 cap is gone.
+  const limit = (args.limit as number) || 0;
 
   let target: Perspective.Custom | null = null;
   if (id) target = Perspective.Custom.byIdentifier(id);
@@ -387,21 +531,23 @@ function getPerspective(args: OfoArgs): OfoResult {
 
   if (!target) return { success: false, error: 'Perspective not found: ' + (name || id) };
 
-  const rules = target.archivedFilterRules;
-  const aggregation = target.archivedTopLevelFilterAggregation;
-  const isStalled = rules.some(function(r: any) {
-    return r.actionHasProjectWithStatus === 'stalled';
-  });
-  const isCompletedToday = rules.some(function(r: any) {
-    return r.actionAvailability === 'completed';
-  }) && rules.some(function(r: any) {
-    return r.actionDateField === 'completed' && r.actionDateIsToday === true;
+  const rules = target.archivedFilterRules || [];
+  const aggregation = normAggregation(target.archivedTopLevelFilterAggregation);
+
+  // Project-output fast path: a stalled-projects perspective returns projects, not tasks.
+  const isStalledProjects = rules.some(function(r: any) {
+    return r.actionHasProjectWithStatus === 'stalled' || r.projectHasNoAvailableActions === true;
+  }) && !rules.some(function(r: any) {
+    return r.actionHasAnyOfTags || r.actionHasAllOfTags || r.actionAvailability === 'completed';
   });
 
+  const unsupported: string[] = [];
   const results: object[] = [];
-  if (isStalled) {
+  let truncated = false;
+
+  if (isStalledProjects) {
     flattenedProjects.forEach(function(p: Project) {
-      if (results.length >= limit) return;
+      if (limit > 0 && results.length >= limit) { truncated = true; return; }
       if (p.status !== Project.Status.Active) return;
       const remaining = p.flattenedTasks.filter(function(t: Task) {
         return t.taskStatus === Task.Status.Available || t.taskStatus === Task.Status.Blocked;
@@ -417,27 +563,10 @@ function getPerspective(args: OfoArgs): OfoResult {
         });
       }
     });
-  } else if (isCompletedToday) {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(todayStart);
-    todayEnd.setDate(todayEnd.getDate() + 1);
-    flattenedTasks.forEach(function(t: Task) {
-      if (results.length >= limit) return;
-      if (t.taskStatus !== Task.Status.Completed) return;
-      if (!t.completionDate || t.completionDate < todayStart || t.completionDate >= todayEnd) return;
-      results.push({
-        id: t.id.primaryKey, name: t.name, type: 'task',
-        project: t.containingProject ? t.containingProject.name : null,
-        dueDate: t.dueDate ? t.dueDate.toISOString() : null,
-        flagged: t.flagged,
-        tags: t.tags.map(function(tag: Tag) { return tag.name; })
-      });
-    });
   } else {
     flattenedTasks.forEach(function(t: Task) {
-      if (results.length >= limit) return;
-      if (t.taskStatus !== Task.Status.Available) return;
+      if (limit > 0 && results.length >= limit) { truncated = true; return; }
+      if (!evalTaskRules(t, rules, aggregation, unsupported)) return;
       results.push({
         id: t.id.primaryKey, name: t.name, type: 'task',
         project: t.containingProject ? t.containingProject.name : null,
@@ -448,15 +577,21 @@ function getPerspective(args: OfoArgs): OfoResult {
     });
   }
 
-  return {
+  // Deduplicate unsupported rule keys (logged, never silently dropped).
+  const unsupportedUnique = unsupported.filter(function(v, i) { return unsupported.indexOf(v) === i; });
+
+  const out: OfoResult = {
     success: true,
     perspective: target.name,
     perspectiveId: target.id.primaryKey,
     filterRules: rules,
     aggregation: aggregation,
     count: results.length,
+    truncated: truncated,
     items: results
   };
+  if (unsupportedUnique.length > 0) out.unsupportedRules = unsupportedUnique;
+  return out;
 }
 
 // === PERSPECTIVE CONFIGURE ===
@@ -554,6 +689,56 @@ function getTags(_args: OfoArgs): OfoResult {
     return result;
   }
   return { success: true, tags: buildTree(tags) };
+}
+
+// === TAGGED (first-class tag query) ===
+
+/**
+ * getTaggedTasks — all tasks carrying a tag, grouped by containing project with
+ * per-project completed/total progress. Uncapped by default (pass limit to cap).
+ * The generic tag-listing primitive that `list someday-maybe --tag` used to stand in for.
+ */
+function getTaggedTasks(args: OfoArgs): OfoResult {
+  const tagName = (args['tag'] as string) || (args['name'] as string) || null;
+  const activeOnly = args['activeOnly'] === true;
+  const limit = (args['limit'] as number) || 0; // 0 = uncapped
+
+  if (!tagName) return { success: false, error: 'Missing required arg: tag' };
+  const tag = flattenedTags.byName(tagName);
+  if (!tag) return { success: false, error: 'Tag not found: ' + tagName };
+
+  // remainingTasks = incomplete; tasks = every task carrying the tag.
+  const source: Task[] = activeOnly ? tag.remainingTasks : tag.tasks;
+  const groups: Record<string, any> = {};
+  let totalTasks = 0;
+  let completedTasks = 0;
+
+  source.forEach(function(t: Task) {
+    if (limit > 0 && totalTasks >= limit) return;
+    if (t.effectivelyDropped || t.taskStatus === Task.Status.Dropped) return;
+    const projName = t.containingProject ? t.containingProject.name
+      : (t.inInbox ? '(inbox)' : '(no project)');
+    if (!groups[projName]) groups[projName] = { project: projName, total: 0, completed: 0, tasks: [] };
+    const done = t.completed || t.effectivelyCompleted || t.taskStatus === Task.Status.Completed;
+    groups[projName].total++;
+    if (done) { groups[projName].completed++; completedTasks++; }
+    totalTasks++;
+    groups[projName].tasks.push(normalizeTask(t));
+  });
+
+  const groupList = Object.keys(groups).map(function(k) { return groups[k]; });
+  return {
+    success: true,
+    tag: tag.name,
+    tagId: tag.id.primaryKey,
+    activeOnly: activeOnly,
+    projectCount: groupList.length,
+    taskCount: totalTasks,
+    completed: completedTasks,
+    total: totalTasks,
+    truncated: limit > 0 && totalTasks >= limit,
+    groups: groupList
+  };
 }
 
 // === CREATE BATCH ===
@@ -1045,7 +1230,10 @@ function createProject(args: OfoArgs): OfoResult {
 
   let location: Folder.ChildInsertionLocation | null = null;
   if (args['folder']) {
-    const folder = flattenedFolders.byName(args['folder'] as string);
+    let folder = flattenedFolders.byName(args['folder'] as string);
+    if (!folder && args['createMissing'] === true) {
+      folder = new Folder(args['folder'] as string, null);
+    }
     if (!folder) return { success: false, error: 'Folder not found: ' + args['folder'] };
     location = folder.ending;
   }
@@ -1101,15 +1289,18 @@ function updateProject(args: OfoArgs): OfoResult {
     else return { success: false, error: 'Invalid status: ' + args['status'] + ' (expected active|onHold|completed|dropped)' };
   }
 
-  if (args['folder'] !== undefined) {
+  // Move to root when --root is passed, or when --folder is set to empty string.
+  const moveToRoot = args['root'] === true || args['folder'] === '';
+  if (moveToRoot) {
+    moveSections([p], library.ending);
+  } else if (args['folder'] !== undefined && args['folder'] !== null) {
     const folderName = args['folder'] as string;
-    if (folderName && folderName !== '') {
-      const folder = flattenedFolders.byName(folderName);
-      if (!folder) return { success: false, error: 'Folder not found: ' + folderName };
-      moveSections([p], folder.ending);
+    let folder = flattenedFolders.byName(folderName);
+    if (!folder && args['createMissing'] === true) {
+      folder = new Folder(folderName, null);
     }
-    // Note: moving project to root (no folder) isn't directly supported via moveSections;
-    // would require a different API. Skipping for now.
+    if (!folder) return { success: false, error: 'Folder not found: ' + folderName };
+    moveSections([p], folder.ending);
   }
 
   return {
@@ -1122,6 +1313,77 @@ function updateProject(args: OfoArgs): OfoResult {
       sequential: p.sequential
     }
   };
+}
+
+// === FOLDER MUTATION ===
+
+/** Resolve a folder by primaryKey id first, then by name. */
+function resolveFolder(idOrName: string): Folder | null {
+  const byId = Folder.byIdentifier(idOrName);
+  if (byId) return byId;
+  return flattenedFolders.byName(idOrName);
+}
+
+function folderSummary(f: Folder): object {
+  return {
+    id: f.id.primaryKey,
+    name: f.name,
+    parent: f.parent ? f.parent.name : null
+  };
+}
+
+/** createFolder — create a folder at root or inside a named/id'd parent folder. */
+function createFolder(args: OfoArgs): OfoResult {
+  const name = args['name'] as string;
+  if (!name) return { success: false, error: 'Missing required arg: name' };
+
+  let position: Folder.ChildInsertionLocation | null = null;
+  const parentRef = (args['parent'] as string) || null;
+  if (parentRef) {
+    const parent = resolveFolder(parentRef);
+    if (!parent) return { success: false, error: 'Parent folder not found: ' + parentRef };
+    position = parent.ending;
+  }
+
+  const f = new Folder(name, position);
+  return { success: true, folder: folderSummary(f) };
+}
+
+/** renameFolder — rename a folder resolved by id or name. */
+function renameFolder(args: OfoArgs): OfoResult {
+  const ref = (args['id'] as string) || (args['folder'] as string);
+  const newName = args['name'] as string;
+  if (!ref) return { success: false, error: 'Missing required arg: id (or folder name to resolve)' };
+  if (!newName) return { success: false, error: 'Missing required arg: name (the new name)' };
+
+  const f = resolveFolder(ref);
+  if (!f) return { success: false, error: 'Folder not found: ' + ref };
+  f.name = newName;
+  return { success: true, folder: folderSummary(f) };
+}
+
+/** moveFolder — reparent a folder under another folder, or to root (--root). */
+function moveFolder(args: OfoArgs): OfoResult {
+  const ref = (args['id'] as string) || (args['folder'] as string);
+  if (!ref) return { success: false, error: 'Missing required arg: id (or folder name to resolve)' };
+
+  const f = resolveFolder(ref);
+  if (!f) return { success: false, error: 'Folder not found: ' + ref };
+
+  const moveToRoot = args['root'] === true || args['parent'] === '';
+  if (moveToRoot) {
+    moveSections([f], library.ending);
+  } else {
+    const parentRef = args['parent'] as string;
+    if (!parentRef) return { success: false, error: 'Provide --parent <name|id> or --root' };
+    const parent = resolveFolder(parentRef);
+    if (!parent) return { success: false, error: 'Parent folder not found: ' + parentRef };
+    if (parent.id.primaryKey === f.id.primaryKey) {
+      return { success: false, error: 'Cannot move a folder into itself' };
+    }
+    moveSections([f], parent.ending);
+  }
+  return { success: true, folder: folderSummary(f) };
 }
 
 // === DISPATCH ===
@@ -1140,6 +1402,7 @@ function dispatch(args: OfoArgs): OfoResult {
     case 'ofo-perspective-rules':     return getPerspectiveRules(args);
     case 'ofo-tag':         return tagTask(args);
     case 'ofo-tags':        return getTags(args);
+    case 'ofo-tagged':      return getTaggedTasks(args);
     case 'ofo-create-batch': return createBatch(args);
     case 'ofo-dump':        return dumpDatabase(args);
     case 'ofo-stats':       return getStats(args);
@@ -1157,6 +1420,10 @@ function dispatch(args: OfoArgs): OfoResult {
     case 'ofo-list-folders':             return listFolders(args);
     case 'ofo-create-project':           return createProject(args);
     case 'ofo-update-project':           return updateProject(args);
+    // Folder mutation
+    case 'ofo-create-folder':            return createFolder(args);
+    case 'ofo-rename-folder':            return renameFolder(args);
+    case 'ofo-move-folder':              return moveFolder(args);
     default: {
       // Exhaustiveness check: TypeScript will error here if a new OfoAction
       // is added to the union in ofo-types.ts / ofo-core-ambient.d.ts but

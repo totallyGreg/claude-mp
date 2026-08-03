@@ -5,12 +5,12 @@ allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-core/scripts/*), Bash
 
 <!--
 /ofo:tagged <tag> - Lightweight tag query bypassing agent routing.
-Calls gtd-queries.js directly via osascript for fast results.
+Calls the ofo CLI (first-class `tagged` command) for grouped results.
 -->
 
 Query OmniFocus for tasks with the specified tag:
 ```bash
-cd "${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-core" && osascript -l JavaScript scripts/gtd-queries.js --action tagged-tasks --tag "$ARGUMENTS"
+"${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-core/scripts/ofo" tagged "$ARGUMENTS"
 ```
 
 If no argument was provided, ask the user which tag to query.

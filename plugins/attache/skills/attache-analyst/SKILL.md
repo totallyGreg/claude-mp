@@ -8,7 +8,7 @@ description: |
   This skill is read-only against OmniFocus. It discovers patterns, infers structure, and persists learned insights via the Attache preferenceManager. It can read and update vault tool notes (status, usage patterns) via the archivist agent.
 license: MIT
 metadata:
-  version: 1.0.0
+  version: 1.0.1
   author: totally-tools
 compatibility:
   platforms: [macos]

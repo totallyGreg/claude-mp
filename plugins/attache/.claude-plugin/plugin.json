@@ -1,6 +1,6 @@
 {
   "name": "attache",
-  "version": "12.1.3",
+  "version": "12.2.0",
   "description": "Chief of Staff agent — personal productivity orchestrator that routes to task backends (OmniFocus, Asana), coordinates cross-tool workflows, and learns patterns across the full tool stack.",
   "author": {
     "name": "J. Greg Williams",

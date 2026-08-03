@@ -67,13 +67,26 @@ CLI polls pasteboard, outputs JSON to stdout
 
 ## Adding a New ofo Action
 
-1. Add the action name to `OfoAction` union in **both** `scripts/src/ofo-types.ts` (CLI) and `scripts/src/ofo-contract.d.ts` (contract)
-2. Add the handler function to `scripts/src/ofo-core.ts` (named function, not inside dispatch)
-3. Add the named export to `build-attache.sh` IIFE footer: `lib.<name> = <functionName>;`
-4. Add a case to `dispatch()` calling the named function
-5. Add argument parsing in `scripts/src/ofo-cli.ts`
-6. Run `npm run build && npm run deploy`
-7. Test: `./ofo <new-action> <args>`
+> **Impact map / mirroring.** `ofo-core.ts` compiles into one `ofoCore` `PlugIn.Library`
+> that **both** actors load — the ofo CLI (via `ofo-stub.js` → `ofoCore.dispatch`) and the
+> native Attache plugin actions (via `this.plugIn.library("ofoCore")`). So a handler added
+> here is available to both after a rebuild; you only add a native GUI action if you also
+> want an OmniFocus menu item. The steps below **all** change together — miss one and either
+> the build guard aborts or the action fails at runtime as "Unknown action".
+
+1. Add the action string to the `OfoAction` union in **both** `scripts/src/ofo-types.ts` and
+   `scripts/src/ofo-contract.d.ts`. (`scripts/src/ofo-core-ambient.d.ts` is **auto-regenerated**
+   from `ofo-types.ts` on every build — do not hand-edit its generated section.)
+2. Add the handler function to `scripts/src/ofo-core.ts` (a named `function`, not inside dispatch).
+3. Register it in `../../attache-analyst/scripts/build-attache.sh` in **two** places:
+   the IIFE footer (`lib.<name> = <functionName>;`) **and** the `EXPECTED_FNS` array — the build's
+   verification step aborts if a footer-exported function is missing from either.
+4. Add a `case` to `dispatch()` in `ofo-core.ts` calling the named function (the `never`
+   exhaustiveness check fails to compile if the union has an unhandled action).
+5. Add a `cmd<Name>` + top-level `switch` case (and help text) in `scripts/src/ofo-cli.ts`.
+6. Run `npm run build && npm run deploy` — recompiles the plugin bundle **and** the CLI, then
+   reimports into OmniFocus. This is the "downstream objects recompiled when source changes" step.
+7. Test: `./ofo <new-action> <args>`.
 
 ## Adding a New Attache Library
 
