@@ -78,6 +78,30 @@ On quip workspaces:
 
 The CLI auto-detects quip on read and transparently converts HTML to markdown.
 
+## Publishing from a Markdown File
+
+`canvas publish` is the one-shot flow for the headline use case — turn a local `.md` file into
+a shared Canvas:
+
+```bash
+# Standalone canvas, shared with a channel and a user (read access)
+uv run slacker.py canvas publish "Team Update" --file report.md \
+  --share-channels C0123 --share-users U0456 --access read
+
+# Channel-pinned tab instead of standalone
+uv run slacker.py canvas publish "Runbook" --file runbook.md --channel-tab C0123
+```
+
+- Reads the file, downgrades H4+ → H3, creates the canvas (`canvases.create`, or
+  `conversations.canvases.create` with `--channel-tab`), then applies access grants.
+- `--share-channels` and `--share-users` may both be given — the CLI issues one
+  `canvases.access.set` per group (they are mutually exclusive within a single API call).
+- `--access` is `read` (default) or `write`. Ownership transfer stays on the lower-level
+  `canvas access set … owner --user-ids`.
+- Output: `{"canvas_id": "F…", "channel_tab": …, "shared": {…}}` — authoritative on return.
+
+`canvas create` remains the primitive (create only, no sharing).
+
 ## Atomic Section Edits
 
 To edit a specific section in place without recreating the whole canvas:

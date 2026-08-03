@@ -1,11 +1,11 @@
 {
   "name": "slack-toolkit",
-  "version": "1.5.1",
-  "description": "Slack Web API access via Python CLI for Canvas CRUD, reactions, threads, and history.",
+  "version": "2.0.0",
+  "description": "Slack Web API toolkit (slack_sdk): extract threads/history/catchup as readable markdown and publish Canvases from markdown files.",
   "author": {
     "name": "J. Greg Williams",
     "email": "283704+totallyGreg@users.noreply.github.com"
   },
   "license": "MIT",
-  "keywords": ["slack", "canvas", "api"]
+  "keywords": ["slack", "canvas", "thread", "extract", "digest", "sdk", "api"]
 }

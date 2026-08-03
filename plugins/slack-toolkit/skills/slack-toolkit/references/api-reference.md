@@ -215,12 +215,23 @@ Quip-type canvases return HTML via `url_private` (authenticated GET). The CLI co
 
 ---
 
-## Conversation API
+## Conversation & User API (extraction)
 
 | Method | Purpose | Scopes | Key Parameters |
 |--------|---------|--------|----------------|
-| `conversations.replies` | Get thread replies | `channels:history` | `channel`, `ts`, `cursor`, `limit` |
-| `conversations.history` | Get channel messages | `channels:history` | `channel`, `cursor`, `limit`, `oldest`, `latest` |
+| `conversations.replies` | Get thread replies (parent first) | `channels:history` (+ `groups/im/mpim:history`) | `channel`, `ts`, `cursor`, `limit` |
+| `conversations.history` | Get channel messages | `channels:history` (+ `groups/im/mpim:history`) | `channel`, `cursor`, `limit`, `oldest`, `latest` |
+| `conversations.info` | Channel metadata (used for `#name` labels) | `channels:read` (+ `groups/im/mpim:read`) | `channel` |
+| `users.conversations` | List channels the caller belongs to | `channels:read`, `groups:read`, `im:read`, `mpim:read` | `types`, `exclude_archived`, `cursor`, `limit` |
+| `users.info` | Resolve a user ID to a name (cached) | `users:read` | `user` |
+| `search.messages` | Search messages across all accessible channels/DMs | `search:read` (**user token only**) | `query`, `count`, `page`, `sort`, `sort_dir` |
+| `bookmarks.list` | List a channel's bookmarks | `bookmarks:read` | `channel_id` |
+
+`search.messages` is not available to bot tokens. `query` supports modifiers: `in:#channel`, `from:@user`, `after:`/`before:`/`during:`, `has:link`. Response: `messages.matches[]` (each with `channel`, `user`, `text`, `ts`, `permalink`) and `messages.paging` for pagination.
+
+- `oldest`/`latest` are Unix timestamps (`1234567890.123456`). The CLI's `--since` (`Nh/Nd/Nw`/`YYYY-MM-DD`) is converted to `oldest`.
+- `users.conversations` `types`: `public_channel`, `private_channel`, `im`, `mpim` (comma-separated). Preferred over `conversations.list` — returns only the caller's channels.
+- Cursor pagination: read `response_metadata.next_cursor`; the CLI caps pages by `--limit`.
 
 ---
 
@@ -268,5 +279,10 @@ On HTTP 429, check the `Retry-After` header for seconds to wait.
 | `files:read` | Canvas type detection (`files.info`), quip HTML download |
 | `canvases:read` | Section lookup (`canvases.sections.lookup`) |
 | `canvases:write` | Canvas create, edit, delete, access management |
-| `channels:history` | Thread replies, channel history |
+| `channels:history`, `groups:history`, `im:history`, `mpim:history` | Thread replies, channel/DM/group-DM history |
+| `channels:read`, `groups:read`, `im:read`, `mpim:read` | Channel discovery (`users.conversations`), `#name` labels |
+| `users:read` | User-ID → name resolution |
+| `search:read` | Cross-channel message search (`search.messages`, user token only) |
 | `reactions:write` | Add/remove reactions |
+
+`auth-check` verifies this full set and reports any missing scopes.

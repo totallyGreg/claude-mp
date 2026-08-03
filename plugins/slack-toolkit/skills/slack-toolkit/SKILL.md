@@ -1,146 +1,140 @@
 ---
 name: slack-toolkit
 metadata:
-  version: "1.5.1"
-compatibility: Requires python3 for slacker.py CLI execution
+  version: "2.0.0"
+compatibility: Requires uv for Python script execution (slack_sdk auto-installed via PEP 723 inline dependencies)
 license: MIT
 description: >-
-  Use this skill when the Slack MCP server is not connected, when you need
-  Canvas read/update operations, when you need to add/remove reactions, or
-  when direct Slack API access is explicitly requested. Triggers on "read
-  slack canvas", "update slack canvas", "create slack canvas", "rewrite
-  slack canvas", "add slack reaction", "remove slack reaction", "get slack
-  thread", "slack channel history", "parse slack url", "slack without mcp",
-  "slack api curl". Do NOT use for channel/message operations when the Slack
-  MCP server is available — use the official MCP plugin instead.
+  This skill should be used when working directly with the Slack Web API to
+  extract conversations or author Canvases. Use it to "convert slack thread to
+  markdown", "read slack channel history", "build slack catchup digest",
+  "create slack canvas", "update slack canvas", "generate slack canvas from
+  markdown", "check slack scopes", "parse slack url", or "add slack reaction".
+  It resolves user names, renders readable markdown, and provides full Canvas
+  CRUD. Do NOT use for quick single-message channel posting when the Slack MCP
+  server is available — prefer MCP for those; use this for large-thread
+  extraction, Canvas authoring, reactions, and scope verification.
 ---
 
 # Slack Toolkit
 
-Direct Slack Web API access via Python CLI. Fills gaps in the official Slack MCP plugin (no Canvas read/update, no reactions) and provides a full fallback when MCP is unavailable.
+Slack Web API CLI built on `slack_sdk`. Two headline jobs: **pull large threads/history into readable markdown for parsing**, and **publish readable Canvases from local markdown files** to share with a team. Also covers catch-up digests, channel resolution, scope verification, reactions, and full Canvas CRUD.
 
-> **Rule:** Check if the Slack MCP server is connected first. Use this skill only when MCP is unavailable or for operations MCP cannot perform (Canvas read/update, reactions).
+> **Positioning:** Prefer the official Slack MCP server for quick single-message channel operations. Use this toolkit for large-thread extraction (name-resolved markdown), Canvas read/authoring (MCP cannot do Canvas), reactions, and scope checks.
 
 ## Configuration
 
 | Variable | Source | Required |
 |----------|--------|----------|
-| `$SLACK_USER_TOKEN` | Env var or `keychainctl get SLACK_USER_TOKEN` | Yes (Canvas, reactions, threads) |
-| `$SLACK_BOT_TOKEN` | Env var or `keychainctl get SLACK_BOT_TOKEN` | Optional (channel reads, bot actions) |
+| `$SLACK_USER_TOKEN` | Env var or `keychainctl get SLACK_USER_TOKEN` | Yes |
+| `$SLACK_BOT_TOKEN` | Env var or `keychainctl get SLACK_BOT_TOKEN` | Optional (`--bot`) |
 
-Token resolution: env var first, `keychainctl` fallback (macOS-only). Validates prefix (`xoxp-`/`xoxb-`).
+Token resolution: env var first, `keychainctl` fallback (macOS). Prefix-validated (`xoxp-`/`xoxb-`). Run `auth-check` to verify scopes before other operations.
 
-## Enterprise Grid
+## Invocation
 
-All Slack conversation endpoints require **POST with form-encoded body**. GET returns `not_authed` on enterprise grids. The CLI handles this transparently.
-
-## Canvas Types
-
-Slack has two incompatible canvas backends. The type is determined at the **workspace level** — some workspaces (particularly Enterprise Grid) route all canvas creation through the legacy Quip backend, even when using the `canvases.create` API.
-
-- **Quip-type** (`filetype: "quip"`): Legacy format. Read works (auto HTML→markdown). `canvases.edit` (append/replace) **does not work**. Content limited to ~4KB per create call. Inline comments not accessible via API.
-- **New Canvas API** (all other filetypes): Full CRUD via `canvases.create`/`canvases.edit`. Auto-chunked for large content.
-
-The `canvas create` command automatically tests Canvas API availability before creating canvases. Run `canvas probe` to detect your workspace type. On quip workspaces, updating content requires creating a new canvas with the full content.
-
-## CLI Reference
-
-All commands: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/slack-toolkit/scripts/slacker.py <command> [args]`
-
-### Canvas Operations (MCP gaps)
+All commands run via `uv` (auto-installs `slack_sdk` + `pip-system-certs` from the PEP 723 block):
 
 ```bash
-# Read canvas content via url_private (reliable for quip canvases; new-type support varies by workspace)
-# There is no official canvases.read API — content is fetched via files.info → url_private.
-# On failure, outputs JSON metadata (canvas_id, title, filetype, permalink) and exits non-zero.
-slacker.py canvas read <canvas_id>
-
-# Create standalone canvas
-slacker.py canvas create <title> --content "# Markdown content"
-slacker.py canvas create <title> --content-file /path/to/file.md
-
-# Create channel-pinned canvas tab (one per channel; use read to find existing)
-slacker.py canvas channel-create <channel_id> --title "Title" --content-file /path/to/file.md
-
-# Update canvas — append from file (recommended for code blocks / large content)
-slacker.py canvas update <canvas_id> --append-file /path/to/content.md
-
-# Update canvas — replace a section (requires section_id from read)
-slacker.py canvas update <canvas_id> --replace <section_id> --content-file /path/to/content.md
-
-# Find section IDs for targeted in-place edits (atomic edit workflow)
-slacker.py canvas sections lookup <canvas_id> --section-types h2 --contains-text "Status"
-# → {"sections": [{"id": "temp:C:abc123..."}]}
-
-# Then replace that section atomically (no canvas recreation needed)
-slacker.py canvas update <canvas_id> --replace temp:C:abc123... --content-file new-status.md
-
-# Delete a canvas permanently (irreversible)
-slacker.py canvas delete <canvas_id>
-
-# Manage canvas access
-slacker.py canvas access set <canvas_id> read|write|owner --channel-ids C1 C2
-slacker.py canvas access set <canvas_id> write --user-ids U1 U2
-slacker.py canvas access delete <canvas_id> --channel-ids C1
-slacker.py canvas access delete <canvas_id> --user-ids U1
-
-# Rewrite quip canvas as new-type (creates new canvas, outputs both IDs)
-slacker.py canvas rewrite <canvas_id>
-
-# Detect workspace canvas type (quip vs new-type)
-slacker.py canvas probe
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/slack-toolkit/scripts/slacker.py <command> [args]
 ```
 
-Canvas content uses markdown. `canvas create` and `canvas channel-create` send full content in one call (large payloads supported); H4+ headings are auto-downgraded to H3 with a warning. `canvas update --append-file` auto-chunks appends into ~4KB operations. On quip workspaces, create still works but append/replace does not. `--channel-ids` and `--user-ids` are mutually exclusive for access commands. See `references/canvas-operations.md` and `references/api-reference.md` for details.
+Slash commands wrap the common flows: `/slack-thread`, `/slack-search`, `/slack-canvas`, `/slack-catchup`, `/slack-channels`, `/slack-auth`. `slack_sdk` POSTs form-encoded, so Enterprise Grid works with no extra handling.
 
-### Reactions (MCP gap)
+## Reading & Extraction
+
+Thread/history/catchup default to **readable markdown** (user IDs resolved to names, `<url|label>` → `[label](url)`, files listed, thread replies indented). Add `--json` for **enriched** JSON (each message gets `author_name`; threads nested under `_replies`). See `references/extraction.md` for workflows, time-range formats, and the channel-list file format.
 
 ```bash
-slacker.py react <channel> <timestamp> <emoji_name>
+# Full thread by URL (or channel ID + parent ts) → markdown
+slacker.py thread "https://workspace.slack.com/archives/C0123/p1768255289788089"
+slacker.py thread C0123 1768255289.788089 --limit 1000 --json
+
+# Channel history over a time range (Nh / Nd / Nw / YYYY-MM-DD)
+slacker.py history C0123 --since 7d
+slacker.py history C0123 --limit 200 --json
+
+# Multi-channel catch-up digest (pulls threads, resolves names once)
+slacker.py catchup --channels C0123 C0456 --since 3d
+slacker.py catchup --channels-file channels.md --since 2026-03-01
+
+# Search across ALL channels/DMs you can access or contributed to (needs search:read)
+slacker.py search "prisma airs incident"
+slacker.py search "from:@me in:#team-eng after:2026-03-01" --count 200 --json
+
+# List or resolve your channels
+slacker.py channels                 # markdown table (ID · name · topic)
+slacker.py channels --resolve news  # {id, name} matches for /slack-thread etc.
+
+# Verify token + required scopes (run first when commands fail)
+slacker.py auth-check
+```
+
+## Canvas Authoring
+
+Slack has two canvas backends. Type is set at the **workspace level** — some (Enterprise Grid) route all creation through legacy **Quip**, even via `canvases.create`:
+
+- **Quip** (`filetype: "quip"`): read works (HTML→markdown); `canvases.edit` (append/replace) does not. To update, recreate with full content.
+- **New Canvas API**: full CRUD; large appends auto-chunk (~4KB/op).
+
+Run `canvas probe` to detect your workspace type. See `references/canvas-operations.md` and `references/api-reference.md`.
+
+```bash
+# Publish a canvas from a markdown file, optionally sharing it (headline flow)
+slacker.py canvas publish "Team Update" --file report.md \
+  --share-channels C0123 --share-users U0456 --access read
+slacker.py canvas publish "Runbook" --file runbook.md --channel-tab C0123
+
+# Primitives
+slacker.py canvas read <canvas_id>                     # → markdown
+slacker.py canvas create "Title" --content-file doc.md # single call; H4+ → H3
+slacker.py canvas update <canvas_id> --append-file more.md   # auto-chunked
+slacker.py canvas sections lookup <canvas_id> --section-types h2 --contains-text "Status"
+slacker.py canvas update <canvas_id> --replace <section_id> --content-file new.md
+slacker.py canvas channel-create <channel_id> --title "Tab" --content-file doc.md
+slacker.py canvas access set <canvas_id> write --channel-ids C1  # or --user-ids U1
+slacker.py canvas access delete <canvas_id> --channel-ids C1
+slacker.py canvas probe            # detect quip vs new-type
+slacker.py canvas rewrite <canvas_id>   # quip → new-type (creates new canvas)
+slacker.py canvas delete <canvas_id>    # irreversible
+```
+
+`canvas publish` and `canvas create` auto-downgrade H4+ headings to H3 (Slack rejects H4+). `--share-channels` and `--share-users` may be combined (two access calls); `--channel-ids`/`--user-ids` are mutually exclusive within a single `access` call.
+
+## Reactions
+
+```bash
+slacker.py react <channel> <timestamp> <emoji_name>     # name without colons
 slacker.py unreact <channel> <timestamp> <emoji_name>
 ```
 
-Emoji name without colons (e.g., `thumbsup` not `:thumbsup:`).
-
-### Threads & History (MCP fallback)
+## URL Parsing
 
 ```bash
-# Full thread with pagination
-slacker.py thread <channel> <thread_ts> [--limit 200]
-
-# Channel history
-slacker.py history <channel> [--limit 100]
-
-# Parse Slack URL to channel + timestamp
 slacker.py parse-url "https://workspace.slack.com/archives/C0123/p1768255289788089"
 ```
 
-### Common Flags
-
-| Flag | Description |
-|------|-------------|
-| `--bot` | Use bot token instead of user token |
-| `--limit N` | Max messages to retrieve (default: 200 threads, 100 history; hard cap: 1000) |
+Strips the `p` prefix and inserts `.` before the last 6 digits. Threaded reply URLs (`?thread_ts=…&cid=…`) resolve to the parent thread.
 
 ## Output Contract
 
-- **stdout**: JSON (compact, parseable) or markdown (canvas read)
-- **stderr**: Human-readable errors and pre-flight warnings (speculative — do not treat as failures)
-- **Exit codes**: 0=success, 1=usage, 2=auth, 3=API error, 4=rate limited
+- **stdout**: markdown (default for reads/canvas read) or JSON (writes, `--json`, metadata).
+- **stderr**: human-readable errors + pre-flight warnings (heuristic — not failures).
+- **Exit codes**: 0=success, 1=usage, 2=auth, 3=API error, 4=rate limited.
 
-**API response trust:** `{"ok": true}` is authoritative — no verification read needed. Pre-flight warnings on stderr (e.g., quip detection) are heuristics emitted *before* the call — if the call returns `ok: true`, the operation succeeded regardless.
+**Response trust:** `slack_sdk` raises on `ok:false`, so any returned response succeeded — `{"canvas_id": …}`/`{"ok": true}` is authoritative; no verification read needed. Pre-flight warnings (e.g. quip detection) fire *before* the call; if it returns success, it worked.
 
-## Thread URL Parsing
+## Required Scopes
 
-Two formats supported:
-- `https://<workspace>.slack.com/archives/<CHANNEL>/p<TS>` → basic
-- `...p<TS>?thread_ts=<PARENT>&cid=<CH>` → threaded reply
+`auth-check` verifies: `channels:history/read`, `groups:history/read`, `im:history/read`, `mpim:history/read`, `users:read`, `search:read` (cross-channel `search`, user token only), `files:read`, `canvases:read/write`, `reactions:write`. Missing scopes are reported (non-fatal) so you know which commands will fail.
 
-Timestamp: strip `p` prefix, insert `.` before last 6 digits.
+To change the app's scopes when some are missing, the standalone `scripts/scope_manager.py` helper edits the app manifest (with auto-backup and one-command `revert`) — it needs an app **config token** (`xoxe.…`), not the user token, and a manual browser reinstall still applies. See `references/scope-management.md`.
 
 ## Reference Documentation
 
 | Reference | Content |
 |-----------|---------|
-| `references/api-reference.md` | Endpoint table with methods, scopes, rate tiers |
-| `references/canvas-operations.md` | Size limits, quip vs new-type, auto-chunking, update patterns |
+| `references/extraction.md` | thread/history/catchup workflows, `--since` formats, user-cache, channel-list file format |
+| `references/api-reference.md` | endpoint table with methods, scopes, rate tiers |
+| `references/canvas-operations.md` | quip vs new-type, size limits, auto-chunking, publish/update patterns |
+| `references/scope-management.md` | `scope_manager.py` helper — config tokens, add/remove/revert scopes, reinstall loop |

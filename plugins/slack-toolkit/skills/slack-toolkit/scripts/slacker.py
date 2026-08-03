@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 # /// script
-# dependencies = []
+# requires-python = ">=3.8"
+# dependencies = ["slack_sdk", "pip-system-certs"]
 # ///
 """
-Slack Web API CLI — Canvas read/create/update, reactions, threads, history.
+Slack Web API CLI — readable extraction + Canvas authoring.
 
-Fills gaps in the official Slack MCP plugin (no Canvas read/update, no reactions)
-and provides a full fallback when MCP is unavailable.
+Built on slack_sdk.WebClient. Pulls large threads/history into readable markdown
+(user names resolved), runs multi-channel catch-up digests, verifies token scopes,
+and provides full Canvas CRUD + publishing (markdown file -> shared Canvas).
 
-Usage:
-    python3 slacker.py <command> [args]
+Run with uv (auto-installs slack_sdk + pip-system-certs):
+    uv run slacker.py <command> [args]
 
 Exit codes:
     0 = success
@@ -28,8 +30,11 @@ import subprocess
 import sys
 import time
 import urllib.error
-import urllib.parse
 import urllib.request
+from datetime import datetime
+
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 
 
 # ---------------------------------------------------------------------------
@@ -43,18 +48,36 @@ EXIT_RATE = 4
 
 
 # ---------------------------------------------------------------------------
-# Token resolution
+# Required scopes (checked by auth-check)
+# ---------------------------------------------------------------------------
+REQUIRED_SCOPES = {
+    # reading conversations
+    "channels:history", "channels:read",
+    "groups:history", "groups:read",
+    "im:history", "im:read",
+    "mpim:history", "mpim:read",
+    "users:read",
+    # cross-channel search (user token only)
+    "search:read",
+    # canvases + files
+    "files:read", "canvases:read", "canvases:write",
+    # reactions
+    "reactions:write",
+}
+
+
+# ---------------------------------------------------------------------------
+# Token resolution + client factory
 # ---------------------------------------------------------------------------
 def resolve_token(token_type="user"):
-    """Resolve Slack token: env var → keychainctl fallback → prefix validation."""
+    """Resolve Slack token: env var -> keychainctl fallback -> prefix validation."""
     env_var = "SLACK_BOT_TOKEN" if token_type == "bot" else "SLACK_USER_TOKEN"
     token = os.environ.get(env_var)
 
     if not token:
-        keychain_key = env_var
         try:
             result = subprocess.run(
-                ["keychainctl", "get", keychain_key],
+                ["keychainctl", "get", env_var],
                 capture_output=True, text=True, timeout=5,
             )
             if result.returncode == 0 and result.stdout.strip():
@@ -66,71 +89,57 @@ def resolve_token(token_type="user"):
         print(f"Error: No Slack token found. Set ${env_var} or store via keychainctl.", file=sys.stderr)
         sys.exit(EXIT_AUTH)
 
-    expected_prefix = "xoxb-" if token_type == "bot" else "xoxp-"
-    if not token.startswith(expected_prefix):
-        # Allow either prefix — bot commands can use user tokens too
-        if not token.startswith(("xoxp-", "xoxb-")):
-            print(f"Error: Token has invalid prefix (expected xoxp- or xoxb-).", file=sys.stderr)
-            sys.exit(EXIT_AUTH)
+    if not token.startswith(("xoxp-", "xoxb-")):
+        print("Error: Token has invalid prefix (expected xoxp- or xoxb-).", file=sys.stderr)
+        sys.exit(EXIT_AUTH)
 
     return token
 
 
-# ---------------------------------------------------------------------------
-# Slack API helpers
-# ---------------------------------------------------------------------------
-def slack_post(method, token, **params):
-    """POST form-encoded request to Slack Web API. Returns parsed JSON.
+def get_client(token_type="user"):
+    """Return a slack_sdk WebClient. Access the raw token via client.token when needed."""
+    return WebClient(token=resolve_token(token_type))
 
-    Handles 429 rate limiting with one retry using Retry-After header.
+
+def slack_call(method, **kwargs):
+    """Invoke a bound WebClient method with one 429 retry; map errors to exit codes.
+
+    Slack's {"ok": true} is authoritative — slack_sdk raises SlackApiError on ok:false,
+    so a returned response is always a success.
     """
-    url = f"https://slack.com/api/{method}"
-    data = urllib.parse.urlencode(params).encode("utf-8")
-    req = urllib.request.Request(
-        url, data=data,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        },
-    )
-
     for attempt in range(2):
         try:
-            with urllib.request.urlopen(req) as resp:
-                body = resp.read().decode("utf-8")
-                result = json.loads(body, strict=False)
-        except urllib.error.HTTPError as e:
-            if e.code == 429 and attempt == 0:
-                retry_after = int(e.headers.get("Retry-After", "5"))
+            return method(**kwargs)
+        except SlackApiError as e:
+            resp = e.response
+            status = getattr(resp, "status_code", None)
+            if status == 429 and attempt == 0:
+                retry_after = int(resp.headers.get("Retry-After", "5"))
                 print(f"Rate limited, retrying in {retry_after}s...", file=sys.stderr)
                 time.sleep(retry_after)
                 continue
-            if e.code == 429:
-                print(f"Error: Rate limited after retry.", file=sys.stderr)
+            if status == 429:
+                print("Error: Rate limited after retry.", file=sys.stderr)
                 sys.exit(EXIT_RATE)
-            print(f"Error: HTTP {e.code} from {method}", file=sys.stderr)
-            sys.exit(EXIT_API)
-
-        if not result.get("ok"):
-            error = result.get("error", "unknown")
-            if error in ("not_authed", "invalid_auth", "token_revoked"):
-                print(f"Error: Auth failed — {error}", file=sys.stderr)
+            err = "unknown"
+            try:
+                err = resp.get("error", "unknown")
+            except Exception:
+                err = str(e)
+            if err in ("not_authed", "invalid_auth", "token_revoked", "account_inactive"):
+                print(f"Error: Auth failed — {err}", file=sys.stderr)
                 sys.exit(EXIT_AUTH)
-            print(f"Error: {method} failed — {error}", file=sys.stderr)
+            print(f"Error: {method.__name__} failed — {err}", file=sys.stderr)
             sys.exit(EXIT_API)
-
-        return result
-
-    # Should not reach here
     sys.exit(EXIT_RATE)
 
 
 def slack_download(url, token):
-    """Authenticated GET for url_private content. Returns decoded string."""
-    req = urllib.request.Request(
-        url,
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    """Authenticated GET for url_private content. Returns decoded string.
+
+    slack_sdk does not fetch arbitrary file bodies, so this stays a raw urllib GET.
+    """
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
     try:
         with urllib.request.urlopen(req) as resp:
             return resp.read().decode("utf-8")
@@ -139,50 +148,25 @@ def slack_download(url, token):
         sys.exit(EXIT_API)
 
 
-def slack_post_json(method, token, payload):
-    """POST JSON body to Slack Web API. Used for endpoints requiring JSON (canvases.*)."""
-    url = f"https://slack.com/api/{method}"
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        url, data=data,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json; charset=utf-8",
-        },
-    )
-
-    for attempt in range(2):
-        try:
-            with urllib.request.urlopen(req) as resp:
-                body = resp.read().decode("utf-8")
-                result = json.loads(body, strict=False)
-        except urllib.error.HTTPError as e:
-            if e.code == 429 and attempt == 0:
-                retry_after = int(e.headers.get("Retry-After", "5"))
-                print(f"Rate limited, retrying in {retry_after}s...", file=sys.stderr)
-                time.sleep(retry_after)
-                continue
-            if e.code == 429:
-                print(f"Error: Rate limited after retry.", file=sys.stderr)
-                sys.exit(EXIT_RATE)
-            print(f"Error: HTTP {e.code} from {method}", file=sys.stderr)
-            sys.exit(EXIT_API)
-
-        if not result.get("ok"):
-            error = result.get("error", "unknown")
-            if error in ("not_authed", "invalid_auth", "token_revoked"):
-                print(f"Error: Auth failed — {error}", file=sys.stderr)
-                sys.exit(EXIT_AUTH)
-            print(f"Error: {method} failed — {error}", file=sys.stderr)
-            sys.exit(EXIT_API)
-
-        return result
-
-    sys.exit(EXIT_RATE)
+def _paginate(method, key, cap, per_page, **params):
+    """Cursor-paginate a WebClient list method up to `cap` items."""
+    items = []
+    cursor = None
+    while len(items) < cap:
+        page_params = dict(params)
+        page_params["limit"] = min(per_page, cap - len(items))
+        if cursor:
+            page_params["cursor"] = cursor
+        resp = slack_call(method, **page_params)
+        items.extend(resp.get(key, []) or [])
+        cursor = (resp.get("response_metadata") or {}).get("next_cursor")
+        if not cursor:
+            break
+    return items[:cap]
 
 
 # ---------------------------------------------------------------------------
-# HTML → Markdown converter (for quip-type canvases)
+# HTML -> Markdown converter (for quip-type canvases)
 # ---------------------------------------------------------------------------
 class HtmlToMarkdown(html.parser.HTMLParser):
     """Convert Slack quip canvas HTML to markdown using stdlib only."""
@@ -190,8 +174,8 @@ class HtmlToMarkdown(html.parser.HTMLParser):
     def __init__(self):
         super().__init__()
         self._output = []
-        self._stack = []  # element tag stack
-        self._list_stack = []  # (tag, counter) for nested lists
+        self._stack = []
+        self._list_stack = []
         self._href = None
         self._link_text = []
         self._in_code_block = False
@@ -199,7 +183,6 @@ class HtmlToMarkdown(html.parser.HTMLParser):
         self._current_row = []
         self._cell_text = []
         self._in_table = False
-        self._suppress_data = False
 
     def handle_starttag(self, tag, attrs):
         attrs_dict = dict(attrs)
@@ -292,8 +275,6 @@ class HtmlToMarkdown(html.parser.HTMLParser):
         elif tag == "table":
             self._in_table = False
             self._flush_table()
-        elif tag == "p":
-            pass  # handled in starttag
 
     def handle_data(self, data):
         if self._href is not None:
@@ -309,10 +290,7 @@ class HtmlToMarkdown(html.parser.HTMLParser):
 
     def handle_charref(self, name):
         try:
-            if name.startswith("x"):
-                char = chr(int(name[1:], 16))
-            else:
-                char = chr(int(name))
+            char = chr(int(name[1:], 16)) if name.startswith("x") else chr(int(name))
         except (ValueError, OverflowError):
             char = f"&#{name};"
         self.handle_data(char)
@@ -320,31 +298,24 @@ class HtmlToMarkdown(html.parser.HTMLParser):
     def _flush_table(self):
         if not self._table_rows:
             return
-        # Determine column widths
         cols = max(len(row) for row in self._table_rows)
-        # Pad rows to same length
         for row in self._table_rows:
             while len(row) < cols:
                 row.append("")
-
         self._output.append("\n\n")
-        # Header row
         header = self._table_rows[0]
         self._output.append("| " + " | ".join(header) + " |\n")
         self._output.append("| " + " | ".join("---" for _ in header) + " |\n")
-        # Data rows
         for row in self._table_rows[1:]:
             self._output.append("| " + " | ".join(row) + " |\n")
 
     def get_markdown(self):
         text = "".join(self._output)
-        # Clean up excessive whitespace
         text = re.sub(r"\n{3,}", "\n\n", text)
         return text.strip() + "\n"
 
 
 def html_to_markdown(html_content):
-    """Convert HTML string to markdown."""
     converter = HtmlToMarkdown()
     converter.feed(html_content)
     return converter.get_markdown()
@@ -354,8 +325,7 @@ def html_to_markdown(html_content):
 # URL parsing
 # ---------------------------------------------------------------------------
 def parse_slack_url(url):
-    """Parse a Slack URL into channel and timestamp components."""
-    # Pattern: https://<workspace>.slack.com/archives/<CHANNEL>/p<TS>
+    """Parse a Slack message URL into channel + timestamp components."""
     match = re.match(
         r"https?://[^/]+\.slack\.com/archives/([A-Z0-9]+)/p(\d+)(?:\?.*)?$",
         url,
@@ -366,10 +336,9 @@ def parse_slack_url(url):
 
     channel = match.group(1)
     raw_ts = match.group(2)
-    # Convert: strip p prefix already done by regex, insert . before last 6 digits
     ts = raw_ts[:-6] + "." + raw_ts[-6:]
 
-    # Check for thread_ts in query params
+    import urllib.parse
     qs = urllib.parse.urlparse(url).query
     params = urllib.parse.parse_qs(qs)
     thread_ts = params.get("thread_ts", [None])[0]
@@ -378,47 +347,445 @@ def parse_slack_url(url):
     result = {"channel": cid or channel, "ts": ts}
     if thread_ts:
         result["thread_ts"] = thread_ts
-
     return result
+
+
+# ---------------------------------------------------------------------------
+# Time range parsing
+# ---------------------------------------------------------------------------
+def parse_since(value):
+    """Convert a --since value to a Unix timestamp string for the `oldest` param.
+
+    Accepts Nh / Nd / Nw (relative) or an ISO date (YYYY-MM-DD).
+    """
+    s = value.strip().lower()
+    m = re.fullmatch(r"(\d+)([hdw])", s)
+    if m:
+        n = int(m.group(1))
+        secs = {"h": 3600, "d": 86400, "w": 604800}[m.group(2)]
+        return f"{time.time() - n * secs:.6f}"
+    try:
+        dt = datetime.strptime(s, "%Y-%m-%d")
+        return f"{dt.timestamp():.6f}"
+    except ValueError:
+        print(f"Error: Cannot parse --since '{value}'. Use Nh/Nd/Nw or YYYY-MM-DD.", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+
+
+# ---------------------------------------------------------------------------
+# User resolution + message rendering
+# ---------------------------------------------------------------------------
+_USER_CACHE = {}
+
+
+def resolve_users(client, user_ids):
+    """Return {user_id: display_name} for the given IDs, caching across calls."""
+    for uid in user_ids:
+        if not uid or uid in _USER_CACHE:
+            continue
+        try:
+            resp = client.users_info(user=uid)
+            profile = resp.get("user", {}) or {}
+            prof = profile.get("profile", {}) or {}
+            _USER_CACHE[uid] = (
+                prof.get("display_name") or profile.get("real_name") or profile.get("name") or uid
+            )
+        except SlackApiError:
+            _USER_CACHE[uid] = uid
+    return {uid: _USER_CACHE.get(uid, uid) for uid in user_ids if uid}
+
+
+def collect_user_ids(messages):
+    """Gather author IDs and in-text @-mention IDs from a list of messages."""
+    ids = set()
+    for m in messages:
+        if m.get("user"):
+            ids.add(m["user"])
+        for uid in re.findall(r"<@([UW][A-Z0-9]+)", m.get("text", "") or ""):
+            ids.add(uid)
+    return ids
+
+
+def format_text(text, user_map):
+    """Resolve Slack mrkdwn entities to readable markdown."""
+    if not text:
+        return ""
+    text = re.sub(
+        r"<@([UW][A-Z0-9]+)(?:\|([^>]+))?>",
+        lambda m: "@" + (user_map.get(m.group(1)) or m.group(2) or m.group(1)),
+        text,
+    )
+    text = re.sub(r"<#(C[A-Z0-9]+)\|([^>]+)>", r"#\2", text)
+    text = re.sub(r"<#(C[A-Z0-9]+)>", r"#\1", text)
+    text = re.sub(r"<!(here|channel|everyone)>", r"@\1", text)
+    text = re.sub(r"<!subteam\^[A-Z0-9]+\|(@[^>]+)>", r"\1", text)
+    text = re.sub(r"<((?:https?|mailto):[^|>]+)\|([^>]+)>", r"[\2](\1)", text)
+    text = re.sub(r"<((?:https?|mailto):[^>]+)>", r"\1", text)
+    text = text.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+    return text
+
+
+def fmt_ts(ts):
+    try:
+        return datetime.fromtimestamp(float(ts)).strftime("%Y-%m-%d %H:%M")
+    except (ValueError, TypeError, OverflowError):
+        return str(ts)
+
+
+def render_message(msg, user_map):
+    """Render a single message to a markdown block."""
+    uid = msg.get("user") or msg.get("bot_id", "")
+    name = user_map.get(uid) or msg.get("username") or uid or "unknown"
+    lines = [f"**{name}** · {fmt_ts(msg.get('ts', '0'))}"]
+    body = format_text(msg.get("text", ""), user_map)
+    if body:
+        lines += ["", body]
+    for f in msg.get("files", []) or []:
+        title = f.get("title") or f.get("name") or "file"
+        link = f.get("permalink") or f.get("url_private") or ""
+        lines.append(f"📎 [{title}]({link})")
+    return "\n".join(lines).rstrip()
+
+
+def _blockquote(block):
+    return "\n".join(("> " + ln) if ln else ">" for ln in block.split("\n"))
+
+
+def render_thread_md(messages, user_map, label):
+    out = [f"# Thread in {label}", ""]
+    if not messages:
+        out.append("_No messages._")
+        return "\n".join(out)
+    out.append(render_message(messages[0], user_map))
+    replies = messages[1:]
+    if replies:
+        out += ["", f"## Replies ({len(replies)})"]
+        for r in replies:
+            out += ["", _blockquote(render_message(r, user_map))]
+    return "\n".join(out).rstrip() + "\n"
+
+
+def render_history_md(messages, user_map, label):
+    out = [f"# {label}", ""]
+    if not messages:
+        out.append("_No messages in range._")
+        return "\n".join(out) + "\n"
+    for m in messages:
+        out.append(render_message(m, user_map))
+        for r in m.get("_replies", []) or []:
+            out.append(_blockquote(render_message(r, user_map)))
+        rc = m.get("reply_count", 0)
+        if rc and not m.get("_replies"):
+            out.append(f"_↳ {rc} repl{'y' if rc == 1 else 'ies'} — thread ts {m.get('ts')}_")
+        out.append("")
+    return "\n".join(out).rstrip() + "\n"
+
+
+def enrich_messages(messages, user_map):
+    """Attach resolved author_name to each message for --json output."""
+    for m in messages:
+        uid = m.get("user") or m.get("bot_id", "")
+        m["author_name"] = user_map.get(uid) or m.get("username") or uid
+        for r in m.get("_replies", []) or []:
+            ruid = r.get("user") or r.get("bot_id", "")
+            r["author_name"] = user_map.get(ruid) or r.get("username") or ruid
+    return messages
+
+
+def channel_label(client, channel):
+    """Best-effort '#name' for a channel ID; falls back to the ID."""
+    try:
+        resp = client.conversations_info(channel=channel)
+        name = (resp.get("channel", {}) or {}).get("name")
+        return f"#{name}" if name else channel
+    except SlackApiError:
+        return channel
+
+
+def read_content(inline, path):
+    """Resolve content from --content or --content-file/--file."""
+    if path:
+        try:
+            with open(path, "r") as f:
+                return f.read()
+        except OSError as e:
+            print(f"Error: Cannot read file — {e}", file=sys.stderr)
+            sys.exit(EXIT_USAGE)
+    return inline
+
+
+def load_channels_file(path):
+    """Extract channel IDs (C...) from a markdown channel-list table."""
+    ids = []
+    try:
+        with open(path, "r") as f:
+            for line in f:
+                m = re.match(r"\|\s*(C[A-Z0-9]+)\s*\|", line)
+                if m:
+                    ids.append(m.group(1))
+    except OSError as e:
+        print(f"Error: Cannot read channels file — {e}", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+    if not ids:
+        print(f"Error: No channel IDs (C...) found in {path}.", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+    return ids
 
 
 # ---------------------------------------------------------------------------
 # Canvas helpers
 # ---------------------------------------------------------------------------
 def _downgrade_headings(content):
-    """Downgrade H4+ headings to H3. Slack Canvas does not support H4+ (canvas_creation_failed)."""
+    """Downgrade H4+ headings to H3. Slack Canvas rejects H4+ (canvas_creation_failed)."""
     if re.search(r"^#{4,}\s", content, flags=re.MULTILINE):
         print(
-            "Warning: Markdown contains H4+ headings (####) which are not supported by Slack Canvas "
-            "(causes canvas_creation_failed). Downgrading H4+ to H3.",
+            "Warning: Markdown contains H4+ headings (####) unsupported by Slack Canvas. "
+            "Downgrading H4+ to H3.",
             file=sys.stderr,
         )
         content = re.sub(r"^#{4,}(\s)", r"###\1", content, flags=re.MULTILINE)
     return content
 
 
+def _test_canvas_api_availability(client):
+    """Silently verify canvases.create produces editable (non-quip) canvases."""
+    try:
+        resp = client.canvases_create(
+            title="__api_test__",
+            document_content={"type": "markdown", "markdown": "test"},
+        )
+        canvas_id = resp.get("canvas_id")
+        if not canvas_id:
+            return False
+        info = client.files_info(file=canvas_id)
+        is_quip = (info.get("file", {}) or {}).get("filetype", "") == "quip"
+        try:
+            client.files_delete(file=canvas_id)
+        except SlackApiError:
+            pass
+        return not is_quip
+    except SlackApiError:
+        return False
+
+
+def _canvas_append_chunked(client, canvas_id, content, chunk_size=3000):
+    """Append content, auto-chunking on paragraph boundaries to stay under ~4KB/op."""
+    if len(content.encode("utf-8")) <= chunk_size:
+        slack_call(client.canvases_edit, canvas_id=canvas_id, changes=[
+            {"operation": "insert_at_end", "document_content": {"type": "markdown", "markdown": content}}
+        ])
+        return 1
+
+    chunks, current, current_size = [], [], 0
+    for paragraph in content.split("\n\n"):
+        para_size = len((paragraph + "\n\n").encode("utf-8"))
+        if current_size + para_size > chunk_size and current:
+            chunks.append("\n\n".join(current))
+            current, current_size = [paragraph], para_size
+        else:
+            current.append(paragraph)
+            current_size += para_size
+    if current:
+        chunks.append("\n\n".join(current))
+
+    for i, chunk in enumerate(chunks):
+        slack_call(client.canvases_edit, canvas_id=canvas_id, changes=[
+            {"operation": "insert_at_end", "document_content": {"type": "markdown", "markdown": chunk}}
+        ])
+        if i < len(chunks) - 1:
+            time.sleep(1)
+    return len(chunks)
+
+
 # ---------------------------------------------------------------------------
-# Commands: Canvas
+# Commands: extraction
+# ---------------------------------------------------------------------------
+def cmd_thread(args):
+    client = get_client("bot" if args.bot else "user")
+    if args.target.startswith("http"):
+        parsed = parse_slack_url(args.target)
+        channel = parsed["channel"]
+        ts = parsed.get("thread_ts") or parsed["ts"]
+    else:
+        if not args.ts:
+            print("Error: Provide a thread ts when target is a channel ID.", file=sys.stderr)
+            sys.exit(EXIT_USAGE)
+        channel, ts = args.target, args.ts
+
+    limit = min(args.limit, 1000)
+    messages = _paginate(client.conversations_replies, "messages", cap=limit, per_page=200,
+                         channel=channel, ts=ts)
+    user_map = resolve_users(client, collect_user_ids(messages))
+    if args.json:
+        print(json.dumps(enrich_messages(messages, user_map), indent=2))
+    else:
+        print(render_thread_md(messages, user_map, channel_label(client, channel)))
+
+
+def cmd_history(args):
+    client = get_client("bot" if args.bot else "user")
+    limit = min(args.limit, 1000)
+    params = {"channel": args.channel}
+    if args.since:
+        params["oldest"] = parse_since(args.since)
+    messages = _paginate(client.conversations_history, "messages", cap=limit, per_page=100, **params)
+    user_map = resolve_users(client, collect_user_ids(messages))
+    if args.json:
+        print(json.dumps(enrich_messages(messages, user_map), indent=2))
+    else:
+        label = f"History: {channel_label(client, args.channel)}"
+        print(render_history_md(messages, user_map, label))
+
+
+def cmd_catchup(args):
+    client = get_client("bot" if args.bot else "user")
+    channels = args.channels or (load_channels_file(args.channels_file) if args.channels_file else None)
+    if not channels:
+        print("Error: Provide --channels or --channels-file.", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+    oldest = parse_since(args.since)
+    per_channel_cap = min(args.limit, 1000)
+
+    sections = []
+    for ch in channels:
+        msgs = _paginate(client.conversations_history, "messages", cap=per_channel_cap,
+                         per_page=100, channel=ch, oldest=oldest)
+        if not msgs:
+            continue
+        for m in msgs:
+            if m.get("reply_count", 0) > 0:
+                replies = _paginate(client.conversations_replies, "messages", cap=200,
+                                    per_page=200, channel=ch, ts=m["ts"])
+                m["_replies"] = replies[1:]  # drop the parent (already shown)
+        sections.append((ch, msgs))
+
+    all_ids = set()
+    for _, msgs in sections:
+        for m in msgs:
+            all_ids |= collect_user_ids([m] + (m.get("_replies") or []))
+    user_map = resolve_users(client, all_ids)
+
+    if args.json:
+        out = {ch: enrich_messages(msgs, user_map) for ch, msgs in sections}
+        print(json.dumps(out, indent=2))
+        return
+
+    if not sections:
+        print(f"# Catch-up\n\n_No activity since {args.since}._")
+        return
+    blocks = [f"# Catch-up — since {args.since}", ""]
+    for ch, msgs in sections:
+        blocks.append(render_history_md(msgs, user_map, channel_label(client, ch)))
+    print("\n".join(blocks))
+
+
+def cmd_channels(args):
+    client = get_client("bot" if args.bot else "user")
+    chans = _paginate(client.users_conversations, "channels", cap=min(args.limit, 1000),
+                      per_page=200, types=args.types, exclude_archived=True)
+    if args.resolve:
+        needle = args.resolve.lower()
+        matches = [{"id": c["id"], "name": c.get("name", "")} for c in chans
+                   if needle in (c.get("name", "") or "").lower()]
+        print(json.dumps(matches, indent=2))
+        return
+    if args.json:
+        print(json.dumps(chans, indent=2))
+        return
+    lines = ["| ID | Name | Topic |", "|----|------|-------|"]
+    for c in sorted(chans, key=lambda c: c.get("name", "")):
+        topic = ((c.get("topic", {}) or {}).get("value", "") or "").replace("|", "\\|")[:60]
+        lines.append(f"| {c['id']} | {c.get('name', '')} | {topic} |")
+    print("\n".join(lines))
+
+
+def cmd_auth_check(args):
+    client = get_client("bot" if args.bot else "user")
+    resp = slack_call(client.auth_test)
+    scopes_header = ""
+    for k, v in (resp.headers or {}).items():
+        if k.lower() == "x-oauth-scopes":
+            scopes_header = v
+            break
+    granted = {s.strip() for s in scopes_header.split(",") if s.strip()}
+    missing = sorted(REQUIRED_SCOPES - granted)
+    print(json.dumps({
+        "ok": True,
+        "user": resp.get("user"),
+        "team": resp.get("team"),
+        "granted": sorted(granted),
+        "missing": missing,
+    }, indent=2))
+    if missing:
+        print(f"Warning: {len(missing)} required scope(s) missing — some commands will fail.",
+              file=sys.stderr)
+
+
+def render_search_md(matches, user_map, query):
+    out = [f"# Search: {query}", "", f"_{len(matches)} match(es)_", ""]
+    if not matches:
+        out.append("_No matches._")
+        return "\n".join(out) + "\n"
+    for m in matches:
+        ch = m.get("channel") or {}
+        chname = ch.get("name") or ch.get("id", "")
+        uid = m.get("user") or ""
+        name = user_map.get(uid) or m.get("username") or uid or "unknown"
+        out.append(f"**{name}** in #{chname} · {fmt_ts(m.get('ts', '0'))}")
+        body = format_text(m.get("text", ""), user_map)
+        if body:
+            out += ["", body]
+        if m.get("permalink"):
+            out.append(f"[↗ view]({m['permalink']})")
+        out.append("")
+    return "\n".join(out).rstrip() + "\n"
+
+
+def cmd_search(args):
+    """Search messages across all channels/DMs the user can access (search.messages).
+
+    User-token only — Slack does not allow bot tokens to call search.*.
+    Query supports modifiers: in:#channel, from:@user, after:YYYY-MM-DD, before:, during:.
+    """
+    client = get_client("bot" if args.bot else "user")
+    cap = min(args.count, 1000)
+    matches, page = [], 1
+    while len(matches) < cap:
+        resp = slack_call(client.search_messages, query=args.query,
+                          count=min(100, cap - len(matches)), page=page,
+                          sort=args.sort, sort_dir="desc")
+        msgs = resp.get("messages") or {}
+        batch = msgs.get("matches", []) or []
+        matches.extend(batch)
+        paging = msgs.get("paging", {}) or {}
+        if not batch or page >= paging.get("pages", 1):
+            break
+        page += 1
+    matches = matches[:cap]
+
+    user_map = resolve_users(client, {m.get("user") for m in matches if m.get("user")})
+    if args.json:
+        for m in matches:
+            m["author_name"] = user_map.get(m.get("user")) or m.get("username") or m.get("user")
+        print(json.dumps(matches, indent=2))
+    else:
+        print(render_search_md(matches, user_map, args.query))
+
+
+# ---------------------------------------------------------------------------
+# Commands: canvas
 # ---------------------------------------------------------------------------
 def cmd_canvas_read(args):
-    """Read a canvas and output as markdown.
-
-    There is no official canvases.read API. Content is fetched via files.info → url_private,
-    which works reliably for quip-type canvases (HTML) and may work for new-type canvases
-    depending on workspace configuration. Content format is detected by inspection.
-    """
-    token = resolve_token("bot" if args.bot else "user")
-
-    info = slack_post("files.info", token, file=args.canvas_id)
-    file_data = info.get("file", {})
+    client = get_client("bot" if args.bot else "user")
+    info = slack_call(client.files_info, file=args.canvas_id)
+    file_data = info.get("file", {}) or {}
     filetype = file_data.get("filetype", "unknown")
     url_private = file_data.get("url_private")
 
     if not url_private:
         print(
-            f"Error: Slack returned no url_private for this canvas (filetype: {filetype}). "
-            f"There is no official API to read new-type canvas content — "
-            f"canvas read is only reliably supported for quip-type canvases.",
+            f"Error: No url_private for this canvas (filetype: {filetype}). "
+            f"Canvas read is only reliably supported for quip-type canvases.",
             file=sys.stderr,
         )
         print(json.dumps({
@@ -429,214 +796,98 @@ def cmd_canvas_read(args):
         }))
         sys.exit(EXIT_API)
 
-    raw = slack_download(url_private, token)
-
+    raw = slack_download(url_private, client.token)
     if raw.lstrip().startswith("<"):
-        # HTML content (quip canvas or equivalent) — convert to markdown
         print(html_to_markdown(raw))
     else:
-        # Unknown format — emit raw with an informational warning
         if filetype != "quip":
-            print(
-                f"Note: Canvas filetype '{filetype}' returned non-HTML content. Emitting raw.",
-                file=sys.stderr,
-            )
+            print(f"Note: Canvas filetype '{filetype}' returned non-HTML content. Emitting raw.",
+                  file=sys.stderr)
         print(raw)
 
 
-def _test_canvas_api_availability(token):
-    """Silent test to verify canvases.create produces editable (non-quip) canvases.
-
-    Returns True if API is available and produces new-type canvases.
-    Returns False if workspace produces quip-type or API is unavailable.
-    """
-    try:
-        result = slack_post_json("canvases.create", token, {
-            "title": "__api_test__",
-            "document_content": {"type": "markdown", "markdown": "test"},
-        })
-        if not result.get("ok", False) and "canvas_id" not in result:
-            return False
-
-        canvas_id = result.get("canvas_id")
-        if not canvas_id:
-            return False
-
-        # Check if it's quip-type (which doesn't support edits)
-        info = slack_post("files.info", token, file=canvas_id)
-        filetype = info.get("file", {}).get("filetype", "")
-        is_quip = filetype == "quip"
-
-        # Clean up test canvas
-        try:
-            delete_url = "https://slack.com/api/files.delete"
-            delete_data = urllib.parse.urlencode({"file": canvas_id}).encode("utf-8")
-            delete_req = urllib.request.Request(
-                delete_url, data=delete_data,
-                headers={"Authorization": f"Bearer {token}",
-                         "Content-Type": "application/x-www-form-urlencoded"},
-            )
-            urllib.request.urlopen(delete_req)
-        except Exception:
-            pass
-
-        return not is_quip
-    except Exception:
-        return False
-
-
 def cmd_canvas_create(args):
-    """Create a new canvas."""
-    token = resolve_token("bot" if args.bot else "user")
-
-    if args.content_file:
-        try:
-            with open(args.content_file, "r") as f:
-                content = f.read()
-        except OSError as e:
-            print(f"Error: Cannot read file — {e}", file=sys.stderr)
-            sys.exit(EXIT_USAGE)
-    elif args.content:
-        content = args.content
-    else:
+    client = get_client("bot" if args.bot else "user")
+    content = read_content(args.content, args.content_file)
+    if not content:
         print("Error: Provide --content or --content-file.", file=sys.stderr)
         sys.exit(EXIT_USAGE)
+    if not _test_canvas_api_availability(client):
+        print("Warning: Canvas API test failed or workspace produces quip canvases. "
+              "Run 'canvas probe' to diagnose. Proceeding anyway.", file=sys.stderr)
+    content = _downgrade_headings(content)
+    resp = slack_call(client.canvases_create, title=args.title,
+                      document_content={"type": "markdown", "markdown": content})
+    print(json.dumps({"canvas_id": resp.get("canvas_id", "unknown")}))
 
-    # Test Canvas API availability to ensure editable canvases
-    if not _test_canvas_api_availability(token):
-        print(
-            "Warning: Canvas API test failed or workspace produces non-editable (quip) canvases. "
-            "Run 'canvas probe' to diagnose. Proceeding anyway.",
-            file=sys.stderr,
-        )
 
-    # Pre-flight: Slack Canvas only supports up to H3 headings — H4+ cause canvas_creation_failed.
+def cmd_canvas_publish(args):
+    """Aggregate: create a canvas from a markdown file, then optionally share it."""
+    client = get_client("bot" if args.bot else "user")
+    content = read_content(None, args.file)
+    if not content:
+        print("Error: --file is required and must be non-empty.", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
     content = _downgrade_headings(content)
 
-    # Create the canvas in a single call — canvases.create handles large payloads (20KB+ tested).
-    result = slack_post_json("canvases.create", token, {
-        "title": args.title,
-        "document_content": {"type": "markdown", "markdown": content},
-    })
-    canvas_id = result.get("canvas_id", "unknown")
-    print(json.dumps({"canvas_id": canvas_id}))
+    if args.channel_tab:
+        resp = slack_call(client.conversations_canvases_create, channel_id=args.channel_tab,
+                          title=args.title, document_content={"type": "markdown", "markdown": content})
+    else:
+        if not _test_canvas_api_availability(client):
+            print("Warning: workspace may produce non-editable (quip) canvases. Run 'canvas probe'.",
+                  file=sys.stderr)
+        resp = slack_call(client.canvases_create, title=args.title,
+                          document_content={"type": "markdown", "markdown": content})
+    canvas_id = resp.get("canvas_id", "unknown")
 
+    shared = {}
+    if args.share_channels:
+        slack_call(client.canvases_access_set, canvas_id=canvas_id,
+                   access_level=args.access, channel_ids=args.share_channels)
+        shared["channels"] = args.share_channels
+    if args.share_users:
+        slack_call(client.canvases_access_set, canvas_id=canvas_id,
+                   access_level=args.access, user_ids=args.share_users)
+        shared["users"] = args.share_users
 
-def _canvas_append_chunked(canvas_id, content, token, chunk_size=3000):
-    """Append content to a canvas, auto-chunking to stay within Slack API limits.
-
-    Slack's canvases.edit fails silently above ~4KB per operation.
-    Splits on paragraph boundaries (double newline) to avoid breaking markdown.
-    """
-    if len(content.encode("utf-8")) <= chunk_size:
-        slack_post_json("canvases.edit", token, {
-            "canvas_id": canvas_id,
-            "changes": [{"operation": "insert_at_end", "document_content": {"type": "markdown", "markdown": content}}],
-        })
-        return 1
-
-    chunks = []
-    current = []
-    current_size = 0
-    for paragraph in content.split("\n\n"):
-        para_size = len((paragraph + "\n\n").encode("utf-8"))
-        if current_size + para_size > chunk_size and current:
-            chunks.append("\n\n".join(current))
-            current = [paragraph]
-            current_size = para_size
-        else:
-            current.append(paragraph)
-            current_size += para_size
-    if current:
-        chunks.append("\n\n".join(current))
-
-    for i, chunk in enumerate(chunks):
-        slack_post_json("canvases.edit", token, {
-            "canvas_id": canvas_id,
-            "changes": [{"operation": "insert_at_end", "document_content": {"type": "markdown", "markdown": chunk}}],
-        })
-        if i < len(chunks) - 1:
-            time.sleep(1)  # Rate limit courtesy between chunks
-
-    return len(chunks)
+    print(json.dumps({"canvas_id": canvas_id, "channel_tab": args.channel_tab, "shared": shared}))
 
 
 def cmd_canvas_update(args):
-    """Update an existing canvas."""
-    token = resolve_token("bot" if args.bot else "user")
+    client = get_client("bot" if args.bot else "user")
+    info = slack_call(client.files_info, file=args.canvas_id)
+    if (info.get("file", {}) or {}).get("filetype") == "quip":
+        print("Warning: quip-type canvas — canvases.edit may not work. Consider 'canvas rewrite'.",
+              file=sys.stderr)
 
-    # Check if this is a quip canvas
-    info = slack_post("files.info", token, file=args.canvas_id)
-    file_data = info.get("file", {})
-    if file_data.get("filetype") == "quip":
-        print("Warning: This is a quip-type canvas. Updates via canvases.edit may not work.", file=sys.stderr)
-        print("Suggestion: Use 'canvas rewrite' to migrate to a new-type canvas first.", file=sys.stderr)
-
-    # Resolve content from file or inline
-    content = None
-    if args.append_file:
-        try:
-            with open(args.append_file, "r") as f:
-                content = f.read()
-        except OSError as e:
-            print(f"Error: Cannot read file — {e}", file=sys.stderr)
-            sys.exit(EXIT_USAGE)
-    elif args.append:
-        content = args.append
-    elif args.content_file:
-        try:
-            with open(args.content_file, "r") as f:
-                content = f.read()
-        except OSError as e:
-            print(f"Error: Cannot read file — {e}", file=sys.stderr)
-            sys.exit(EXIT_USAGE)
-    elif args.content:
-        content = args.content
-
+    content = read_content(args.append or args.content, args.append_file or args.content_file)
     if args.append or args.append_file:
-        chunks = _canvas_append_chunked(args.canvas_id, content, token)
+        chunks = _canvas_append_chunked(client, args.canvas_id, content)
         print(json.dumps({"ok": True, "chunks": chunks}))
     elif args.replace and content:
-        slack_post_json("canvases.edit", token, {
-            "canvas_id": args.canvas_id,
-            "changes": [{"operation": "replace", "section_id": args.replace, "document_content": {"type": "markdown", "markdown": content}}],
-        })
+        slack_call(client.canvases_edit, canvas_id=args.canvas_id, changes=[
+            {"operation": "replace", "section_id": args.replace,
+             "document_content": {"type": "markdown", "markdown": content}}
+        ])
         print(json.dumps({"ok": True}))
     else:
-        print("Error: Provide --append[--append-file] or --replace <section_id> --content[--content-file].", file=sys.stderr)
+        print("Error: Provide --append[-file] or --replace <section_id> --content[-file].",
+              file=sys.stderr)
         sys.exit(EXIT_USAGE)
 
 
 def cmd_canvas_probe(args):
-    """Probe workspace to determine if canvases.create produces quip or new-type canvases."""
-    token = resolve_token("bot" if args.bot else "user")
-
-    # Create a tiny test canvas
-    result = slack_post_json("canvases.create", token, {
-        "title": "__canvas_probe_test__",
-        "document_content": {"type": "markdown", "markdown": "probe"},
-    })
-    canvas_id = result.get("canvas_id", "unknown")
-
-    # Check its filetype
-    info = slack_post("files.info", token, file=canvas_id)
-    file_data = info.get("file", {})
-    filetype = file_data.get("filetype", "unknown")
-    is_quip = filetype == "quip"
-
-    # Try to delete the test canvas (may fail if token lacks files:write scope)
+    client = get_client("bot" if args.bot else "user")
+    resp = slack_call(client.canvases_create, title="__canvas_probe_test__",
+                      document_content={"type": "markdown", "markdown": "probe"})
+    canvas_id = resp.get("canvas_id", "unknown")
+    info = slack_call(client.files_info, file=canvas_id)
+    is_quip = (info.get("file", {}) or {}).get("filetype", "unknown") == "quip"
     try:
-        delete_url = "https://slack.com/api/files.delete"
-        delete_data = urllib.parse.urlencode({"file": canvas_id}).encode("utf-8")
-        delete_req = urllib.request.Request(
-            delete_url, data=delete_data,
-            headers={"Authorization": f"Bearer {token}",
-                     "Content-Type": "application/x-www-form-urlencoded"},
-        )
-        with urllib.request.urlopen(delete_req) as resp:
-            delete_result = json.loads(resp.read().decode("utf-8"), strict=False)
-        cleaned_up = delete_result.get("ok", False)
-    except Exception:
+        del_resp = client.files_delete(file=canvas_id)
+        cleaned_up = del_resp.get("ok", False)
+    except SlackApiError:
         cleaned_up = False
 
     result = {
@@ -650,208 +901,104 @@ def cmd_canvas_probe(args):
     if is_quip:
         result["warning"] = (
             "This workspace routes canvases.create through legacy Quip backend. "
-            "canvases.edit (append/replace) will not work reliably. "
-            "For large content, create must fit in a single API call (~4KB). "
-            "Canvas inline comments are not accessible via API."
+            "canvases.edit (append/replace) will not work reliably; create must fit ~4KB."
         )
     print(json.dumps(result, indent=2))
 
 
 def cmd_canvas_rewrite(args):
-    """Rewrite a quip canvas as a new-type canvas."""
-    token = resolve_token("bot" if args.bot else "user")
-
-    # Read the original canvas
-    info = slack_post("files.info", token, file=args.canvas_id)
-    file_data = info.get("file", {})
-    filetype = file_data.get("filetype", "")
-
-    if filetype != "quip":
-        print("Error: Canvas is not a quip-type. No rewrite needed.", file=sys.stderr)
+    client = get_client("bot" if args.bot else "user")
+    info = slack_call(client.files_info, file=args.canvas_id)
+    file_data = info.get("file", {}) or {}
+    if file_data.get("filetype", "") != "quip":
+        print("Error: Canvas is not quip-type. No rewrite needed.", file=sys.stderr)
         sys.exit(EXIT_USAGE)
-
     url_private = file_data.get("url_private")
     if not url_private:
         print("Error: No url_private in file info.", file=sys.stderr)
         sys.exit(EXIT_API)
-
-    # Download and convert
-    html_content = slack_download(url_private, token)
-    markdown = html_to_markdown(html_content)
-
-    # Create new canvas
+    markdown = html_to_markdown(slack_download(url_private, client.token))
     title = file_data.get("title", "Rewritten Canvas")
-    result = slack_post_json("canvases.create", token, {
-        "title": title,
-        "document_content": {"type": "markdown", "markdown": markdown},
-    })
-
-    new_id = result.get("canvas_id", "unknown")
-    old_id = args.canvas_id
-    print(json.dumps({"old_canvas_id": old_id, "new_canvas_id": new_id, "title": title}))
+    resp = slack_call(client.canvases_create, title=title,
+                      document_content={"type": "markdown", "markdown": markdown})
+    print(json.dumps({"old_canvas_id": args.canvas_id,
+                      "new_canvas_id": resp.get("canvas_id", "unknown"), "title": title}))
 
 
-# ---------------------------------------------------------------------------
-# Commands: Canvas (continued)
-# ---------------------------------------------------------------------------
 def cmd_canvas_sections_lookup(args):
-    """Find section IDs within a canvas for use with canvas update --replace."""
-    token = resolve_token("bot" if args.bot else "user")
+    client = get_client("bot" if args.bot else "user")
     criteria = {}
     if args.section_types:
         criteria["section_types"] = args.section_types
     if args.contains_text:
         criteria["contains_text"] = args.contains_text
-    result = slack_post_json("canvases.sections.lookup", token, {
-        "canvas_id": args.canvas_id,
-        "criteria": criteria,
-    })
-    print(json.dumps(result))
+    resp = slack_call(client.canvases_sections_lookup, canvas_id=args.canvas_id, criteria=criteria)
+    print(json.dumps({"sections": resp.get("sections", [])}))
 
 
 def cmd_canvas_delete(args):
-    """Permanently delete a canvas."""
-    token = resolve_token("bot" if args.bot else "user")
-    slack_post_json("canvases.delete", token, {"canvas_id": args.canvas_id})
+    client = get_client("bot" if args.bot else "user")
+    slack_call(client.canvases_delete, canvas_id=args.canvas_id)
     print(json.dumps({"ok": True, "canvas_id": args.canvas_id}))
 
 
-def cmd_canvas_access_set(args):
-    """Grant or change canvas access for users or channels."""
-    token = resolve_token("bot" if args.bot else "user")
+def cmd_canvas_channel_create(args):
+    client = get_client("bot" if args.bot else "user")
+    content = read_content(args.content, args.content_file)
+    payload = {"channel_id": args.channel_id}
+    if content:
+        payload["document_content"] = {"type": "markdown", "markdown": _downgrade_headings(content)}
+    if args.title:
+        payload["title"] = args.title
+    resp = slack_call(client.conversations_canvases_create, **payload)
+    print(json.dumps({"canvas_id": resp.get("canvas_id", "unknown"), "channel_id": args.channel_id}))
+
+
+def _canvas_access_payload(args):
     if not args.channel_ids and not args.user_ids:
         print("Error: Provide --channel-ids or --user-ids.", file=sys.stderr)
         sys.exit(EXIT_USAGE)
     if args.channel_ids and args.user_ids:
         print("Error: --channel-ids and --user-ids are mutually exclusive.", file=sys.stderr)
         sys.exit(EXIT_USAGE)
+    return ({"channel_ids": args.channel_ids} if args.channel_ids else {"user_ids": args.user_ids})
+
+
+def cmd_canvas_access_set(args):
+    client = get_client("bot" if args.bot else "user")
     payload = {"canvas_id": args.canvas_id, "access_level": args.access_level}
-    if args.channel_ids:
-        payload["channel_ids"] = args.channel_ids
-    else:
-        payload["user_ids"] = args.user_ids
-    slack_post_json("canvases.access.set", token, payload)
+    payload.update(_canvas_access_payload(args))
+    slack_call(client.canvases_access_set, **payload)
     print(json.dumps({"ok": True}))
 
 
 def cmd_canvas_access_delete(args):
-    """Revoke canvas access from users or channels."""
-    token = resolve_token("bot" if args.bot else "user")
-    if not args.channel_ids and not args.user_ids:
-        print("Error: Provide --channel-ids or --user-ids.", file=sys.stderr)
-        sys.exit(EXIT_USAGE)
-    if args.channel_ids and args.user_ids:
-        print("Error: --channel-ids and --user-ids are mutually exclusive.", file=sys.stderr)
-        sys.exit(EXIT_USAGE)
+    client = get_client("bot" if args.bot else "user")
     payload = {"canvas_id": args.canvas_id}
-    if args.channel_ids:
-        payload["channel_ids"] = args.channel_ids
-    else:
-        payload["user_ids"] = args.user_ids
-    slack_post_json("canvases.access.delete", token, payload)
+    payload.update(_canvas_access_payload(args))
+    slack_call(client.canvases_access_delete, **payload)
     print(json.dumps({"ok": True}))
 
 
-def cmd_canvas_channel_create(args):
-    """Create a channel-pinned canvas tab (conversations.canvases.create)."""
-    token = resolve_token("bot" if args.bot else "user")
-    content = None
-    if args.content_file:
-        try:
-            with open(args.content_file, "r") as f:
-                content = f.read()
-        except OSError as e:
-            print(f"Error: Cannot read file — {e}", file=sys.stderr)
-            sys.exit(EXIT_USAGE)
-    elif args.content:
-        content = args.content
-    if content:
-        content = _downgrade_headings(content)
-    payload = {"channel_id": args.channel_id}
-    if content:
-        payload["document_content"] = {"type": "markdown", "markdown": content}
-    if args.title:
-        payload["title"] = args.title
-    result = slack_post_json("conversations.canvases.create", token, payload)
-    canvas_id = result.get("canvas_id", "unknown")
-    print(json.dumps({"canvas_id": canvas_id, "channel_id": args.channel_id}))
-
-
 # ---------------------------------------------------------------------------
-# Commands: Reactions
+# Commands: reactions + url
 # ---------------------------------------------------------------------------
 def cmd_react(args):
-    """Add a reaction to a message."""
-    token = resolve_token("bot" if args.bot else "user")
-    # Strip colons if user included them
-    emoji = args.emoji.strip(":")
-    slack_post("reactions.add", token, channel=args.channel, timestamp=args.timestamp, name=emoji)
+    client = get_client("bot" if args.bot else "user")
+    slack_call(client.reactions_add, channel=args.channel, timestamp=args.timestamp,
+               name=args.emoji.strip(":"))
     print(json.dumps({"ok": True}))
 
 
 def cmd_unreact(args):
-    """Remove a reaction from a message."""
-    token = resolve_token("bot" if args.bot else "user")
-    emoji = args.emoji.strip(":")
-    slack_post("reactions.remove", token, channel=args.channel, timestamp=args.timestamp, name=emoji)
+    client = get_client("bot" if args.bot else "user")
+    slack_call(client.reactions_remove, channel=args.channel, timestamp=args.timestamp,
+               name=args.emoji.strip(":"))
     print(json.dumps({"ok": True}))
 
 
-# ---------------------------------------------------------------------------
-# Commands: Thread / History
-# ---------------------------------------------------------------------------
-def cmd_thread(args):
-    """Get all replies in a thread with pagination."""
-    token = resolve_token("bot" if args.bot else "user")
-    messages = []
-    cursor = None
-    limit = min(args.limit, 1000)
-    per_page = min(limit, 200)
-
-    while len(messages) < limit:
-        params = {"channel": args.channel, "ts": args.thread_ts, "limit": per_page}
-        if cursor:
-            params["cursor"] = cursor
-        result = slack_post("conversations.replies", token, **params)
-        batch = result.get("messages", [])
-        messages.extend(batch)
-
-        cursor = result.get("response_metadata", {}).get("next_cursor")
-        if not cursor:
-            break
-
-    messages = messages[:limit]
-    print(json.dumps(messages, indent=2))
-
-
-def cmd_history(args):
-    """Get channel history with pagination."""
-    token = resolve_token("bot" if args.bot else "user")
-    messages = []
-    cursor = None
-    limit = min(args.limit, 1000)
-    per_page = min(limit, 100)
-
-    while len(messages) < limit:
-        params = {"channel": args.channel, "limit": per_page}
-        if cursor:
-            params["cursor"] = cursor
-        result = slack_post("conversations.history", token, **params)
-        batch = result.get("messages", [])
-        messages.extend(batch)
-
-        cursor = result.get("response_metadata", {}).get("next_cursor")
-        if not cursor:
-            break
-
-    messages = messages[:limit]
-    print(json.dumps(messages, indent=2))
-
-
 def cmd_parse_url(args):
-    """Parse a Slack URL into components."""
-    result = parse_slack_url(args.url)
-    print(json.dumps(result, indent=2))
+    print(json.dumps(parse_slack_url(args.url), indent=2))
 
 
 # ---------------------------------------------------------------------------
@@ -860,136 +1007,158 @@ def cmd_parse_url(args):
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="slacker",
-        description="Slack Web API CLI — Canvas, reactions, threads, history",
+        description="Slack Web API CLI — extraction (thread/history/catchup) + Canvas authoring",
     )
     parser.add_argument("--bot", action="store_true", help="Use bot token instead of user token")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # --- thread ---
+    t = sub.add_parser("thread", help="Pull a thread as readable markdown (or --json)")
+    t.add_argument("target", help="Slack thread URL, or channel ID (with ts)")
+    t.add_argument("ts", nargs="?", help="Thread parent ts (when target is a channel ID)")
+    t.add_argument("--limit", type=int, default=500, help="Max messages (default 500, cap 1000)")
+    t.add_argument("--json", action="store_true", help="Emit enriched JSON instead of markdown")
+    t.set_defaults(func=cmd_thread)
+
+    # --- history ---
+    h = sub.add_parser("history", help="Channel history as readable markdown (or --json)")
+    h.add_argument("channel", help="Channel ID")
+    h.add_argument("--since", help="Time range: Nh/Nd/Nw or YYYY-MM-DD")
+    h.add_argument("--limit", type=int, default=100, help="Max messages (default 100, cap 1000)")
+    h.add_argument("--json", action="store_true", help="Emit enriched JSON instead of markdown")
+    h.set_defaults(func=cmd_history)
+
+    # --- catchup ---
+    c = sub.add_parser("catchup", help="Multi-channel digest over a time range")
+    c.add_argument("--channels", nargs="+", metavar="CHANNEL_ID", help="Channel IDs to scan")
+    c.add_argument("--channels-file", help="Markdown file with a channel-list table (C... IDs)")
+    c.add_argument("--since", required=True, help="Time range: Nh/Nd/Nw or YYYY-MM-DD")
+    c.add_argument("--limit", type=int, default=100, help="Max messages per channel (default 100)")
+    c.add_argument("--json", action="store_true", help="Emit enriched JSON instead of markdown")
+    c.set_defaults(func=cmd_catchup)
+
+    # --- channels ---
+    ch = sub.add_parser("channels", help="List/resolve your channels")
+    ch.add_argument("--types", default="public_channel,private_channel",
+                    help="Comma list: public_channel,private_channel,im,mpim")
+    ch.add_argument("--resolve", metavar="NAME", help="Return IDs for channels matching this name")
+    ch.add_argument("--limit", type=int, default=1000, help="Max channels (default 1000)")
+    ch.add_argument("--json", action="store_true", help="Emit raw JSON instead of a table")
+    ch.set_defaults(func=cmd_channels)
+
+    # --- search ---
+    s = sub.add_parser("search", help="Search messages across all channels/DMs you can access")
+    s.add_argument("query", help="Query; supports in:#channel, from:@user, after:YYYY-MM-DD, before:, during:")
+    s.add_argument("--count", type=int, default=100, help="Max matches (default 100, cap 1000)")
+    s.add_argument("--sort", choices=["score", "timestamp"], default="score", help="Ranking (default score)")
+    s.add_argument("--json", action="store_true", help="Emit enriched JSON instead of markdown")
+    s.set_defaults(func=cmd_search)
+
+    # --- auth-check ---
+    a = sub.add_parser("auth-check", help="Verify token validity and required scopes")
+    a.set_defaults(func=cmd_auth_check)
 
     # --- canvas ---
-    canvas_parser = subparsers.add_parser("canvas", help="Canvas operations")
-    canvas_sub = canvas_parser.add_subparsers(dest="canvas_command", required=True)
+    canvas = sub.add_parser("canvas", help="Canvas operations")
+    cs = canvas.add_subparsers(dest="canvas_command", required=True)
 
-    # canvas read
-    cr = canvas_sub.add_parser("read", help="Read canvas as markdown")
+    cr = cs.add_parser("read", help="Read canvas as markdown")
     cr.add_argument("canvas_id", help="Canvas file ID (F-prefixed)")
     cr.set_defaults(func=cmd_canvas_read)
 
-    # canvas create
-    cc = canvas_sub.add_parser("create", help="Create a new canvas")
+    cc = cs.add_parser("create", help="Create a new canvas (primitive)")
     cc.add_argument("title", help="Canvas title")
     cc.add_argument("--content", help="Markdown content")
     cc.add_argument("--content-file", help="Path to markdown file")
     cc.set_defaults(func=cmd_canvas_create)
 
-    # canvas update
-    cu = canvas_sub.add_parser("update", help="Update an existing canvas")
+    cpub = cs.add_parser("publish", help="Publish a canvas from a markdown file + optionally share")
+    cpub.add_argument("title", help="Canvas title")
+    cpub.add_argument("--file", required=True, help="Path to markdown file")
+    cpub.add_argument("--channel-tab", metavar="CHANNEL_ID",
+                      help="Create as a channel-pinned tab instead of standalone")
+    cpub.add_argument("--share-channels", nargs="+", metavar="CHANNEL_ID", help="Grant access to channels")
+    cpub.add_argument("--share-users", nargs="+", metavar="USER_ID", help="Grant access to users")
+    cpub.add_argument("--access", choices=["read", "write"], default="read", help="Access level to grant")
+    cpub.set_defaults(func=cmd_canvas_publish)
+
+    cu = cs.add_parser("update", help="Update an existing canvas")
     cu.add_argument("canvas_id", help="Canvas file ID (F-prefixed)")
-    cu.add_argument("--append", help="Markdown to append at end (inline)")
+    cu.add_argument("--append", help="Markdown to append (inline)")
     cu.add_argument("--append-file", help="Path to markdown file to append")
     cu.add_argument("--replace", metavar="SECTION_ID", help="Section ID to replace")
     cu.add_argument("--content", help="Replacement content (inline, with --replace)")
-    cu.add_argument("--content-file", help="Path to file with replacement content (with --replace)")
+    cu.add_argument("--content-file", help="Replacement content file (with --replace)")
     cu.set_defaults(func=cmd_canvas_update)
 
-    # canvas rewrite
-    cw = canvas_sub.add_parser("rewrite", help="Rewrite quip canvas as new-type canvas")
-    cw.add_argument("canvas_id", help="Quip canvas file ID to rewrite")
+    cw = cs.add_parser("rewrite", help="Rewrite quip canvas as new-type canvas")
+    cw.add_argument("canvas_id", help="Quip canvas file ID")
     cw.set_defaults(func=cmd_canvas_rewrite)
 
-    # canvas probe
-    cp = canvas_sub.add_parser("probe", help="Detect if workspace produces quip or new-type canvases")
+    cp = cs.add_parser("probe", help="Detect quip vs new-type canvas workspace")
     cp.set_defaults(func=cmd_canvas_probe)
 
-    # canvas sections (subgroup)
-    cs = canvas_sub.add_parser("sections", help="Canvas section operations")
-    sections_sub = cs.add_subparsers(dest="sections_command", required=True)
-
-    # canvas sections lookup
-    csl = sections_sub.add_parser("lookup", help="Find section IDs by type or text (for targeted edits)")
+    csec = cs.add_parser("sections", help="Canvas section operations")
+    ssub = csec.add_subparsers(dest="sections_command", required=True)
+    csl = ssub.add_parser("lookup", help="Find section IDs by type/text (for targeted edits)")
     csl.add_argument("canvas_id", help="Canvas file ID (F-prefixed)")
     csl.add_argument("--section-types", nargs="+", choices=["h1", "h2", "h3", "any_header"],
-                     metavar="TYPE", help="Filter by section type: h1, h2, h3, any_header")
+                     metavar="TYPE", help="Filter by section type")
     csl.add_argument("--contains-text", metavar="TEXT", help="Filter sections containing this text")
     csl.set_defaults(func=cmd_canvas_sections_lookup)
 
-    # canvas delete
-    cd = canvas_sub.add_parser("delete", help="Permanently delete a canvas")
+    cd = cs.add_parser("delete", help="Permanently delete a canvas")
     cd.add_argument("canvas_id", help="Canvas file ID (F-prefixed)")
     cd.set_defaults(func=cmd_canvas_delete)
 
-    # canvas channel-create
-    ccc = canvas_sub.add_parser("channel-create", help="Create a channel-pinned canvas tab")
+    ccc = cs.add_parser("channel-create", help="Create a channel-pinned canvas tab")
     ccc.add_argument("channel_id", help="Channel ID to attach canvas to")
     ccc.add_argument("--title", help="Canvas title")
     ccc.add_argument("--content", help="Markdown content")
     ccc.add_argument("--content-file", help="Path to markdown file")
     ccc.set_defaults(func=cmd_canvas_channel_create)
 
-    # canvas access (subgroup)
-    ca = canvas_sub.add_parser("access", help="Canvas access management")
-    access_sub = ca.add_subparsers(dest="access_command", required=True)
-
-    # canvas access set
-    cas = access_sub.add_parser("set", help="Grant or change canvas access")
+    ca = cs.add_parser("access", help="Canvas access management")
+    asub = ca.add_subparsers(dest="access_command", required=True)
+    cas = asub.add_parser("set", help="Grant or change canvas access")
     cas.add_argument("canvas_id", help="Canvas file ID (F-prefixed)")
-    cas.add_argument("access_level", choices=["read", "write", "owner"], help="Access level to grant")
-    cas.add_argument("--channel-ids", nargs="+", metavar="CHANNEL_ID", help="Channel IDs (mutually exclusive with --user-ids)")
-    cas.add_argument("--user-ids", nargs="+", metavar="USER_ID", help="User IDs (mutually exclusive with --channel-ids)")
+    cas.add_argument("access_level", choices=["read", "write", "owner"], help="Access level")
+    cas.add_argument("--channel-ids", nargs="+", metavar="CHANNEL_ID",
+                     help="Channel IDs (mutually exclusive with --user-ids)")
+    cas.add_argument("--user-ids", nargs="+", metavar="USER_ID",
+                     help="User IDs (mutually exclusive with --channel-ids)")
     cas.set_defaults(func=cmd_canvas_access_set)
-
-    # canvas access delete
-    cad = access_sub.add_parser("delete", help="Revoke canvas access")
+    cad = asub.add_parser("delete", help="Revoke canvas access")
     cad.add_argument("canvas_id", help="Canvas file ID (F-prefixed)")
     cad.add_argument("--channel-ids", nargs="+", metavar="CHANNEL_ID", help="Channel IDs to revoke")
     cad.add_argument("--user-ids", nargs="+", metavar="USER_ID", help="User IDs to revoke")
     cad.set_defaults(func=cmd_canvas_access_delete)
 
-    # --- react ---
-    react_parser = subparsers.add_parser("react", help="Add reaction to message")
-    react_parser.add_argument("channel", help="Channel ID")
-    react_parser.add_argument("timestamp", help="Message timestamp")
-    react_parser.add_argument("emoji", help="Emoji name (without colons)")
-    react_parser.set_defaults(func=cmd_react)
+    # --- react / unreact ---
+    rp = sub.add_parser("react", help="Add reaction to message")
+    rp.add_argument("channel", help="Channel ID")
+    rp.add_argument("timestamp", help="Message timestamp")
+    rp.add_argument("emoji", help="Emoji name (without colons)")
+    rp.set_defaults(func=cmd_react)
 
-    # --- unreact ---
-    unreact_parser = subparsers.add_parser("unreact", help="Remove reaction from message")
-    unreact_parser.add_argument("channel", help="Channel ID")
-    unreact_parser.add_argument("timestamp", help="Message timestamp")
-    unreact_parser.add_argument("emoji", help="Emoji name (without colons)")
-    unreact_parser.set_defaults(func=cmd_unreact)
-
-    # --- thread ---
-    thread_parser = subparsers.add_parser("thread", help="Get thread replies")
-    thread_parser.add_argument("channel", help="Channel ID")
-    thread_parser.add_argument("thread_ts", help="Thread parent timestamp")
-    thread_parser.add_argument("--limit", type=int, default=200, help="Max messages (default: 200, cap: 1000)")
-    thread_parser.set_defaults(func=cmd_thread)
-
-    # --- history ---
-    history_parser = subparsers.add_parser("history", help="Get channel history")
-    history_parser.add_argument("channel", help="Channel ID")
-    history_parser.add_argument("--limit", type=int, default=100, help="Max messages (default: 100, cap: 1000)")
-    history_parser.set_defaults(func=cmd_history)
+    up = sub.add_parser("unreact", help="Remove reaction from message")
+    up.add_argument("channel", help="Channel ID")
+    up.add_argument("timestamp", help="Message timestamp")
+    up.add_argument("emoji", help="Emoji name (without colons)")
+    up.set_defaults(func=cmd_unreact)
 
     # --- parse-url ---
-    parse_parser = subparsers.add_parser("parse-url", help="Parse Slack URL to components")
-    parse_parser.add_argument("url", help="Slack message URL")
-    parse_parser.set_defaults(func=cmd_parse_url)
+    pp = sub.add_parser("parse-url", help="Parse Slack URL to components")
+    pp.add_argument("url", help="Slack message URL")
+    pp.set_defaults(func=cmd_parse_url)
 
     return parser
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 def main():
-    parser = build_parser()
-    args = parser.parse_args()
-
-    # Propagate --bot from top-level to subcommands
+    args = build_parser().parse_args()
     if not hasattr(args, "bot"):
         args.bot = False
-
     args.func(args)
 
 

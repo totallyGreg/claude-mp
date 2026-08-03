@@ -1,0 +1,14 @@
+{
+  "skill_name": "slack-toolkit",
+  "content_hash": "ffdf634ebda0cfcb3b9924bfe318228a03c9eae54820ae1f647b364f2a428029",
+  "score": 98,
+  "metrics": {
+    "conciseness": 100,
+    "complexity": 90,
+    "spec_compliance": 100,
+    "progressive_disclosure": 100,
+    "description_quality": 100
+  },
+  "tool_version": "6.12.0",
+  "date": "2026-08-03"
+}
