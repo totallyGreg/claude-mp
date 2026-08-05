@@ -14,7 +14,8 @@ app's own configuration.
 ## Credentials
 
 Unlike the rest of the toolkit (which uses `$SLACK_USER_TOKEN`), scope management needs an
-**app configuration token** (`xoxe.xoxp-…`). Resolution is env var first, then `keychainctl`.
+**app configuration token** (`xoxe.xoxp-…`). Resolution runs in three tiers: **env var → `keychainctl`
+→ the `slack` platform CLI login store** (`~/.slack/credentials.json`).
 
 | Variable | Purpose |
 |----------|---------|
@@ -25,6 +26,23 @@ Unlike the rest of the toolkit (which uses `$SLACK_USER_TOKEN`), scope managemen
 
 Generate config tokens at `https://api.slack.com/apps` → your app → App Manifest / configuration
 tokens. They are short-lived (~12h) and self-rotating — refresh with `rotate` (below).
+
+### Sourcing tokens from the `slack` CLI (recommended)
+
+The `slack` platform CLI (`brew install slack-cli`) is the easiest way to keep valid config
+tokens without copy-pasting. After you authenticate the CLI once:
+
+```bash
+slack login          # opens browser; authenticates the CLI to your workspace/org
+slack auth list      # shows authenticated teams/orgs + Authorization Level
+```
+
+`slack login` writes an access token + refresh token (with an `exp`) into
+`~/.slack/credentials.json`. `scope_manager.py` reads that store automatically when
+`$SLACK_CONFIG_TOKEN` / `$SLACK_CONFIG_REFRESH_TOKEN` are unset — it picks the entry with the
+latest `exp` and skips an already-expired access token. So on a machine with a fresh
+`slack login`, every `scope_manager.py` command **just works** with no env export or keychain
+setup. If the access token has expired, re-run `slack login` (or `scope_manager.py rotate`).
 
 ## Commands
 
@@ -68,6 +86,22 @@ installed token. A non-empty list means step 2 has not completed (or was approva
   other manifest changes made in between.
 - Each `add`/`remove` overwrites the backup with the pre-change state, so `revert` always undoes
   the most recent mutation. Keep your own copy if you need a longer history.
+
+## After reinstall: update the stored token
+
+The reinstall issues a **new** user token; the old one keeps its old scopes. Update wherever
+`$SLACK_USER_TOKEN` is sourced from — an env var, a macOS keychain entry, or a secret manager —
+then start a fresh shell (or re-source your rc) so the new token/scopes are live. Confirm with
+`slacker.py auth-check`. This toolkit resolves the token env-var-first, then falls back to a
+`keychainctl get` lookup on macOS.
+
+## Keep the Slack CLI current
+
+If you manage the app or generate/rotate config tokens with the `slack` CLI, keep it updated —
+Slack ships frequent releases and stale CLIs hit auth/manifest errors. Update per
+<https://docs.slack.dev/tools/slack-cli/guides/installing-the-slack-cli-for-mac-and-linux>
+(`brew upgrade slack-cli`, or re-run the install script). Config tokens are short-lived (~12h)
+and self-rotating — refresh with `scope_manager.py rotate` when they expire.
 
 ## Notes & limits
 

@@ -1,7 +1,7 @@
 ---
 name: slack-toolkit
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
 compatibility: Requires uv for Python script execution (slack_sdk auto-installed via PEP 723 inline dependencies)
 license: MIT
 description: >-
@@ -61,6 +61,11 @@ slacker.py catchup --channels-file channels.md --since 2026-03-01
 # Search across ALL channels/DMs you can access or contributed to (needs search:read)
 slacker.py search "prisma airs incident"
 slacker.py search "from:@me in:#team-eng after:2026-03-01" --count 200 --json
+
+# Rank YOUR OWN participation per channel over a window — a from:@me view that needs
+# NO search:read (uses channels:history). Reusable: just vary --since.
+slacker.py mine --since 6w                    # ranked table, most-active channels first
+slacker.py mine --since 2026-01-01 --threads --json   # reply-inclusive, structured
 
 # List or resolve your channels
 slacker.py channels                 # markdown table (ID · name · topic)
@@ -126,9 +131,22 @@ Strips the `p` prefix and inserts `.` before the last 6 digits. Threaded reply U
 
 ## Required Scopes
 
-`auth-check` verifies: `channels:history/read`, `groups:history/read`, `im:history/read`, `mpim:history/read`, `users:read`, `search:read` (cross-channel `search`, user token only), `files:read`, `canvases:read/write`, `reactions:write`. Missing scopes are reported (non-fatal) so you know which commands will fail.
+`auth-check` verifies the full set: `channels:history/read`, `groups:history/read`, `im:history/read`, `mpim:history/read`, `users:read`, `search:read` (cross-channel `search`, user token only), `files:read`, `canvases:read/write`, `reactions:write`. Missing scopes are reported (non-fatal) so you know which commands will fail.
 
-To change the app's scopes when some are missing, the standalone `scripts/scope_manager.py` helper edits the app manifest (with auto-backup and one-command `revert`) — it needs an app **config token** (`xoxe.…`), not the user token, and a manual browser reinstall still applies. See `references/scope-management.md`.
+**Scope preflight (per operation).** Scope-sensitive commands check their required scope *before* the API call, so a missing scope fails loudly with the exact scope name + a fix — not a bare `missing_scope` mid-run. If a call still reaches Slack and returns `missing_scope`, the error handler surfaces Slack's own `needed` scope plus the same fix guidance. Per-operation scopes:
+
+| Operation | Required scope(s) |
+|-----------|-------------------|
+| `search` | `search:read` (**user token only** — `--bot` is rejected) |
+| `mine` | `channels:history` (+ `groups:history` for private channels) — reconstructs `from:@me` with **no `search:read`**; skips channels it can't read |
+| `history` / `thread` / `catchup` | `channels:history` (+ `groups:history` / `im:history` / `mpim:history` for private, DM, group-DM conversations) |
+| `channels` | `channels:read` (+ `groups:read` / `im:read` / `mpim:read` to list those types) |
+| `react` / `unreact` | `reactions:write` |
+| `canvas *` | `canvases:read` (read/lookup), `canvases:write` (create/edit/delete/access), `files:read` (type detection) |
+
+When `search:read` is unavailable (e.g. Enterprise Grid blocks it behind admin approval), use `mine` for a `from:@me` participation view — it needs only `channels:history`, which you already have.
+
+To change the app's scopes when some are missing, the standalone `scripts/scope_manager.py` helper edits the app manifest (with auto-backup and one-command `revert`) — it needs an app **config token** (`xoxe.…`), not the user token, and a manual browser reinstall still applies. The config token is read from `$SLACK_CONFIG_TOKEN`, then keychain, then the **`slack` platform CLI** login store (`~/.slack/credentials.json`) — so after `slack login` the helper works with no manual token export. See `references/scope-management.md`.
 
 ## Reference Documentation
 

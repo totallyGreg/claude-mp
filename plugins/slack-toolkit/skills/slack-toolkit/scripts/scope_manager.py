@@ -17,11 +17,15 @@ manifest via apps.manifest.export/update, always backing up the prior scopes fir
     uv run scope_manager.py revert  [--app-id A123] [--backup PATH]
     uv run scope_manager.py rotate  # refresh the config token
 
-Credentials (env var first, then `keychainctl get <NAME>`):
+Credentials (env var first, then `keychainctl get <NAME>`, then the `slack` CLI store):
     SLACK_CONFIG_TOKEN          config ACCESS token (xoxe.xoxp-…) — required for all but rotate
     SLACK_CONFIG_REFRESH_TOKEN  config REFRESH token (xoxe-…)     — required for rotate
     SLACK_APP_ID                default app ID (or pass --app-id)
     SLACK_USER_TOKEN            optional — enables the live-vs-configured delta in `status`
+
+If neither env var nor keychain holds the config tokens, they are read from the `slack`
+platform CLI's login store (~/.slack/credentials.json) — so after `slack login` this
+helper works with no manual token export. Run `slack login` to (re)authenticate the CLI.
 
 Exit codes: 0 ok · 1 usage · 2 auth · 3 API error.
 
@@ -35,6 +39,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -45,12 +50,43 @@ EXIT_OK, EXIT_USAGE, EXIT_AUTH, EXIT_API = 0, 1, 2, 3
 
 BACKUP_DIR = Path.home() / ".slack-toolkit"
 
+# The `slack` platform CLI stores its config tokens here after `slack login`.
+# Shape: {"<TEAM_OR_ENTERPRISE_ID>": {token, refresh_token, exp, ...}, ...}
+SLACK_CLI_CREDS = Path.home() / ".slack" / "credentials.json"
+
 
 # ---------------------------------------------------------------------------
 # Credential + app-id resolution
 # ---------------------------------------------------------------------------
+def _slack_cli_token(kind):
+    """Fallback config token from the `slack` CLI login store (~/.slack/credentials.json).
+
+    kind is 'access' (xoxe.xoxp-… → SLACK_CONFIG_TOKEN) or 'refresh' (xoxe-… →
+    SLACK_CONFIG_REFRESH_TOKEN). Returns the token from the entry with the latest exp,
+    skipping an access token that is already expired. Lets the manager 'just work' after
+    `slack login` with no manual token export. Returns None if the store is absent/unusable.
+    """
+    try:
+        data = json.loads(SLACK_CLI_CREDS.read_text())
+    except (OSError, ValueError):
+        return None
+    field = "token" if kind == "access" else "refresh_token"
+    best = None  # (exp, token)
+    for entry in data.values():
+        if not isinstance(entry, dict) or not entry.get(field):
+            continue
+        exp = entry.get("exp", 0) or 0
+        if best is None or exp > best[0]:
+            best = (exp, entry[field])
+    if not best:
+        return None
+    if kind == "access" and best[0] and best[0] <= time.time():
+        return None  # expired access token — let the caller rotate instead
+    return best[1]
+
+
 def _resolve(name):
-    """env var first, then `keychainctl get <name>`."""
+    """env var first, then `keychainctl get <name>`, then the `slack` CLI login store."""
     val = os.environ.get(name)
     if val:
         return val.strip()
@@ -60,6 +96,10 @@ def _resolve(name):
             return r.stdout.strip()
     except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
+    if name == "SLACK_CONFIG_TOKEN":
+        return _slack_cli_token("access")
+    if name == "SLACK_CONFIG_REFRESH_TOKEN":
+        return _slack_cli_token("refresh")
     return None
 
 

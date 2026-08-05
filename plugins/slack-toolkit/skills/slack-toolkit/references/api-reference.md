@@ -286,3 +286,10 @@ On HTTP 429, check the `Retry-After` header for seconds to wait.
 | `reactions:write` | Add/remove reactions |
 
 `auth-check` verifies this full set and reports any missing scopes.
+
+**Scope preflight.** Scope-sensitive commands (`search`, `history`, `thread`, `catchup`,
+`channels`, `react`/`unreact`) verify their required scope via `auth.test` (`X-OAuth-Scopes`)
+*before* the API call and exit `2` (auth) with the missing scope name + fix guidance. Any call
+that still returns `missing_scope` is caught by `slack_call`, which surfaces Slack's `needed`
+scope plus the same guidance rather than a bare `missing_scope`. See `references/scope-management.md`
+for adding a scope.

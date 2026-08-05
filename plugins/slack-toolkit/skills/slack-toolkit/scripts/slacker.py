@@ -37,6 +37,9 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
 # ---------------------------------------------------------------------------
 # Exit codes
 # ---------------------------------------------------------------------------
@@ -64,6 +67,39 @@ REQUIRED_SCOPES = {
     # reactions
     "reactions:write",
 }
+
+
+# ---------------------------------------------------------------------------
+# Per-operation scope requirements (checked by the preflight before the call)
+# ---------------------------------------------------------------------------
+# Maps a command to the scope(s) it needs. require_scopes() verifies these BEFORE
+# hitting the API so a missing scope fails loudly with a fix, instead of a bare
+# `missing_scope` surfacing mid-operation. Only the always-needed scope per op is
+# listed; DM/group variants (groups/im/mpim:*) are surfaced by Slack's own
+# `needed` field via slack_call's missing_scope handler when a specific conv type
+# is actually hit.
+PER_OP_SCOPES = {
+    "search": {"search:read"},          # user token only
+    "history": {"channels:history"},
+    "thread": {"channels:history"},
+    "catchup": {"channels:history"},
+    "mine": {"channels:history"},      # from:@me reconstruction, no search:read
+    "channels": {"channels:read"},
+    "react": {"reactions:write"},
+    "unreact": {"reactions:write"},
+}
+
+# Actionable guidance printed whenever a scope is missing (preflight or mid-call).
+SCOPE_FIX_HINT = (
+    "\nTo grant a missing scope:\n"
+    "  1. Add it to the app manifest (needs an app config token, xoxe.xoxp-…):\n"
+    "       uv run {here}/scope_manager.py add --user <scope> --app-id <APP_ID>\n"
+    "     …or add it manually at https://api.slack.com/apps/<APP_ID> → OAuth & Permissions.\n"
+    "  2. Reinstall the app via the browser OAuth consent screen\n"
+    "     (Enterprise Grid may require org-admin approval — this cannot be done headlessly).\n"
+    "  3. Update the stored token, then re-run: slacker.py auth-check\n"
+    "  See references/scope-management.md for the full add → reinstall → revert loop."
+)
 
 
 # ---------------------------------------------------------------------------
@@ -101,11 +137,15 @@ def get_client(token_type="user"):
     return WebClient(token=resolve_token(token_type))
 
 
-def slack_call(method, **kwargs):
+def slack_call(method, strict=True, **kwargs):
     """Invoke a bound WebClient method with one 429 retry; map errors to exit codes.
 
     Slack's {"ok": true} is authoritative — slack_sdk raises SlackApiError on ok:false,
     so a returned response is always a success.
+
+    With strict=False, generic API errors (e.g. channel_not_found, not_in_channel) are
+    re-raised for the caller to handle instead of exiting — auth, scope, and rate-limit
+    failures still exit loudly. Used by sweeps that must skip unreadable channels.
     """
     for attempt in range(2):
         try:
@@ -129,9 +169,61 @@ def slack_call(method, **kwargs):
             if err in ("not_authed", "invalid_auth", "token_revoked", "account_inactive"):
                 print(f"Error: Auth failed — {err}", file=sys.stderr)
                 sys.exit(EXIT_AUTH)
+            if err == "missing_scope":
+                # Slack returns the exact scope in `needed` — surface it with a fix so
+                # this fails loudly with guidance instead of a bare `missing_scope`.
+                needed = provided = ""
+                try:
+                    needed = resp.get("needed", "") or ""
+                    provided = resp.get("provided", "") or ""
+                except Exception:
+                    pass
+                detail = f" — needs '{needed}'" if needed else ""
+                print(f"Error: {method.__name__} failed — missing_scope{detail}", file=sys.stderr)
+                if provided:
+                    print(f"Token currently has: {provided}", file=sys.stderr)
+                print(SCOPE_FIX_HINT.format(here=SCRIPT_DIR), file=sys.stderr)
+                sys.exit(EXIT_AUTH)
+            if err == "not_allowed_token_type":
+                print(f"Error: {method.__name__} rejected this token type. "
+                      "search.* and several methods require the USER token (xoxp-) — "
+                      "drop --bot and set $SLACK_USER_TOKEN.", file=sys.stderr)
+                sys.exit(EXIT_AUTH)
+            if not strict:
+                raise  # caller handles data errors (e.g. channel_not_found) itself
             print(f"Error: {method.__name__} failed — {err}", file=sys.stderr)
             sys.exit(EXIT_API)
     sys.exit(EXIT_RATE)
+
+
+# ---------------------------------------------------------------------------
+# Scope preflight
+# ---------------------------------------------------------------------------
+def scopes_from_response(resp):
+    """Extract the set of OAuth scopes from an auth.test response (X-OAuth-Scopes header)."""
+    for k, v in (resp.headers or {}).items():
+        if k.lower() == "x-oauth-scopes":
+            return {s.strip() for s in v.split(",") if s.strip()}
+    return set()
+
+
+def require_scopes(client, command):
+    """Preflight: verify the token carries the scope(s) `command` needs.
+
+    Runs auth.test (reads X-OAuth-Scopes) BEFORE the operation, so a missing scope
+    fails loudly with actionable guidance instead of a bare `missing_scope` mid-call.
+    No-op for commands with no fixed scope requirement.
+    """
+    required = PER_OP_SCOPES.get(command)
+    if not required:
+        return
+    granted = scopes_from_response(slack_call(client.auth_test))
+    missing = sorted(required - granted)
+    if missing:
+        print(f"Error: '{command}' needs scope(s) not on this token: {', '.join(missing)}",
+              file=sys.stderr)
+        print(SCOPE_FIX_HINT.format(here=SCRIPT_DIR), file=sys.stderr)
+        sys.exit(EXIT_AUTH)
 
 
 def slack_download(url, token):
@@ -148,8 +240,12 @@ def slack_download(url, token):
         sys.exit(EXIT_API)
 
 
-def _paginate(method, key, cap, per_page, **params):
-    """Cursor-paginate a WebClient list method up to `cap` items."""
+def _paginate(method, key, cap, per_page, strict=True, **params):
+    """Cursor-paginate a WebClient list method up to `cap` items.
+
+    strict=False re-raises generic API errors (see slack_call) so a caller sweeping
+    many channels can skip unreadable ones instead of aborting.
+    """
     items = []
     cursor = None
     while len(items) < cap:
@@ -157,7 +253,7 @@ def _paginate(method, key, cap, per_page, **params):
         page_params["limit"] = min(per_page, cap - len(items))
         if cursor:
             page_params["cursor"] = cursor
-        resp = slack_call(method, **page_params)
+        resp = slack_call(method, strict=strict, **page_params)
         items.extend(resp.get(key, []) or [])
         cursor = (resp.get("response_metadata") or {}).get("next_cursor")
         if not cursor:
@@ -699,15 +795,106 @@ def cmd_channels(args):
     print("\n".join(lines))
 
 
+def cmd_mine(args):
+    """Rank the authenticated user's own message counts per channel over a window.
+
+    Reconstructs a `from:@me` view WITHOUT search:read — lists the user's channel
+    memberships (users.conversations), tallies messages the user authored in each
+    over --since, and reports channels ranked by participation (most active first).
+    Reusable: vary --since to re-run the same evidence pull for any period.
+    """
+    client = get_client("bot" if args.bot else "user")
+    require_scopes(client, "mine")  # preflight: channels:history before the sweep
+    me = slack_call(client.auth_test).get("user_id")
+    oldest = parse_since(args.since)
+    per_channel_cap = min(args.msg_limit, 1000)
+
+    chans = _paginate(client.users_conversations, "channels", cap=min(args.limit, 1000),
+                      per_page=200, types=args.types, exclude_archived=True)
+
+    rows = []
+    skipped = 0
+    total_chans = len(chans)
+    for idx, c in enumerate(chans, 1):
+        if sys.stderr.isatty():
+            sys.stderr.write(f"\r[{idx}/{total_chans}] scanning #{c.get('name', '')[:40]}\033[K")
+            sys.stderr.flush()
+        try:
+            msgs = _paginate(client.conversations_history, "messages", cap=per_channel_cap,
+                             per_page=200, strict=False, channel=c["id"], oldest=oldest)
+            capped = len(msgs) >= per_channel_cap  # hit the fetch cap — may undercount
+            mine = [m for m in msgs if m.get("user") == me]
+            if args.threads:
+                for m in msgs:
+                    if not m.get("reply_count", 0):
+                        continue
+                    # conversations.history already carries reply_users (distinct repliers).
+                    # Only pay for a replies call when I might be among them: when the replier
+                    # list is complete (count == len) and excludes me, skip it — accuracy-safe.
+                    ru = m.get("reply_users") or []
+                    ruc = m.get("reply_users_count", len(ru))
+                    if me not in ru and ruc <= len(ru) and m.get("user") != me:
+                        continue
+                    replies = _paginate(client.conversations_replies, "messages", cap=1000,
+                                        per_page=200, strict=False, channel=c["id"], ts=m["ts"])
+                    mine += [r for r in replies[1:] if r.get("user") == me]
+        except SlackApiError:
+            skipped += 1  # channel_not_found / not_in_channel / etc. — unreadable, skip
+            continue
+        if mine:
+            rows.append({"id": c["id"], "name": c.get("name", "") or c["id"],
+                         "count": len(mine), "capped": capped, "messages": mine})
+    if sys.stderr.isatty():
+        sys.stderr.write("\r\033[K")  # clear the progress line
+        sys.stderr.flush()
+
+    rows.sort(key=lambda r: r["count"], reverse=True)
+    total = sum(r["count"] for r in rows)
+
+    if args.json:
+        user_map = resolve_users(client, {me})
+        print(json.dumps({
+            "since": args.since,
+            "user_id": me,
+            "total_messages": total,
+            "channels_with_activity": len(rows),
+            "channels_skipped_unreadable": skipped,
+            "threads_scanned": bool(args.threads),
+            "channels": [
+                {"id": r["id"], "name": r["name"], "count": r["count"], "capped": r["capped"],
+                 "messages": enrich_messages(r["messages"], user_map)}
+                for r in rows
+            ],
+        }, indent=2))
+        return
+
+    lines = [f"# My participation — since {args.since}", "",
+             f"_{total} message(s) across {len(rows)} channel(s); ranked by my message count._", ""]
+    if not rows:
+        print("\n".join(lines) + "_No messages authored in range._\n")
+        return
+    lines += ["| Rank | Channel | My msgs | Note |", "|------|---------|---------|------|"]
+    for i, r in enumerate(rows, 1):
+        note = "⚠ capped — may undercount" if r["capped"] else ""
+        lines.append(f"| {i} | #{r['name']} | {r['count']} | {note} |")
+    lines.append("")
+    lines.append(f"> Scope: channels you belong to in `{args.types}`. "
+                 "1:1 DMs excluded unless `im` is added to --types and granted.")
+    if not args.threads:
+        lines.append("> Thread replies NOT counted — add `--threads` for reply-inclusive "
+                     "counts (slower).")
+    if any(r["capped"] for r in rows):
+        lines.append(f"> ⚠ Capped channels hit the {per_channel_cap}-message fetch cap; "
+                     "raise `--msg-limit` or narrow `--since` for exact counts.")
+    if skipped:
+        lines.append(f"> {skipped} channel(s) skipped (history not readable by this token).")
+    print("\n".join(lines) + "\n")
+
+
 def cmd_auth_check(args):
     client = get_client("bot" if args.bot else "user")
     resp = slack_call(client.auth_test)
-    scopes_header = ""
-    for k, v in (resp.headers or {}).items():
-        if k.lower() == "x-oauth-scopes":
-            scopes_header = v
-            break
-    granted = {s.strip() for s in scopes_header.split(",") if s.strip()}
+    granted = scopes_from_response(resp)
     missing = sorted(REQUIRED_SCOPES - granted)
     print(json.dumps({
         "ok": True,
@@ -748,6 +935,7 @@ def cmd_search(args):
     Query supports modifiers: in:#channel, from:@user, after:YYYY-MM-DD, before:, during:.
     """
     client = get_client("bot" if args.bot else "user")
+    require_scopes(client, "search")  # preflight: fail loudly if search:read is absent
     cap = min(args.count, 1000)
     matches, page = [], 1
     while len(matches) < cap:
@@ -1045,6 +1233,19 @@ def build_parser():
     ch.add_argument("--limit", type=int, default=1000, help="Max channels (default 1000)")
     ch.add_argument("--json", action="store_true", help="Emit raw JSON instead of a table")
     ch.set_defaults(func=cmd_channels)
+
+    # --- mine ---
+    mn = sub.add_parser("mine",
+                        help="Rank your own message counts per channel (from:@me, no search:read)")
+    mn.add_argument("--since", required=True, help="Time range: Nh/Nd/Nw or YYYY-MM-DD")
+    mn.add_argument("--types", default="public_channel,private_channel",
+                    help="Comma list: public_channel,private_channel,mpim,im")
+    mn.add_argument("--limit", type=int, default=1000, help="Max channels to scan (default 1000)")
+    mn.add_argument("--msg-limit", type=int, default=1000, dest="msg_limit",
+                    help="Max messages fetched per channel (default 1000, cap 1000)")
+    mn.add_argument("--threads", action="store_true", help="Also count your thread replies (slower)")
+    mn.add_argument("--json", action="store_true", help="Emit structured JSON incl. your messages")
+    mn.set_defaults(func=cmd_mine)
 
     # --- search ---
     s = sub.add_parser("search", help="Search messages across all channels/DMs you can access")

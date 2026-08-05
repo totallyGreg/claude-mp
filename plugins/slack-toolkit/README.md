@@ -51,6 +51,7 @@ uv run skills/slack-toolkit/scripts/slacker.py channels --resolve news
 
 | Version | Date | Overall | Conc | Comp | Spec | Disc | Desc | Changes |
 |---------|------|---------|------|------|------|------|------|---------|
+| 2.1.0 | 2026-08-05 | 98 | 100 | 90 | 100 | 100 | 100 | Add `mine` — ranked `from:@me` participation per channel over a `--since` window with **no `search:read`** (thread-aware via `reply_users` pruning; resilient sweep skips unreadable channels; progress indicator); `scope_manager.py` auto-sources config tokens from the `slack` CLI login store (`~/.slack/credentials.json`); scope preflight fails loudly with the exact missing scope + fix; docs for `mine` and the `slack` CLI |
 | 2.0.0 | 2026-08-03 | 98 | 100 | 90 | 100 | 100 | 100 | **Breaking:** rebuilt on slack_sdk via `uv run` (was `python3`). Add readable markdown extraction (thread/history/catchup with name resolution), cross-channel `search`, `channels`/`auth-check`, `canvas publish`, standalone `scope_manager.py` (manifest scope add/remove/revert); 6 slash commands + extraction & scope-management references |
 | 1.5.1 | 2026-04-10 | 98 | 100 | 90 | 100 | 100 | 100 | Add API response trust guidance; clarify quip detection is a pre-flight heuristic; no verification read needed after ok:true |
 | 1.5.0 | 2026-04-08 | 98 | 100 | 90 | 100 | 100 | 100 | Fix canvas read (remove broken sections.lookup path, unify on url_private); add canvas sections lookup |
@@ -64,7 +65,7 @@ uv run skills/slack-toolkit/scripts/slacker.py channels --resolve news
 
 ### Current Metrics
 
-**Score: 98/100** (Excellent) — 2026-08-03 (verified, receipt hash ffdf634ebda0)
+**Score: 98/100** (Excellent) — 2026-08-05 (verified, receipt hash 08164cd198ed)
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -74,6 +75,7 @@ uv run skills/slack-toolkit/scripts/slacker.py channels --resolve news
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 2.1.0 | 2026-08-05 | - | Add `mine` (ranked `from:@me` participation, no search:read, thread-aware via reply_users pruning); scope_manager sources config tokens from slack CLI; scope preflight; slack CLI + mine docs | 100 | 90 | 100 | 100 | 100 | 98 |
 | 2.0.0 | 2026-08-03 | - | Rebuild on slack_sdk (uv); readable extraction (thread/history/catchup), cross-channel search, canvas publish, 6 slash commands, extraction reference | 100 | 90 | 100 | 100 | 100 | 98 |
 | 1.5.0 | 2026-04-08 | - | Fix canvas read (url_private-first, remove broken sections.lookup); add sections lookup command | 100 | 90 | 100 | 100 | 100 | 98 |
 | 1.4.0 | 2026-04-08 | - | Add canvas delete, channel-create, access set/delete; comprehensive API reference | 100 | 90 | 100 | 100 | 100 | 98 |
