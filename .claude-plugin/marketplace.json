@@ -14,7 +14,7 @@
       "name": "terminal-guru",
       "description": "Terminal diagnostics, tool composition, workflow discovery, and multi-Claude tmux orchestration — triage agent routing to seven skills across the terminal stack (terminal-emulation, zsh-dev, tmux-dev, tui-experience, signals-monitoring, environment-composition, mise-tooling)",
       "category": "development",
-      "version": "5.13.0",
+      "version": "5.14.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"

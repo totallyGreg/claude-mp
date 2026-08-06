@@ -7,8 +7,11 @@ Terminal diagnostics, tool composition, workflow discovery, and environment expe
 ### Agent: terminal-guru
 Terminal and shell expert that diagnoses problems, composes tools into workflows, and discovers usage patterns. Routes to 7 skills across the terminal stack: terminal-emulation (substrate) → zsh → tmux → sesh → TUI apps → git → command capture → mise tasks.
 
+**v5.14.0**: Fixed mute-teammate defect — agent now carries `SendMessage` in its `tools:` frontmatter so it can reply to the lead and other teammates when spawned as a persistent team member via `/team-spawn`. Previously, the agent could receive messages but had no tool to respond, behaving like a mute one-shot subagent despite advertising `/team-spawn` and `/team-list` commands.
+
 | Version | Date | Trigger | Prompt | Coherence | Overall |
 |---------|------|---------|--------|-----------|---------|
+| 5.14.0 | 2026-08-06 | 100 | 100 | 100 | **100** |
 | 5.12.0 | 2026-07-15 | 100 | 100 | 100 | **100** |
 | 5.7.0 | 2026-06-30 | 100 | 100 | 100 | **100** |
 | 5.5.0 | 2026-06-05 | 100 | 90 | 100 | 96 |
@@ -120,6 +123,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Changes |
 |---------|---------|
+| 5.14.0 | **Fix: add `SendMessage` to agent tools list.** Agent advertises persistent-teammate commands (`/team-spawn`, `/team-list`) but was missing `SendMessage` in its `tools:` frontmatter — it could receive messages but could never reply. Adding `SendMessage` unblocks teammate-to-lead and teammate-to-teammate communication when terminal-guru is spawned as a persistent team member. Score: 100/100 (no regression). |
 | 5.13.0 | **mise-tooling v2.6.0**: four additions from comparison with terrylica `cc-skills` mise-tasks skill. `mise_use_case_patterns.md` gained release pipeline ordering (build-before-publish DAG discipline + guard-task selective re-run), implicit tool dependencies (`maturin --zig` → `cargo-zigbuild`, etc.), and monorepo affected detection (mise has none natively — git-diff fallback with transitive-dep limitation flagged + graduate-to Pants/Bazel/Turborepo scale table). `mise_config_guide.md` + SKILL.md §5 now prefer runtime-native watch (`bun --watch`/`node --watch`/`uvicorn --reload`) over `mise watch`. New Authoring Convention: rich task `description`s for `mise tasks ls` agent discoverability. Skillsmith receipt-verified 98/100 (`--verify` exit 0). |
 | 5.12.0 | **herdr awareness.** Agent: one `<example>` + a Terminal Stack parenthetical noting `herdr` as an alternative AI-agent-focused multiplexer to tmux (no procedural detail — routing awareness only, per user feedback that agent-level content should stay light). New tmux-dev reference `herdr_alternative.md`: config (`~/.config/herdr/config.toml`, `--default-config`, `config check` vs `reload-config`), theming (`ui.accent`, `theme.custom` tokens, light/dark sibling themes), an empirical probe-color diagnostic technique for undocumented tokens, and a confirmed sidebar-divider gap (no config workaround). No score regression: agent still 100/100, tmux-dev still 91/100. |
 | 5.11.0 | **mise-tooling v2.5.0**: full mise release-notes refresh (89 upstream commits reviewed). Corrected two now-stale claims (`task_config.includes` directory-TOML behavior; broken config-guide URL). Added includes ordering/`git::` remote includes, `auto_env`, monorepo install/lockfile union, shell-style env expansion, sops `.env.toml`. New `mise_bootstrap_system.md` reference for the experimental declarative machine-bootstrap feature. |
