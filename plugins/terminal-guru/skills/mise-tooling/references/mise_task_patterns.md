@@ -125,7 +125,7 @@ Convention: `<service>:<action>` — the service prefix groups related operation
 |----------|------|---------|
 | `run` | string / array | Command(s) to execute. Arrays run sequentially. |
 | `run_windows` | string | Windows-specific override. |
-| `description` | string | Shown in `mise tasks --extended` and completions. |
+| `description` | string | Shown in `mise tasks --extended`, compact `mise tasks`, and completions. Long descriptions wrap and overlap in the compact listing — lead with a ≤72-char summary that stands alone; push detail to `#USAGE help=` or `mise tasks --extended`. |
 | `alias` / `aliases` | string / array | Alternative invocation names. |
 | `depends` | string / array | Prerequisites that must succeed first. Forms DAG edges. |
 | `depends_post` | string / array | Runs after parent completes regardless of success. |

@@ -2,7 +2,7 @@
 name: terminal-emulation
 description: This skill should be used when the user asks to "fix terminal colors", "configure $TERM", "debug terminfo", "set up truecolor", "test 256 color support", "fix unicode rendering", "fix garbled characters", "fix broken box drawing", "fix emoji rendering", "configure locale", "fix SSH terminal", "check $COLORTERM", "apply ANSI escape codes", "set up base16 theme", "record terminal session", "asciinema to gif", "create demo gif for readme", or needs help with the Unix terminal substrate — `$TERM`, terminfo database, ANSI escape codes, color tiers (16/256/truecolor), `$COLORTERM`, Unicode/UTF-8 rendering, locale configuration, SSH terminal setup, and terminal session recording (asciinema → GIF). Do NOT use for tmux automation (sessions, options, plugins, send-keys) — use tmux-dev. Do NOT use for TUI app theming (lazygit/k9s themes) — use tui-experience. Do NOT use for shell config — use zsh-dev.
 metadata:
-  version: "4.1.0"
+  version: "4.1.1"
 license: MIT
 compatibility: claude-code
 ---

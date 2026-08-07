@@ -1,6 +1,6 @@
 {
   "skill_name": "mise-tooling",
-  "content_hash": "763e1e5aaa202c8f75b231c86147fdb8092881a5e917f0300f815fdf77db226d",
+  "content_hash": "548aef7c952aad182c9d60bc93fe9118f2f3325dbc300a8dc396dd41244a5563",
   "score": 98,
   "metrics": {
     "conciseness": 100,
@@ -9,6 +9,6 @@
     "progressive_disclosure": 100,
     "description_quality": 100
   },
-  "tool_version": "6.11.0",
-  "date": "2026-07-23"
+  "tool_version": "6.12.0",
+  "date": "2026-08-06"
 }

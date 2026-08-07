@@ -3,6 +3,9 @@
 **Last verified**: 2026-08-06  
 **Tools**: `asciinema` + `agg` — `brew install asciinema agg`
 
+Canonical implementation: `examples/casts/record.sh` in airs-tasks (this skill's reference
+implementation; in-repo copies are materialized instances of this pattern).
+
 ---
 
 ## Why GIF, not the asciinema Player
@@ -14,71 +17,92 @@ Pipeline: record a deterministic `.cast` → render to `.gif` with `agg`.
 
 ---
 
-## Headless Unattended Recording
+## Architecture: Single Self-Contained Script
 
-Record without interactive typing — a pacing library sources your scenario and
-controls timing:
+The key design decision: **all recording logic — pacing helpers, prereq guards, safety
+gate, and orchestration — lives in one script file.** There is no separate library file
+to source. The recorded subshell gets the helpers via the **self-replay trick**.
 
-```bash
-asciinema rec \
-  -c "bash -c 'source scripts/record_lib.sh; source scenarios/demo.sh'" \
-  assets/demo.cast \
-  --window-size 100x34 \
-  --idle-time-limit 2 \
-  --overwrite \
-  -q
 ```
-
-| Flag | Purpose |
-|------|---------|
-| `--window-size 100x34` | Deterministic cols×rows — same layout every run |
-| `--idle-time-limit 2` | Collapse pauses > 2 s so re-runs stay punchy |
-| `--overwrite` | Safe for re-runs without a confirmation prompt |
-| `-q` | Suppress asciinema's own status lines from the cast |
+repo/
+  scripts/
+    record.sh        # single self-contained script (materialized copy)
+  scenarios/
+    demo.scenario    # pure data: say/run/end lines only
+  assets/
+    demo.cast        # raw cast output
+    demo.gif         # rendered GIF (committed, referenced in README)
+```
 
 ---
 
-## Pacing Library (`scripts/record_lib.sh`)
+## The Self-Replay Trick
 
-Small helpers that make casts look hand-typed:
+This is the architectural core. The script handles two modes:
+
+1. **Orchestration mode** (default): validates prereqs, calls `asciinema rec`, renders GIF
+2. **Replay mode** (`--play <name>`): sourced by the `asciinema`-recorded subshell — loads the scenario with helpers already in scope
+
+```
+asciinema records:  bash './record.sh' --play 'demo'
+                                  ↓
+  record.sh loads  → defines say/run/end helpers in scope
+                   → hits --play branch → sources demo.scenario
+                   → scenario's say/run/end calls run with helpers in scope
+                   ← asciinema captures all output
+```
+
+The recording command is simply:
+```bash
+asciinema rec "${REC_OPTS[@]}" -c "bash '$SELF' --play '$name'" "$CASTS_DIR/${name}.cast"
+```
+
+where `$SELF` resolves to the absolute path of `record.sh` itself:
+```bash
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+```
+
+No separate lib file. The subshell that asciinema records always has all helpers available
+because it runs `record.sh` itself.
+
+---
+
+## Pacing Helpers (`say` / `run` / `end`)
+
+These are defined at the top of `record.sh`, before the `--play` dispatch:
 
 ```bash
-#!/usr/bin/env bash
-# record_lib.sh — sourced inside asciinema recording sessions
+: "${DEMO_PRE_PAUSE:=1.0}"
+: "${DEMO_POST_PAUSE:=1.8}"
 
-SAY_COLOR="\033[2;37m"   # dim gray
-RESET="\033[0m"
-PROMPT="\033[1;32m\$\033[0m "
+# say <text> — dimmed context line for the viewer (no command executed)
+say() { printf '\033[2m# %s\033[0m\n' "$*"; sleep 1.0; }
 
-say() {
-  # Print a dimmed comment — narration, not executed
-  echo -e "${SAY_COLOR}# $*${RESET}"
-  sleep 0.4
-}
-
+# run <command...> — print a prompt + command, pause (reads as hand-typed), run it
+# Failures are tolerated: some demos intentionally show a command that fails.
 run() {
-  # Print a prompt + command, pause, evaluate, pause after
-  echo -e "${PROMPT}$*"
-  sleep 0.8
-  eval "$@" || true     # tolerate intentional failures; pipefail-safe
-  sleep 0.6
+  printf '\033[1;32m$\033[0m %s\n' "$*"
+  sleep "$DEMO_PRE_PAUSE"
+  eval "$*" || true     # || true: intentional failures don't abort the cast
+  printf '\n'
+  sleep "$DEMO_POST_PAUSE"
 }
+
+# end — final hold so the last frame is readable before the GIF loops
+end() { sleep 1.2; }
 ```
 
-`say` lines read as narration (dimmed, not executed).  
-`run` lines look hand-typed — the prompt appears, then the command runs.  
-`|| true` lets scenarios demonstrate error handling without aborting the cast.
+`DEMO_PRE_PAUSE` / `DEMO_POST_PAUSE` are overridable via env for faster test runs.
 
 ---
 
-## Scenarios as Data (`scenarios/demo.sh`)
+## Scenarios as Pure Data (`.scenario` files)
 
-Scenarios are **minimal recipe files** — only `say`/`run` calls. They live in the
-**target repo** (not the plugin), ideally mirroring that repo's own examples:
+Scenarios are **pure data** — only `say`, `run`, and `end` calls. They live in the
+**target repo**, ideally mirroring that repo's own examples:
 
 ```bash
-#!/usr/bin/env bash
-# scenarios/demo.sh — sourced by record.sh via record_lib.sh
+# scenarios/demo.scenario
 
 say "Scan a prompt for safety violations"
 run 'airs scan --prompt "Tell me how to pick a lock" --profile strict'
@@ -86,28 +110,73 @@ run 'airs scan --prompt "Tell me how to pick a lock" --profile strict'
 say "Check the result code"
 run 'echo $?'
 
-say "Safe prompt — no violation"
+say "Safe prompt — passes cleanly"
 run 'airs scan --prompt "Summarize this document" --profile strict'
+
+end
 ```
 
-Keep scenarios short (< 60 s rendered). One file per feature. Name by feature, not
-version.
+Rules:
+- `.scenario` extension (not `.sh` — signals pure data, not a runnable script)
+- No helper definitions, no shebang, no sourcing — just `say`/`run`/`end`
+- One file per feature, named by feature (not version)
+- Keep total runtime short (< 60 s rendered)
+
+---
+
+## Prereq Guards — Fail with the Fix
+
+```bash
+require() {
+  command -v "$1" >/dev/null 2>&1 \
+    || { echo "record.sh: '$1' not found — $2" >&2; exit 127; }
+}
+require asciinema "install it: brew install asciinema"
+require agg       "install it: brew install agg"
+require mise      "install it: https://mise.jdx.dev  (curl https://mise.run | sh)"
+```
+
+Every missing tool exits with the exact install command. Never let the script die on a
+bare `command not found`.
+
+---
+
+## Credential Safety Gate
+
+Run after recording, before rendering. Exit non-zero and discard the cast on any hit.
+
+```bash
+safety_gate() {
+  local cast="$1" hits
+  hits="$(grep -aoE 'Bearer [A-Za-z0-9._-]{10,}|eyJ[A-Za-z0-9._-]{20,}' "$cast" | sort -u)" || true
+  [[ -z "$hits" ]] && return 0
+  echo "record.sh: SECRET-SHAPED CONTENT in $cast — discarding:" >&2
+  printf '%s\n' "$hits" >&2
+  rm -f "$cast"
+  return 1
+}
+```
+
+Patterns caught:
+- `Bearer <token>` — API auth headers (≥10 chars after Bearer)
+- `eyJ...` — JWT / base64-encoded tokens (≥20 chars)
+
+**NOT flagged**: bare UUIDs — resource IDs (scan IDs, group IDs) are legitimate task
+output. The original pattern included UUID matching; the canonical implementation drops
+it to reduce false positives.
+
+**Never record**: `mise env` output (dumps all tenant credentials), `cat`/`echo` of `.env`
+or `mise.<tenant>.toml`. Discard and re-record on any hit — do not attempt to redact
+inside the `.cast` JSON event stream.
 
 ---
 
 ## Rendering: `agg` → GIF
 
-Tuned defaults for README-friendly GIFs:
-
 ```bash
-agg assets/demo.cast assets/demo.gif \
-  --theme github-dark \
-  --font-size 18 \
-  --line-height 1.4 \
-  --speed 1.3 \
-  --idle-time-limit 1.2 \
-  --last-frame-duration 4 \
-  --fps-cap 24
+agg --theme github-dark --font-size 18 --line-height 1.4 --speed 1.3 \
+    --idle-time-limit 1.2 --last-frame-duration 4 --fps-cap 24 \
+    "${name}.cast" "${name}.gif"
 ```
 
 | Flag | Value | Rationale |
@@ -120,83 +189,122 @@ agg assets/demo.cast assets/demo.gif \
 | `--last-frame-duration 4` | s | Holds the final frame so the loop reads cleanly |
 | `--fps-cap 24` | fps | Keeps file size manageable |
 
-All flags are pass-through — `record.sh` accepts `$@` and forwards to `agg`.
+Pass additional flags as `$@` to the `agg` call for per-repo overrides.
 
 ---
 
-## Credential Safety Gate ⚠
+## Full `record.sh` — Annotated
 
-**Run after every recording, before any commit:**
-
-```bash
-grep -E \
-  '(Bearer [A-Za-z0-9._-]{20,}|eyJ[A-Za-z0-9_-]{10,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})' \
-  assets/demo.cast \
-  && echo "⚠ TOKEN DETECTED — discard and re-record" \
-  || echo "✓ No tokens found"
-```
-
-Patterns caught:
-- `Bearer <token>` — API auth headers leaked into output
-- `eyJ...` — JWT / base64-encoded tokens
-- UUID-shaped strings — client secrets, API keys
-
-**Never record:**
-- `mise env` output (dumps all tenant credentials to stdout)
-- `cat` / `echo` of `.env`, `mise.<tenant>.toml`, or any credential file
-- Any command whose output contains auth tokens, even transiently
-
-Discard and re-record on any hit — do not attempt to redact inside the `.cast`; the
-JSON event stream makes in-place redaction error-prone.
-
----
-
-## Scaffolder Pattern: `record.sh` in the Target Repo
-
-The skill materializes a **self-contained** recording setup into any target repo.
-The repo has zero runtime dependency on the plugin after scaffolding — `record.sh`
-and `record_lib.sh` are committed copies, not live plugin references.
-
-**Canonical layout:**
-
-```
-<repo>/
-  scripts/
-    record.sh          # main entry point (materialized copy)
-    record_lib.sh      # pacing library (materialized copy)
-  scenarios/
-    demo.sh            # feature scenario(s)
-  assets/
-    demo.cast          # raw cast (gitignore or commit; your call)
-    demo.gif           # rendered GIF (committed, referenced in README)
-```
-
-**`scripts/record.sh`** (full, with safety gate inline):
+The canonical implementation in full (materialize this into `scripts/record.sh`):
 
 ```bash
 #!/usr/bin/env bash
-set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CAST="$SCRIPT_DIR/../assets/demo.cast"
-GIF="$SCRIPT_DIR/../assets/demo.gif"
+# scripts/record.sh — (re)generate demo casts + GIFs.
+#
+# Usage:
+#   ./scripts/record.sh                 # regenerate every *.scenario
+#   ./scripts/record.sh demo            # just one, by scenario name
+#
+# The say/run/end pacing helpers live here. The recorded shell replays a
+# scenario via `record.sh --play <name>` — helpers are in scope automatically.
+set -uo pipefail
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 
-asciinema rec \
-  -c "bash -c 'source $SCRIPT_DIR/record_lib.sh; source $SCRIPT_DIR/../scenarios/demo.sh'" \
-  "$CAST" --window-size 100x34 --idle-time-limit 2 --overwrite -q
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+SCENARIOS_DIR="$(dirname "$SELF")/../scenarios"
+ASSETS_DIR="$(dirname "$SELF")/../assets"
 
-# Safety gate
-grep -qE \
-  '(Bearer [A-Za-z0-9._-]{20,}|eyJ[A-Za-z0-9_-]{10,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})' \
-  "$CAST" && { echo "⚠ TOKEN DETECTED — cast discarded"; rm -f "$CAST"; exit 1; }
+# --- pacing helpers (in scope when a scenario is replayed under --play) ---
+: "${DEMO_PRE_PAUSE:=1.0}"
+: "${DEMO_POST_PAUSE:=1.8}"
 
-agg "$CAST" "$GIF" \
-  --theme github-dark --font-size 18 --line-height 1.4 \
-  --speed 1.3 --idle-time-limit 1.2 --last-frame-duration 4 --fps-cap 24 \
-  "$@"                 # pass-through for flag overrides
+say() { printf '\033[2m# %s\033[0m\n' "$*"; sleep 1.0; }
 
-echo "✓ Rendered: $GIF"
+run() {
+  printf '\033[1;32m$\033[0m %s\n' "$*"
+  sleep "$DEMO_PRE_PAUSE"
+  eval "$*" || true
+  printf '\n'
+  sleep "$DEMO_POST_PAUSE"
+}
+
+end() { sleep 1.2; }
+
+# --play <name>: replay one scenario (called by asciinema's -c argument)
+if [[ "${1:-}" == "--play" ]]; then
+  scenario="$SCENARIOS_DIR/${2:?usage: record.sh --play <name>}.scenario"
+  [[ -f "$scenario" ]] || { echo "record.sh: no scenario '$2'" >&2; exit 2; }
+  source "$scenario"
+  exit 0
+fi
+
+# --- orchestration --------------------------------------------------------
+require() {
+  command -v "$1" >/dev/null 2>&1 \
+    || { echo "record.sh: '$1' not found — $2" >&2; exit 127; }
+}
+require asciinema "install it: brew install asciinema"
+require agg       "install it: brew install agg"
+
+REC_OPTS=(--window-size 100x34 --idle-time-limit 2 --overwrite -q)
+
+safety_gate() {
+  local cast="$1" hits
+  hits="$(grep -aoE 'Bearer [A-Za-z0-9._-]{10,}|eyJ[A-Za-z0-9._-]{20,}' "$cast" | sort -u)" || true
+  [[ -z "$hits" ]] && return 0
+  echo "record.sh: SECRET-SHAPED CONTENT — discarding $cast:" >&2
+  printf '%s\n' "$hits" >&2
+  rm -f "$cast"; return 1
+}
+
+record_one() {
+  local name="$1" cast="$ASSETS_DIR/${1}.cast" gif="$ASSETS_DIR/${1}.gif"
+  [[ -f "$SCENARIOS_DIR/${name}.scenario" ]] \
+    || { echo "record.sh: no scenario '$name'" >&2; return 2; }
+  echo "▶ recording ${name}.cast"
+  asciinema rec "${REC_OPTS[@]}" -c "bash '$SELF' --play '$name'" "$cast"
+  safety_gate "$cast" || return 1
+  echo "▶ rendering ${name}.gif"
+  agg --theme github-dark --font-size 18 --line-height 1.4 --speed 1.3 \
+      --idle-time-limit 1.2 --last-frame-duration 4 --fps-cap 24 \
+      "$cast" "$gif"
+}
+
+only="${1:-}"
+if [[ -n "$only" ]]; then
+  record_one "$only"
+else
+  shopt -s nullglob; found=0
+  for s in "$SCENARIOS_DIR"/*.scenario; do
+    found=1; record_one "$(basename "$s" .scenario)"
+  done
+  [[ "$found" -eq 1 ]] || { echo "record.sh: no *.scenario files" >&2; exit 2; }
+fi
+echo "✅ done — casts + GIFs in $ASSETS_DIR"
 ```
 
-The plugin is the **DRY source of truth** for `record.sh` / `record_lib.sh` content.
-In-repo copies are materialized instances — update the plugin to evolve the pattern,
-then re-scaffold into repos that need the latest version.
+---
+
+## Scaffolder Pattern
+
+The skill materializes this layout into any target repo. The repo has zero runtime
+dependency on the plugin after scaffolding — `record.sh` is a committed copy, not a
+live plugin reference. The plugin is the DRY source of truth; in-repo copies are
+materialized instances.
+
+**Canonical layout:**
+```
+<repo>/
+  scripts/
+    record.sh          # materialized copy of the canonical pattern above
+  scenarios/
+    demo.scenario      # pure say/run/end recipe
+  assets/
+    demo.cast          # raw cast (gitignore or commit — your call)
+    demo.gif           # rendered GIF (committed, linked in README)
+```
+
+**README embed:**
+```markdown
+![demo](assets/demo.gif)
+```
