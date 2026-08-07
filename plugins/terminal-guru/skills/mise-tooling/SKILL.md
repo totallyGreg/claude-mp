@@ -11,7 +11,7 @@ metadata:
   overall: 98
   last_evaluated: 2026-07-23
   reference_currency: 100
-  version: "2.7.0"
+  version: "2.7.1"
 license: MIT
 compatibility: claude-code
 
@@ -134,6 +134,7 @@ When writing or editing `mise.toml`, apply these conventions:
 - **Task ordering**: lifecycle, not alphabetical — setup/install first, run/operate next, maintenance/occasional last. Slot new tasks into the right group; don't append blindly.
 - **Task descriptions**: the `description` is the primary signal an agent (or teammate) reads from `mise tasks ls` to decide whether and how to invoke a task — write it to answer *what it does, what it requires, what it produces, and when to run it*. `"Run test suite"` is too thin; `"Run pytest against src/ with coverage; requires uv; exits non-zero on failure; safe to re-run"` lets the caller act without opening the file. **Compact-listing readability**: the same description shows in the compact `mise tasks` listing and shell completions, where long descriptions wrap and overlap — over-applying the density rule produced full-paragraph descriptions that required a real `cut -c1-94` workaround. Lead with a tight ≤72-char summary that stands alone in the compact listing; push arg-level detail into `#USAGE help=` and the task body; reserve the full what/requires/produces/when for `mise tasks --extended`. Density and compact legibility are in tension — the first clause must be legible on its own.
 - **Inline vs script**: one-liners stay inline; once a task needs conditionals, loops, or more than ~5 lines, extract to `scripts/<task>.sh` and invoke via `run = "scripts/<task>.sh"` — easier to shellcheck, test, and reuse outside mise. Upgrade to a file-based task under `.mise/tasks/` only when you want mise-native features: auto-discovery, `#USAGE` arg parsing, `#MISE sources/outputs`, or directory-based namespacing. See `mise_task_patterns.md`.
+- **`#USAGE`/`#MISE` are KDL — mind the escapes**: mise parses these directives as KDL. KDL strings accept only KDL's built-in escapes (`\"`, `\n`, `\t`, `\r`, `\uXXXX`, and backslash-backslash for a literal backslash); any *other* backslash escape — notably `\$` — is a parse error, and KDL doesn't interpolate anyway, so write `$VAR` plain in a `help=`/`default` (or reword to avoid `$`). A bad escape makes mise emit `failed to parse task file … Expected quoted string` and **silently breaks `mise tasks` + tab-completion**. Gotcha: the error only surfaces when a task's usage spec is *loaded* — `mise tasks info <name>`, shell completion, or `mise <task> --help` — NOT in a plain `mise tasks`. Catch it in CI by loading every task's spec: `mise tasks | awk 'NF{print $1}' | while read -r t; do mise tasks info "$t" >/dev/null 2>>err; done; grep -i "failed to parse" err`.
 - **Editing discipline**: if a task could fit in more than one lifecycle group, ask the user. Do not reorder unrelated existing tasks unless cleanup was explicitly requested.
 
 See `references/mise_config_guide.md` (Style & Layout) for rationale and worked examples.

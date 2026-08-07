@@ -106,6 +106,12 @@ nmap -p 50000 10.0.0.0/24
 
 Supports any shebang: bash, node, python, deno, powershell.
 
+> **`#MISE`/`#USAGE` are KDL — escapes matter.** Values accept only KDL's built-in
+> escapes (`\"`, `\n`, `\t`, `\r`, `\uXXXX`, backslash-backslash); a stray `\$` (or other)
+> fails parsing and **silently breaks `mise tasks` + completion**. KDL doesn't interpolate
+> — write `$VAR` plain. The error appears only when a task's usage spec is loaded
+> (`mise tasks info <name>`, completion, `mise <task> --help`), not a plain `mise tasks`.
+
 ## Task Namespacing
 
 Use colon-separated names for logical grouping by service area:
