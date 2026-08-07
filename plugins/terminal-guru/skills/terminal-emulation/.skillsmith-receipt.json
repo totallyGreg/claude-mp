@@ -1,0 +1,14 @@
+{
+  "skill_name": "terminal-emulation",
+  "content_hash": "635f6a7510820daf6d393f7abc8ac8fb6a7100ef516d0c9c4948825ce2be0faf",
+  "score": 98,
+  "metrics": {
+    "conciseness": 100,
+    "complexity": 90,
+    "spec_compliance": 100,
+    "progressive_disclosure": 100,
+    "description_quality": 100
+  },
+  "tool_version": "6.12.0",
+  "date": "2026-08-06"
+}

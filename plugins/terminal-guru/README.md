@@ -123,6 +123,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Changes |
 |---------|---------|
+| 5.15.0 | **terminal-emulation v4.1.0**: new recording capability — asciinema→GIF pipeline for GitHub/GitLab READMEs (JS player blocked). Added `references/terminal_recording.md`: headless deterministic recording, pacing library (`say`/`run` helpers for natural-looking casts), tuned `agg` defaults, credential safety gate (grep for `Bearer`/JWT/UUID tokens — discard and re-record on any hit), and `record.sh` scaffolder pattern (target repo stays plugin-free after materialization). Spec compliance fixed: added `license`+`compatibility` frontmatter. Skill score: 92→98/100. |
 | 5.14.0 | **Fix: add `SendMessage` to agent tools list.** Agent advertises persistent-teammate commands (`/team-spawn`, `/team-list`) but was missing `SendMessage` in its `tools:` frontmatter — it could receive messages but could never reply. Adding `SendMessage` unblocks teammate-to-lead and teammate-to-teammate communication when terminal-guru is spawned as a persistent team member. Score: 100/100 (no regression). |
 | 5.13.0 | **mise-tooling v2.6.0**: four additions from comparison with terrylica `cc-skills` mise-tasks skill. `mise_use_case_patterns.md` gained release pipeline ordering (build-before-publish DAG discipline + guard-task selective re-run), implicit tool dependencies (`maturin --zig` → `cargo-zigbuild`, etc.), and monorepo affected detection (mise has none natively — git-diff fallback with transitive-dep limitation flagged + graduate-to Pants/Bazel/Turborepo scale table). `mise_config_guide.md` + SKILL.md §5 now prefer runtime-native watch (`bun --watch`/`node --watch`/`uvicorn --reload`) over `mise watch`. New Authoring Convention: rich task `description`s for `mise tasks ls` agent discoverability. Skillsmith receipt-verified 98/100 (`--verify` exit 0). |
 | 5.12.0 | **herdr awareness.** Agent: one `<example>` + a Terminal Stack parenthetical noting `herdr` as an alternative AI-agent-focused multiplexer to tmux (no procedural detail — routing awareness only, per user feedback that agent-level content should stay light). New tmux-dev reference `herdr_alternative.md`: config (`~/.config/herdr/config.toml`, `--default-config`, `config check` vs `reload-config`), theming (`ui.accent`, `theme.custom` tokens, light/dark sibling themes), an empirical probe-color diagnostic technique for undocumented tokens, and a confirmed sidebar-divider gap (no config workaround). No score regression: agent still 100/100, tmux-dev still 91/100. |
@@ -199,5 +200,23 @@ mise (jdx/mise) configuration, task automation, and environment management:
 | 3.0.0 | 2026-02-09 | [#40](https://github.com/totallyGreg/claude-mp/issues/40) | Split from terminal-guru monolith into focused zsh-dev skill within plugin | 80 | 78 | 80 | 100 | - | 81 |
 | 2.1.0 | 2026-02-08 | #12 | Add zsh function patterns, completion guide, and Plugin Standard references | 33 | 66 | 80 | 100 | - | 69 |
 | 2.0.0 | 2025-11-20 | - | Initial release with terminal diagnostics and zsh configuration support | 20 | 66 | 80 | 100 | - | 66 |
+
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
+
+## Skill: terminal-emulation
+
+### Current Metrics
+
+**Score: 98/100** (Excellent) — 2026-08-06
+
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 100 | 90 | 100 | 100 | 100 |
+
+### Version History
+
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 4.1.0 | 2026-08-06 | - | New capability: **terminal recording (asciinema → GIF)**. Added `references/terminal_recording.md` covering headless deterministic recording, pacing library (`say`/`run` helpers), tuned `agg` defaults for READMEs, credential safety gate (grep for Bearer/JWT/UUID tokens — discard on hit), and `record.sh` scaffolder pattern (target repo stays plugin-free after materialization). Added `license` + `compatibility` frontmatter (fixes spec compliance 80→100). Updated skill description with recording trigger phrases. | 100 | 90 | 100 | 100 | 100 | 98 |
 
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)

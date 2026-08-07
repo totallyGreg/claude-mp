@@ -1,8 +1,10 @@
 ---
 name: terminal-emulation
-description: This skill should be used when the user asks to "fix terminal colors", "configure $TERM", "debug terminfo", "set up truecolor", "test 256 color support", "fix unicode rendering", "fix garbled characters", "fix broken box drawing", "fix emoji rendering", "configure locale", "fix SSH terminal", "check $COLORTERM", "apply ANSI escape codes", "set up base16 theme", or needs help with the Unix terminal substrate — `$TERM`, terminfo database, ANSI escape codes, color tiers (16/256/truecolor), `$COLORTERM`, Unicode/UTF-8 rendering, locale configuration, and SSH terminal setup. Do NOT use for tmux automation (sessions, options, plugins, send-keys) — use tmux-dev. Do NOT use for TUI app theming (lazygit/k9s themes) — use tui-experience. Do NOT use for shell config — use zsh-dev.
+description: This skill should be used when the user asks to "fix terminal colors", "configure $TERM", "debug terminfo", "set up truecolor", "test 256 color support", "fix unicode rendering", "fix garbled characters", "fix broken box drawing", "fix emoji rendering", "configure locale", "fix SSH terminal", "check $COLORTERM", "apply ANSI escape codes", "set up base16 theme", "record terminal session", "asciinema to gif", "create demo gif for readme", or needs help with the Unix terminal substrate — `$TERM`, terminfo database, ANSI escape codes, color tiers (16/256/truecolor), `$COLORTERM`, Unicode/UTF-8 rendering, locale configuration, SSH terminal setup, and terminal session recording (asciinema → GIF). Do NOT use for tmux automation (sessions, options, plugins, send-keys) — use tmux-dev. Do NOT use for TUI app theming (lazygit/k9s themes) — use tui-experience. Do NOT use for shell config — use zsh-dev.
 metadata:
-  version: "4.0.0"
+  version: "4.1.0"
+license: MIT
+compatibility: claude-code
 ---
 
 # Terminal Emulation
@@ -128,6 +130,14 @@ export NCURSES_NO_UTF8_ACS=0
 sed -i '1s/^\xEF\xBB\xBF//' file.txt
 ```
 
+### 4. Terminal Recording (asciinema → GIF)
+
+Capture terminal sessions as animated GIFs for GitHub/GitLab READMEs — the asciinema JS player is blocked in README renderers; rendered GIFs work everywhere.
+
+Load `references/terminal_recording.md` for the full pattern: headless deterministic recording via a pacing library (`say`/`run` helpers), tuned `agg` rendering defaults, post-recording credential safety gate (grep for `Bearer`/JWT/UUID tokens — discard and re-record on any hit), and the `record.sh` scaffolder that materializes a self-contained recording setup into any target repo (target stays plugin-free after scaffolding).
+
+Prerequisites: `brew install asciinema agg`
+
 ## Diagnostic Workflow
 
 ### Step 1: Gather Information
@@ -239,7 +249,9 @@ fi
 - **`terminfo_guide.md`** — Terminfo database, `$TERM` selection, infocmp/tic/tput, terminal capabilities
 - **`ansi_colors.md`** — ANSI escape codes, 16/256/truecolor tiers, `$COLORTERM`, palette setup (base16), color-test tools
 - **`unicode_troubleshooting.md`** — Unicode/UTF-8 character rendering and encoding issues
+- **`terminal_recording.md`** — asciinema→GIF pipeline: headless recording, pacing library, agg defaults, credential safety gate, `record.sh` scaffolder
 
 ### Related skills
 - **tmux-dev** — tmux automation, plugins, session management, mouse bindings, format strings
 - **environment-composition** — sesh session orchestration on top of tmux
+- **tui-experience** — TUI app theming (lazygit, k9s, fzf) and scripted demos with vhs
