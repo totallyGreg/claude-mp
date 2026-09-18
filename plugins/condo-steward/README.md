@@ -6,7 +6,7 @@ The plugin contains **no data about any particular community**. Everything speci
 
 ## Commands
 
-Thin command files in `commands/` expose the scripts; the single `condo-steward` skill holds the scripts, references, and tests.
+Thin command files in `commands/` expose the workflows; the single `condo-steward` skill holds the scripts, references (including `workflows.md`), and tests, and is a self-contained [Agent Skills](https://agentskills.io) skill usable outside Claude Code.
 
 | Command | What it does |
 |---|---|

@@ -133,7 +133,7 @@ def cmd_promote(a, path):
         print("Bullet for the relevant references/florida/*.md section (cite section + official link):\n")
         print(f"- **{general_q}** — {e['answer']}")
     else:
-        print("Friction report (skill gap) — paste into `/foundry:ss-wtf` or the plugin's issue tracker:\n")
+        print("Friction report (skill gap) — file with your skill-maintenance tool or the plugin's issue tracker:\n")
         print(f"Skill: condo-steward\nQuestion the skill could not answer: {general_q}\n"
               f"Answer found: {e['answer']}\nSources: {'; '.join(e['sources']) or 'none recorded'}\n"
               f"Suggested home: common-questions.md / a florida reference / a new script or profile")

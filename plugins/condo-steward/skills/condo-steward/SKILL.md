@@ -1,6 +1,6 @@
 ---
 name: condo-steward
-description: This skill should be used when users ask to "read our financial statement", "explain the balance sheet", "generate a financial report", "are we on budget", "how are our reserves", "who owes the association", "what does Florida statute say about", "can the board", "do we need an audit", "reserve waiver", "SIRS", "milestone inspection", "records request", "special assessment", "fine an owner", "lien", "meeting notice", "which software should we use", "switch to self-management", "PayHOA", or otherwise need help understanding, reporting on, or governing a condominium, HOA, or cooperative. Parses management statements and bank exports (masking account numbers), builds a local HTML report, and explains Florida Ch. 718/720 and FAC 61B — naming which professional (attorney, CPA, reserve specialist, engineer) must confirm anything with legal or financial consequence. Do NOT use for personal finance, commercial underwriting, or drafting legal instruments.
+description: This skill should be used when users ask to "read our financial statement", "explain the balance sheet", "generate a financial report", "are we on budget", "how are our reserves", "who owes the association", "what does Florida statute say about", "can the board", "do we need an audit", "reserve waiver", "SIRS", "milestone inspection", "records request", "special assessment", "fine an owner", "lien", "meeting notice", "switch to self-management", "PayHOA", or otherwise need help understanding, reporting on, or governing a condominium, HOA, or cooperative. Parses management statements and bank exports (masking account numbers), builds a local HTML report, and explains Florida Ch. 718/720 and FAC 61B — naming which professional (attorney, CPA, reserve specialist, engineer) must confirm anything with legal or financial consequence. Do NOT use for personal finance, commercial underwriting, or drafting legal instruments.
 metadata:
   version: "0.1.0"
 compatibility: Python 3.11+ via uv (PEP 723 scripts); PDF statements parsed with pdfplumber
@@ -21,9 +21,9 @@ Help owners and board members understand and run their community association wel
 
 ## Workflow: financial statement questions
 
-1. Locate the statement(s) — usually PDFs in the community's statements folder (see `community.toml → statements_dir`; if no config exists, offer `/condo-steward:init`).
-2. Parse: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/condo-steward/scripts/parse_statement.py <pdf> -o <json>` (JSON to a scratch or reports location, never into the plugin).
-3. For a full picture, render: `uv run ${CLAUDE_PLUGIN_ROOT}/skills/condo-steward/scripts/report.py --dir <statements_dir>` → HTML in `reports_dir`. Open it for the user and summarize the "What needs attention" flags in chat.
+1. Locate the statement(s) — usually PDFs in the community's statements folder (see `community.toml → statements_dir`; if no config exists, offer the `init` workflow).
+2. Parse: `uv run scripts/parse_statement.py <pdf> -o <json>` (JSON to a scratch or reports location, never into the plugin).
+3. For a full picture, render: `uv run scripts/report.py --dir <statements_dir>` → HTML in `reports_dir`. Open it for the user and summarize the "What needs attention" flags in chat.
 4. For a targeted question ("why is water over budget?"), read the JSON and answer from it; consult `references/financial-accounting.md` for how to interpret the line.
 5. If the parser misses a section, check `references/statement-profiles.md` — the statement may need a new profile.
 6. Bank CSV/XLSX exports are transaction-level (no funds, no budget): use `parse_transactions.py` to verify a reconciliation, examine sweep activity, or total spend by payee — not as a substitute for the statement. Prefer inputs in this order: manager's GL/statement export (XLSX/CSV, if the portal offers one) → statement PDF → bank activity export.
@@ -57,6 +57,7 @@ All scripts use PEP 723 inline metadata; `uv run` resolves dependencies. Profile
 
 | File | Read when |
 |---|---|
+| `references/workflows.md` | Running one of the user-facing tasks: init, report, trend, statute, scan, ask |
 | `references/common-questions.md` | First stop for any question: maps the ~45 questions boards ask to data, script/reference, and who must confirm |
 | `references/financial-accounting.md` | Any question about a statement line, fund accounting, ratios, red flags |
 | `references/professional-escalation.md` | Before giving advice with legal, tax, or structural consequence |
@@ -68,9 +69,9 @@ All scripts use PEP 723 inline metadata; `uv run` resolves dependencies. Profile
 | `references/data-handling.md` | What may live in a shared drive; secret / personal / community tiers; leak response |
 | `references/statement-profiles.md` | Parser misses a section; supporting a new management package |
 
-## Commands
+## Portability
 
-The user-facing workflows are thin command files in `commands/` — `init`, `report`, `trend`, `statute`, `scan`, `ask` — invoked as `/condo-steward:<name>`. Each points at a script in this skill's `scripts/` via `${CLAUDE_PLUGIN_ROOT}`; the procedures, references, and tests all live here.
+This directory is an [Agent Skills](https://agentskills.io) skill: paths above are relative to the skill root and the procedures live in `references/workflows.md`, so it works outside Claude Code. In Claude Code the plugin's `commands/` files expose the workflows as `/condo-steward:<name>` and add `${CLAUDE_PLUGIN_ROOT}` prefixes.
 
 ## Adding another state
 
