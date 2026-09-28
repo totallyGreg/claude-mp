@@ -4,7 +4,7 @@ description: This skill should be used when the user asks to "create a zsh funct
 license: MIT
 compatibility: claude-code, Requires uv for Python script execution
 metadata:
-  version: "3.2.0"
+  version: "3.2.1"
 ---
 
 # Zsh Development
@@ -65,16 +65,20 @@ See `references/isolated_environments.md` for the full testing workflow.
 
 ### Keychain Secret Management
 
-The `keychainctl` script provides macOS keychain operations for secure credential storage.
+The `keychainctl` script (zsh; needs only macOS built-ins `security` + `plutil`) stores secrets in the macOS keychain. Each secret is one item whose **Kind** records its format: `secret` (one value) or `json` (a bundle of named fields).
 
 ```bash
-keychainctl set API_KEY           # prompts securely
-TOKEN=$(keychainctl get API_KEY)  # stdout only — safe for capture
-keychainctl ls [keychain]         # optional fzf browse
-keychainctl rm OLD_SECRET
+keychainctl set API_KEY                    # one value, hidden prompt
+TOKEN=$(keychainctl get API_KEY)           # stdout only — safe for capture
+keychainctl import TENANT                  # paste a JSON bundle (hidden, Ctrl-D) — nothing in history
+pbpaste | keychainctl import TENANT        # …or from stdin / a file
+keychainctl get TENANT CLIENT_SECRET       # one field; `get TENANT` prints KEY=val lines
+keychainctl set TENANT -f CLIENT_SECRET    # add/rotate one field, others untouched
+keychainctl rm TENANT -f OLD_FIELD         # remove one field (omit -f to delete the secret)
+keychainctl ls -k work                     # optional fzf browse; -k selects the keychain
 ```
 
-`get` outputs only the password to stdout (safe for `$(...)`). Optional fzf integration for interactive browse.
+Guards (override with `--force`): `set`/`import` refuse to drop a bundle's existing fields, and refuse values containing whitespace, `$(` or a backtick (usually a paste/quoting mistake). Field names can't contain `.` (plutil key paths). The old `pair get|set|update` commands remain as compatibility aliases.
 
 ## Common Use Cases
 

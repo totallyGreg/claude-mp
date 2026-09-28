@@ -11,7 +11,7 @@ metadata:
   overall: 98
   last_evaluated: 2026-07-23
   reference_currency: 100
-  version: "2.7.1"
+  version: "2.7.2"
 license: MIT
 compatibility: claude-code
 
@@ -115,7 +115,7 @@ For complex tasks, use file-based scripts in `.mise/tasks/` with `#USAGE` direct
 ```toml
 # mise.prod.toml — activated by MISE_ENV=prod or .miserc.toml
 [env]
-API_KEY = "{{exec(command='keychainctl pair get myapp API_KEY')}}"
+API_KEY = "{{exec(command='keychainctl get myapp API_KEY')}}"
 ```
 
 Set default tenant in `.miserc.toml` (`env = ["prod"]`). Cloners use `_.source = ".env"` as fallback. Switch tenants: `MISE_ENV=staging mise run deploy`.

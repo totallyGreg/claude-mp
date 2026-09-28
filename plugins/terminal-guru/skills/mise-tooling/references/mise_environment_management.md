@@ -72,19 +72,19 @@ workspace/                         # not a git repo
 3. Docker uses `.env` via `--env-file`
 
 **Power user path** (keychain + tenant switching):
-1. All tenant values in one keychain entry as JSON:
+1. All tenant values in one keychain item (Kind `json`) — import the credentials JSON without it touching shell history:
    ```bash
-   keychainctl pair set -l "My Tenant" tenant-name \
-     TSG_ID=123 CLIENT_ID=... CLIENT_SECRET=...
+   keychainctl import tenant-name -l "My Tenant"   # paste JSON, then Ctrl-D (or: pbpaste | keychainctl import tenant-name)
    ```
 2. Parent `mise.tenant-name.toml` pulls each value via `exec()`:
    ```toml
    [env]
-   TSG_ID = "{{exec(command='keychainctl pair get tenant-name TSG_ID')}}"
-   CLIENT_ID = "{{exec(command='keychainctl pair get tenant-name CLIENT_ID')}}"
+   TSG_ID = "{{exec(command='keychainctl get tenant-name TSG_ID')}}"
+   CLIENT_ID = "{{exec(command='keychainctl get tenant-name CLIENT_ID')}}"
    ```
 3. `.miserc.toml` selects `env = ["tenant-name"]` → mise loads parent tenant config
 4. Switch tenants: `MISE_ENV=tenant-b mise run dev`
+5. Rotate one value: `keychainctl set tenant-name -f CLIENT_SECRET` (hidden prompt; other fields untouched).
 
 ### Precedence (highest wins)
 1. Parent `mise.<env>.toml` (keychain values, if `.miserc.toml` exists)
@@ -94,7 +94,7 @@ workspace/                         # not a git repo
 ### Design decisions
 - `.env` serves double duty — mise sources it AND Docker uses it via `--env-file`
 - `.miserc.toml` is gitignored — cloners never see the tenant-switching layer
-- One keychain entry per tenant — `keychainctl pair set` stores all values as compressed JSON
+- One keychain item per tenant (Kind `json`), one item per standalone value (Kind `secret`) — Kind names the value's format, the item name says what it's for
 - `env.template` is the single reference — documents all required variables
 
 ## Task Inheritance
