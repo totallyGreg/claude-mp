@@ -1,10 +1,10 @@
 {
-  "skill_name": "agentsmith",
-  "content_hash": "0242f30e422568db499cd2e0ec3adc0b272f708e083a20db723149561c5e99b6",
-  "score": 98,
+  "skill_name": "marketplace-manager",
+  "content_hash": "f74d7997701fc7dc16ec23d0dc99b7ed345f9e87fa7a766b86d54d6255efd78f",
+  "score": 100,
   "metrics": {
     "conciseness": 100,
-    "complexity": 90,
+    "complexity": 100,
     "spec_compliance": 100,
     "progressive_disclosure": 100,
     "description_quality": 100

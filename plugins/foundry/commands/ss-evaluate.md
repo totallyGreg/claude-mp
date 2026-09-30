@@ -1,3 +1,9 @@
+---
+name: ss-evaluate
+description: Full evaluation of a skill with quality metrics
+argument-hint: <skill-path> [--quick|--strict|--explain|--update-readme]
+---
+
 Full evaluation of a skill with quality metrics.
 
 Run the evaluation command:

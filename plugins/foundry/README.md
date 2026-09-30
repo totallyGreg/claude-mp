@@ -4,15 +4,15 @@ Plugin development lifecycle toolkit — evaluate, improve, and publish skills a
 
 Consolidates three tightly coupled tools into a single plugin:
 - **skillsmith** — skill quality evaluation and improvement
-- **marketplace-manager** — distribution, versioning, and marketplace.json maintenance
+- **marketplace-manager** — distribution, version-bump enforcement, and marketplace.json registration
 - **agentsmith** — agent quality evaluation and improvement
 
 <!-- BEGIN AUTOGEN:overview (managed by skillsmith --update-components; edits overwritten) -->
 ## What's inside
 
-Plugin development lifecycle toolkit — evaluate, improve, and publish skills and agents. Consolidates skillsmith (skill quality), marketplace-manager (distribution/versioning), and agentsmith (agent quality) into a single plugin.
+Plugin development toolkit: evaluate and improve skills (skillsmith) and agents (agentsmith), and publish them to a marketplace with enforced version bumps (marketplace-manager)
 
-**At a glance:** 4 skills · 1 agent · 16 commands · 4 hooks
+**At a glance:** 4 skills · 1 agent · 15 commands · 4 hooks
 
 ## Install
 
@@ -25,7 +25,7 @@ Plugin development lifecycle toolkit — evaluate, improve, and publish skills a
 ## Quickstart
 
 ```bash
-# Improve a skill end-to-end (evaluate → fix → re-eval → README → sync)
+# Improve a skill end-to-end (evaluate → fix → re-eval → README → version check)
 /ss-improve plugins/<plugin>/skills/<skill>
 
 # Improve an agent the same way
@@ -34,8 +34,8 @@ Plugin development lifecycle toolkit — evaluate, improve, and publish skills a
 # Refresh this README's What's-inside / Install / Components inventory
 uv run plugins/foundry/skills/skillsmith/scripts/evaluate_skill.py <plugin-path> --update-components
 
-# Publish/refresh marketplace metadata after a version bump
-/mp-sync
+# See which changed plugins/skills still need a version bump
+/mp-status
 ```
 
 File friction from anywhere with `/ss-wtf`; the improve loops read it back automatically.
@@ -48,7 +48,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 | Skill | Description |
 |-------|-------|
 | `agentsmith` | Evaluate and improve agent quality with automated scoring across 3 dimensions. |
-| `marketplace-manager` | Manages Claude Code plugin marketplace operations. |
+| `marketplace-manager` | Manages Claude Code plugin marketplace repos. |
 | `skillsmith` | Forge effective skills with automated validation, metrics tracking, and improvement workflows. |
 | `wtf` | File friction reports so the foundry's improve workflows can fix real pain. |
 
@@ -58,40 +58,40 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 |-------|-------|
 | `skill-observer` | Use this agent to analyze a saved Claude Code session transcript and identify where a skill failed to guide Claude effectively. |
 
-### Commands (16)
+### Commands (15)
 
 | Command | Description |
 |-------|-------|
-| `/as-evaluate` | Full evaluation of an agent with quality metrics. |
-| `/as-improve` | Guided agent improvement loop — evaluate, explain, fix, re-evaluate, update README, sync |
-| `/mp-add` | Scaffold a new plugin or migrate a legacy skill into plugin structure. |
-| `/mp-list` | List all plugins in the marketplace. |
-| `/mp-status` | Show version mismatches and validation summary for the marketplace. |
-| `/mp-sync` | Sync plugin versions from plugin.json/SKILL.md to marketplace.json. |
-| `/mp-validate` | Validate marketplace.json against the official Anthropic marketplace schema. |
-| `/ss-evaluate` | Full evaluation of a skill with quality metrics. |
-| `/ss-improve` | Guided skill improvement loop — evaluate, explain, fix, re-evaluate, update README, sync |
-| `/ss-init` | Initialize a new skill from template. |
+| `/as-evaluate` | Full evaluation of an agent with quality metrics |
+| `/as-improve` | Guided agent improvement loop — evaluate, explain, fix, re-evaluate, update README, check version bumps |
+| `/mp-add` | Scaffold a new plugin or migrate a legacy skill into plugin structure |
+| `/mp-list` | List marketplace plugins with version, description, and source read from each plugin.json |
+| `/mp-status` | Show which plugins and skills changed since main and still need a version bump |
+| `/mp-validate` | Validate the marketplace with claude plugin validate plus version-bump, duplicate-metadata, and unregistered-plugin checks |
+| `/ss-evaluate` | Full evaluation of a skill with quality metrics |
+| `/ss-improve` | Guided skill improvement loop — evaluate, explain, fix, re-evaluate, update README, check version bumps |
+| `/ss-init` | Initialize a new skill from template |
 | `/ss-observe` | Analyze a Claude Code session transcript to identify skill gaps |
 | `/ss-package` | Package a skill directory into a distributable skill.zip |
 | `/ss-refresh` | Detect stale references and guide updates for any skill with provenance-tracked references |
 | `/ss-research` | Research a skill to identify improvement opportunities |
-| `/ss-validate` | Quick validation of a skill with optional strict mode. |
+| `/ss-validate` | Quick structural validation of a skill with optional strict mode |
 | `/ss-wtf` | File a friction report or list accumulated friction |
 
 ### Hooks (4)
 
 | Hook | Trigger | Purpose |
 |-------|-------|-------|
-| `on-skill-edit.sh` | PostToolUse Write\|Edit | Fires a quick skill evaluation when a SKILL.md file is edited in the repo source (not installed marketplace copies). |
-| `on-script-edit.sh` | PostToolUse Write\|Edit | Fires when a Python file inside a scripts/ directory is written or edited. |
-| `on-agent-edit.sh` | PostToolUse Write\|Edit | Fires a quick agent evaluation when an agent .md file is edited in the repo source (not installed marketplace copies). |
-| `on-component-edit.sh` | PostToolUse Write\|Edit | Warns (does not write) when a plugin component is added or changed so the plugin README's autogen Components inventory can be refreshed. |
+| `on-skill-edit.sh` | PostToolUse Write\|Edit |  |
+| `on-script-edit.sh` | PostToolUse Write\|Edit |  |
+| `on-agent-edit.sh` | PostToolUse Write\|Edit |  |
+| `on-component-edit.sh` | PostToolUse Write\|Edit |  |
 <!-- END AUTOGEN:components -->
 ## Changelog
 
 | Version | Changes |
 |---------|---------|
+| 2.0.0 | **BREAKING** ([#193](https://github.com/totallyGreg/claude-mp/issues/193)): marketplace-manager 5.0.0 — `plugin.json` is the single source of truth, `/mp-sync` and `sync.py` removed, pre-commit hook blocks commits that change a plugin or skill without raising its version; `/mp-status` shows pending bumps; improve loops end with a bump check instead of sync. Commands gain frontmatter and hooks quote `${CLAUDE_PLUGIN_ROOT}` (passes `claude plugin validate --strict`) |
 | 1.7.0 | skillsmith 6.12.0: fix the eval score discrepancy — conciseness now measures the SKILL.md **body**, not the full file including frontmatter. `--store-metrics` injected its metric block into frontmatter, inflating line/token counts and lowering conciseness (and overall) on the next eval; evaluation is now idempotent (eval→store→eval is stable). |
 | 1.6.0 | Eval-score integrity: skillsmith 6.11.0 verifiable receipts (`--write-receipt`/`--verify`), skill-observer confabulation detector (flags narrated scores with no eval run), and receipts-not-narration guidance across skillsmith/agentsmith/commands ([#191](https://github.com/totallyGreg/claude-mp/issues/191)) |
 | 1.5.0 | Human-useful, auto-maintained plugin READMEs (skillsmith 6.10.0): `--update-components` generates What's-inside/Install/Components inventory; MINOR-only Version History enforcement; `on-component-edit.sh` staleness hook ([#190](https://github.com/totallyGreg/claude-mp/issues/190)) |
@@ -102,7 +102,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 ### Current Metrics
 
-**Score: 100/100** (Excellent) — 2026-07-23
+**Score: 90/100** (Good) — 2026-09-29
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -112,7 +112,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
-| 6.12.0 | 2026-07-23 | - | Fix eval score discrepancy: conciseness measures the SKILL.md body, not the full file including frontmatter. `--store-metrics` injected its metric block into frontmatter, inflating line/token counts and lowering conciseness (and overall) on the next eval — evaluation is now idempotent (eval→store→eval yields a stable score). Surfaced by mise-tooling reporting 98 on display but 97 on receipt/verify. | 100 | 100 | 100 | 100 | 100 | 100 |
+| 6.12.0 | 2026-09-29 | - | Fix eval score discrepancy: conciseness measures the SKILL.md body, not the full file including frontmatter. `--store-metrics` injected its metric block into frontmatter, inflating line/token counts and lowering conciseness (and overall) on the next eval — evaluation is now idempotent (eval→store→eval yields a stable score). Surfaced by mise-tooling reporting 98 on display but 97 on receipt/verify. +v6.12.1 (2026-09-29): integration and workflow guides describe version-bump checks instead of marketplace.json sync ([#193](https://github.com/totallyGreg/claude-mp/issues/193)) | 100 | 100 | 100 | 100 | 100 | 90 |
 | 6.11.0 | 2026-07-23 | [#191](https://github.com/totallyGreg/claude-mp/issues/191) | Verifiable eval receipts: `--write-receipt` records score + content hash + provenance to `.skillsmith-receipt.json`; `--verify [--expect-score]` fails on stale/mismatched/README-inconsistent scores; `--update-readme` auto-writes a receipt. Anti-confabulation guidance in Step 6. Resolves confabulated-score friction (2026-06-10) | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.10.0 | 2026-07-23 | [#190](https://github.com/totallyGreg/claude-mp/issues/190) | Human-useful plugin READMEs: `--update-components` generates What's-inside/Install/Components inventory into autogen fences (hand-authored zones preserved); MINOR-only Version History enforcement (`--export-table-row` refuses/auto-folds PATCH, `--allow-patch` override, `--check-version-history` audit); `on-component-edit.sh` warn-only staleness hook | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.9.0 | 2026-04-28 | [#165](https://github.com/totallyGreg/claude-mp/issues/165) | Reference provenance tracking: provenance spec in agentskills_specification.md, check_freshness.py generic script, Reference Currency 6th evaluation dimension, /ss-refresh command, ss-improve/ss-research freshness integration, init_skill.py templates. +v6.9.1 (2026-04-28): refresh agentskills_specification.md — allowed-tools example, compatibility examples, metadata key uniqueness guidance | 100 | 100 | 100 | 100 | 100 | 100 |
@@ -129,7 +129,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 ### Current Metrics
 
-**Score: 100/100** (Excellent) — 2026-03-26
+**Score: 100/100** (Excellent) — 2026-09-29
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -139,6 +139,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 5.0.0 | 2026-09-29 | [#193](https://github.com/totallyGreg/claude-mp/issues/193) | **BREAKING**: plugin.json is the single source of truth; `sync.py` and `/mp-sync` removed. validate.py now enforces version bumps (plugin + skill) against the merge-base with origin/main, rejects `version` in marketplace entries, limits changed plugin descriptions to 200 chars, and delegates schema checks to `claude plugin validate`. Checks-only pre-commit hook | 100 | 100 | 100 | 100 | 100 | 100 |
 | 4.0.0 | 2026-03-26 | [#145](https://github.com/totallyGreg/claude-mp/issues/145) | Official schema alignment, self-sufficient repo model, 12 scripts replaced by 4, reverse scan + auto-fix | 100 | 100 | 100 | 100 | 100 | 100 |
 | 3.1.0 | 2026-03-25 | - | Fix validator schema guidance, merge SKILL.md sections, add negative trigger clause | 100 | 100 | 100 | 100 | 100 | 100 |
 | 2.9.0 | 2026-03-23 | [#139](https://github.com/totallyGreg/claude-mp/issues/139) | Multi-plugin structure detection, CI mode, advisory hook warning | 100 | 87 | 100 | 100 | 100 | 97 |
@@ -149,7 +150,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 ### Current Metrics
 
-**Score: 98/100** (Excellent) — 2026-07-23
+**Score: 98/100** (Excellent) — 2026-09-29
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -159,7 +160,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
-| 1.1.0 | 2026-07-23 | - | Add code examples, agent-improvement-guide.md reference with delegation model and improvement patterns. +v1.1.1 (2026-07-23): receipts-not-narration guidance in the improvement loop — report only tool-produced scores, require raw eval output from delegated subagents | 100 | 90 | 100 | 100 | 100 | 98 |
+| 1.1.0 | 2026-09-29 | - | Add code examples, agent-improvement-guide.md reference with delegation model and improvement patterns. +v1.1.1 (2026-07-23): receipts-not-narration guidance in the improvement loop — report only tool-produced scores, require raw eval output from delegated subagents +v1.1.2 (2026-09-29): improvement loop ends with a version-bump check instead of sync.py ([#193](https://github.com/totallyGreg/claude-mp/issues/193)) | 100 | 90 | 100 | 100 | 100 | 98 |
 | 1.0.0 | 2026-04-28 | - | Initial release — agent evaluation with 3 quality dimensions | 100 | 80 | 100 | 85 | 100 | 93 |
 
 ## Skill: wtf

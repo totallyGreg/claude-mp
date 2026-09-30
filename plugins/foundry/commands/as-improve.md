@@ -1,6 +1,6 @@
 ---
 name: as-improve
-description: Guided agent improvement loop — evaluate, explain, fix, re-evaluate, update README, sync
+description: Guided agent improvement loop — evaluate, explain, fix, re-evaluate, update README, check version bumps
 argument-hint: [agent-path] [optional context lines...]
 ---
 
@@ -125,10 +125,10 @@ Determine bump type:
 
 Update `"version"` in the plugin's `.claude-plugin/plugin.json`.
 
-## Step 6: Sync marketplace
+## Step 6: Check version bumps
 
-Sync `marketplace.json` with the updated plugin version:
+`marketplace.json` carries no versions (plugin.json is the only source), so there is nothing to sync. Confirm every changed plugin and skill is bumped relative to main — the pre-commit hook blocks the commit otherwise:
 
 ```bash
-uv run ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/repo/sync.py .claude-plugin/marketplace.json
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/repo/validate.py --check-versions
 ```

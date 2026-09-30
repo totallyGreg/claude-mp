@@ -42,9 +42,8 @@ User: "Publish my-plugin to marketplace"
 ### What marketplace-manager Does
 
 1. **Adds plugin to marketplace.json** (if new) -- creates entry with `name` and `source`
-2. **Syncs version** -- reads version from plugin.json or SKILL.md, updates marketplace.json
-3. **Validates structure** -- checks schema compliance, path validity, duplicate detection
-4. **Prepares commit** -- stages changes, generates commit message
+2. **Validates** -- runs `claude plugin validate` and rejects `version` in marketplace entries
+3. **Enforces version bumps** -- the pre-commit hook blocks commits that change a plugin or skill without raising its version
 
 ---
 
@@ -93,34 +92,19 @@ For complete schema tables and all 6 organization patterns, see `plugin_marketpl
 
 ## Version Management
 
-### Version Sources
+### Version Source
 
-marketplace-manager reads versions from these sources (in priority order):
-
-1. `.claude-plugin/plugin.json` `version` field
-2. `skills/*/SKILL.md` `metadata.version` frontmatter (single-skill plugins only)
-
-### Automatic Version Sync
-
-```yaml
-# SKILL.md frontmatter (source of truth)
-metadata:
-  version: "2.2.0"
-```
-
-marketplace-manager syncs this to marketplace.json:
+`.claude-plugin/plugin.json` `version` is the only plugin version. Marketplace entries don't carry one (Anthropic: "Don't set `version` in both `plugin.json` and the marketplace entry"). Skills carry their own `metadata.version` in SKILL.md.
 
 ```json
 {
   "plugins": [
-    {
-      "name": "my-plugin",
-      "version": "2.2.0",
-      "source": "./plugins/my-plugin"
-    }
+    { "name": "my-plugin", "source": "./plugins/my-plugin", "category": "development" }
   ]
 }
 ```
+
+A change to a plugin requires a higher plugin.json version; a change to a skill also requires a higher SKILL.md `metadata.version`. The pre-commit hook enforces both against the merge-base with `origin/main`.
 
 ### Semantic Versioning
 
@@ -177,14 +161,16 @@ ls plugins/my-plugin/skills/*/SKILL.md
 ls plugins/my-plugin/.claude-plugin/plugin.json
 ```
 
-### "Version sync failed"
+### "no version in .../plugin.json"
 
-Ensure version is in one of these locations:
+Add a version to the plugin manifest:
 
 ```json
 // .claude-plugin/plugin.json
 { "name": "my-plugin", "version": "1.0.0" }
 ```
+
+Skills need one too:
 
 ```yaml
 # skills/my-skill/SKILL.md frontmatter

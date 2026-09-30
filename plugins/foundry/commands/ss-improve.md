@@ -1,6 +1,6 @@
 ---
 name: ss-improve
-description: Guided skill improvement loop — evaluate, explain, fix, re-evaluate, update README, sync
+description: Guided skill improvement loop — evaluate, explain, fix, re-evaluate, update README, check version bumps
 argument-hint: [skill-path] [optional context lines...]
 ---
 
@@ -157,12 +157,12 @@ Then update both files:
 1. Update `metadata.version` in the skill's `SKILL.md` frontmatter
 2. Update `"version"` in `../../.claude-plugin/plugin.json` — where `../../` is relative to the skill directory
 
-Verify both files show the same version string before proceeding to Step 6. (`scripts/sync.py` reads `plugin.json` first — if it is not updated, `marketplace.json` will not reflect the new version.)
+The skill version records the skill change; the plugin version is what makes marketplace subscribers receive it (Claude Code only updates a plugin when its `plugin.json` version changes). For a single-skill plugin the two are usually equal. For a multi-skill plugin the plugin version is an independent release number: raise it by at least the same level as the skill bump. If the plugin version was already raised earlier on this branch, it only needs raising again when this change is a bigger bump level.
 
-## Step 6: Sync marketplace
+## Step 6: Check version bumps
 
-Sync `marketplace.json` with the updated plugin version:
+`marketplace.json` carries no versions (plugin.json is the only source), so there is nothing to sync. Confirm every changed plugin and skill is bumped relative to main — the pre-commit hook blocks the commit otherwise:
 
 ```bash
-uv run ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/repo/sync.py .claude-plugin/marketplace.json
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/repo/validate.py --check-versions
 ```

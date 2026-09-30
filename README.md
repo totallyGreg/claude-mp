@@ -63,7 +63,7 @@ claude-mp/
 │   ├── handoff/             # Work handoff between Claudes
 │   └── …                    # helm-chart-developer, swift-dev, confluence-pages,
 │                            #   slack-toolkit, ai-risk-mapper
-├── scripts/                 # Repo-level validate.py + sync.py (from marketplace-manager)
+├── .githooks/               # pre-commit: version-bump + claude plugin validate checks
 ├── docs/                    # plans/ (ephemeral planning) + lessons/ (cross-skill learnings)
 └── .claude-plugin/          # marketplace.json — source of truth for the plugin catalog
 ```
@@ -75,7 +75,7 @@ Several plugins include slash commands for common operations:
 ### foundry Commands
 Skill lifecycle: `/ss-init`, `/ss-validate`, `/ss-evaluate`, `/ss-research`, `/ss-improve`, `/ss-observe`, `/ss-refresh`, `/ss-package`, `/ss-wtf`
 Agent lifecycle: `/as-evaluate`, `/as-improve`
-Marketplace: `/mp-sync`, `/mp-validate`, `/mp-add`, `/mp-list`, `/mp-status`
+Marketplace: `/mp-status`, `/mp-validate`, `/mp-add`, `/mp-list`
 
 ### terminal-guru Commands
 - `/team-spawn` - Spawn a persistent teammate agent (enforces the `name` field)

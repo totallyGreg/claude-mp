@@ -102,7 +102,7 @@ def _find_marketplace_json(plugins_dir: Path) -> Path | None:
 def _write_json(path: Path, data: dict) -> None:
     """Write JSON with consistent formatting."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2) + "\n")
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def _make_plugin_json(name: str, description: str | None) -> dict:
@@ -117,7 +117,8 @@ SKILL_MD_TEMPLATE = """\
 ---
 name: "{name}"
 description: "{description}"
-version: "1.0.0"
+metadata:
+  version: "1.0.0"
 ---
 
 # {title}

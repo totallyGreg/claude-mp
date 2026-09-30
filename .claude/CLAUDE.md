@@ -4,11 +4,7 @@ This repository contains Claude Code skills and follows a GitHub Issues + README
 
 ## Development Workflow
 
-See `/WORKFLOW.md` for complete documentation on:
-- Simple vs complex change workflows
-- GitHub Issue integration
-- README.md management
-- Two-commit release strategy
+See `/WORKFLOW.md` for the full flow: issues, branches, version bumps, validation, plugin README maintenance, and closing issues.
 
 ## Repository Structure
 
@@ -27,13 +23,12 @@ docs/lessons/         →  docs/plans/           →  GitHub Issues      →  RE
 
 ## When Working on Skills
 
-1. **Simple changes**: Commit directly to main
-2. **Complex work**:
-   - Add to plugin-level README.md (under `## Skill: <name>` section)
-   - Create GitHub Issue for tracking (source of truth)
-   - Link issue in commits and README.md
+1. **Simple changes**: may go directly to main (version bumps still required)
+2. **Complex work**: GitHub Issue (source of truth) → `feature/<name>` branch → PR; link the issue in commits and in the plugin README Version History row
 
 **IMPORTANT**: GitHub Issues are the canonical source of truth for work tracking. README.md should be a simple table that reflects issue state, not detailed planning.
+
+**IMPORTANT**: Any change under `plugins/<p>/` must raise `plugins/<p>/.claude-plugin/plugin.json` `version`; any change under a skill must also raise its `SKILL.md` `metadata.version`. Bump in the first commit that touches them — the pre-commit hook (`git config core.hooksPath .githooks`) blocks unbumped commits against the merge-base with `origin/main`. `plugin.json` is the only home for version/description/author; `marketplace.json` entries hold only `name`, `source`, `category`.
 
 **IMPORTANT**: When modifying any skill (SKILL.md, scripts, references), run skillsmith evaluation before committing:
 ```bash

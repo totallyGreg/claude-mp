@@ -1,5 +1,9 @@
 {
   "name": "confluence-pages",
-  "version": "1.1.0",
-  "description": "Create, update, move, and delete Confluence pages via REST API"
+  "version": "1.1.1",
+  "description": "Create, update, move, and delete Confluence pages via REST API",
+  "author": {
+    "name": "J. Greg Williams",
+    "email": "283704+totallyGreg@users.noreply.github.com"
+  }
 }

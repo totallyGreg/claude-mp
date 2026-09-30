@@ -3,11 +3,12 @@
 name: marketplace-manager
 description: >-
   This skill should be used when managing Claude Code plugin marketplace
-  operations including setup, validation, version syncing, and plugin
-  scaffolding. Sets up marketplace repos to be self-sufficient with their
-  own validation and sync scripts. Triggers on "setup marketplace repo",
-  "install repo scripts", "scaffold plugin", "auto-fix marketplace",
-  "reverse scan", "sync versions", "validate marketplace", "add to
+  operations: setup, validation, version-bump enforcement, and plugin
+  scaffolding. Keeps plugin.json the single source of truth and blocks
+  commits that change a plugin or skill without raising its version.
+  Triggers on "setup marketplace repo", "install repo scripts", "scaffold
+  plugin", "auto-fix marketplace", "reverse scan", "check version bumps",
+  "which plugins need a version bump", "validate marketplace", "add to
   marketplace", "check marketplace", or "create plugin". Do NOT use for
   skill content improvements (use skillsmith), plugin component creation
   (use plugin-dev), or OmniFocus/Obsidian operations.
@@ -19,7 +20,7 @@ metadata:
   progressive: 100
   overall: 100
   last_evaluated: 2026-03-26
-  version: "4.0.0"
+  version: "5.0.0"
   author: J. Greg Williams
 compatibility: Requires git repository with .claude-plugin/marketplace.json
 
@@ -27,65 +28,60 @@ compatibility: Requires git repository with .claude-plugin/marketplace.json
 
 # Marketplace Manager
 
-Manages Claude Code plugin marketplace operations. Makes marketplace repos self-sufficient with their own validation and sync scripts.
+Manages Claude Code plugin marketplace repos. `plugin.json` is the single source of truth for a plugin's version, description, and author; marketplace entries carry only `name`, `source`, and `category`. Schema checks come from Anthropic's `claude plugin validate`; this skill adds what it doesn't cover.
 
 | Command | Purpose |
 |---------|---------|
-| `/mp-sync` | Sync plugin versions to marketplace.json |
-| `/mp-validate` | Validate marketplace.json against official schema |
+| `/mp-status` | Show plugins and skills changed since main that still need a version bump |
+| `/mp-validate` | `claude plugin validate` plus duplicate-metadata, version-bump, and unregistered-plugin checks |
 | `/mp-add` | Scaffold a new plugin or migrate a legacy skill |
-| `/mp-list` | List all marketplace plugins |
-| `/mp-status` | Show version mismatches and validation summary |
+| `/mp-list` | List plugins with version and description read from each plugin.json |
+
+## Version rule
+
+Claude Code updates an installed plugin only when its computed version changes, and `plugin.json` `version` wins over everything else. So, against the merge-base of HEAD and `origin/main`:
+
+- Any file changed under `plugins/<p>/` → `<p>/.claude-plugin/plugin.json` version must be semver-greater than at the base
+- Any file changed under `plugins/<p>/skills/<s>/` → `<s>/SKILL.md` `metadata.version` must be greater too
+- New plugins and skills pass if they declare a version
+
+Bump in the first commit that touches a plugin; later commits on the branch pass. Merging main into the branch moves the base, so parallel releases force a fresh bump instead of colliding silently.
 
 ## Architecture
 
-Two-tier script model:
-
-**Repo-level scripts** -- installed INTO marketplace repos by `setup.py`, making them self-sufficient:
-- `scripts/repo/validate.py` -- schema validation, bidirectional disk scan, auto-fix, CI output
-- `scripts/repo/sync.py` -- version sync from plugin.json/SKILL.md to marketplace.json
-
-**Skill-level scripts** -- used by the marketplace-manager skill directly:
-- `scripts/setup.py` -- initialize repos, copy repo scripts, install pre-commit hook
+- `scripts/repo/validate.py` -- the checks above; copied into marketplace repos by `setup.py` so they need nothing from this skill at runtime
+- `scripts/setup.py` -- create marketplace.json, copy validate.py, install the checks-only pre-commit hook
 - `scripts/scaffold.py` -- create new plugins, migrate legacy skills
-
-After `setup.py all`, a marketplace repo is fully self-sufficient with no runtime dependency on marketplace-manager.
 
 ## Operations
 
 ### Setup (initialize a marketplace repo)
 
 ```bash
-python3 scripts/setup.py init --name my-marketplace --owner-name "Team"
-python3 scripts/setup.py install-scripts    # Copy validate.py + sync.py into repo
-python3 scripts/setup.py install-hook       # Install pre-commit hook
-python3 scripts/setup.py all               # All of the above in sequence
+python3 scripts/setup.py all --name my-marketplace --owner-name "Team"
+python3 scripts/setup.py install-hook       # Pre-commit: validate.py --staged
 ```
 
-### Validate (official Anthropic schema)
+### Validate and check bumps
 
 ```bash
-python3 scripts/repo/validate.py [path]              # Validate marketplace.json
-python3 scripts/repo/validate.py --fix                # Auto-add unregistered plugins
-python3 scripts/repo/validate.py --format json        # CI/CD output
-python3 scripts/repo/validate.py --staged             # Pre-commit version check
-python3 scripts/repo/validate.py --check-structure    # Anti-pattern detection
-```
-
-### Sync (version alignment)
-
-```bash
-python3 scripts/repo/sync.py [path]          # Sync versions to marketplace.json
-python3 scripts/repo/sync.py --dry-run       # Preview changes without writing
+python3 scripts/repo/validate.py                    # claude plugin validate + manifest checks
+python3 scripts/repo/validate.py --check-versions   # pending bumps in the working tree
+python3 scripts/repo/validate.py --staged           # same against the index (pre-commit)
+python3 scripts/repo/validate.py --fix              # register unlisted plugins as {name, source}
+python3 scripts/repo/validate.py --check-structure  # shared-source anti-pattern
 ```
 
 ### Scaffold (plugin creation and migration)
 
 ```bash
 python3 scripts/scaffold.py create my-plugin --description "Does things"
-python3 scripts/scaffold.py create my-plugin --with-commands --with-agents
 python3 scripts/scaffold.py migrate skills/old-skill --dry-run
 ```
+
+### Release tags (optional)
+
+After merging, `claude plugin tag plugins/<p> --push` creates `<p>--v<version>`. Tags are only needed when other plugins declare version ranges on `<p>`; update detection uses the version alone.
 
 ## References
 

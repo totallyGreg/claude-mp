@@ -241,28 +241,27 @@ Steps executed:
 1. Skillsmith asks user: "Version bump? MINOR (new feature) or MAJOR (breaking change)?"
 2. Updates metadata.version in SKILL.md
 3. Updates plugin README.md (move to Completed section)
-4. Calls marketplace-manager for version sync
+4. Bumps the plugin's `plugin.json` version (required whenever a skill changes)
 5. Closes GitHub Issue
 
 ### Skillsmith → marketplace-manager
 
 **Invocation Context:**
 ```
-Skillsmith: "Calling marketplace-manager to sync versions and commit changes..."
+Skillsmith: "Calling marketplace-manager to check version bumps and commit changes..."
 
 Context passed to marketplace-manager:
 - Changed files: SKILL.md (and possibly others)
-- New version in SKILL.md metadata
+- New versions in SKILL.md metadata and plugin.json
 - Commit message context (what changed)
 - Current branch (main or plan branch)
 ```
 
 **marketplace-manager Actions:**
-1. Runs sync_marketplace_versions.py
-2. Updates marketplace.json with new version
-3. Shows diff to user
-4. Asks: "Commit these changes? [yes/no]"
-5. If yes, commits SKILL.md + marketplace.json together
+1. Runs `validate.py --check-versions` (plugin.json and SKILL.md must both be bumped)
+2. Shows diff to user
+3. Asks: "Commit these changes? [yes/no]"
+4. If yes, commits SKILL.md + plugin.json together (marketplace.json carries no versions)
 6. Asks: "Push to remote? [yes/no]"
 7. If yes, pushes to remote repository
 
@@ -654,6 +653,6 @@ Instead of binary quick/complex:
 
 - **WORKFLOW.md** - Repository-wide workflow pattern documentation
 - **GitHub Issues** - Source of truth for complex improvement tracking
-- **marketplace-manager** - Version syncing and marketplace distribution
+- **marketplace-manager** - Version-bump enforcement and marketplace distribution
 - **AgentSkills Specification** - `agentskills_specification.md` in this directory
 - **Research Guide** - `research_guide.md` for evaluation tools and metrics

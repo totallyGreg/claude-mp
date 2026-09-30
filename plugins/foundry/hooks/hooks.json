@@ -7,22 +7,22 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-skill-edit.sh",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/on-skill-edit.sh",
             "timeout": 20
           },
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-script-edit.sh",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/on-script-edit.sh",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-agent-edit.sh",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/on-agent-edit.sh",
             "timeout": 20
           },
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-component-edit.sh",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/on-component-edit.sh",
             "timeout": 10
           }
         ]

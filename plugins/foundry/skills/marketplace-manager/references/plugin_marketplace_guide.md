@@ -425,15 +425,15 @@ The marketplace-manager skill adds conventions on top of the official spec. This
 
 | Aspect | Official Spec | marketplace-manager Convention |
 |--------|---------------|-------------------------------|
-| `plugin.json` | Optional; only `name` required if present | Recommended for version tracking |
-| Plugin entry fields | `name` and `source` required | Also expects `version` for sync |
-| Version source | Not specified | SKILL.md `metadata.version` or `plugin.json` `version` |
-| Version sync | Not specified | Auto-sync from source to marketplace.json |
-| Pre-commit hooks | Not specified | Validates marketplace.json on commit |
+| `plugin.json` | Optional; only `name` required if present | Required; single source of version, description, author |
+| Plugin entry fields | `name` and `source` required | Only `name`, `source`, `category`; never `version` |
+| Version source | `plugin.json` wins over the entry | `plugin.json` only |
+| Version bumps | Users update only when the version changes | Pre-commit hook requires a bump for every changed plugin and skill |
+| Pre-commit hooks | Not specified | Runs `claude plugin validate` and the bump check |
 | Plugin directory | Any path | Convention: `plugins/<name>/` |
 | Kebab-case names | Required by spec | Enforced by validation |
 
-The official spec defines **structure**. marketplace-manager adds **workflow** (version syncing, validation, scaffolding).
+The official spec defines **structure**. marketplace-manager adds **workflow** (version-bump enforcement, registration, scaffolding).
 
 ---
 
@@ -448,11 +448,11 @@ Use semver (MAJOR.MINOR.PATCH):
 
 ### Single-Skill Plugins (Recommended)
 
-Plugin version matches skill version. Sync script auto-updates marketplace.json.
+Plugin version usually matches the skill version; both are bumped together.
 
 ### Multi-Skill Plugins (Manual Versioning)
 
-Plugin version is independent from individual skill versions. Developer manually bumps plugin version when any component changes.
+Plugin version is independent from individual skill versions. Bump it whenever any component changes (the pre-commit hook enforces this).
 
 **Best Practice:** Use single-skill plugins whenever possible. Only use multi-skill bundles for tightly coupled components.
 

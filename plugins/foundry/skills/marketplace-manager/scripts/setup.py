@@ -6,11 +6,13 @@
 
 Sets up a marketplace repo with:
 - .claude-plugin/marketplace.json (official Anthropic schema)
-- Repo-local validation and sync scripts
-- Pre-commit hook for automated checks
+- Repo-local validate.py (complements `claude plugin validate`)
+- Pre-commit hook that blocks commits which change a plugin or skill
+  without raising its version (checks only; it never rewrites files)
 
-After setup, the repo owns its own validation and sync logic with no
-runtime dependency on marketplace-manager.
+plugin.json is the single source of truth for plugin metadata, so there is
+nothing to sync into marketplace.json. After setup, the repo has no runtime
+dependency on marketplace-manager.
 
 Usage:
     python3 setup.py init [--name NAME] [--owner-name NAME] [--owner-email EMAIL]
@@ -29,19 +31,17 @@ from pathlib import Path
 
 # Location of repo-level scripts bundled with marketplace-manager
 REPO_SCRIPTS_DIR = Path(__file__).parent / "repo"
-REPO_SCRIPTS = ["validate.py", "sync.py"]
+REPO_SCRIPTS = ["validate.py"]
 
 HOOK_CONTENT = """\
 #!/bin/sh
-# Pre-commit hook: validate marketplace.json and sync versions.
-# Installed by marketplace-manager setup.py
+# Pre-commit hook: validate the marketplace and require version bumps.
+# Installed by marketplace-manager setup.py. Checks only -- never edits files.
 
 set -e
 
 if [ -f ".claude-plugin/marketplace.json" ]; then
-    python3 scripts/validate.py --staged
-    python3 scripts/sync.py
-    git add .claude-plugin/marketplace.json
+    python3 scripts/validate.py .claude-plugin/marketplace.json --staged
 fi
 """
 
@@ -101,7 +101,7 @@ def cmd_init(args: argparse.Namespace) -> bool:
 
 
 def cmd_install_scripts(args: argparse.Namespace) -> bool:
-    """Copy validate.py and sync.py into the target repo's scripts directory."""
+    """Copy validate.py into the target repo's scripts directory."""
     target_dir = Path(args.target_dir)
     force = getattr(args, "force", False)
 
@@ -136,7 +136,7 @@ def cmd_install_scripts(args: argparse.Namespace) -> bool:
 
 
 def cmd_install_hook(args: argparse.Namespace) -> bool:
-    """Install a pre-commit hook that runs validate.py and sync.py."""
+    """Install a pre-commit hook that runs validate.py --staged."""
     hooks_dir = Path(".git/hooks")
 
     if not Path(".git").is_dir():
@@ -189,9 +189,9 @@ def cmd_all(args: argparse.Namespace) -> bool:
 
     print()
     print("Setup complete. Your marketplace repo is now self-sufficient.")
-    print("  - Run 'python3 scripts/validate.py' to validate")
-    print("  - Run 'python3 scripts/sync.py' to sync versions")
-    print("  - Pre-commit hook runs both automatically")
+    print("  - Run 'python3 scripts/validate.py --check-versions' to see pending bumps")
+    print("  - Pre-commit hook blocks commits that change a plugin or skill")
+    print("    without raising its version")
     return True
 
 
@@ -216,7 +216,7 @@ def build_parser() -> argparse.ArgumentParser:
     # install-scripts
     p_scripts = subparsers.add_parser(
         "install-scripts",
-        help="Copy validate.py and sync.py into the repo",
+        help="Copy validate.py into the repo",
     )
     p_scripts.add_argument(
         "--target-dir", default="./scripts",

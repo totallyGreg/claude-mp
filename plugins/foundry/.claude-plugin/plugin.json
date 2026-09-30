@@ -1,7 +1,7 @@
 {
   "name": "foundry",
-  "version": "1.7.0",
-  "description": "Plugin development lifecycle toolkit — evaluate, improve, and publish skills and agents. Consolidates skillsmith (skill quality), marketplace-manager (distribution/versioning), and agentsmith (agent quality) into a single plugin.",
+  "version": "2.0.0",
+  "description": "Plugin development toolkit: evaluate and improve skills (skillsmith) and agents (agentsmith), and publish them to a marketplace with enforced version bumps (marketplace-manager)",
   "author": {
     "name": "J. Greg Williams",
     "email": "283704+totallyGreg@users.noreply.github.com"

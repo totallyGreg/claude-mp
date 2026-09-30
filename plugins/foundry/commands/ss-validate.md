@@ -1,3 +1,9 @@
+---
+name: ss-validate
+description: Quick structural validation of a skill with optional strict mode
+argument-hint: <skill-path> [--strict]
+---
+
 Quick validation of a skill with optional strict mode.
 
 Run the validation command:
