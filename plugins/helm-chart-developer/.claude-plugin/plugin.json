@@ -1,5 +1,9 @@
 {
   "name": "helm-chart-developer",
-  "version": "2.0.0",
-  "description": "Expert guide for Helm chart development, testing, and security"
+  "version": "2.0.1",
+  "description": "Expert guide for Helm chart development, testing, and security",
+  "author": {
+    "name": "J. Greg Williams",
+    "email": "283704+totallyGreg@users.noreply.github.com"
+  }
 }

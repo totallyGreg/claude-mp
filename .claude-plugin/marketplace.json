@@ -12,146 +12,68 @@
   "plugins": [
     {
       "name": "terminal-guru",
-      "description": "Terminal diagnostics, tool composition, workflow discovery, and multi-Claude tmux orchestration — triage agent routing to seven skills across the terminal stack (terminal-emulation, zsh-dev, tmux-dev, tui-experience, signals-monitoring, environment-composition, mise-tooling)",
-      "category": "development",
-      "version": "5.17.1",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/terminal-guru"
+      "source": "./plugins/terminal-guru",
+      "category": "development"
     },
     {
       "name": "helm-chart-developer",
-      "description": "Expert guide for Helm chart development, testing, and security",
-      "category": "development",
-      "version": "2.0.0",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/helm-chart-developer"
+      "source": "./plugins/helm-chart-developer",
+      "category": "development"
     },
     {
       "name": "foundry",
-      "description": "Plugin development lifecycle toolkit — evaluate, improve, and publish skills and agents. Consolidates skillsmith, marketplace-manager, and agentsmith.",
-      "category": "development",
-      "version": "1.7.0",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/foundry"
+      "source": "./plugins/foundry",
+      "category": "development"
     },
     {
       "name": "swift-dev",
-      "description": "Swift development expert for SwiftUI, iOS/macOS frameworks, Server-side Swift, and Objective-C migration",
-      "category": "development",
-      "version": "1.2.0",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/swift-dev"
+      "source": "./plugins/swift-dev",
+      "category": "development"
     },
     {
       "name": "archivist",
-      "description": "Personal Knowledge Management expert for Obsidian vaults with dual-skill architecture: vault-architect (create structures) and vault-curator (evolve content)",
-      "category": "productivity",
-      "version": "1.28.0",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/archivist"
+      "source": "./plugins/archivist",
+      "category": "productivity"
     },
     {
       "name": "attache",
-      "description": "Chief of Staff agent — personal advisor that orchestrates task management, delegates to specialist agents, learns workflow patterns, and manages the full tool stack",
-      "category": "productivity",
-      "version": "12.2.0",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/attache"
+      "source": "./plugins/attache",
+      "category": "productivity"
     },
     {
       "name": "ai-risk-mapper",
-      "description": "AI security risk assessment using CoSAI Risk Map framework",
-      "category": "security",
-      "version": "5.2.2",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/ai-risk-mapper"
+      "source": "./plugins/ai-risk-mapper",
+      "category": "security"
     },
     {
       "name": "gateway-manager",
-      "description": "Multi-skill plugin for Kubernetes Gateway API (kgateway) and AI/LLM routing (agentgateway) — provider backends, MCP server routing, external processing, version lifecycle management, and traffic policies",
-      "category": "infrastructure",
-      "version": "3.0.0",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/gateway-manager"
+      "source": "./plugins/gateway-manager",
+      "category": "infrastructure"
     },
     {
       "name": "confluence-pages",
-      "description": "Create, update, move, and delete Confluence pages via REST API",
-      "category": "productivity",
-      "version": "1.1.0",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/confluence-pages"
+      "source": "./plugins/confluence-pages",
+      "category": "productivity"
     },
     {
       "name": "slack-toolkit",
-      "description": "Slack Web API toolkit (slack_sdk): extract threads/history/catchup as readable markdown and publish Canvases from markdown files, plus full Canvas CRUD and reactions",
-      "category": "productivity",
-      "version": "2.1.0",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/slack-toolkit"
+      "source": "./plugins/slack-toolkit",
+      "category": "productivity"
     },
     {
       "name": "chronicle",
-      "description": "Opinionated guidance for managing change across documents, code, and experiments. Covers git (primary), jujutsu, and historical VCS tools with strong opinions on commit craft, branching, merge strategy, and multi-agent worktree workflows.",
-      "category": "development",
-      "version": "0.1.0",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/chronicle"
+      "source": "./plugins/chronicle",
+      "category": "development"
     },
     {
       "name": "handoff",
-      "description": "Hand off work to another Claude — teammate via SendMessage, tmux pane via send-keys, clipboard, or file. Structured Markdown payload with goal, state, decisions, and next steps.",
-      "category": "development",
-      "version": "0.3.0",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/handoff"
+      "source": "./plugins/handoff",
+      "category": "development"
     },
     {
       "name": "condo-steward",
-      "description": "Community association steward — parse financial statements into local HTML reports, explain Florida condo/HOA law, and guide boards with clear professional escalation. Holds no community data.",
-      "category": "productivity",
-      "version": "0.1.0",
-      "author": {
-        "name": "J. Greg Williams",
-        "email": "283704+totallyGreg@users.noreply.github.com"
-      },
-      "source": "./plugins/condo-steward"
+      "source": "./plugins/condo-steward",
+      "category": "productivity"
     }
   ]
 }
