@@ -102,6 +102,8 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/agentsmith/scripts/evaluate_agent.py <TARGET
 
 Compare against baseline scores. If overall score regressed, fix before proceeding. The baseline is stored in `.agentsmith-baselines.json` in the plugin's source directory.
 
+**Report only scores you actually obtained from this command's output.** Never state or commit an agent-eval score you did not produce with the tool — a narrated score is unverified. If you delegated this loop to a subagent, require its raw `evaluate_agent.py` output as evidence; do not accept a narrated score.
+
 ## Step 4: Update README
 
 Generate the version history row for the new version:

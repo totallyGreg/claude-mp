@@ -69,6 +69,7 @@ cat >> "${BUNDLE_DIR}/Resources/ofoCore.js" << 'IIFE_FOOTER'
   lib.configurePerspective = configurePerspective;
   lib.tagTask = tagTask;
   lib.getTags = getTags;
+  lib.getTaggedTasks = getTaggedTasks;
   lib.createBatch = createBatch;
   lib.getPerspectiveRules = getPerspectiveRules;
   lib.dumpDatabase = dumpDatabase;
@@ -87,6 +88,10 @@ cat >> "${BUNDLE_DIR}/Resources/ofoCore.js" << 'IIFE_FOOTER'
   lib.listFolders = listFolders;
   lib.createProject = createProject;
   lib.updateProject = updateProject;
+  // Folder mutation
+  lib.createFolder = createFolder;
+  lib.renameFolder = renameFolder;
+  lib.moveFolder = moveFolder;
   lib.dispatch = dispatch;
   return lib;
 })();
@@ -138,10 +143,11 @@ BUILT_JS="${BUNDLE_DIR}/Resources/ofoCore.js"
 # resolveConventions as helpers if added).
 EXPECTED_FNS=(
   normalizeTask getTask completeTask dropTask createTask updateTask searchTasks listTasks
-  getPerspective configurePerspective tagTask getTags createBatch
+  getPerspective configurePerspective tagTask getTags getTaggedTasks createBatch
   getPerspectiveRules dumpDatabase getStats assessClarity stalledProjects getHealth
   listWaitingFor listSomedayMaybe listNeglectedProjects listRecentlyCompleted
   listProjectsForReview markProjectReviewed listFolders createProject updateProject
+  createFolder renameFolder moveFolder
   dispatch
 )
 for fn in "${EXPECTED_FNS[@]}"; do

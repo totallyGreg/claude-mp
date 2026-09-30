@@ -275,7 +275,15 @@ color_theme = "default"  # default/charm (dark), base16 (light), catppuccin, dra
 
 ## Watch Mode
 
-Continuous file watching for rebuild-on-change workflows:
+**Prefer a runtime-native watcher when the runtime has one** — it adds zero extra processes and zero memory versus spawning `mise watch`/`watchexec`:
+
+| Runtime | Command | Note |
+|---|---|---|
+| Bun | `bun --watch run src/main.ts` | Use `--watch`, not `--hot` (stale state) |
+| Node | `node --watch src/main.js` | — |
+| Python | `uvicorn app:main --reload` | — |
+
+Reach for `mise watch` when the runtime has no built-in watcher (Go, Rust, shell) or you need to re-run a multi-step task DAG on change:
 
 ```bash
 mise watch build -w src -w Cargo.toml    # rebuild when files change

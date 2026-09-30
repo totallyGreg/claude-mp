@@ -7,8 +7,11 @@ Terminal diagnostics, tool composition, workflow discovery, and environment expe
 ### Agent: terminal-guru
 Terminal and shell expert that diagnoses problems, composes tools into workflows, and discovers usage patterns. Routes to 7 skills across the terminal stack: terminal-emulation (substrate) → zsh → tmux → sesh → TUI apps → git → command capture → mise tasks.
 
+**v5.14.0**: Fixed mute-teammate defect — agent now carries `SendMessage` in its `tools:` frontmatter so it can reply to the lead and other teammates when spawned as a persistent team member via `/team-spawn`. Previously, the agent could receive messages but had no tool to respond, behaving like a mute one-shot subagent despite advertising `/team-spawn` and `/team-list` commands.
+
 | Version | Date | Trigger | Prompt | Coherence | Overall |
 |---------|------|---------|--------|-----------|---------|
+| 5.14.0 | 2026-08-06 | 100 | 100 | 100 | **100** |
 | 5.12.0 | 2026-07-15 | 100 | 100 | 100 | **100** |
 | 5.7.0 | 2026-06-30 | 100 | 100 | 100 | **100** |
 | 5.5.0 | 2026-06-05 | 100 | 90 | 100 | 96 |
@@ -88,14 +91,14 @@ mise (jdx/mise) configuration, task automation, and environment management:
 - DRY patterns via shared shell functions and task inheritance
 - Environment variables with exec() for dynamic secrets (keychainctl, vault)
 - task_config.includes behavior and gotchas, cross-project sharing
-- Tool version management, watch mode, CLI reference
-- Use case patterns: milestone aggregation, confirmation, cleanup, CI/CD
+- Tool version management, watch mode (runtime-native vs `mise watch`), CLI reference
+- Use case patterns: milestone aggregation, confirmation, cleanup, CI/CD, release pipeline ordering, implicit tool dependencies, monorepo affected detection
 
 ## Skill: mise-tooling
 
 ### Current Metrics
 
-**Score: 98/100** (Excellent) — 2026-07-03
+**Score: 98/100** (Excellent) — 2026-08-06
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -105,6 +108,8 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 2.7.0 | 2026-08-06 | - | **Compact-listing readability warning** for `description`. SKILL.md Authoring Conventions bullet now warns that long descriptions wrap/overlap in the compact `mise tasks` listing and shell completions — over-applying the density rule produced a real `cut -c1-94` workaround. New guidance: lead with a ≤72-char summary that stands alone in the compact listing; push arg-level detail to `#USAGE help=` and the task body; reserve full what/requires/produces/when for `mise tasks --extended`. `mise_task_patterns.md` description-property row updated to note the compact-listing constraint. | 100 | 90 | 100 | 100 | 100 | 98 |
+| 2.6.0 | 2026-07-23 | - | Four additions from comparison with terrylica `cc-skills` mise-tasks skill (`terrylica/cc-skills`). To `mise_use_case_patterns.md`: **release pipeline ordering** (build-before-publish DAG discipline — "manual step after X" is not enforcement; hidden guard-task pattern for selective re-run), **implicit tool dependencies** (tools whose flags silently need helpers, e.g. `maturin --zig` → `cargo-zigbuild`; declare all in `[tools]`), **monorepo affected detection** (mise has no native affected detection — git-diff fallback task with its transitive-dependency limitation flagged, plus a graduate-to Pants/Bazel/Turborepo scale table). To `mise_config_guide.md` + SKILL.md §5: **prefer runtime-native watch** (`bun --watch`/`node --watch`/`uvicorn --reload`, 0 overhead) over `mise watch`/`watchexec`. New Authoring Convention: **rich task `description`s** for agent discoverability via `mise tasks ls`. Skillsmith receipt-verified 98/100 (`--verify` exit 0; score corrected from an earlier 97 after fixing the skillsmith frontmatter-inflation bug — see foundry). | 100 | 90 | 100 | 100 | 100 | 98 |
 | 2.5.0 | 2026-07-03 | - | Full mise-release refresh (last_verified 2026-05-03 → 2026-07-03, 89 upstream commits reviewed via `/ss-refresh` full audit). Corrected two now-wrong claims: directory paths in `task_config.includes` DO now work for TOML files (PR #10219 — was documented as silently failing, verified against a live sandbox); fixed a broken config-guide source URL (`docs/configuration/` → `docs/configuration.md`). Added: includes ordering (last entry wins, applies uniformly to directory/toml/`git::` includes), `git::` remote task includes, `auto_env` platform environments, monorepo `--monorepo` install + tri-state lockfile union, shell-style `$VAR`/`${VAR:-default}` env expansion (default-on since mise 2026.7.0), `{ default = "..." }` env fallback shorthand, sops `.env.toml` support. New reference file `mise_bootstrap_system.md` covering the experimental declarative `mise bootstrap` machine-provisioning feature (packages/repos/dotfiles/macOS defaults/systemd/login shell) as new Capability #6 in SKILL.md. | 100 | 90 | 100 | 100 | 100 | 98 |
 | 2.4.0 | 2026-07-03 | - | Added two homestack-2026-derived environment patterns to `mise_environment_management.md`: multi-cluster/multi-target overlay configs (base `.mise.toml` + per-target overrides, with the "define `CLUSTER_ENDPOINT` explicitly, don't compose it" gotcha since Tera doesn't guarantee same-file env-var evaluation order), and capturing runtime-discovered values (e.g. a LB IP) via `mise set -E <env>` since `export` in a task body doesn't survive to the next `mise run` invocation. Verified `mise set -E` behavior against a live mise 2026.7.0 install. SKILL.md's Environment Management pointer updated to mention both. | 100 | 90 | 100 | 100 | 100 | 98 |
 | 2.3.0 | 2026-07-03 | - | Two real-migration gotchas from a homestack-2026 review: (1) Tera doesn't render file-based task scripts at all — `{{config_root}}`-sourced libs silently resolve to a nonexistent path once promoted from inline TOML, fixed with `SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"`; (2) unquoted heredocs used for shell-side variable interpolation aren't a "quote it and move on" fix — export vars first, read via the child language's env mechanism, then quote. Added `${#arr[@]}` Tera comment-opener collision (previously undocumented) alongside it in `mise_task_patterns.md`. Disambiguated SKILL.md's `{{config_root}}` guidance to inline `run` blocks only. | 100 | 90 | 100 | 100 | 100 | 98 |
@@ -119,6 +124,12 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Changes |
 |---------|---------|
+| 5.17.1 | **zsh-dev v3.2.1**: `keychainctl` rewritten in zsh with only macOS built-ins (`security` + `plutil`; `jq` no longer needed). One `get`/`set`/`rm` command set replaces the separate `pair` namespace (kept as a compatibility alias); `-f FIELD` edits one field of a bundle; `-k` selects the keychain. New `import` stores a JSON bundle from a file, stdin, or a hidden paste (nothing in shell history). Items are tagged Kind `secret` or `json`. Guards: refuse to drop a bundle's fields, or store values that look like paste mistakes (whitespace, `$(`, backtick) unless `--force`. Labels kept across writes; `ls` lists item names, not labels. Brings the long-diverged `~/bin` copy (pair support) back into source. **mise-tooling v2.7.2**: keychain examples updated to the new commands. |
+| 5.17.0 | **mise-tooling v2.7.1**: documented the `#USAGE`/`#MISE` KDL-escape gotcha — mise parses these as KDL (only its built-in escapes are valid); a stray `\$` fails parsing and silently breaks `mise tasks` + tab-completion. Nuance: the error surfaces only when a task's usage spec is loaded (`mise tasks info <name>`/completion), not a plain `mise tasks`. Added to SKILL.md Authoring Conventions + `mise_task_patterns.md`. |
+| 5.16.0 | **terminal-emulation v4.1.1**: corrected `terminal_recording.md` to mirror the canonical `record.sh` pattern — single-script self-replay trick (`--play` mode keeps pacing helpers in scope without a separate lib file), `end()` helper, prereq guards that "fail with the fix", safety gate strips bare UUIDs (legitimate task output). **mise-tooling v2.7.0**: compact-listing readability warning added — long descriptions wrap/overlap in `mise tasks` and completions; lead with ≤72-char summary; guidance updated in SKILL.md and `mise_task_patterns.md`. |
+| 5.15.0 | **terminal-emulation v4.1.0**: new recording capability — asciinema→GIF pipeline for GitHub/GitLab READMEs (JS player blocked). Added `references/terminal_recording.md`: single-script self-replay pattern, `say`/`run`/`end` helpers, prereq guards, tuned `agg` defaults, credential safety gate, `record.sh` scaffolder (target stays plugin-free). Spec compliance fixed: `license`+`compatibility` frontmatter. Skill score: 92→98/100. |
+| 5.14.0 | **Fix: add `SendMessage` to agent tools list.** Agent advertises persistent-teammate commands (`/team-spawn`, `/team-list`) but was missing `SendMessage` in its `tools:` frontmatter — it could receive messages but could never reply. Adding `SendMessage` unblocks teammate-to-lead and teammate-to-teammate communication when terminal-guru is spawned as a persistent team member. Score: 100/100 (no regression). |
+| 5.13.0 | **mise-tooling v2.6.0**: four additions from comparison with terrylica `cc-skills` mise-tasks skill. `mise_use_case_patterns.md` gained release pipeline ordering (build-before-publish DAG discipline + guard-task selective re-run), implicit tool dependencies (`maturin --zig` → `cargo-zigbuild`, etc.), and monorepo affected detection (mise has none natively — git-diff fallback with transitive-dep limitation flagged + graduate-to Pants/Bazel/Turborepo scale table). `mise_config_guide.md` + SKILL.md §5 now prefer runtime-native watch (`bun --watch`/`node --watch`/`uvicorn --reload`) over `mise watch`. New Authoring Convention: rich task `description`s for `mise tasks ls` agent discoverability. Skillsmith receipt-verified 98/100 (`--verify` exit 0). |
 | 5.12.0 | **herdr awareness.** Agent: one `<example>` + a Terminal Stack parenthetical noting `herdr` as an alternative AI-agent-focused multiplexer to tmux (no procedural detail — routing awareness only, per user feedback that agent-level content should stay light). New tmux-dev reference `herdr_alternative.md`: config (`~/.config/herdr/config.toml`, `--default-config`, `config check` vs `reload-config`), theming (`ui.accent`, `theme.custom` tokens, light/dark sibling themes), an empirical probe-color diagnostic technique for undocumented tokens, and a confirmed sidebar-divider gap (no config workaround). No score regression: agent still 100/100, tmux-dev still 91/100. |
 | 5.11.0 | **mise-tooling v2.5.0**: full mise release-notes refresh (89 upstream commits reviewed). Corrected two now-stale claims (`task_config.includes` directory-TOML behavior; broken config-guide URL). Added includes ordering/`git::` remote includes, `auto_env`, monorepo install/lockfile union, shell-style env expansion, sops `.env.toml`. New `mise_bootstrap_system.md` reference for the experimental declarative machine-bootstrap feature. |
 | 5.10.0 | **mise-tooling v2.4.0**: added multi-cluster/multi-target overlay pattern and `mise set -E`-based bootstrap output capture to `mise_environment_management.md`, generalized from real homestack-2026 usage (per-target `CLUSTER_ENDPOINT`/`CLUSTER_NAME` conventions, gateway LB IP capture). |
@@ -194,4 +205,21 @@ mise (jdx/mise) configuration, task automation, and environment management:
 | 2.1.0 | 2026-02-08 | #12 | Add zsh function patterns, completion guide, and Plugin Standard references | 33 | 66 | 80 | 100 | - | 69 |
 | 2.0.0 | 2025-11-20 | - | Initial release with terminal diagnostics and zsh configuration support | 20 | 66 | 80 | 100 | - | 66 |
 
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
+
+## Skill: terminal-emulation
+
+### Current Metrics
+
+**Score: 98/100** (Excellent) — 2026-08-06
+
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 100 | 90 | 100 | 100 | 100 |
+
+### Version History
+
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 4.1.0 | 2026-08-06 | - | New capability: **terminal recording (asciinema → GIF)**. Added `references/terminal_recording.md`: headless recording with the **single-script self-replay trick** (`record.sh --play <name>` so pacing helpers are in scope without a separate lib file), `say`/`run`/`end` helpers, prereq guards that "fail with the fix", credential safety gate (Bearer/JWT only — bare UUIDs not flagged), tuned `agg` defaults, and `record.sh` scaffolder (target stays plugin-free). Canonical reference implementation: `examples/casts/record.sh` in airs-tasks. Added `license` + `compatibility` frontmatter (spec compliance 80→100). +v4.1.1 (corrected safety gate — removed UUID pattern; aligned with canonical). | 100 | 90 | 100 | 100 | 100 | 98 |
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)

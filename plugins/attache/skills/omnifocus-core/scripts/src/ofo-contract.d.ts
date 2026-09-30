@@ -20,6 +20,7 @@ declare type OfoAction =
   | 'ofo-list'
   | 'ofo-tag'
   | 'ofo-tags'
+  | 'ofo-tagged'
   | 'ofo-perspective'
   | 'ofo-perspective-configure'
   | 'ofo-perspective-rules'
@@ -39,7 +40,11 @@ declare type OfoAction =
   | 'ofo-mark-project-reviewed'
   | 'ofo-list-folders'
   | 'ofo-create-project'
-  | 'ofo-update-project';
+  | 'ofo-update-project'
+  // Folder mutation
+  | 'ofo-create-folder'
+  | 'ofo-rename-folder'
+  | 'ofo-move-folder';
 
 declare interface OfoArgs {
   action: OfoAction;

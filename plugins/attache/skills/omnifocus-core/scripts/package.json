@@ -8,9 +8,9 @@
     "clean": "rm -rf build/Attache.omnifocusjs build/ofo-cli.js build/ofo-types.js build/ofo-stub.js build/intermediate",
     "build": "npm run build:plugin && npm run build:cli",
     "build:generator": "tsc",
-    "build:plugin": "bash build-attache.sh",
+    "build:plugin": "bash ../../attache-analyst/scripts/build-attache.sh",
     "build:cli": "tsc --project src/tsconfig.cli.json && cp src/ofo-stub.js build/ofo-stub.js",
-    "deploy": "open build/Attache.omnifocusjs",
+    "deploy": "open ../../attache-analyst/scripts/build/Attache.omnifocusjs",
     "watch": "tsc --watch",
     "generate": "node generate_plugin.js"
   },

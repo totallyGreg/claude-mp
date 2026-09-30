@@ -106,6 +106,12 @@ nmap -p 50000 10.0.0.0/24
 
 Supports any shebang: bash, node, python, deno, powershell.
 
+> **`#MISE`/`#USAGE` are KDL — escapes matter.** Values accept only KDL's built-in
+> escapes (`\"`, `\n`, `\t`, `\r`, `\uXXXX`, backslash-backslash); a stray `\$` (or other)
+> fails parsing and **silently breaks `mise tasks` + completion**. KDL doesn't interpolate
+> — write `$VAR` plain. The error appears only when a task's usage spec is loaded
+> (`mise tasks info <name>`, completion, `mise <task> --help`), not a plain `mise tasks`.
+
 ## Task Namespacing
 
 Use colon-separated names for logical grouping by service area:
@@ -125,7 +131,7 @@ Convention: `<service>:<action>` — the service prefix groups related operation
 |----------|------|---------|
 | `run` | string / array | Command(s) to execute. Arrays run sequentially. |
 | `run_windows` | string | Windows-specific override. |
-| `description` | string | Shown in `mise tasks --extended` and completions. |
+| `description` | string | Shown in `mise tasks --extended`, compact `mise tasks`, and completions. Long descriptions wrap and overlap in the compact listing — lead with a ≤72-char summary that stands alone; push detail to `#USAGE help=` or `mise tasks --extended`. |
 | `alias` / `aliases` | string / array | Alternative invocation names. |
 | `depends` | string / array | Prerequisites that must succeed first. Forms DAG edges. |
 | `depends_post` | string / array | Runs after parent completes regardless of success. |

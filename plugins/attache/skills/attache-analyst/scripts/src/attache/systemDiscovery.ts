@@ -179,7 +179,7 @@
                 parentName: parent ? parent.name : null,
                 projectCount: folder.projects ? folder.projects.length : 0,
                 activeProjectCount: folder.flattenedProjects ?
-                    folder.flattenedProjects.filter(p => !p.completed && p.status.name === "active").length : 0,
+                    folder.flattenedProjects.filter(p => !p.completed && p.status === Project.Status.Active).length : 0,
                 subfolderCount: folder.folders ? folder.folders.length : 0
             };
 
@@ -261,14 +261,15 @@
         const now = new Date();
 
         allProjects.forEach(project => {
-            // Status counts
+            // Status counts — enum identity (matches ofo-core; `.status.name` string
+            // comparison never matched the OmniJS enum and silently yielded 0).
             if (project.completed) {
                 stats.completed++;
-            } else if (project.status.name === "active") {
+            } else if (project.status === Project.Status.Active) {
                 stats.active++;
-            } else if (project.status.name === "on hold") {
+            } else if (project.status === Project.Status.OnHold) {
                 stats.onHold++;
-            } else if (project.status.name === "dropped") {
+            } else if (project.status === Project.Status.Dropped) {
                 stats.dropped++;
             }
 
@@ -295,7 +296,7 @@
             }
 
             // Stalled detection (active but no available tasks)
-            if (!project.completed && project.status.name === "active") {
+            if (!project.completed && project.status === Project.Status.Active) {
                 const availableTasks = project.flattenedTasks ?
                     project.flattenedTasks.filter(t => !t.completed && !t.blocked).length : 0;
                 if (availableTasks === 0) {
@@ -327,7 +328,8 @@
             withProject: 0,
             overdue: 0,
             flagged: 0,
-            inInbox: 0
+            inInbox: 0,       // available-only — matches `ofo list inbox` / `ofo health`
+            inInboxTotal: 0   // all incomplete inbox items (deferred/blocked included)
         };
 
         const now = new Date();
@@ -344,7 +346,10 @@
             if (task.tags && task.tags.length > 0) stats.withTags++;
             if (task.note && task.note.length > 0) stats.withNotes++;
             if (task.flagged) stats.flagged++;
-            if (task.inInbox) stats.inInbox++;
+            if (task.inInbox) {
+                stats.inInboxTotal++;
+                if (task.taskStatus === Task.Status.Available) stats.inInbox++;
+            }
             // D7.2 — track project assignment for dataQuality.percentWithProject
             if (task.containingProject) stats.withProject++;
         });

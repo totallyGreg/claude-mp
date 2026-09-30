@@ -6,15 +6,15 @@
     "email": "283704+totallyGreg@users.noreply.github.com"
   },
   "metadata": {
-    "version": "2.0.1",
+    "version": "2.0.3",
     "description": "Totally Tools - a Playground for Claude extensions including skills, commands, agents, hooks, and MCP servers"
   },
   "plugins": [
     {
       "name": "terminal-guru",
-      "description": "Terminal diagnostics, configuration, and zsh development expert with triage agent and three focused skills",
+      "description": "Terminal diagnostics, tool composition, workflow discovery, and multi-Claude tmux orchestration — triage agent routing to seven skills across the terminal stack (terminal-emulation, zsh-dev, tmux-dev, tui-experience, signals-monitoring, environment-composition, mise-tooling)",
       "category": "development",
-      "version": "5.12.0",
+      "version": "5.17.1",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
@@ -34,9 +34,9 @@
     },
     {
       "name": "foundry",
-      "description": "Plugin development lifecycle toolkit \u2014 evaluate, improve, and publish skills and agents. Consolidates skillsmith, marketplace-manager, and agentsmith.",
+      "description": "Plugin development lifecycle toolkit — evaluate, improve, and publish skills and agents. Consolidates skillsmith, marketplace-manager, and agentsmith.",
       "category": "development",
-      "version": "1.4.0",
+      "version": "1.7.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
@@ -67,9 +67,9 @@
     },
     {
       "name": "attache",
-      "description": "Chief of Staff agent \u2014 personal advisor that orchestrates task management, delegates to specialist agents, learns workflow patterns, and manages the full tool stack",
+      "description": "Chief of Staff agent — personal advisor that orchestrates task management, delegates to specialist agents, learns workflow patterns, and manages the full tool stack",
       "category": "productivity",
-      "version": "12.1.2",
+      "version": "12.2.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
@@ -89,7 +89,7 @@
     },
     {
       "name": "gateway-manager",
-      "description": "Multi-skill plugin for Kubernetes Gateway API (kgateway) and AI/LLM routing (agentgateway) \u2014 provider backends, MCP server routing, external processing, version lifecycle management, and traffic policies",
+      "description": "Multi-skill plugin for Kubernetes Gateway API (kgateway) and AI/LLM routing (agentgateway) — provider backends, MCP server routing, external processing, version lifecycle management, and traffic policies",
       "category": "infrastructure",
       "version": "3.0.0",
       "author": {
@@ -111,9 +111,9 @@
     },
     {
       "name": "slack-toolkit",
-      "description": "Slack Web API access via Python CLI \u2014 Canvas read/create/update/rewrite, reactions, threads, and channel history without MCP dependency",
+      "description": "Slack Web API toolkit (slack_sdk): extract threads/history/catchup as readable markdown and publish Canvases from markdown files, plus full Canvas CRUD and reactions",
       "category": "productivity",
-      "version": "1.5.1",
+      "version": "2.1.0",
       "author": {
         "name": "J. Greg Williams",
         "email": "283704+totallyGreg@users.noreply.github.com"
@@ -133,7 +133,7 @@
     },
     {
       "name": "handoff",
-      "description": "Hand off work to another Claude \u2014 teammate via SendMessage, tmux pane via send-keys, clipboard, or file. Structured Markdown payload with goal, state, decisions, and next steps.",
+      "description": "Hand off work to another Claude — teammate via SendMessage, tmux pane via send-keys, clipboard, or file. Structured Markdown payload with goal, state, decisions, and next steps.",
       "category": "development",
       "version": "0.3.0",
       "author": {
@@ -144,7 +144,7 @@
     },
     {
       "name": "condo-steward",
-      "description": "Community association steward \u2014 parse financial statements into local HTML reports, explain Florida condo/HOA law, and guide boards with clear professional escalation. Holds no community data.",
+      "description": "Community association steward — parse financial statements into local HTML reports, explain Florida condo/HOA law, and guide boards with clear professional escalation. Holds no community data.",
       "category": "productivity",
       "version": "0.1.0",
       "author": {

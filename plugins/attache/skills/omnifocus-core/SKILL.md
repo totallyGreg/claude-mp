@@ -6,7 +6,7 @@ description: |
   Do NOT trigger for: "create OmniFocus plugin" (use omnifocus-generator skill), "analyze my system" or "discover my patterns" (use attache-analyst skill), pure GTD methodology questions (use gtd-coach skill).
 license: MIT
 metadata:
-  version: 11.1.0
+  version: 11.2.0
   author: totally-tools
 compatibility:
   platforms: [macos]
@@ -115,6 +115,7 @@ See `references/perspective_creation.md` for the guided configuration workflow.
 - **Single-action pattern**: One call = one pasteboard round-trip = reliable results
 - **Commands use `${CLAUDE_PLUGIN_ROOT}`**: `${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-core/scripts/`
 - **Smoke test before version bump**: `bash scripts/test-queries.sh`
+- **Editing ofo behavior**: `ofo-core.ts` is the one shared `ofoCore` library used by BOTH the CLI and the native Attache plugin actions. After changing it, run `npm run build && npm run deploy` to recompile both downstream artifacts. See `../../CONTRIBUTING.md` → "Adding a New ofo Action" for the full registration footprint (types union, dispatch, `build-attache.sh` footer + `EXPECTED_FNS`, CLI).
 
 ## Execution Hierarchy
 

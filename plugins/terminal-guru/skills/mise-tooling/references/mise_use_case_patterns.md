@@ -125,6 +125,108 @@ Activate with `MISE_ENV=ci` in the CI runner. The CI profile overrides base task
 
 **When to use:** Different output formats, stricter checks, or removed interactive prompts in CI.
 
+## Release Pipeline Ordering
+
+Release workflows have phases that must run in order (version → build → publish). Defining them as independent tasks without `depends` means nothing enforces ordering — a stray `mise run release:publish` runs before artifacts exist and fails late:
+
+```toml
+# ❌ publish has no dependency on build — can run in any order
+[tasks."release:build"]
+run = "maturin build --release"
+
+[tasks."release:publish"]
+run = "./scripts/publish.sh"   # fails with "no artifacts found" if build hasn't run
+```
+
+Wire the DAG so every standalone invocation is safe:
+
+```toml
+[tasks."release:build"]
+depends = ["release:version"]      # bump version first, so artifacts carry the right version
+run = "maturin build --release && cp target/wheels/* dist/"
+
+[tasks."release:publish"]
+depends = ["release:build"]        # ✅ publish can never run before build
+run = "./scripts/publish.sh"       # reads only from dist/
+
+[tasks."release:full"]
+description = "Full release: version → build → publish"
+depends = ["release:publish"]      # orchestrator pulls the whole chain
+```
+
+**Rule:** if two tasks must always run in a specific order, wire it with `depends`. "Manual step after X" is documentation, not enforcement — it gets skipped under pressure. Consolidate all build artifacts into one directory (`dist/`) so the publish step has a single place to look.
+
+**Selective re-run:** when builds are slow and you want to re-publish without rebuilding, swap the `depends` for a hidden guard task that checks the artifact exists and fails with a clear message:
+
+```toml
+[tasks._guard-artifacts]
+hide = true
+run = '[ -n "$(find dist -name "*.whl" 2>/dev/null)" ] || { echo "No wheels in dist/ — run release:build first"; exit 1; }'
+
+[tasks."release:publish"]
+depends = ["_guard-artifacts"]     # guard instead of a full rebuild
+run = "./scripts/publish.sh"
+```
+
+**When to use:** any multi-phase release/deploy pipeline where phases produce artifacts consumed by later phases.
+
+## Implicit Tool Dependencies
+
+Some tools accept flags that silently require *other* tools. When the helper is missing they don't fail fast — they produce wrong output or fail cryptically late. Declare every helper in `[tools]`:
+
+```toml
+[tools]
+zig = "latest"
+"cargo:maturin" = "latest"
+"cargo:cargo-zigbuild" = "latest"   # maturin --zig silently needs this for manylinux compliance
+```
+
+Common cases:
+
+| Primary tool | Implicit dependency | Symptom if missing |
+|---|---|---|
+| `maturin --zig` | `cargo-zigbuild` | manylinux compliance failure (late) |
+| `cargo build` (PyO3) | `python` on PATH | "Python not found" during link |
+| `semantic-release` | `bun` or `npm` | "Cannot find module" |
+| `gh pr create` | `GH_TOKEN` in env | 401 / login prompt |
+
+**Rule:** if a tool flag name-checks another tool (`--zig`, `--with-node`, …), check whether that tool — or a helper for it — belongs in `[tools]`. Read the flag's docs to find undeclared dependencies.
+
+## Monorepo Affected Detection
+
+mise has **no native affected detection** — it can't tell which packages a git change touched. For small monorepos (< ~10 packages), a hidden git-diff task is enough:
+
+```toml
+[tasks._changed-packages]
+description = "List packages changed since origin/main"
+hide = true
+run = '''
+git diff --name-only origin/main 2>/dev/null \
+  | grep -E '^packages/[^/]+/' | cut -d/ -f2 | sort -u
+'''
+
+[tasks."test:affected"]
+description = "Test only changed packages"
+run = '''
+for pkg in $(mise run _changed-packages); do
+  mise run "test:$pkg" || exit 1
+done
+'''
+```
+
+**Limitation:** this is direct-change only — it does **not** follow transitive dependencies. If `shared-types` changes, packages that import it won't be tested unless they also changed. Once that gap bites (or you pass ~10 packages), graduate to a build tool with a real dependency graph:
+
+| Scale / shape | Tool | Why |
+|---|---|---|
+| < 10 packages | mise + git-diff task (above) | Minimal overhead |
+| 10–50, Python-heavy | Pants (`pants --changed-since=origin/main`) | Native affected + dependency inference; coexists with mise |
+| 50+ balanced polyglot | Bazel | Proven scale, remote execution |
+| JS-only | Turborepo / Nx | Best JS tooling |
+
+Keep mise for runtime versions + env even after adopting one of these — mise owns `[tools]`, the build tool owns the graph.
+
+**When to use:** CI that should skip unaffected packages, or local pre-push checks scoped to what you touched.
+
 ## Cross-Project Task Sharing
 
 Two patterns for sharing tasks across projects — choose based on your needs:

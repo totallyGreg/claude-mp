@@ -93,7 +93,7 @@ Apple Intelligence wrapper for Foundation Models on-device inference.
 
 ```bash
 npm run build        # Compiles ofoCore + 10 libraries + copies 7 actions → Attache.omnifocusjs
-npm run deploy       # open build/Attache.omnifocusjs
+npm run deploy       # open ../../attache-analyst/scripts/build/Attache.omnifocusjs (the canonical built bundle)
 ```
 
 All libraries are compiled from TypeScript via `tsconfig.attache-libs.json`. The build script validates IIFE structure for every compiled library.

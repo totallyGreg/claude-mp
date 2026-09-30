@@ -42,11 +42,16 @@ interface Tag {
   status: Tag.Status;
   children: Tag[];
   remainingTasks: Task[];
+  tasks: Task[];  // all tasks carrying this tag (complete + incomplete)
   removeTag(tag: Tag): void;
 }
 
 // Top-level tag hierarchy (from Database global)
 declare const tags: Tag[];
+
+// Omni Automation global for the default document library — its ending is the
+// root ChildInsertionLocation, used to move a project/folder back to top level.
+declare const library: { beginning: Folder.ChildInsertionLocation; ending: Folder.ChildInsertionLocation };
 
 // Omni Automation global for moving tasks between containers
 declare function moveTasks(tasks: Task[], position: any): void;
@@ -68,6 +73,7 @@ declare type OfoAction =
   | 'ofo-list'
   | 'ofo-tag'
   | 'ofo-tags'
+  | 'ofo-tagged'
   | 'ofo-perspective'
   | 'ofo-perspective-configure'
   | 'ofo-perspective-rules'
@@ -87,7 +93,11 @@ declare type OfoAction =
   | 'ofo-mark-project-reviewed'
   | 'ofo-list-folders'
   | 'ofo-create-project'
-  | 'ofo-update-project';
+  | 'ofo-update-project'
+  // Folder mutation
+  | 'ofo-create-folder'
+  | 'ofo-rename-folder'
+  | 'ofo-move-folder';
 
 declare interface OfoArgs {
   action: OfoAction;

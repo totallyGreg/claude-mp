@@ -3,7 +3,7 @@ name: agentsmith
 description: This skill should be used when users ask to "evaluate my agent", "improve agent quality", "agent metrics", "check agent description", "agent isn't triggering", "validate agent", "agent score", "as-evaluate", "as-improve", "agent quality", "fix agent description", or "why isn't my agent triggering". Provides agent quality evaluation with 3 scored dimensions and an improvement loop that orchestrates skillsmith and marketplace-manager. Do NOT use for skill evaluation — route to skillsmith instead. Do NOT use for agent creation — route to plugin-dev:agent-development instead.
 metadata:
   author: J. Greg Williams
-  version: "1.1.0"
+  version: "1.1.1"
 compatibility: Requires python3 and uv for script execution
 license: MIT
 ---
@@ -59,7 +59,7 @@ uv run scripts/evaluate_agent.py agents/my-agent.md
 3. **Evaluate** — run `evaluate_agent.py --explain`, report top-3 quality gaps
 4. **Evaluate sibling skills** — if the plugin has skills, run skillsmith eval on each
 5. **Apply improvements** — fix top-3 gaps, referencing `plugin-dev:agent-development` for guidance
-6. **Re-evaluate** — confirm improvement, block if regression detected
+6. **Re-evaluate** — confirm improvement, block if regression detected. **Report only scores from actual `evaluate_agent.py` output — never narrate a score you didn't produce.** When this loop is delegated to a subagent, require its raw eval output as evidence; do not accept a narrated score (see friction 2026-06-10).
 7. **Update README** — add version history row to plugin README.md
 8. **Version bump** — bump `plugin.json` (agents inherit plugin version)
 9. **Sync marketplace** — invoke `sync.py` to update marketplace.json

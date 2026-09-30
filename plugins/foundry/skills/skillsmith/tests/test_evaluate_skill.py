@@ -32,9 +32,22 @@ from evaluate_skill import (
     validate_file_references,
     calculate_conciseness_score,
     calculate_basic_metrics,
+    calculate_all_metrics,
     validate_skill,
     validate_agentskills_spec,
     validate_description_quality,
+    _frontmatter_field,
+    _first_sentence,
+    _component_brief,
+    _parse_semver,
+    _upsert_fence,
+    _scan_plugin_components,
+    fold_patch_into_minor,
+    audit_version_history,
+    _skill_content_hash,
+    write_receipt,
+    verify_receipt,
+    RECEIPT_FILENAME,
 )
 
 
@@ -316,6 +329,258 @@ class TestDescriptionQuality:
         result = validate_description_quality({'description': desc})
         assert len(result['trigger_phrases_found']) == 3
         assert result['has_negative_trigger'] is True
+
+
+class TestFrontmatterField:
+    """Targeted frontmatter extraction, robust to invalid-YAML siblings."""
+
+    def _write(self, tmp_path, text):
+        p = tmp_path / "COMPONENT.md"
+        p.write_text(text, encoding="utf-8")
+        return p
+
+    def test_inline_description(self, tmp_path):
+        p = self._write(tmp_path, "---\nname: foo\ndescription: A short brief\n---\nbody\n")
+        assert _frontmatter_field(p, "description") == "A short brief"
+
+    def test_survives_invalid_yaml_sibling(self, tmp_path):
+        # argument-hint with juxtaposed [..] [..] is invalid YAML; description must still parse
+        p = self._write(
+            tmp_path,
+            "---\nname: ss-improve\n"
+            "description: Guided improvement loop\n"
+            "argument-hint: [skill-path] [optional context lines...]\n---\nbody\n",
+        )
+        assert _frontmatter_field(p, "description") == "Guided improvement loop"
+
+    def test_block_scalar(self, tmp_path):
+        p = self._write(
+            tmp_path,
+            "---\nname: agent\ndescription: |\n  Use this agent to do things.\n"
+            "  More detail here.\n---\nbody\n",
+        )
+        assert _frontmatter_field(p, "description") == "Use this agent to do things. More detail here."
+
+    def test_absent_field(self, tmp_path):
+        p = self._write(tmp_path, "---\nname: foo\n---\nbody\n")
+        assert _frontmatter_field(p, "description") == ""
+
+    def test_no_frontmatter(self, tmp_path):
+        p = self._write(tmp_path, "Just body content, no frontmatter.\n")
+        assert _frontmatter_field(p, "description") == ""
+
+
+class TestComponentBrief:
+    """Brief extraction prefers description, falls back to first prose paragraph."""
+
+    def test_prefers_description(self, tmp_path):
+        p = tmp_path / "cmd.md"
+        p.write_text("---\ndescription: The brief\n---\n# Heading\n\nBody prose.\n", encoding="utf-8")
+        assert _component_brief(p) == "The brief"
+
+    def test_body_fallback_when_no_description(self, tmp_path):
+        p = tmp_path / "cmd.md"
+        p.write_text("---\nname: mp-sync\n---\nSync plugin versions to marketplace. Then more.\n",
+                     encoding="utf-8")
+        assert _component_brief(p) == "Sync plugin versions to marketplace."
+
+    def test_first_sentence_truncates(self):
+        long = "word " * 100
+        out = _first_sentence(long, limit=40)
+        assert len(out) <= 41 and out.endswith("…")
+
+
+class TestParseSemver:
+    def test_valid(self):
+        assert _parse_semver("6.9.2") == (6, 9, 2)
+
+    def test_minor(self):
+        assert _parse_semver("6.10.0") == (6, 10, 0)
+
+    def test_invalid(self):
+        assert _parse_semver("not-a-version") is None
+
+
+class TestUpsertFence:
+    """Fenced autogen blocks insert once and replace idempotently."""
+
+    def test_insert_then_replace_is_idempotent(self):
+        content = "# Plugin\n\n## Changelog\n\n| v | c |\n"
+        c1, action1 = _upsert_fence(content, "components", "## Components\n\nX",
+                                    insert_before=r"(?m)^## (?:Changelog|Skill:)")
+        assert action1 == "inserted"
+        assert "BEGIN AUTOGEN:components" in c1
+        # Re-running replaces in place — no duplicate fence
+        c2, action2 = _upsert_fence(c1, "components", "## Components\n\nY",
+                                    insert_before=r"(?m)^## (?:Changelog|Skill:)")
+        assert action2 == "replaced"
+        assert c2.count("BEGIN AUTOGEN:components") == 1
+        assert "Y" in c2 and "X" not in c2
+
+    def test_replace_existing_section(self):
+        content = "# Plugin\n\n## Components\n\nold hand-written\n\n## Changelog\n"
+        out, action = _upsert_fence(content, "components", "## Components\n\nnew",
+                                    replace_section_heading="Components")
+        assert action == "replaced-section"
+        assert "old hand-written" not in out
+        assert "BEGIN AUTOGEN:components" in out
+        assert "## Changelog" in out
+
+
+class TestScanPluginComponents:
+    """Component scanning across skills/agents/commands/hooks."""
+
+    @pytest.fixture
+    def plugin(self, tmp_path):
+        root = tmp_path / "myplugin"
+        (root / ".claude-plugin").mkdir(parents=True)
+        (root / ".claude-plugin" / "plugin.json").write_text(
+            '{"name": "myplugin", "description": "Test plugin"}', encoding="utf-8")
+        # a skill
+        sk = root / "skills" / "alpha"
+        sk.mkdir(parents=True)
+        (sk / "SKILL.md").write_text(
+            "---\nname: alpha\ndescription: trigger words here\n---\n# Alpha\n\nDoes alpha things.\n",
+            encoding="utf-8")
+        # a command
+        (root / "commands").mkdir()
+        (root / "commands" / "do-thing.md").write_text(
+            "---\nname: do-thing\ndescription: Do a thing\n---\nbody\n", encoding="utf-8")
+        # an agent (dir form)
+        ag = root / "agents" / "watcher"
+        ag.mkdir(parents=True)
+        (ag / "AGENT.md").write_text(
+            "---\nname: watcher\ndescription: Watches stuff.\n---\nprompt\n", encoding="utf-8")
+        return root
+
+    def test_scan_counts(self, plugin):
+        comp = _scan_plugin_components(plugin)
+        assert len(comp["skills"]) == 1
+        assert len(comp["commands"]) == 1
+        assert len(comp["agents"]) == 1
+        assert comp["skills"][0][0] == "alpha"
+        # skill brief prefers body tagline
+        assert comp["skills"][0][1] == "Does alpha things."
+        assert comp["commands"][0] == ("do-thing", "Do a thing")
+        assert comp["agents"][0] == ("watcher", "Watches stuff.")
+
+
+class TestVersionHistoryEnforcement:
+    """MINOR-only Version History: fold + audit."""
+
+    def _plugin_with_history(self, tmp_path, rows):
+        root = tmp_path / "plug"
+        (root / ".claude-plugin").mkdir(parents=True)
+        (root / ".claude-plugin" / "plugin.json").write_text('{"name":"plug"}', encoding="utf-8")
+        sk = root / "skills" / "alpha"
+        sk.mkdir(parents=True)
+        (sk / "SKILL.md").write_text("---\nname: alpha\ndescription: d\n---\n# A\n\nx\n", encoding="utf-8")
+        table = ("## Skill: alpha\n\n### Version History\n\n"
+                 "| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |\n"
+                 "|---------|------|-------|---------|-------|--------|------|-------|-------|-------|\n"
+                 + "".join(rows))
+        (root / "README.md").write_text("# plug\n\n" + table, encoding="utf-8")
+        return root, sk
+
+    def test_fold_patch_into_parent(self, tmp_path):
+        rows = ["| 6.9.0 | 2026-01-01 | - | base work | 90 | 90 | 90 | 90 | 90 | 90 |\n"]
+        root, sk = self._plugin_with_history(tmp_path, rows)
+        metrics = {
+            "conciseness": {"score": 100}, "complexity": {"score": 100},
+            "spec_compliance": {"score": 100}, "progressive_disclosure": {"score": 100},
+            "description_quality": {"score": 100}, "overall_score": 100,
+        }
+        status, detail = fold_patch_into_minor(str(sk), "6.9.2", metrics, "2026-07-23")
+        assert status == "folded"
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        assert "+v6.9.2" in readme
+        assert "2026-07-23" in readme
+        # metrics refreshed to current
+        assert "| 100 | 100 | 100 | 100 | 100 | 100 |" in readme
+
+    def test_fold_no_parent_returns_no_parent(self, tmp_path):
+        rows = ["| 6.9.0 | 2026-01-01 | - | base | 90 | 90 | 90 | 90 | 90 | 90 |\n"]
+        root, sk = self._plugin_with_history(tmp_path, rows)
+        metrics = {
+            "conciseness": {"score": 100}, "complexity": {"score": 100},
+            "spec_compliance": {"score": 100}, "progressive_disclosure": {"score": 100},
+            "description_quality": {"score": 100}, "overall_score": 100,
+        }
+        status, _ = fold_patch_into_minor(str(sk), "7.1.5", metrics, "2026-07-23")
+        assert status == "no-parent"
+
+    def test_audit_flags_patch_rows(self, tmp_path):
+        rows = [
+            "| 6.9.1 | 2026-02-01 | - | patch | 100 | 100 | 100 | 100 | 100 | 100 |\n",
+            "| 6.9.0 | 2026-01-01 | - | base | 100 | 100 | 100 | 100 | 100 | 100 |\n",
+        ]
+        root, sk = self._plugin_with_history(tmp_path, rows)
+        assert audit_version_history(str(sk)) == 1
+
+    def test_audit_passes_minor_only(self, tmp_path):
+        rows = ["| 6.9.0 | 2026-01-01 | - | base | 100 | 100 | 100 | 100 | 100 | 100 |\n"]
+        root, sk = self._plugin_with_history(tmp_path, rows)
+        assert audit_version_history(str(sk)) == 0
+
+
+class TestEvalReceipts:
+    """Verifiable eval receipts: content hash, write, verify, staleness."""
+
+    def _make_skill(self, tmp_path):
+        sk = tmp_path / "alpha"
+        (sk / "references").mkdir(parents=True)
+        (sk / "SKILL.md").write_text(
+            "---\nname: alpha\ndescription: This skill should be used when "
+            '"do alpha", "run alpha", or "alpha things". Handles alpha work.\n'
+            "---\n# Alpha\n\nDoes alpha things well.\n", encoding="utf-8")
+        (sk / "references" / "guide.md").write_text("# Guide\n\ncontent\n", encoding="utf-8")
+        return sk
+
+    def test_hash_is_deterministic(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        assert _skill_content_hash(sk) == _skill_content_hash(sk)
+
+    def test_hash_changes_on_content_edit(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        before = _skill_content_hash(sk)
+        (sk / "references" / "guide.md").write_text("# Guide\n\nCHANGED\n", encoding="utf-8")
+        assert _skill_content_hash(sk) != before
+
+    def test_receipt_file_excluded_from_hash(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        before = _skill_content_hash(sk)
+        (sk / RECEIPT_FILENAME).write_text('{"x": 1}', encoding="utf-8")
+        # Writing the receipt into the skill root must not change the content hash
+        assert _skill_content_hash(sk) == before
+
+    def test_write_then_verify_passes(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        metrics = calculate_all_metrics(sk)
+        write_receipt(sk, metrics)
+        ok, lines = verify_receipt(sk)
+        assert ok, lines
+
+    def test_verify_fails_when_content_changed(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        write_receipt(sk, calculate_all_metrics(sk))
+        (sk / "references" / "guide.md").write_text("# Guide\n\nDIFFERENT\n", encoding="utf-8")
+        ok, lines = verify_receipt(sk)
+        assert not ok
+        assert any("hash mismatch" in ln for ln in lines)
+
+    def test_verify_fails_without_receipt(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        ok, lines = verify_receipt(sk)
+        assert not ok
+        assert any("No " in ln for ln in lines)
+
+    def test_verify_expect_score_mismatch(self, tmp_path):
+        sk = self._make_skill(tmp_path)
+        metrics = calculate_all_metrics(sk)
+        write_receipt(sk, metrics)
+        # Claim a score guaranteed not to equal the real one
+        ok, _ = verify_receipt(sk, expect_score=str((int(metrics['overall_score']) + 1) % 101))
+        assert not ok
 
 
 if __name__ == '__main__':

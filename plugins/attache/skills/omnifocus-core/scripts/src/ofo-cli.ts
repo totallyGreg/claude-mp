@@ -353,13 +353,85 @@ function resolveSystemMapConvention(field: string): string | null {
 }
 
 function cmdPerspective(args: string[]): void {
-  if (args.length < 1) die('Usage: ofo perspective <name> [--id ID]');
+  if (args.length < 1) die('Usage: ofo perspective <name> [--id ID] [--limit N]');
 
-  if (args[0] === '--id') {
-    runAction('ofo-perspective', { id: args[1] || '' });
-  } else {
-    runAction('ofo-perspective', { name: args.join(' ') });
+  const payload: Record<string, unknown> = {};
+  const nameParts: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--id') { payload['id'] = args[++i] || ''; }
+    else if (args[i] === '--limit') { payload['limit'] = parseInt(args[++i] || '0', 10); }
+    else { nameParts.push(args[i]!); }
   }
+  if (payload['id'] === undefined) payload['name'] = nameParts.join(' ');
+  runAction('ofo-perspective', payload);
+}
+
+function cmdTagged(args: string[]): void {
+  if (args.length < 1) die('Usage: ofo tagged <tag> [--active-only] [--limit N]');
+  const payload: Record<string, unknown> = {};
+  const nameParts: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--active-only') payload['activeOnly'] = true;
+    else if (args[i] === '--limit') payload['limit'] = parseInt(args[++i] || '0', 10);
+    else nameParts.push(args[i]!);
+  }
+  if (nameParts.length === 0) die('Usage: ofo tagged <tag> [--active-only] [--limit N]');
+  payload['tag'] = nameParts.join(' ');
+  runAction('ofo-tagged', payload);
+}
+
+function cmdFolder(args: string[]): void {
+  const sub = args[0];
+  if (!sub) die('Usage: ofo folder <create|rename|move> [args]');
+
+  if (sub === 'create') {
+    let name = '', parent = '';
+    for (let i = 1; i < args.length; i++) {
+      switch (args[i]) {
+        case '--name':   name = args[++i] || ''; break;
+        case '--parent': parent = args[++i] || ''; break;
+        default: die('Unknown flag: ' + args[i]);
+      }
+    }
+    if (!name) die('Usage: ofo folder create --name "Name" [--parent "Parent"]');
+    const payload: Record<string, unknown> = { name };
+    if (parent) payload['parent'] = parent;
+    runAction('ofo-create-folder', payload);
+    return;
+  }
+
+  if (sub === 'rename') {
+    const ref = args[1];
+    if (!ref) die('Usage: ofo folder rename <id|name> --name "New Name"');
+    let newName = '';
+    for (let i = 2; i < args.length; i++) {
+      if (args[i] === '--name') newName = args[++i] || '';
+      else die('Unknown flag: ' + args[i]);
+    }
+    if (!newName) die('--name is required');
+    runAction('ofo-rename-folder', { id: ref, name: newName });
+    return;
+  }
+
+  if (sub === 'move') {
+    const ref = args[1];
+    if (!ref) die('Usage: ofo folder move <id|name> --parent "Parent" | --root');
+    const payload: Record<string, unknown> = { id: ref };
+    for (let i = 2; i < args.length; i++) {
+      switch (args[i]) {
+        case '--parent': payload['parent'] = args[++i] || ''; break;
+        case '--root':   payload['root'] = true; break;
+        default: die('Unknown flag: ' + args[i]);
+      }
+    }
+    if (payload['parent'] === undefined && payload['root'] === undefined) {
+      die('Provide --parent <name|id> or --root');
+    }
+    runAction('ofo-move-folder', payload);
+    return;
+  }
+
+  die('Unknown folder subcommand: ' + sub + ' (try: create, rename, move)');
 }
 
 function cmdPerspectiveRules(args: string[]): void {
@@ -626,7 +698,8 @@ Commands:
   list <filter>                     List tasks by filter
   tag <id|url> [options]            Add/remove tags on a task
   tags                              List all tags as JSON hierarchy
-  perspective <name> [--id ID]      Query a custom perspective
+  tagged <tag> [--active-only] [--limit N]   Tasks carrying a tag, grouped by project with progress (uncapped)
+  perspective <name> [--id ID] [--limit N]   Query a custom perspective (evaluates its filter rules)
   perspective-configure [options]   Set filter rules on a perspective
   completed-today [--markdown]      Today's completions categorized by tag
   dump                              Full database snapshot (active tasks, projects, perspectives) as JSON
@@ -636,12 +709,16 @@ Commands:
   health                            System health: inbox, overdue (with Catch Up metadata), flagged — single call
   completed --since <date> [--by-tag]   Tasks completed since date; optional grouping by tag (gtd-coach "what did you accomplish?")
   folders [--with-projects]         Folder hierarchy as tree; optionally include projects under each folder
+  folder create --name "..." [--parent NAME]     Create a folder (at root or inside a parent)
+  folder rename <id|name> --name "..."           Rename a folder
+  folder move <id|name> --parent NAME | --root   Reparent a folder (or move to top level)
   projects neglected [--days N]     Active projects not modified in N days (default 30)
   projects review [--before <ISO>]  Active/onHold projects whose nextReviewDate ≤ before date (default now)
   project review <id> [--date <ISO>]    Mark project as reviewed (sets lastReviewDate; advances nextReviewDate)
   project create --name "..." [--folder NAME] [--sequential|--parallel] [--note] [--due] [--defer] [--review-every N <unit>]
-  project update <id> [--name|--note|--status|--folder|--due|--defer|--sequential|--parallel|--flagged|--unflag]
+  project update <id> [--name|--note|--status|--folder|--root|--create-missing|--due|--defer|--sequential|--parallel|--flagged|--unflag]
                                     Status values: active | onHold | completed | dropped
+                                    --root moves the project to top level; --create-missing auto-creates a missing --folder
   system-map [flags]                Inspect or refresh the Attache System Map (per D7.2 schema v1).
                                     Flags: --show (human summary), --json (raw JSON, default),
                                            --refresh [--depth quick|full] (re-discover + write to task note),
@@ -970,6 +1047,7 @@ function cmdProject(args: string[]): void {
     let name = '', folder = '', note = '', due = '', defer_ = '';
     let sequential: boolean | undefined;
     let flagged = false;
+    let createMissing = false;
     let reviewIntervalSteps = 0;
     let reviewIntervalUnit = 'weeks';
     for (let i = 1; i < args.length; i++) {
@@ -982,6 +1060,7 @@ function cmdProject(args: string[]): void {
         case '--sequential': sequential = true; break;
         case '--parallel':   sequential = false; break;
         case '--flagged':    flagged = true; break;
+        case '--create-missing': createMissing = true; break;
         case '--review-every': {
           // Format: "--review-every 1 week" or "--review-every 7 days"
           reviewIntervalSteps = parseInt(args[++i] || '0', 10);
@@ -999,6 +1078,7 @@ function cmdProject(args: string[]): void {
     if (defer_) payload['defer'] = defer_;
     if (sequential !== undefined) payload['sequential'] = sequential;
     if (flagged) payload['flagged'] = true;
+    if (createMissing) payload['createMissing'] = true;
     if (reviewIntervalSteps > 0) payload['reviewInterval'] = { steps: reviewIntervalSteps, unit: reviewIntervalUnit };
     runAction('ofo-create-project', payload);
     return;
@@ -1014,6 +1094,8 @@ function cmdProject(args: string[]): void {
         case '--note':       payload['note'] = args[++i] || ''; break;
         case '--status':     payload['status'] = args[++i] || ''; break;
         case '--folder':     payload['folder'] = args[++i] || ''; break;
+        case '--root':       payload['root'] = true; break;
+        case '--create-missing': payload['createMissing'] = true; break;
         case '--due':        payload['due'] = args[++i] === 'clear' ? null : args[i]; break;
         case '--defer':      payload['defer'] = args[++i] === 'clear' ? null : args[i]; break;
         case '--sequential': payload['sequential'] = true; break;
@@ -1074,6 +1156,7 @@ switch (command) {
   case 'list':        cmdList(commandArgs); break;
   case 'tag':                   cmdTag(commandArgs); break;
   case 'tags':                  cmdTags(); break;
+  case 'tagged':                cmdTagged(commandArgs); break;
   case 'perspective':           cmdPerspective(commandArgs); break;
   case 'perspective-configure': cmdPerspectiveConfigure(commandArgs); break;
   case 'perspective-rules':     cmdPerspectiveRules(commandArgs); break;
@@ -1088,6 +1171,7 @@ switch (command) {
   case 'project':               cmdProject(commandArgs); break;
   case 'completed':             cmdCompleted(commandArgs); break;
   case 'folders':               cmdFolders(commandArgs); break;
+  case 'folder':                cmdFolder(commandArgs); break;
   case 'system-map':            cmdSystemMap(commandArgs); break;
   case 'help':
   case '--help':

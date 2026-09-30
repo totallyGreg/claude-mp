@@ -122,6 +122,14 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/skillsmith/scripts/evaluate_skill.py <TARGET
 
 Confirm scores improved. If any score regressed, fix before proceeding.
 
+**Report only scores you actually obtained from this command's output.** Never state or commit an eval score you did not produce with the tool — a narrated score is unverified and is exactly the confabulation failure this loop guards against. After Step 4 writes the receipt, you may confirm with:
+
+```bash
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/skillsmith/scripts/evaluate_skill.py <TARGET> --verify --expect-score <score-you-are-claiming>
+```
+
+`--verify` exits non-zero if the claimed score doesn't match a re-evaluation of the current content. If you delegated this loop to a subagent, require its raw eval output (or a passing `--verify`) as evidence — do not accept a narrated score.
+
 ## Step 4: Update README
 
 ```bash
