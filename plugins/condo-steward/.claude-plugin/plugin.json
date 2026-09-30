@@ -1,0 +1,19 @@
+{
+  "name": "condo-steward",
+  "version": "0.1.0",
+  "description": "Community association steward: parse management-company financial statements into local HTML reports, explain Florida condo/HOA statutes and Division rules, and guide boards and owners — with clear escalation to attorneys, CPAs, reserve specialists, and engineers. Holds no community data; per-community settings live in the project's community.toml.",
+  "author": {
+    "name": "J. Greg Williams",
+    "email": "283704+totallyGreg@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "condominium",
+    "hoa",
+    "community-association",
+    "florida-718",
+    "financial-statements",
+    "reserves",
+    "board-governance"
+  ]
+}

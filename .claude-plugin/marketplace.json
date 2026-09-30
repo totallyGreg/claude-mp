@@ -141,6 +141,17 @@
         "email": "283704+totallyGreg@users.noreply.github.com"
       },
       "source": "./plugins/handoff"
+    },
+    {
+      "name": "condo-steward",
+      "description": "Community association steward — parse financial statements into local HTML reports, explain Florida condo/HOA law, and guide boards with clear professional escalation. Holds no community data.",
+      "category": "productivity",
+      "version": "0.1.0",
+      "author": {
+        "name": "J. Greg Williams",
+        "email": "283704+totallyGreg@users.noreply.github.com"
+      },
+      "source": "./plugins/condo-steward"
     }
   ]
 }

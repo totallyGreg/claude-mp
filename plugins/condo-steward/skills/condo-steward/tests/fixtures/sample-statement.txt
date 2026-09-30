@@ -1,0 +1,157 @@
+Example Condominium Association, Inc.
+
+March 2026
+Unaudited Financial Statements
+
+Prepared By:
+
+                                   Example Condominium Association, Inc.                                    
+                                               Balance Sheet                                                
+                                                 3/31/2026                                                  
+
+                                                                   Operating         Reserve           Total
+Assets
+Cash-Operating
+1010 - Operating Checking                                         $41,250.10                      $41,250.10
+1011 - Operating Sweep                                            $30,000.00                      $30,000.00
+Total Cash-Operating                                              $71,250.10           $0.00      $71,250.10
+
+Cash-Reserves
+1110 - Reserve Money Market                                                      $120,500.55     $120,500.55
+Total Cash-Reserves                                                    $0.00     $120,500.55     $120,500.55
+
+Receivables
+1200 - Assessments Receivable                                      $8,400.00                       $8,400.00
+Total Receivables                                                  $8,400.00                       $8,400.00
+
+Other Assets
+1300 - Prepaid Insurance                                          $12,000.00                      $12,000.00
+Total Other Assets                                                $12,000.00           $0.00      $12,000.00
+
+Assets Total                                                      $91,650.10     $120,500.55     $212,150.65
+
+Liabilities & Equity                                               Operating         Reserve           Total
+Current Liability
+2200 - Prepaid Assessments                                         $5,100.00                       $5,100.00
+2300 - Accounts Payable                                            $7,300.00                       $7,300.00
+Total Current Liability                                           $12,400.00           $0.00      $12,400.00
+
+Liability
+2400 - Roof Loan                                                  $40,000.00                      $40,000.00
+Total Liability                                                   $40,000.00                      $40,000.00
+
+Reserves
+2610 - Reserve-Roof                                                               $70,500.55      $70,500.55
+2620 - Reserve-Painting                                                           $50,000.00      $50,000.00
+Total Reserves                                                         $0.00     $120,500.55     $120,500.55
+
+Equity
+Retained Earnings                                                 $37,250.10     ($3,000.00)      $34,250.10
+Net Income                                                         $2,000.00       $3,000.00       $5,000.00
+Liabilities and Equity Total                                      $91,650.10     $120,500.55     $212,150.65
+
+                                   Example Condominium Association, Inc.                                    
+                                    Budget Comparison Report - Operating                                    
+                                            3/1/2026 - 3/31/2026                                            
+
+                                                   3/1/2026 - 3/31/2026                      1/1/2026 - 3/31/2026           
+                                                Actual        Budget      Variance        Actual        Budget      Variance Annual Budget
+Income
+Income-Operating
+3001 - Member Assessments                   $20,000.00    $20,000.00         $0.00    $60,000.00    $60,000.00         $0.00   $240,000.00
+3005 - Interest                                 $50.00         $0.00        $50.00       $150.00         $0.00       $150.00         $0.00
+Total Income-Operating                      $20,050.00    $20,000.00        $50.00    $60,150.00    $60,000.00       $150.00   $240,000.00
+Total Income                                $20,050.00    $20,000.00        $50.00    $60,150.00    $60,000.00       $150.00   $240,000.00
+
+Expense
+Administrative
+4105 - Management Fees                       $1,000.00     $1,000.00         $0.00     $3,000.00     $3,000.00         $0.00    $12,000.00
+Total Administrative                         $1,000.00     $1,000.00         $0.00     $3,000.00     $3,000.00         $0.00    $12,000.00
+Utilities
+4205 - Electric                              $4,000.00     $3,000.00   ($1,000.00)    $11,000.00     $9,000.00   ($2,000.00)    $36,000.00
+4210 - Water                                 $2,500.00     $2,500.00         $0.00     $7,500.00     $7,500.00         $0.00    $30,000.00
+Total Utilities                              $6,500.00     $5,500.00   ($1,000.00)    $18,500.00    $16,500.00   ($2,000.00)    $66,000.00
+Repairs & Maintenance
+4505 - General Maintenance                  $11,550.00    $13,500.00     $1,950.00    $36,650.00    $40,500.00     $3,850.00   $162,000.00
+Total Repairs & Maintenance                 $11,550.00    $13,500.00     $1,950.00    $36,650.00    $40,500.00     $3,850.00   $162,000.00
+Total Expense                               $19,050.00    $20,000.00       $950.00    $58,150.00    $60,000.00     $1,850.00   $240,000.00
+
+Operating Net Income                         $1,000.00         $0.00     $1,000.00     $2,000.00         $0.00     $2,000.00         $0.00
+Net Income                                   $1,000.00         $0.00     $1,000.00     $2,000.00         $0.00     $2,000.00         $0.00
+
+                                   Example Condominium Association, Inc.                                    
+                                     Budget Comparison Report - Reserve                                     
+                                            3/1/2026 - 3/31/2026                                            
+
+                                                   3/1/2026 - 3/31/2026                      1/1/2026 - 3/31/2026           
+                                                Actual        Budget      Variance        Actual        Budget      Variance Annual Budget
+Income
+Income-Reserves
+3710 - Reserve Income-Funding                $1,000.00     $1,000.00         $0.00     $3,000.00     $3,000.00         $0.00    $12,000.00
+Total Income                                 $1,000.00     $1,000.00         $0.00     $3,000.00     $3,000.00         $0.00    $12,000.00
+
+Expense
+Expense-Reserve
+4610 - Reserve Exp-Roof                          $0.00         $0.00         $0.00         $0.00         $0.00         $0.00         $0.00
+Total Expense                                    $0.00         $0.00         $0.00         $0.00         $0.00         $0.00         $0.00
+
+Net Income                                   $1,000.00     $1,000.00         $0.00     $3,000.00     $3,000.00         $0.00    $12,000.00
+
+                                   Example Condominium Association, Inc.                                    
+                                          Aged Account Receivable                                           
+                                         Period Through: 3/31/2026                                          
+Account Number   Unit Address   Name                 Current   30 days   60 days   90 days   Total Due  Status
+100000010        1 Example Way  Unit 101 Owner                                               $400.00    Statement
+100000020        2 Example Way  Unit 202 Owner                                             $8,000.00    At Attorney
+
+Totals:                                                          $0.00     $400.00     $0.00   $8,000.00   $8,400.00
+
+                                   Example Condominium Association, Inc.                                    
+                                               Prepaid Report                                               
+                                         Period Through: 3/31/2026                                          
+Lot   Account Number   Homeowner        Address          Balance
+1     100000030        Unit 303 Owner   3 Example Way    $5,100.00
+                                                               Totals: $5,100.00
+
+                                   Example Condominium Association, Inc.                                    
+                                       Accounts Payable Aging Report                                        
+                                         Period Through: 3/31/2026                                          
+Payee            Invoice     Invoice Date  Due Date   Description         Expense              Total    Current  30 Days  60 Days  90 Days
+Power Co         0001        3/20/2026     4/10/2026  March electric      4205-Electric    $4,000.00  $4,000.00
+                                                                          0001 Total:      $4,000.00  $4,000.00   $0.00    $0.00    $0.00
+Fix-It LLC       A-77        3/25/2026     4/24/2026  Door repair         4505-General     $3,300.00  $3,300.00
+                                                                          A-77 Total:      $3,300.00  $3,300.00   $0.00    $0.00    $0.00
+                                                                         Totals:$7,300.00 $7,300.00   $0.00    $0.00    $0.00
+
+                                   Example Condominium Association, Inc.                                    
+                                           Check Register Report                                            
+                                            3/1/2026 - 3/31/2026                                            
+Account #  Check #    Check Date   Vendor or Payee                       Check Amt
+1010       2001       3/2/2026     Sample Management Co.                 $1,000.00
+1010       2002       3/5/2026     Power Co                              $3,900.00
+1010       2003       3/16/2026    Example Condominium Association, Inc. $1,000.00
+                                                      Total:     $5,900.00
+
+                                   Example Condominium Association, Inc.                                    
+                                           Reconciliation Report                                            
+Sample Bank - Operating Checking-1010                       Statement Balance:     $41,250.10
+Statement Date: 3/31/2026                                   GL Balance:            $41,250.10
+                                                            Last Statement Balance: $40,000.00
+                                                            Outstanding Checks:         $0.00
+                                                            Outstanding Deposits:       $0.00
+                                                            Calculated Balance:    $41,250.10
+                                                            GL vs. Balance Difference:  $0.00
+
+                                   Example Condominium Association, Inc.                                    
+                                           Reconciliation Report                                            
+Sample Bank - Reserve Money Market-1110                     Statement Balance:    $120,400.55
+Statement Date: 3/31/2026                                   GL Balance:           $120,500.55
+                                                            Last Statement Balance: $119,500.55
+                                                            Outstanding Checks:         $0.00
+                                                            Outstanding Deposits:       $0.00
+                                                            Calculated Balance:   $120,400.55
+                                                            GL vs. Balance Difference: $100.00
+
+                                   Example Condominium Association, Inc.                                    
+                                           General Ledger Report                                            
+Account: 1010 - Operating Checking

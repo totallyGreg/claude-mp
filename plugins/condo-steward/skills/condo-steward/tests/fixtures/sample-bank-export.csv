@@ -1,0 +1,5 @@
+AccountID,AccountNickname,Date,Transaction,Description,Status,DebitCredit,Balance
+123456789012,Example OP,03/03/2026,ACH Credit,Portal Payments CCD 987654321098 EXAMPLE CONDO,Cleared,"1,200.00","41,200.00"
+123456789012,Example OP,03/02/2026,Transfer Debit,Transfer to DDA Acct No. 123456789055-D,Cleared,"-1,200.00","40,000.00"
+123456789012,Example OP,03/01/2026,Check Paid 2001,Check # 2001,Cleared,"-1,000.00","41,200.00"
+123456789012,Example OP,03/01/2026,Cash Letter Credit,Image Cash Letter Deposit,Pending,"2,200.00","42,200.00"
