@@ -1,3 +1,9 @@
+---
+name: as-evaluate
+description: Full evaluation of an agent with quality metrics
+argument-hint: <agent-path> [--quick|--explain|--format json]
+---
+
 Full evaluation of an agent with quality metrics.
 
 Run the evaluation command:

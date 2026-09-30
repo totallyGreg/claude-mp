@@ -105,9 +105,9 @@ Determine the version bump:
 - **PATCH** (x.y.Z): Only reference content updates, no new capabilities
 - **MINOR** (x.Y.0): New capabilities documented, backward-compatible
 
-Update version in:
+Update version in both (the pre-commit hook requires both when a skill changes):
 - `SKILL.md` frontmatter (`metadata.version`)
-- Plugin's `.claude-plugin/plugin.json`
+- Plugin's `.claude-plugin/plugin.json` — this is what makes marketplace subscribers receive the update
 
 Run `--update-readme` and `--export-table-row --version <NEW_VERSION>` to update the plugin-level README.md metrics.
 

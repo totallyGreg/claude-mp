@@ -2,46 +2,44 @@
 # /// script
 # dependencies = []
 # ///
-"""Validate Claude Code marketplace.json against the official Anthropic schema.
+"""Marketplace checks that complement `claude plugin validate`.
 
-Performs three checks:
-1. Schema validation -- required fields, known fields, naming, versions
-2. Forward validation -- plugin source paths resolve to real directories
-3. Reverse scan -- detect extensions on disk not listed in the manifest
+plugin.json is the single source of truth for a plugin's version, description
+and author. marketplace.json entries carry only name, source and category.
 
-Use --fix to auto-add missing plugins. Use --staged for pre-commit checks.
-Use --check-structure to detect anti-patterns like shared source paths.
+Checks:
+1. Official validation -- runs `claude plugin validate` on the marketplace
+   (strict) and on plugin directories (errors block, warnings are reported)
+2. Duplicate metadata -- a marketplace entry must not repeat `version`
+3. Version bumps (--check-versions / --staged) -- every plugin changed since
+   the base must raise its plugin.json version, and every skill changed since
+   the base must raise its SKILL.md metadata.version. A changed plugin's
+   description must also fit the marketplace listing (<= 200 characters)
+4. Reverse scan -- plugins on disk missing from marketplace.json (--fix adds them)
+5. Structure (--check-structure) -- anti-patterns such as shared source paths
 
-Stdlib-only. No external dependencies required (uses pyyaml when available
-for SKILL.md frontmatter parsing, falls back to a minimal subset parser).
+The base is `git merge-base HEAD <ref>`, where <ref> defaults to the remote's
+default branch (origin/HEAD, falling back to origin/main).
+
+Stdlib-only. Uses pyyaml when available for SKILL.md frontmatter parsing,
+falls back to a minimal subset parser.
 """
 
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-# -- Schema constants (official Anthropic marketplace schema) ----------------
-
-REQUIRED_ROOT = {"name", "owner", "plugins"}
-KNOWN_ROOT = {"name", "owner", "plugins", "$schema", "metadata"}
-KNOWN_METADATA = {"description", "version", "pluginRoot"}
-
-REQUIRED_PLUGIN = {"name", "source"}
-KNOWN_PLUGIN = {
-    "name", "source", "description", "version", "author", "homepage",
-    "repository", "license", "keywords", "category", "tags", "strict",
-    "commands", "agents", "hooks", "mcpServers", "lspServers",
-}
-
-NAME_RE = re.compile(r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$")
-SEMVER_RE = re.compile(r"^v?\d+\.\d+\.\d+")
-
 # Directories that indicate discoverable plugin components
 COMPONENT_DIRS = ["skills", "commands", "agents", "hooks"]
-COMPONENT_FILES = [".mcp.json", ".lsp.json", "settings.json"]
+
+SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)")
+
+# plugin-dev plugin-structure guidance: "Keep under 200 characters for marketplace display"
+MAX_DESCRIPTION = 200
 
 
 # -- YAML frontmatter parsing -----------------------------------------------
@@ -50,7 +48,7 @@ def parse_frontmatter(text: str) -> dict:
     """Parse YAML frontmatter from a Markdown file."""
     if not text.startswith("---"):
         return {}
-    end = text.find("---", 3)
+    end = text.find("\n---", 3)
     if end == -1:
         return {}
     raw = text[3:end]
@@ -92,231 +90,235 @@ def _parse_frontmatter_stdlib(raw: str) -> dict:
     return result
 
 
-# -- Validation functions ----------------------------------------------------
+def skill_version(text: str | None) -> str | None:
+    """Return metadata.version (or legacy top-level version) from SKILL.md text."""
+    if text is None:
+        return None
+    fm = parse_frontmatter(text)
+    metadata = fm.get("metadata")
+    version = metadata.get("version") if isinstance(metadata, dict) else None
+    version = version or fm.get("version")
+    return str(version) if version else None
 
-def validate_schema(config: dict, repo_root: Path) -> tuple[list, list]:
-    """Validate marketplace.json against the official Anthropic schema."""
-    errors = []
-    warnings = []
 
-    # Required root fields
-    for field in REQUIRED_ROOT:
-        if field not in config:
-            errors.append(f"Missing required root field: '{field}'")
+def load_manifest(text: str | None) -> dict:
+    """Parse plugin.json text; {} when missing or invalid."""
+    if text is None:
+        return {}
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
 
-    # Unknown root fields
-    for field in config:
-        if field not in KNOWN_ROOT:
-            if field in ("version", "description"):
-                warnings.append(
-                    f"Root-level '{field}' is not in the official schema. "
-                    f"Move to metadata.{field} per official schema."
-                )
-            else:
-                warnings.append(f"Unknown root field: '{field}'")
 
-    # Owner validation
-    owner = config.get("owner")
-    if isinstance(owner, dict) and "name" not in owner:
-        errors.append("owner object missing required 'name' field")
+def manifest_version(text: str | None) -> str | None:
+    """Return the version from plugin.json text."""
+    version = load_manifest(text).get("version")
+    return str(version) if version else None
 
-    # Root name format
-    root_name = config.get("name", "")
-    if root_name and not NAME_RE.match(root_name):
-        warnings.append(
-            f"Marketplace name '{root_name}' is not kebab-case "
-            f"(expected pattern: {NAME_RE.pattern})"
+
+def parse_semver(version: str) -> tuple[int, int, int] | None:
+    """Parse MAJOR.MINOR.PATCH (pre-release/build suffixes are ignored)."""
+    m = SEMVER_RE.match(version)
+    return (int(m[1]), int(m[2]), int(m[3])) if m else None
+
+
+# -- Git helpers -------------------------------------------------------------
+
+def git(repo_root: Path, *args: str) -> str | None:
+    """Run a git command; return stdout, or None on failure."""
+    try:
+        result = subprocess.run(
+            ["git", *args], capture_output=True, text=True, cwd=repo_root,
         )
+    except FileNotFoundError:
+        return None
+    return result.stdout if result.returncode == 0 else None
 
-    # Metadata validation
-    metadata = config.get("metadata")
-    if isinstance(metadata, dict):
-        for field in metadata:
-            if field not in KNOWN_METADATA:
-                warnings.append(f"Unknown metadata field: '{field}'")
 
-    # Plugin entries
-    plugins = config.get("plugins", [])
-    if not isinstance(plugins, list):
-        errors.append("'plugins' must be an array")
-        return errors, warnings
+def resolve_base(repo_root: Path, ref: str | None) -> str | None:
+    """Return the merge-base commit of HEAD and ref (default: remote default branch)."""
+    if ref is None:
+        head = git(repo_root, "symbolic-ref", "--short", "refs/remotes/origin/HEAD")
+        ref = head.strip() if head else "origin/main"
+    base = git(repo_root, "merge-base", "HEAD", ref)
+    return base.strip() if base else None
 
-    seen_names = {}
-    plugin_root = ""
-    if isinstance(metadata, dict):
-        plugin_root = metadata.get("pluginRoot", "")
 
-    for i, plugin in enumerate(plugins):
-        label = plugin.get("name", f"plugins[{i}]")
+class Snapshot:
+    """Read files from the index (staged) or the working tree, and from base."""
 
-        # Required plugin fields
-        for field in REQUIRED_PLUGIN:
-            if field not in plugin:
-                errors.append(f"Plugin '{label}': missing required field '{field}'")
+    def __init__(self, repo_root: Path, base: str, staged: bool):
+        self.repo_root = repo_root
+        self.base = base
+        self.staged = staged
 
-        # Unknown plugin fields
-        for field in plugin:
-            if field not in KNOWN_PLUGIN:
-                if field == "skills":
-                    warnings.append(
-                        f"Plugin '{label}': the 'skills' field is not part of "
-                        f"the official marketplace schema. Skills are "
-                        f"auto-discovered from skills/*/SKILL.md. "
-                        f"Consider removing this field."
-                    )
-                else:
-                    warnings.append(
-                        f"Plugin '{label}': unknown field '{field}'"
-                    )
+    def changed_paths(self) -> list[str]:
+        if self.staged:
+            out = git(self.repo_root, "diff", "--cached", "--name-only", self.base)
+            return (out or "").splitlines()
+        out = git(self.repo_root, "diff", "--name-only", self.base) or ""
+        untracked = git(self.repo_root, "ls-files", "--others", "--exclude-standard") or ""
+        return out.splitlines() + untracked.splitlines()
 
-        # Name format
-        name = plugin.get("name", "")
-        if name and not NAME_RE.match(name):
-            warnings.append(
-                f"Plugin '{label}': name is not kebab-case "
-                f"(expected pattern: {NAME_RE.pattern})"
-            )
+    def current(self, rel: str) -> str | None:
+        if self.staged:
+            return git(self.repo_root, "show", f":{rel}")
+        path = self.repo_root / rel
+        return path.read_text(encoding="utf-8") if path.is_file() else None
 
-        # Duplicate name detection
-        if name:
-            if name in seen_names:
-                errors.append(
-                    f"Plugin '{name}': duplicate name "
-                    f"(first at index {seen_names[name]})"
-                )
-            else:
-                seen_names[name] = i
+    def at_base(self, rel: str) -> str | None:
+        return git(self.repo_root, "show", f"{self.base}:{rel}")
 
-        # Version format
-        version = plugin.get("version", "")
-        if version:
-            if not SEMVER_RE.match(version):
-                warnings.append(
-                    f"Plugin '{label}': version '{version}' "
-                    f"does not look like semver"
-                )
-            elif version.startswith("v"):
-                warnings.append(
-                    f"Plugin '{label}': version '{version}' has 'v' prefix; "
-                    f"prefer '{''.join(version[1:])}'"
-                )
 
-        # Source path validation (relative paths only)
+# -- Checks ------------------------------------------------------------------
+
+def relative_sources(config: dict) -> list[tuple[str, str]]:
+    """Return (name, dir) for every entry with a ./relative source."""
+    result = []
+    for plugin in config.get("plugins", []):
         source = plugin.get("source", "")
         if isinstance(source, str) and source.startswith("./"):
-            if ".." in source:
-                errors.append(
-                    f"Plugin '{label}': source path must not contain '..'"
-                )
-            resolved = repo_root / source
-            if plugin_root and not source.startswith("./"):
-                resolved = repo_root / plugin_root / source
-            if not resolved.is_dir():
-                errors.append(
-                    f"Plugin '{label}': source directory not found: {source}"
-                )
+            result.append((plugin.get("name", "unknown"), source[2:].rstrip("/")))
+    return result
 
+
+def check_duplicate_metadata(config: dict) -> list[str]:
+    """Entries must not repeat version; plugin.json is the source of truth."""
+    errors = []
+    for plugin in config.get("plugins", []):
+        source = plugin.get("source", "")
+        if "version" in plugin and isinstance(source, str) and source.startswith("./"):
+            errors.append(
+                f"Plugin '{plugin.get('name')}': remove 'version' from its "
+                f"marketplace.json entry -- plugin.json is the only version source"
+            )
+    return errors
+
+
+def _bump_error(label: str, path: str, old: str | None, new: str | None) -> str | None:
+    """Return an error if new is missing or not semver-greater than old."""
+    if new is None:
+        return f"{label}: no version in {path}"
+    new_v = parse_semver(new)
+    if new_v is None:
+        return f"{label}: version '{new}' in {path} is not MAJOR.MINOR.PATCH"
+    if old is None:
+        return None  # new plugin or skill
+    old_v = parse_semver(old)
+    if old_v is not None and new_v <= old_v:
+        return (
+            f"{label}: changed since base but version {new} is not greater "
+            f"than {old} -- bump {path}"
+        )
+    return None
+
+
+def check_versions(config: dict, snap: Snapshot) -> tuple[list[str], list[str]]:
+    """Require a version bump for every changed plugin and skill, and a
+    listing-sized description for every changed plugin.
+
+    Returns (errors, changed_plugin_dirs).
+    """
+    errors = []
+    changed_dirs = []
+    changed = snap.changed_paths()
+
+    for name, plugin_dir in relative_sources(config):
+        plugin_changes = [p for p in changed if p.startswith(plugin_dir + "/")]
+        if not plugin_changes:
+            continue
+
+        manifest = f"{plugin_dir}/.claude-plugin/plugin.json"
+        current_manifest = snap.current(manifest)
+        if current_manifest is None and not (snap.repo_root / plugin_dir).is_dir():
+            continue  # plugin removed
+        changed_dirs.append(plugin_dir)
+
+        err = _bump_error(
+            f"Plugin '{name}'", manifest,
+            manifest_version(snap.at_base(manifest)),
+            manifest_version(current_manifest),
+        )
+        if err:
+            errors.append(err)
+
+        description = str(load_manifest(current_manifest).get("description", ""))
+        if len(description) > MAX_DESCRIPTION:
+            errors.append(
+                f"Plugin '{name}': description is {len(description)} characters -- "
+                f"shorten it to {MAX_DESCRIPTION} or fewer in {manifest} "
+                f"(what the plugin does, not how; see plugin-dev plugin-structure)"
+            )
+
+        skills_prefix = f"{plugin_dir}/skills/"
+        skills = sorted({
+            p[len(skills_prefix):].split("/", 1)[0]
+            for p in plugin_changes
+            if p.startswith(skills_prefix) and "/" in p[len(skills_prefix):]
+        })
+        for skill in skills:
+            skill_md = f"{skills_prefix}{skill}/SKILL.md"
+            current_skill = snap.current(skill_md)
+            if current_skill is None:
+                continue  # skill removed
+            err = _bump_error(
+                f"Skill '{name}:{skill}'", skill_md,
+                skill_version(snap.at_base(skill_md)),
+                skill_version(current_skill),
+            )
+            if err:
+                errors.append(err)
+
+    return errors, changed_dirs
+
+
+def run_official(target: Path, strict: bool) -> tuple[list[str], list[str]]:
+    """Run `claude plugin validate --json`; return (errors, warnings)."""
+    cmd = ["claude", "plugin", "validate", str(target), "--json"]
+    if strict:
+        cmd.append("--strict")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode == 2 or not result.stdout.strip():
+        return [f"claude plugin validate {target}: {result.stderr.strip()}"], []
+
+    report = json.loads(result.stdout)
+    errors, warnings = [], []
+    parts = [report.get("manifest") or {}] + report.get("contents", [])
+    for part in parts:
+        where = Path(part.get("file", str(target))).name
+        for e in part.get("errors", []):
+            errors.append(f"{target}: {where} {e.get('path', '')}: {e.get('message')}")
+        for w in part.get("warnings", []):
+            line = f"{target}: {where} {w.get('path', '')}: {w.get('message')}"
+            (errors if strict else warnings).append(line)
     return errors, warnings
 
 
-def validate_forward(config: dict, repo_root: Path) -> tuple[list, list]:
-    """Check that plugin source directories have discoverable components."""
-    errors = []
-    warnings = []
-
-    for plugin in config.get("plugins", []):
-        name = plugin.get("name", "unknown")
-        source = plugin.get("source", "")
-
-        if not isinstance(source, str) or not source.startswith("./"):
-            continue
-
-        source_dir = repo_root / source
-        if not source_dir.is_dir():
-            continue  # Already caught by schema validation
-
-        # Check for any discoverable components
-        has_components = False
-        for d in COMPONENT_DIRS:
-            if (source_dir / d).is_dir():
-                has_components = True
-                break
-        if not has_components:
-            for f in COMPONENT_FILES:
-                if (source_dir / f).exists():
-                    has_components = True
-                    break
-        if not has_components and (source_dir / ".claude-plugin").is_dir():
-            has_components = True
-
-        if not has_components:
-            warnings.append(
-                f"Plugin '{name}': source directory '{source}' has no "
-                f"discoverable components (skills/, commands/, agents/, "
-                f"hooks/, .mcp.json, etc.)"
-            )
-
+def validate_official(repo_root: Path, plugin_dirs: list[str]) -> tuple[list, list]:
+    """Validate the marketplace strictly and each plugin directory normally."""
+    if shutil.which("claude") is None:
+        return [], ["'claude' CLI not found -- skipped claude plugin validate"]
+    errors, warnings = run_official(repo_root, strict=True)
+    for plugin_dir in plugin_dirs:
+        e, w = run_official(repo_root / plugin_dir, strict=False)
+        errors += e
+        warnings += w
     return errors, warnings
 
 
 def scan_reverse(config: dict, repo_root: Path) -> list[dict]:
-    """Find extensions on disk not listed in marketplace.json."""
+    """Find plugins under plugins/ that marketplace.json doesn't list."""
     existing = {p.get("name") for p in config.get("plugins", [])}
     missing = []
-
-    # Scan plugins/*/
     plugins_dir = repo_root / "plugins"
     if plugins_dir.is_dir():
         for d in sorted(plugins_dir.iterdir()):
             if not d.is_dir() or d.name.startswith("."):
                 continue
-            has_plugin = (d / "skills").is_dir() or (d / ".claude-plugin").is_dir()
-            if has_plugin and d.name not in existing:
-                missing.append({
-                    "name": d.name,
-                    "source": f"./plugins/{d.name}",
-                })
-
-    # Scan root skills/*/ (legacy flat layout)
-    skills_dir = repo_root / "skills"
-    if skills_dir.is_dir():
-        for d in sorted(skills_dir.iterdir()):
-            if not d.is_dir() or d.name.startswith("."):
-                continue
-            if (d / "SKILL.md").exists() and d.name not in existing:
-                missing.append({
-                    "name": d.name,
-                    "source": f"./skills/{d.name}",
-                })
-
-    # Scan mcp-servers/*/
-    servers_dir = repo_root / "mcp-servers"
-    if servers_dir.is_dir():
-        for d in sorted(servers_dir.iterdir()):
-            if not d.is_dir() or d.name.startswith("."):
-                continue
-            has_manifest = (
-                (d / "package.json").exists()
-                or (d / "pyproject.toml").exists()
-            )
-            if has_manifest and d.name not in existing:
-                missing.append({
-                    "name": d.name,
-                    "source": f"./mcp-servers/{d.name}",
-                })
-
-    # Scan commands/*.md at root level
-    commands_dir = repo_root / "commands"
-    if commands_dir.is_dir():
-        for f in sorted(commands_dir.glob("*.md")):
-            if f.name.lower() == "readme.md":
-                continue
-            if f.stem not in existing:
-                missing.append({
-                    "name": f.stem,
-                    "source": "./",
-                })
-
+            if (d / ".claude-plugin" / "plugin.json").is_file() and d.name not in existing:
+                missing.append({"name": d.name, "source": f"./plugins/{d.name}"})
     return missing
 
 
@@ -324,210 +326,132 @@ def check_structure(config: dict) -> list[str]:
     """Detect anti-patterns like multiple plugins sharing source paths."""
     warnings = []
     source_users = {}
-
     for plugin in config.get("plugins", []):
         source = plugin.get("source", "")
-        if not isinstance(source, str):
-            continue
-        source_users.setdefault(source, []).append(plugin.get("name", "?"))
-
+        if isinstance(source, str):
+            source_users.setdefault(source, []).append(plugin.get("name", "?"))
     for source, names in source_users.items():
         if len(names) > 1:
             warnings.append(
-                f"Multiple plugins share source '{source}': "
-                f"{', '.join(names)}. This causes version enforcement "
-                f"conflicts. Give each plugin its own directory."
+                f"Multiple plugins share source '{source}': {', '.join(names)}. "
+                f"They share one version -- give each plugin its own directory."
             )
-
     return warnings
 
-
-def check_staged(config: dict, repo_root: Path) -> list[str]:
-    """Check git staged files for version bumps when content changed."""
-    warnings = []
-    try:
-        result = subprocess.run(
-            ["git", "diff", "--cached", "--name-only"],
-            capture_output=True, text=True, cwd=repo_root,
-        )
-        if result.returncode != 0:
-            return []
-        staged = set(result.stdout.strip().splitlines())
-    except FileNotFoundError:
-        return []
-
-    if not staged:
-        return []
-
-    for plugin in config.get("plugins", []):
-        source = plugin.get("source", "")
-        if not isinstance(source, str) or not source.startswith("./"):
-            continue
-
-        source_rel = source.lstrip("./")
-        plugin_staged = [f for f in staged if f.startswith(source_rel + "/")]
-        if not plugin_staged:
-            continue
-
-        name = plugin.get("name", "unknown")
-        # Check if version-bearing files are also staged
-        skill_staged = [
-            f for f in plugin_staged if f.endswith("SKILL.md")
-        ]
-        pjson_staged = [
-            f for f in plugin_staged
-            if f.endswith("plugin.json")
-            and ".claude-plugin/" in f
-        ]
-
-        # Content files changed but no version file staged
-        content_changed = [
-            f for f in plugin_staged
-            if not f.endswith("SKILL.md")
-            and not (f.endswith("plugin.json") and ".claude-plugin/" in f)
-        ]
-
-        if content_changed and not skill_staged and not pjson_staged:
-            warnings.append(
-                f"Plugin '{name}': content files changed but no version bump "
-                f"detected. Stage a SKILL.md or plugin.json with an updated "
-                f"version."
-            )
-
-    return warnings
-
-
-# -- Auto-fix ----------------------------------------------------------------
 
 def fix_manifest(config: dict, missing: list[dict], path: Path) -> None:
-    """Add missing plugins and write sorted marketplace.json."""
+    """Append missing plugins as minimal {name, source} entries."""
     config["plugins"].extend(missing)
-    config["plugins"].sort(key=lambda p: p.get("name", ""))
-    with open(path, "w") as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
-        f.write("\n")
+    path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-# -- Output formatting -------------------------------------------------------
+# -- Output ------------------------------------------------------------------
 
-def format_text(errors: list, warnings: list, missing: list,
-                structure: list, staged: list, fixed: bool) -> str:
-    """Format results as human-readable text."""
+def format_text(errors: list, warnings: list, missing: list, fixed: bool) -> str:
     lines = []
     if errors:
         lines.append("ERRORS:")
-        for e in errors:
-            lines.append(f"  [error] {e}")
+        lines += [f"  [error] {e}" for e in errors]
     if warnings:
         lines.append("WARNINGS:")
-        for w in warnings:
-            lines.append(f"  [warn]  {w}")
-    if structure:
-        lines.append("STRUCTURE:")
-        for s in structure:
-            lines.append(f"  [warn]  {s}")
-    if staged:
-        lines.append("STAGED:")
-        for s in staged:
-            lines.append(f"  [warn]  {s}")
+        lines += [f"  [warn]  {w}" for w in warnings]
     if missing:
         names = ", ".join(p["name"] for p in missing)
         if fixed:
             lines.append(f"FIXED: added missing plugins: {names}")
         else:
             lines.append(f"NOT IN MANIFEST: {names}")
-            lines.append("  Hint: run with --fix to auto-add missing plugins")
-    if not errors and not warnings and not missing and not structure and not staged:
-        lines.append("Marketplace configuration is valid")
-    elif not errors:
+            lines.append("  Hint: run with --fix to add them")
+    if errors:
+        lines.append("Validation failed")
+    elif warnings or (missing and not fixed):
         lines.append("Validation passed (with warnings)")
+    else:
+        lines.append("Validation passed")
     return "\n".join(lines)
-
-
-def format_json(errors: list, warnings: list, missing: list,
-                structure: list, staged: list, fixed: bool) -> str:
-    """Format results as JSON for CI consumption."""
-    return json.dumps({
-        "valid": len(errors) == 0,
-        "errors": errors,
-        "warnings": warnings,
-        "missing": [p["name"] for p in missing],
-        "structure_warnings": structure,
-        "staged_warnings": staged,
-        "fixed": fixed,
-    }, indent=2)
 
 
 # -- Main --------------------------------------------------------------------
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Validate marketplace.json against the official "
-                    "Anthropic marketplace schema.",
+        description="Marketplace checks that complement `claude plugin validate`.",
     )
     parser.add_argument(
-        "marketplace_path", nargs="?",
-        default=".claude-plugin/marketplace.json",
-        help="Path to marketplace.json "
-             "(default: .claude-plugin/marketplace.json)",
+        "marketplace_path", nargs="?", default=".claude-plugin/marketplace.json",
+        help="Path to marketplace.json (default: .claude-plugin/marketplace.json)",
     )
-    parser.add_argument("--fix", action="store_true",
-                        help="Auto-add missing plugins to the manifest")
-    parser.add_argument("--format", choices=["text", "json"], default="text",
-                        help="Output format (default: text)")
+    parser.add_argument("--check-versions", action="store_true",
+                        help="Require version bumps for plugins/skills changed "
+                             "since the base (working tree)")
     parser.add_argument("--staged", action="store_true",
-                        help="Check staged files for version bumps")
+                        help="Like --check-versions, but reads the git index "
+                             "(pre-commit)")
+    parser.add_argument("--base", metavar="REF",
+                        help="Compare against merge-base of HEAD and REF "
+                             "(default: origin/HEAD, then origin/main)")
+    parser.add_argument("--fix", action="store_true",
+                        help="Add plugins found on disk but missing from the manifest")
     parser.add_argument("--check-structure", action="store_true",
                         help="Detect structural anti-patterns")
+    parser.add_argument("--format", choices=["text", "json"], default="text")
     args = parser.parse_args()
 
     mp_path = Path(args.marketplace_path)
-    if not mp_path.exists():
+    if not mp_path.is_file():
         print(f"File not found: {mp_path}", file=sys.stderr)
         sys.exit(1)
+    repo_root = mp_path.resolve().parent.parent
 
-    repo_root = mp_path.parent.parent
-
+    # In pre-commit mode, check the manifest being committed, not the working tree
+    text = None
+    if args.staged:
+        rel = mp_path.resolve().relative_to(repo_root).as_posix()
+        text = git(repo_root, "show", f":{rel}")
     try:
-        with open(mp_path) as f:
-            config = json.load(f)
+        config = json.loads(text or mp_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         print(f"Invalid JSON in {mp_path}: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # Run validations
-    schema_errors, schema_warnings = validate_schema(config, repo_root)
-    fwd_errors, fwd_warnings = validate_forward(config, repo_root)
-    missing = scan_reverse(config, repo_root)
+    errors = check_duplicate_metadata(config)
+    warnings = []
 
-    all_errors = schema_errors + fwd_errors
-    all_warnings = schema_warnings + fwd_warnings
+    plugin_dirs = [d for _, d in relative_sources(config)]
+    if args.check_versions or args.staged:
+        base = resolve_base(repo_root, args.base)
+        if base is None:
+            warnings.append("No base commit (is origin fetched?) -- skipped version check")
+        else:
+            version_errors, plugin_dirs = check_versions(
+                config, Snapshot(repo_root, base, staged=args.staged))
+            errors += version_errors
 
-    structure_warnings = []
+    official_errors, official_warnings = validate_official(repo_root, plugin_dirs)
+    errors += official_errors
+    warnings += official_warnings
+
     if args.check_structure:
-        structure_warnings = check_structure(config)
+        warnings += check_structure(config)
 
-    staged_warnings = []
-    if args.staged:
-        staged_warnings = check_staged(config, repo_root)
-
-    # Auto-fix
+    missing = scan_reverse(config, repo_root)
     fixed = False
     if args.fix and missing:
         fix_manifest(config, missing, mp_path)
         fixed = True
 
-    # Output
     if args.format == "json":
-        print(format_json(all_errors, all_warnings, missing,
-                          structure_warnings, staged_warnings, fixed))
+        print(json.dumps({
+            "valid": not errors,
+            "errors": errors,
+            "warnings": warnings,
+            "missing": [p["name"] for p in missing],
+            "fixed": fixed,
+        }, indent=2))
     else:
-        print(format_text(all_errors, all_warnings, missing,
-                          structure_warnings, staged_warnings, fixed))
+        print(format_text(errors, warnings, missing, fixed))
 
-    # Exit code: 1 on errors (warnings are OK)
-    if all_errors:
-        sys.exit(1)
+    sys.exit(1 if errors else 0)
 
 
 if __name__ == "__main__":

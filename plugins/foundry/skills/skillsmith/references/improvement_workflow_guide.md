@@ -181,7 +181,7 @@ The WORKFLOW.md pattern is used for complex improvements and provides:
 ### marketplace-manager Integration
 
 marketplace-manager is optionally invoked for publishing:
-- Syncing version between SKILL.md and marketplace.json
+- Checking that SKILL.md and plugin.json versions were both bumped
 - Committing skills to marketplace
 - Pushing to remote repositories
 - Managing multi-skill plugin versions
@@ -189,7 +189,7 @@ marketplace-manager is optionally invoked for publishing:
 **When to use:**
 - After completing improvements
 - When ready to publish to marketplace
-- For version synchronization
+- To check pending version bumps
 
 ---
 
@@ -306,7 +306,7 @@ User: "Handle this quickly - restructure the examples section"
 ## Related Skills
 
 - **WORKFLOW.md** - Repository-wide workflow pattern (GitHub Issues + plugin README.md)
-- **marketplace-manager** - Publishing and version synchronization
+- **marketplace-manager** - Publishing and version-bump enforcement
 - **research_skill.py** - Deep skill analysis (used for complex improvements)
 - **evaluate_skill.py** - Validation and metrics (used in both workflows)
 

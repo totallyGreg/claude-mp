@@ -1,18 +1,22 @@
-Show version mismatches and validation summary for the marketplace.
+---
+name: mp-status
+description: Show which plugins and skills changed since main and still need a version bump
+argument-hint: [--base REF]
+---
 
-Run the sync script in dry-run mode and validate:
+Show pending version bumps for the marketplace in the current repo.
+
+A plugin that changed since the base (merge-base of HEAD and `origin/main`) must raise its `plugin.json` version, and a skill that changed must raise its `SKILL.md` `metadata.version`. The pre-commit hook enforces this. This command previews it for the working tree.
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/repo/sync.py --dry-run
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/repo/validate.py $ARGUMENTS
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/marketplace-manager/scripts/repo/validate.py --check-versions $ARGUMENTS
 ```
 
-Common arguments:
-- (no args) - Show version mismatches and validation status
-- `--check-structure` - Also detect structural anti-patterns
+Arguments:
+- (no args) - Compare the working tree against the merge-base with `origin/HEAD` (falls back to `origin/main`)
+- `--base REF` - Compare against the merge-base with another ref
 
 Report:
-- Plugins with version mismatches (source vs marketplace.json)
-- Plugins that are in sync
-- Validation errors or warnings
-- Suggest running `/mp-sync` if updates needed
+- Each plugin or skill that needs a bump, with the file to edit and the current base version
+- Validation errors or warnings from `claude plugin validate` for the changed plugins
+- "Nothing pending" when the check passes

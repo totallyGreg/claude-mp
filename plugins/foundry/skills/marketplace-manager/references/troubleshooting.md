@@ -4,24 +4,25 @@ This guide provides solutions to common issues when using marketplace-manager.
 
 ## Hook Issues
 
-### Hook not syncing marketplace.json
+### Hook blocks: "changed since base but version X is not greater than X"
 
-**Reinstall the hook:**
-```bash
-python3 scripts/setup.py install-hook
-```
+The commit changes a plugin (or a skill inside it) without raising its version relative to the merge-base with `origin/main`. Raise the version named in the message:
+- Plugin: `plugins/<p>/.claude-plugin/plugin.json` `version`
+- Skill: `plugins/<p>/skills/<s>/SKILL.md` `metadata.version`
 
-### Hook shows version mismatch warning
+Stage the bumped file and commit again. Preview with `python3 scripts/validate.py --check-versions`.
 
-This means the installed hook is outdated:
-- Run: `python3 scripts/setup.py install-hook`
-- Hook will be updated to use the latest repo-local scripts
+### Hook says "No base commit -- skipped version check"
 
-### Hook not found errors
+There is no `origin/main` (or `origin/HEAD`) to compare against. Run `git fetch origin`, or pass `--base <ref>`.
 
-The hook uses dynamic path discovery:
-- If scripts are moved/renamed, hook will find them automatically
-- First checks specific path, then searches entire repository
+### Hook reports "remove 'version' from its marketplace.json entry"
+
+plugin.json is the only version source. Delete `version` from that entry.
+
+### Outdated hook still syncs marketplace.json
+
+Reinstall: `python3 scripts/setup.py install-hook` (and delete a leftover `scripts/sync.py`).
 
 ### Hook not executable
 
@@ -38,8 +39,7 @@ git commit --no-verify
 ### Hook blocking commits
 
 - Check error message for specific issue
-- Run sync manually: `python3 scripts/sync.py`
-- Run validation: `python3 scripts/validate.py`
+- Run validation: `python3 scripts/validate.py --check-versions`
 - Fix reported issues, then commit again
 - Or bypass with `--no-verify` if urgent
 
@@ -64,22 +64,11 @@ git commit --no-verify
 - Check for `.git` or `.claude-plugin` directories
 - Ensure you're in repository when running scripts
 
-## Version Sync Issues
+## Version Issues
 
-### Versions not updating in marketplace.json
+### Users don't receive an update
 
-Check that:
-1. Skill uses `metadata.version` in SKILL.md frontmatter
-2. Version follows semantic versioning (X.Y.Z)
-3. marketplace.json is writable
-4. Run with `--verbose` to see what's detected
-
-### Script reports "no changes needed" but versions are mismatched
-
-This can happen with manual mode:
-- Manual mode only warns, doesn't auto-update plugin version
-- You must manually update the plugin version in marketplace.json
-- See "Multi-Component Plugin Versioning" in main SKILL.md
+Claude Code updates a plugin only when its `plugin.json` version changes. If a change was merged without a bump (e.g. `--no-verify`), raise the version and push again.
 
 ## Structure Issues
 
@@ -92,7 +81,7 @@ You will see a message like:
   Fix: Move each plugin into its own subdirectory...
 ```
 
-This means multiple plugin entries in `marketplace.json` resolve to the same `plugin.json`, which causes incorrect version enforcement. The commit is **not blocked** — this is advisory only.
+This means multiple plugin entries in `marketplace.json` resolve to the same `plugin.json`, so they share one version. The commit is **not blocked** — this is advisory only.
 
 **To fix:**
 1. Create per-plugin subdirectories: `plugins/airs-tme/`, `plugins/pai-ops/`, etc.
