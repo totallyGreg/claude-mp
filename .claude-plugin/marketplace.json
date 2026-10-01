@@ -76,8 +76,8 @@
       "category": "productivity"
     },
     {
-      "name": "local-omlx",
-      "source": "./plugins/local-omlx",
+      "name": "local-inference",
+      "source": "./plugins/local-inference",
       "category": "development"
     }
   ]
