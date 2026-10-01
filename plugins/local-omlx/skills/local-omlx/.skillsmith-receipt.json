@@ -1,0 +1,14 @@
+{
+  "skill_name": "local-omlx",
+  "content_hash": "9db66f664ebb32f462071c598e692ae4ab02d0f3ded459f97fb0773487e69a78",
+  "score": 94,
+  "metrics": {
+    "conciseness": 93,
+    "complexity": 90,
+    "spec_compliance": 100,
+    "progressive_disclosure": 100,
+    "description_quality": 80
+  },
+  "tool_version": "6.12.1",
+  "date": "2026-10-01"
+}

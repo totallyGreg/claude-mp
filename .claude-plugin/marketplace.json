@@ -74,6 +74,11 @@
       "name": "condo-steward",
       "source": "./plugins/condo-steward",
       "category": "productivity"
+    },
+    {
+      "name": "local-omlx",
+      "source": "./plugins/local-omlx",
+      "category": "development"
     }
   ]
 }
