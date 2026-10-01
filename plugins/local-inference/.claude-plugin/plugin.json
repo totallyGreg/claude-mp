@@ -1,17 +1,18 @@
 {
-  "name": "local-omlx",
-  "version": "1.1.1",
-  "description": "Run work on local oMLX models from Claude Code: Pi one-shots and pane teammates, a decide tier, and Claude Code on oMLX as a cross-session teammate.",
+  "name": "local-inference",
+  "version": "2.0.0",
+  "description": "Delegate work to local models on Apple silicon: task tiers (fast/code/deep/decide), Pi one-shots and pane teammates, and Claude Code on a local server as a cross-session teammate.",
   "author": {
     "name": "J. Greg Williams",
     "email": "283704+totallyGreg@users.noreply.github.com"
   },
   "license": "MIT",
   "keywords": [
-    "omlx",
+    "local-inference",
     "local-models",
-    "pi",
     "mlx",
+    "omlx",
+    "pi",
     "teammate",
     "claude-code"
   ]

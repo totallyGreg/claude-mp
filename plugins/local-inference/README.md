@@ -1,6 +1,6 @@
-# local-omlx
+# local-inference
 
-Run work on local [oMLX](https://github.com/jundot/omlx) models from Claude Code, two ways that share the same model tiers:
+Delegate work from Claude Code to models running on your Mac, by task tier rather than by model or tool. The current stack is the [oMLX](https://github.com/jundot/omlx) server plus two agents that share its tiers:
 
 - **Pi** (`pi`) — one-shot briefs (`pi -p`), or a teammate in its own tmux pane driven by `pi_team.sh`.
 - **Claude Code on oMLX** — `omlx launch claude --cross-session`, a real teammate reachable with `ListAgents`/`SendMessage`, launched slim by `claude_team.sh`.
@@ -10,7 +10,7 @@ Claude Code on Anthropic's models stays the orchestrator: it writes the brief, r
 <!-- BEGIN AUTOGEN:overview (managed by skillsmith --update-components; edits overwritten) -->
 ## What's inside
 
-Run work on local oMLX models from Claude Code: Pi one-shots and pane teammates, a decide tier, and Claude Code on oMLX as a cross-session teammate.
+Delegate work to local models on Apple silicon: task tiers (fast/code/deep/decide), Pi one-shots and pane teammates, and Claude Code on a local server as a cross-session teammate.
 
 **At a glance:** 1 skill
 
@@ -18,7 +18,7 @@ Run work on local oMLX models from Claude Code: Pi one-shots and pane teammates,
 
 ```
 /plugin marketplace add totallyGreg/claude-mp
-/plugin install local-omlx@totally-tools
+/plugin install local-inference@totally-tools
 ```
 <!-- END AUTOGEN:overview -->
 
@@ -33,11 +33,11 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
 | `deep` | one hard question | `omlx/deep` | opus |
 | `decide` | one grammar-constrained answer (label, yes/no, JSON) | `scripts/decide.py` | — |
 
-`skills/local-omlx/references/tiers.md` records the current mapping, how it was measured, and the procedure for adopting a new model.
+`skills/local-inference/references/tiers.md` records the current mapping, how it was measured, and the procedure for adopting a new model.
 
 ## Which to use
 
-**Pi by default.** On the same multi-file edit both produced the identical diff in about the same time, but Pi needed far less setup, its answers can't be lost, and it sends no telemetry. **The Claude Code teammate** when another Claude session needs to message it natively. `skills/local-omlx/references/pi-vs-claude.md` is the running comparison — evidence, friction log, and a parity table.
+**Pi by default.** On the same multi-file edit both produced the identical diff in about the same time, but Pi needed far less setup, its answers can't be lost, and it sends no telemetry. **The Claude Code teammate** when another Claude session needs to message it natively. `skills/local-inference/references/pi-vs-claude.md` is the running comparison — evidence, friction log, and a parity table.
 
 <!-- BEGIN AUTOGEN:components (managed by skillsmith --update-components; edits overwritten) -->
 ## Components
@@ -46,22 +46,22 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
 
 | Skill | Description |
 |-------|-------|
-| `local-omlx` | Two ways to run work on the local oMLX models, both sharing the same tiers: |
+| `local-inference` | Delegate work to models running on this Mac, picked by task tier, not by model or tool. |
 <!-- END AUTOGEN:components -->
 
 ## Scripts and Pi extensions
 
 | Path | What |
 |------|------|
-| `skills/local-omlx/scripts/decide.py` | One constrained answer from the `decide` tier |
-| `skills/local-omlx/scripts/pi_team.sh` | Pi teammate in a tmux pane: `spawn`, `ask`, `close` |
-| `skills/local-omlx/scripts/claude_team.sh` | Claude Code on oMLX as a teammate: slim prompt, scoped write tools, reply guard |
-| `skills/local-omlx/scripts/reply_guard.py` | Stop hook: the teammate can't end a turn without replying |
-| `skills/local-omlx/scripts/install_pi_extensions.sh` | Copies the Pi extensions into Pi's agent dir; `--check` shows what would change |
-| `skills/local-omlx/scripts/bench_decode.py`, `eval_decide.py` | Speed and decision-accuracy measurements for new models |
-| `skills/local-omlx/assets/pi-extensions/statusline.ts` | Claude-style status line for Pi |
-| `skills/local-omlx/assets/pi-extensions/write-boundary.ts` | Pi's edit/write only under its launch directory |
-| `skills/local-omlx/assets/pi-extensions/permission-gate.ts` | Asks before recursive deletes, sudo, or chmod 777 |
+| `skills/local-inference/scripts/decide.py` | One constrained answer from the `decide` tier |
+| `skills/local-inference/scripts/pi_team.sh` | Pi teammate in a tmux pane: `spawn`, `ask`, `close` |
+| `skills/local-inference/scripts/claude_team.sh` | Claude Code on oMLX as a teammate: slim prompt, scoped write tools, reply guard |
+| `skills/local-inference/scripts/reply_guard.py` | Stop hook: the teammate can't end a turn without replying |
+| `skills/local-inference/scripts/install_pi_extensions.sh` | Copies the Pi extensions into Pi's agent dir; `--check` shows what would change |
+| `skills/local-inference/scripts/bench_decode.py`, `eval_decide.py` | Speed and decision-accuracy measurements for new models |
+| `skills/local-inference/assets/pi-extensions/statusline.ts` | Claude-style status line for Pi |
+| `skills/local-inference/assets/pi-extensions/write-boundary.ts` | Pi's edit/write only under its launch directory |
+| `skills/local-inference/assets/pi-extensions/permission-gate.ts` | Asks before recursive deletes, sudo, or chmod 777 |
 
 ## Setup
 
@@ -69,24 +69,25 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
 2. `~/.pi/agent/models.json` with the `omlx` provider and the tier entries.
 3. Install the Pi extensions into Pi's agent dir (`${PI_CODING_AGENT_DIR:-~/.pi/agent}/extensions`):
    ```bash
-   skills/local-omlx/scripts/install_pi_extensions.sh
+   skills/local-inference/scripts/install_pi_extensions.sh
    ```
    Re-run after plugin updates (`--check` first). Pi doesn't read XDG paths; set `PI_CODING_AGENT_DIR` to move its config.
 
-## Skill: local-omlx
+## Skill: local-inference
 
 ### Current Metrics
 
-**Score: 94/100** (Good) — 2026-10-01
+**Score: 96/100** (Excellent) — 2026-10-01
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
-| 93 | 90 | 100 | 100 | 80 |
+| 93 | 90 | 100 | 100 | 100 |
 
 ### Version History
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 2.0.0 | 2026-10-01 | [#198](https://github.com/totallyGreg/claude-mp/issues/198) | Renamed `local-omlx` → `local-inference`; product-neutral description and intro (tiers stay, the stack underneath changes); TurboQuant KV 8-bit on `deep` tested and rejected; 0.7.0 memory-guard ceiling recorded. Description 80 → 100. | 93 | 90 | 100 | 100 | 100 | 96 |
 | 1.1.0 | 2026-10-01 | - | Pi extensions moved into `assets/pi-extensions/`; `install_pi_extensions.sh` copies them into Pi's agent dir (`${PI_CODING_AGENT_DIR:-~/.pi/agent}`) instead of Pi loading them from the marketplace clone. Score 94 (no change). +v1.1.1 | 93 | 90 | 100 | 100 | 80 | 94 |
 | 1.0.0 | 2026-10-01 | [#196](https://github.com/totallyGreg/claude-mp/issues/196) | Initial release, moved from a personal skill: fast/code/deep/decide tiers on oMLX profiles; Pi one-shots and pane teammate (`pi_team.sh`); Claude Code on oMLX as a cross-session teammate (`claude_team.sh` + `reply_guard.py`, write tools scoped to its directory); `decide.py`, `bench_decode.py`, `eval_decide.py`; Pi vs Claude comparison and tier derivation references. | 93 | 90 | 100 | 100 | 80 | 94 |
 
@@ -96,6 +97,7 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 2.0.0 | 2026-10-01 | Renamed from `local-omlx` to `local-inference`: the job stays, the tools under it change ([#198](https://github.com/totallyGreg/claude-mp/issues/198)). Reinstall as `local-inference@totally-tools`. Also records the TurboQuant KV 8-bit test on `deep` (rejected: decode halved, TTFT +23%, memory higher) and the 0.7.0 memory-guard ceiling. |
 | 1.1.1 | 2026-10-01 | oMLX 0.7.0 measured on this machine (35B: prefill +93%, decode +29%; Qwen3.8-27B: +51%, +78%); from the r/oMLX 0.7.0 benchmark: at most 2 parallel briefs, TurboQuant KV 8-bit and Splash noted as candidates, decide determinism checked. |
 | 1.1.0 | 2026-10-01 | Pi extensions moved from a top-level `pi/` dir (not a plugin component Claude Code recognizes, and it tied Pi to the marketplace clone's path) into the skill's `assets/pi-extensions/`, with `install_pi_extensions.sh` copying them into Pi's own agent dir. |
 | 1.0.0 | 2026-10-01 | Initial release: the personal `local-omlx` skill moved into the marketplace, with the Pi extensions that pair with it ([#196](https://github.com/totallyGreg/claude-mp/issues/196)). |

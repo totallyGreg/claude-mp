@@ -165,10 +165,29 @@ Machine: Apple M5 Pro, 64 GB unified memory.
    - **Concurrency:** 2 parallel requests ≈ 2× aggregate decode; from 16K
      context 4 parallel is worse than 2, from 64K worse than 1. → SKILL.md now
      says at most 2 in parallel.
-   - **TurboQuant KV 8-bit** was on for all their Qwen runs. Candidate for
-     `deep`: the dense 27B's KV is 64 KB/token (8 GB at 128K); 8-bit roughly
-     halves it. Not yet measured here — run `eval_decide.py` and a `deep` task
-     with `turboquant_kv_enabled: true, turboquant_kv_bits: 8` before adopting.
+   - **TurboQuant KV 8-bit** was on for all their Qwen runs. **Tested on
+     `deep` 2026-10-01 and rejected.** One 56.7K-token request through
+     `:deep`, model freshly loaded each time (probe: peak of the admin
+     `/api/stats` `memory_pressure.current_bytes` while the request ran):
+
+     | | TTFT | decode | peak memory (model + run) |
+     |---|---|---|---|
+     | off | 160 s | 21–22 tok/s | 30.0 GB |
+     | 8-bit | 197 s | 10.8 tok/s | 39.3 GB |
+
+     oMLX logged "converted 15/64 cache layers": in Qwen3.6/3.8's hybrid
+     design only every 4th layer keeps a KV cache, the rest have fixed-size
+     linear-attention state, so there is little KV to compress and the
+     conversion costs more than it saves. Their gains were on other
+     architectures. Leave it off for these models; re-test only for a model
+     whose layers are mostly full attention.
+   - **Memory ceiling under 0.7.0's guard** (`balanced` tier): oMLX's soft/hard
+     limits here are ~38/40 GB, varying with what else runs. Both tier models
+     are 37.7 GB, and one long `deep` request held ~13.6 GB more (oMLX keeps
+     the cache for reuse). So a long `deep` session evicts the 35B and the
+     next `fast`/`code` call reloads it. If that churn bites, try the
+     `aggressive` tier (keeps ~2% of RAM free instead of ~8%) — at the cost of
+     headroom for other apps.
    - **Determinism:** their oMLX JSON extraction (~600-token outputs, 8–16
      concurrent) repeated identically in only 1/16 cases at temperature 0.
      Checked here for `decide`: 8 sequential + 8 four-way-parallel label calls

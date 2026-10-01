@@ -1,13 +1,13 @@
 {
-  "skill_name": "local-omlx",
-  "content_hash": "468a0976fed15c673c2e2f8f520d860bc2e13193b54a1f8d0e72c745202605c8",
-  "score": 94,
+  "skill_name": "local-inference",
+  "content_hash": "2eae482b4d98124ac78263b4f8a23a1fa614326d876235190d02b002bc3c8940",
+  "score": 96,
   "metrics": {
     "conciseness": 93,
     "complexity": 90,
     "spec_compliance": 100,
     "progressive_disclosure": 100,
-    "description_quality": 80
+    "description_quality": 100
   },
   "tool_version": "6.12.1",
   "date": "2026-10-01"

@@ -1,20 +1,28 @@
 ---
-name: local-omlx
-description: This skill should be used when the user says "use pi", "use the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, repetitive edits with an exact spec) can run on a local oMLX model — via Pi or via Claude Code launched on oMLX — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
+name: local-inference
+description: This skill should be used when the user says "use pi", "use the local model", "local inference", "run it on the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, repetitive edits with an exact spec) can run on a local model — via Pi or via Claude Code launched on the local server — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
 metadata:
-  version: "1.1.1"
+  version: "2.0.0"
 compatibility: macOS on Apple silicon; oMLX server on 127.0.0.1:8000; pi; tmux 3.5+ for pane teammates; uv for the Python scripts
 license: MIT
 ---
 
-# local-omlx
+# local-inference
 
-Two ways to run work on the local oMLX models, both sharing the same tiers:
+Delegate work to models running on this Mac, picked by task tier, not by model
+or tool. The tiers stay; the stack underneath changes as better tools arrive.
+
+**Current stack** (2026-10): the [oMLX](https://github.com/jundot/omlx) server
+serves the models and the tier profiles; two agents use them —
 
 - **Pi** (`pi`) — a coding agent with an `omlx` provider
   (`~/.pi/agent/models.json`), run one-shot or as a pane teammate.
 - **Claude Code on oMLX** — `omlx launch claude`, a real cross-session teammate
   (`scripts/claude_team.sh`; see § Pi vs Claude Code on oMLX).
+
+When a part of the stack is replaced (a new server, a Splash-style speculative
+decoder, another agent), keep the tier names and the evidence files, and
+record the swap in references/tiers.md and references/pi-vs-claude.md.
 
 Claude Code (this session, on Anthropic's models) stays the orchestrator: it
 writes the brief, runs the local agent, and **verifies the result** before
@@ -81,7 +89,7 @@ classification, yes/no, extracting a few fields. oMLX constrains the output
 with a grammar, so the answer is always one of the choices or schema-valid JSON:
 
 ```bash
-S=${CLAUDE_PLUGIN_ROOT}/skills/local-omlx/scripts/decide.py
+S=${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/decide.py
 $S --choices bug,improvement --system "Classify the backlog item." "<text>"
 $S --choices yes,no --system "<the criterion, stated exactly>" "<text>"
 $S --schema fields.json "<text to extract from>"      # JSON Schema file
@@ -98,7 +106,7 @@ For a multi-turn conversation the user can watch (and type into), run Pi
 interactively in a pane beside this one instead of one-shot `pi -p`:
 
 ```bash
-T=${CLAUDE_PLUGIN_ROOT}/skills/local-omlx/scripts/pi_team.sh
+T=${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/pi_team.sh
 P=$($T spawn code "$PWD")           # tier, dir, optional name; prints the pane id (alias pi-code)
 $T ask $P "<task>" </dev/null       # types the task, waits, prints the answer + model + tools used
 $T ask $P "<follow-up>" </dev/null  # same session — it remembers the earlier turns
@@ -148,8 +156,8 @@ launch dir) and `permission-gate.ts`. Pi finds extensions in its own agent dir,
 so install them there:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/skills/local-omlx/scripts/install_pi_extensions.sh --check   # what would change
-${CLAUDE_PLUGIN_ROOT}/skills/local-omlx/scripts/install_pi_extensions.sh           # copy; changed files keep a .bak
+${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/install_pi_extensions.sh --check   # what would change
+${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/install_pi_extensions.sh           # copy; changed files keep a .bak
 ```
 
 Target is `${PI_CODING_AGENT_DIR:-~/.pi/agent}/extensions` — Pi does not read
