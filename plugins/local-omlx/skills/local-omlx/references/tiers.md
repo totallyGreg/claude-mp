@@ -13,9 +13,9 @@ them. Three layers, each owning one thing:
 
 | Tier | Served ID | Model notes |
 |------|-----------|-------------|
-| fast | `Qwen3.6-35B-A3B-oQ4e-mtp:fast` | MoE, 3B active, 20 GB, `Jundot/Qwen3.6-35B-A3B-oQ4e-mtp`. **117 tok/s** decode with MTP |
+| fast | `Qwen3.6-35B-A3B-oQ4e-mtp:fast` | MoE, 3B active, 20 GB, `Jundot/Qwen3.6-35B-A3B-oQ4e-mtp`. oMLX 0.7.0, 11K prompt: **2,929 tok/s prefill, 107 tok/s decode** with MTP |
 | code | `Qwen3.6-35B-A3B-oQ4e-mtp:code` | Same model; thinking on; MTP engages with the thinking budget |
-| deep | `Qwen3.8-27B-oQ4e-mtp:deep` | Dense, 16 GB, `Jundot/Qwen3.8-27B-oQ4e-mtp`, MTP on. ~19 tok/s decode, ~265 tok/s prefill. Qwen3.8 thinking sampling: temperature **1.0**, top_p 0.95, top_k 20 (not 3.6's 0.6). Set 2026-09-29 — derivation 7 |
+| deep | `Qwen3.8-27B-oQ4e-mtp:deep` | Dense, 16 GB, `Jundot/Qwen3.8-27B-oQ4e-mtp`, MTP on. oMLX 0.7.0, 11K prompt: ~34 tok/s decode, ~399 tok/s prefill. Qwen3.8 thinking sampling: temperature **1.0**, top_p 0.95, top_k 20 (not 3.6's 0.6). Set 2026-09-29 — derivation 7 |
 | decide | `Qwen3.8-27B-oQ4e-mtp:decide` | Same model as deep. Moved 2026-09-29: 31/45 type, 42/45 area vs the 35B's 27 and 38, at ~1.1 s median vs 0.33 s — accuracy is the point of decide. Called via `scripts/decide.py`, not Pi. Grammar-constrained, so MTP doesn't engage — irrelevant for 1–3-token answers |
 
 MTP is a **base-model** setting (`PUT /admin/api/models/<model>/settings
@@ -150,6 +150,33 @@ Machine: Apple M5 Pro, 64 GB unified memory.
    block (fights fast/decide); MTP builds carry a head not retrained with it;
    only oQ6/oQ8 builds (~28 GB+). Revisit if it gains real evals or an oQ4e-mtp
    build — and then it must match the 35B's MTP speed.
+
+8. **oMLX 0.7.0 (2026-10-01).** Same `bench_decode.py` run (dashboard.py,
+   ~11.4K prompt tokens, other model idle) against the 0.6.4 numbers above:
+
+   | | prefill tok/s | decode tok/s |
+   |---|---|---|
+   | 3.6-35B-A3B oQ4e + MTP | 1,517 → **2,929** (+93%) | 83 → **107** (+29%) |
+   | 3.8-27B oQ4e + MTP | 265 → **399** (+51%) | 19.3 → **34.3** (+78%) |
+
+   Far above the r/oMLX "0.7.0 vs 0.7.0rc1" post's +11% for Qwen3.6-35B — that
+   post compares against rc1; this machine jumped from 0.6.4 and got the whole
+   0.7.0 cycle. Taken from that post (M5 Ultra, 256 GB):
+   - **Concurrency:** 2 parallel requests ≈ 2× aggregate decode; from 16K
+     context 4 parallel is worse than 2, from 64K worse than 1. → SKILL.md now
+     says at most 2 in parallel.
+   - **TurboQuant KV 8-bit** was on for all their Qwen runs. Candidate for
+     `deep`: the dense 27B's KV is 64 KB/token (8 GB at 128K); 8-bit roughly
+     halves it. Not yet measured here — run `eval_decide.py` and a `deep` task
+     with `turboquant_kv_enabled: true, turboquant_kv_bits: 8` before adopting.
+   - **Determinism:** their oMLX JSON extraction (~600-token outputs, 8–16
+     concurrent) repeated identically in only 1/16 cases at temperature 0.
+     Checked here for `decide`: 8 sequential + 8 four-way-parallel label calls
+     and 8 schema calls were all identical — at decide's scale it holds.
+   - **Splash** (incoai/Qwen3.6-35B-A3B-Splash, a separate speculative-decoding
+     server) did their JSON extraction 2–2.6× faster than oMLX with the same
+     model. A candidate back end for bulk `decide --schema` work; not tried.
+   - Flash-Next and GLM-5.3-Flash got the biggest gains, but neither fits 64 GB.
 
 ## Gotcha: unknown model names must fail
 

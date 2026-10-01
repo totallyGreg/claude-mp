@@ -2,7 +2,7 @@
 name: local-omlx
 description: This skill should be used when the user says "use pi", "use the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, repetitive edits with an exact spec) can run on a local oMLX model — via Pi or via Claude Code launched on oMLX — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
 metadata:
-  version: "1.1.0"
+  version: "1.1.1"
 compatibility: macOS on Apple silicon; oMLX server on 127.0.0.1:8000; pi; tmux 3.5+ for pane teammates; uv for the Python scripts
 license: MIT
 ---
@@ -69,8 +69,10 @@ Tool sets:
 - **Edits:** `read,edit,write,grep,find,ls` — only in a git tree, so the change is a reviewable `git diff`. Never add `bash` unless the task needs it and the user agreed.
 
 Long runs: use Bash `run_in_background: true` and wait for the notification.
-Several independent briefs can run at once (oMLX serves up to 8 concurrent
-requests, but they share one GPU — 2–3 in parallel is the useful limit).
+Run **at most 2 briefs in parallel**: two nearly double total throughput, but
+from ~16K-token prompts on, 4 is slower than 2, and from 64K slower than one at
+a time — long prefills run back to back and stall the other decodes (oMLX 0.7.0
+benchmark, references/tiers.md derivation 8).
 
 ## Decide — one constrained answer, ~1–1.5 s
 

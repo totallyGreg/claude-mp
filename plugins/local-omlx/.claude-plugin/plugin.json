@@ -1,6 +1,6 @@
 {
   "name": "local-omlx",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Run work on local oMLX models from Claude Code: Pi one-shots and pane teammates, a decide tier, and Claude Code on oMLX as a cross-session teammate.",
   "author": {
     "name": "J. Greg Williams",
