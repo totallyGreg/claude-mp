@@ -2,7 +2,7 @@
 name: local-omlx
 description: This skill should be used when the user says "use pi", "use the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, repetitive edits with an exact spec) can run on a local oMLX model — via Pi or via Claude Code launched on oMLX — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 compatibility: macOS on Apple silicon; oMLX server on 127.0.0.1:8000; pi; tmux 3.5+ for pane teammates; uv for the Python scripts
 license: MIT
 ---
@@ -138,14 +138,22 @@ either setup, add a dated row there; after any config change, update its
 Parity table** — keep the two configured alike, and revisit this
 recommendation when the evidence changes.
 
-## Pi extensions shipped with this plugin
+## Pi extensions
 
-`pi/extensions/` (beside `skills/` in this plugin) holds the Pi side of the
-setup — `statusline.ts` (Claude-style status line), `write-boundary.ts`
-(edit/write only under Pi's launch dir) and `permission-gate.ts`. Pi loads them
-from the marketplace copy through `~/.pi/agent/settings.json` → `extensions`:
-`~/.claude/plugins/marketplaces/totally-tools/plugins/local-omlx/pi/extensions`,
-so they update with the marketplace like the skills do.
+`assets/pi-extensions/` holds the Pi side of the setup — `statusline.ts`
+(Claude-style status line), `write-boundary.ts` (edit/write only under Pi's
+launch dir) and `permission-gate.ts`. Pi finds extensions in its own agent dir,
+so install them there:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/skills/local-omlx/scripts/install_pi_extensions.sh --check   # what would change
+${CLAUDE_PLUGIN_ROOT}/skills/local-omlx/scripts/install_pi_extensions.sh           # copy; changed files keep a .bak
+```
+
+Target is `${PI_CODING_AGENT_DIR:-~/.pi/agent}/extensions` — Pi does not read
+XDG paths; to keep Pi's config under `$XDG_CONFIG_HOME`, set
+`PI_CODING_AGENT_DIR=$XDG_CONFIG_HOME/pi/agent`. Updates are deliberate: after the
+plugin updates, run `--check`, then install, then `/reload` in open Pi sessions.
 
 ## Writing the brief
 

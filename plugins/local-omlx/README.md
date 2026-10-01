@@ -57,19 +57,21 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
 | `skills/local-omlx/scripts/pi_team.sh` | Pi teammate in a tmux pane: `spawn`, `ask`, `close` |
 | `skills/local-omlx/scripts/claude_team.sh` | Claude Code on oMLX as a teammate: slim prompt, scoped write tools, reply guard |
 | `skills/local-omlx/scripts/reply_guard.py` | Stop hook: the teammate can't end a turn without replying |
+| `skills/local-omlx/scripts/install_pi_extensions.sh` | Copies the Pi extensions into Pi's agent dir; `--check` shows what would change |
 | `skills/local-omlx/scripts/bench_decode.py`, `eval_decide.py` | Speed and decision-accuracy measurements for new models |
-| `pi/extensions/statusline.ts` | Claude-style status line for Pi |
-| `pi/extensions/write-boundary.ts` | Pi's edit/write only under its launch directory |
-| `pi/extensions/permission-gate.ts` | Asks before recursive deletes, sudo, or chmod 777 |
+| `skills/local-omlx/assets/pi-extensions/statusline.ts` | Claude-style status line for Pi |
+| `skills/local-omlx/assets/pi-extensions/write-boundary.ts` | Pi's edit/write only under its launch directory |
+| `skills/local-omlx/assets/pi-extensions/permission-gate.ts` | Asks before recursive deletes, sudo, or chmod 777 |
 
 ## Setup
 
 1. oMLX running on `127.0.0.1:8000` with the tier profiles (`references/tiers.md`).
 2. `~/.pi/agent/models.json` with the `omlx` provider and the tier entries.
-3. In `~/.pi/agent/settings.json`, load the Pi extensions from the marketplace copy:
-   ```json
-   "extensions": ["~/.claude/plugins/marketplaces/totally-tools/plugins/local-omlx/pi/extensions"]
+3. Install the Pi extensions into Pi's agent dir (`${PI_CODING_AGENT_DIR:-~/.pi/agent}/extensions`):
+   ```bash
+   skills/local-omlx/scripts/install_pi_extensions.sh
    ```
+   Re-run after plugin updates (`--check` first). Pi doesn't read XDG paths; set `PI_CODING_AGENT_DIR` to move its config.
 
 ## Skill: local-omlx
 
@@ -85,6 +87,7 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.1.0 | 2026-10-01 | - | Pi extensions moved into `assets/pi-extensions/`; `install_pi_extensions.sh` copies them into Pi's agent dir (`${PI_CODING_AGENT_DIR:-~/.pi/agent}`) instead of Pi loading them from the marketplace clone. Score 94 (no change). | 93 | 90 | 100 | 100 | 80 | 94 |
 | 1.0.0 | 2026-10-01 | [#196](https://github.com/totallyGreg/claude-mp/issues/196) | Initial release, moved from a personal skill: fast/code/deep/decide tiers on oMLX profiles; Pi one-shots and pane teammate (`pi_team.sh`); Claude Code on oMLX as a cross-session teammate (`claude_team.sh` + `reply_guard.py`, write tools scoped to its directory); `decide.py`, `bench_decode.py`, `eval_decide.py`; Pi vs Claude comparison and tier derivation references. | 93 | 90 | 100 | 100 | 80 | 94 |
 
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
@@ -93,6 +96,7 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.1.0 | 2026-10-01 | Pi extensions moved from a top-level `pi/` dir (not a plugin component Claude Code recognizes, and it tied Pi to the marketplace clone's path) into the skill's `assets/pi-extensions/`, with `install_pi_extensions.sh` copying them into Pi's own agent dir. |
 | 1.0.0 | 2026-10-01 | Initial release: the personal `local-omlx` skill moved into the marketplace, with the Pi extensions that pair with it ([#196](https://github.com/totallyGreg/claude-mp/issues/196)). |
 
 ## License
