@@ -1,7 +1,7 @@
 {
   "name": "local-inference",
-  "version": "2.0.0",
-  "description": "Delegate work to local models on Apple silicon: task tiers (fast/code/deep/decide), Pi one-shots and pane teammates, and Claude Code on a local server as a cross-session teammate.",
+  "version": "2.1.0",
+  "description": "Delegate work to local models on Apple silicon (task tiers, Pi and Claude Code teammates on oMLX), and set up and audit Claude-Code-only OpenRig rigs.",
   "author": {
     "name": "J. Greg Williams",
     "email": "283704+totallyGreg@users.noreply.github.com"
@@ -14,6 +14,7 @@
     "omlx",
     "pi",
     "teammate",
-    "claude-code"
+    "claude-code",
+    "openrig"
   ]
 }

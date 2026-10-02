@@ -10,9 +10,9 @@ Claude Code on Anthropic's models stays the orchestrator: it writes the brief, r
 <!-- BEGIN AUTOGEN:overview (managed by skillsmith --update-components; edits overwritten) -->
 ## What's inside
 
-Delegate work to local models on Apple silicon: task tiers (fast/code/deep/decide), Pi one-shots and pane teammates, and Claude Code on a local server as a cross-session teammate.
+Delegate work to local models on Apple silicon (task tiers, Pi and Claude Code teammates on oMLX), and set up and audit Claude-Code-only OpenRig rigs.
 
-**At a glance:** 1 skill
+**At a glance:** 2 skills
 
 ## Install
 
@@ -42,11 +42,12 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
 <!-- BEGIN AUTOGEN:components (managed by skillsmith --update-components; edits overwritten) -->
 ## Components
 
-### Skills (1)
+### Skills (2)
 
 | Skill | Description |
 |-------|-------|
 | `local-inference` | Delegate work to models running on this Mac, picked by task tier, not by model or tool. |
+| `openrig-setup` | Install OpenRig, configure it, and give a project a rig that boots, then prove the setup with a read-only audit. |
 <!-- END AUTOGEN:components -->
 
 ## Scripts and Pi extensions
@@ -97,6 +98,7 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 2.1.0 | 2026-10-01 | New `openrig-setup` skill: install, configure and audit OpenRig for a project with Claude Code only (no Codex). `openrig_check.sh` read-only audit; `claude_only_spec.py` converts a library starter (Codex → claude-code, `local:` → `path:` refs, `cwd` → repo root). Distilled from openrig.dev docs by Pi (`omlx/fast`) and checked against the 0.5.17 CLI and validator. |
 | 2.0.0 | 2026-10-01 | Renamed from `local-omlx` to `local-inference`: the job stays, the tools under it change ([#198](https://github.com/totallyGreg/claude-mp/issues/198)). Reinstall as `local-inference@totally-tools`. Also records the TurboQuant KV 8-bit test on `deep` (rejected: decode halved, TTFT +23%, memory higher) and the 0.7.0 memory-guard ceiling. |
 | 1.1.1 | 2026-10-01 | oMLX 0.7.0 measured on this machine (35B: prefill +93%, decode +29%; Qwen3.8-27B: +51%, +78%); from the r/oMLX 0.7.0 benchmark: at most 2 parallel briefs, TurboQuant KV 8-bit and Splash noted as candidates, decide determinism checked. |
 | 1.1.0 | 2026-10-01 | Pi extensions moved from a top-level `pi/` dir (not a plugin component Claude Code recognizes, and it tied Pi to the marketplace clone's path) into the skill's `assets/pi-extensions/`, with `install_pi_extensions.sh` copying them into Pi's own agent dir. |
