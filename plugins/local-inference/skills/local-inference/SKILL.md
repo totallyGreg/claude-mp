@@ -2,7 +2,7 @@
 name: local-inference
 description: This skill should be used when the user says "use pi", "use the local model", "local inference", "run it on the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, repetitive edits with an exact spec) can run on a local model — via Pi or via Claude Code launched on the local server — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
 metadata:
-  version: "2.0.0"
+  version: "2.0.1"
 compatibility: macOS on Apple silicon; oMLX server on 127.0.0.1:8000; pi; tmux 3.5+ for pane teammates; uv for the Python scripts
 license: MIT
 ---
@@ -97,7 +97,9 @@ cat item.txt | $S --choices a,b,c --system "..."      # question from stdin
 ```
 
 - Always give the criterion in `--system`, including what each choice means, and say how to treat the ambiguous case — the measured 93% on 11-way area classification was with a one-line definition per area, and an exact bug/improvement definition gained 2–3 items in 45.
+- Wording moves the score as much as the model: longer area descriptions dropped the same model from 42 to 37 of 45. Keep a definition per choice short and literal, and compare models only on identical wording.
 - It was right 69–93% of the time on real judgment calls, depending on the question (see references/tiers.md). Use it to sort, route and pre-filter; verify any decision that changes something.
+- Cloudflare's Clef (open Jev/SystemOne: probabilities per option, many questions per call) was evaluated for this tier and not adopted — not more accurate here, and oMLX can't serve it. Evidence and when to revisit: references/tiers.md, derivation 9.
 - Many decisions → loop in the shell; each call is independent and fast.
 
 ## Teammate — Pi in its own tmux pane
