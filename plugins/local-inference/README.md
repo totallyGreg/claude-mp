@@ -7,6 +7,8 @@ Delegate work from Claude Code to models running on your Mac, by task tier rathe
 
 Claude Code on Anthropic's models stays the orchestrator: it writes the brief, runs the local agent, and verifies the result.
 
+**openrig-setup** puts those agents into a long-lived [OpenRig](https://openrig.dev) rig — a Claude Code lead with a Pi coder (`claude-pi`) or Pi alone (`pi-solo`) — scaffolded by `openrig:new` and audited read-only by `openrig:check`.
+
 <!-- BEGIN AUTOGEN:overview (managed by skillsmith --update-components; edits overwritten) -->
 ## What's inside
 
@@ -59,7 +61,7 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
 | `skills/local-inference/scripts/claude_team.sh` | Claude Code on oMLX as a teammate: slim prompt, scoped write tools, reply guard |
 | `skills/local-inference/scripts/reply_guard.py` | Stop hook: the teammate can't end a turn without replying |
 | `skills/local-inference/scripts/install_pi_extensions.sh` | Copies the Pi extensions into Pi's agent dir; `--check` shows what would change |
-| `skills/local-inference/scripts/bench_decode.py`, `eval_decide.py` | Speed and decision-accuracy measurements for new models |
+| `skills/local-inference/scripts/bench_decode.py`, `eval_decide.py`, `eval_clef.py` | Speed and decision-accuracy measurements for new models; `eval_clef.py` for Clef/Jev-style decision models |
 | `skills/local-inference/assets/pi-extensions/statusline.ts` | Claude-style status line for Pi |
 | `skills/local-inference/assets/pi-extensions/write-boundary.ts` | Pi's edit/write only under its launch directory |
 | `skills/local-inference/assets/pi-extensions/permission-gate.ts` | Asks before recursive deletes, sudo, or chmod 777 |
@@ -75,6 +77,11 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
    skills/local-inference/scripts/install_pi_extensions.sh
    ```
    Re-run after plugin updates (`--check` first). Pi doesn't read XDG paths; set `PI_CODING_AGENT_DIR` to move its config.
+4. For rigs: install the `openrig:*` mise tasks into the global mise tasks dir, then follow `skills/openrig-setup/SKILL.md`:
+   ```bash
+   skills/openrig-setup/scripts/install_mise_tasks.sh
+   ```
+   Re-run after plugin updates (`--check` first).
 
 ## Skill: local-inference
 
@@ -90,9 +97,32 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
-| 2.0.0 | 2026-10-01 | [#198](https://github.com/totallyGreg/claude-mp/issues/198) | Renamed `local-omlx` → `local-inference`; product-neutral description and intro (tiers stay, the stack underneath changes); TurboQuant KV 8-bit on `deep` tested and rejected; 0.7.0 memory-guard ceiling recorded. Description 80 → 100. | 93 | 90 | 100 | 100 | 100 | 96 |
+| 2.0.0 | 2026-10-02 | [#198](https://github.com/totallyGreg/claude-mp/issues/198) | Renamed `local-omlx` → `local-inference`; product-neutral description and intro (tiers stay, the stack underneath changes); TurboQuant KV 8-bit on `deep` tested and rejected; 0.7.0 memory-guard ceiling recorded. Description 80 → 100. +v2.0.1 | 93 | 90 | 100 | 100 | 100 | 96 |
 | 1.1.0 | 2026-10-01 | - | Pi extensions moved into `assets/pi-extensions/`; `install_pi_extensions.sh` copies them into Pi's agent dir (`${PI_CODING_AGENT_DIR:-~/.pi/agent}`) instead of Pi loading them from the marketplace clone. Score 94 (no change). +v1.1.1 | 93 | 90 | 100 | 100 | 80 | 94 |
 | 1.0.0 | 2026-10-01 | [#196](https://github.com/totallyGreg/claude-mp/issues/196) | Initial release, moved from a personal skill: fast/code/deep/decide tiers on oMLX profiles; Pi one-shots and pane teammate (`pi_team.sh`); Claude Code on oMLX as a cross-session teammate (`claude_team.sh` + `reply_guard.py`, write tools scoped to its directory); `decide.py`, `bench_decode.py`, `eval_decide.py`; Pi vs Claude comparison and tier derivation references. | 93 | 90 | 100 | 100 | 80 | 94 |
+
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
+
+## Skill: openrig-setup
+
+### Current Metrics
+
+**Score: 95/100** (Excellent) — 2026-10-02
+
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 93 | 86 | 100 | 100 | 100 |
+
+### Version History
+
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.3.0 | 2026-10-02 | - | `openrig:new --pi native` runs the coder on OpenRig's native `pi` runtime; terminal vs native tradeoffs. +v1.3.1 (`openrig:new` merges the lead's settings) +v1.3.2 (names a reused worktree's real branch; RTK allow rules) +v1.3.3 (lifecycle lessons; scaffold hygiene) | 93 | 86 | 100 | 100 | 100 | 95 |
+| 1.2.0 | 2026-10-02 | - | The `claude-pi` lead runs in the rig folder, so OpenRig's per-boot rewrites stay out of the repo root; `openrig:check` warns on a Claude seat whose cwd is the repo. | 93 | 87 | 100 | 100 | 100 | 96 |
+| 1.1.0 | 2026-10-01 | - | Scripts become mise file tasks (`openrig:check`, `openrig:convert`, new `openrig:new` scaffold) installed by `install_mise_tasks.sh`; rig shapes, naming, start/switch/retire. | 93 | 87 | 100 | 100 | 100 | 96 |
+| 1.0.0 | 2026-10-01 | - | Initial release: install, configure and audit OpenRig with Claude Code only; read-only audit and a library-starter converter. | 98 | 90 | 100 | 100 | 100 | 97 |
+
+Scores for 1.0.0–1.2.0 were measured on 2026-10-02 against each release's commit.
 
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
 
