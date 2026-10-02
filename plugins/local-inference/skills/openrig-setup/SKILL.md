@@ -2,7 +2,7 @@
 name: openrig-setup
 description: This skill should be used when the user asks to "set up openrig", "install openrig", "configure openrig for this project", "check my openrig setup", "is openrig set up correctly", "create a rig for this repo", "scaffold a rig", "switch rigs", "rename a rig", "write a rig.yaml", "convert a codex rig to claude", "openrig doctor", "why won't my rig start", or mentions rig.yaml, agent.yaml, `rig up`, `rig setup`, `mise run openrig:*`, or the OpenRig daemon in a setup or configuration context. Covers install, the daemon, config keys, rig shapes (Claude lead + Pi coder, Pi alone), naming, starting and switching rigs, RigSpec/AgentSpec authoring, Claude-Code-only rigs (no Codex), and a read-only audit. Do NOT use for operating a running rig day to day (queue triage, handover, recovery) — use the openrig-skills skills OpenRig projects into its seats.
 metadata:
-  version: "1.3.2"
+  version: "1.3.3"
 compatibility: macOS or Linux; OpenRig CLI 0.5.x (checked on 0.5.17); Node 22 or 24; tmux; Claude Code; mise and uv for the tasks; Pi + oMLX for Pi seats
 license: MIT
 ---
@@ -102,6 +102,12 @@ rig doctor --spec openrig-specs/qs-claude-pi/rig.yaml
 rig down qs-claude-pi --snapshot && rig up qs-pi-solo   # switch
 rig down old --snapshot && rig archive <rigId>           # retire (rig ps --json --filter status=stopped for ids)
 ```
+
+**Shut down and restart:** `rig down <your-rig> --snapshot` for each of your
+rigs (never `kernel` — the daemon owns it), `cd ~ && rig daemon stop`, then
+`cd ~ && rig start --last`. Seats resume; auto mode doesn't. To share the setup
+with worktrees, commit `AGENTS.md`, `CLAUDE.md` and `openrig-specs/` to a branch
+and base the worktrees on it. Details: [references/lifecycle.md](references/lifecycle.md).
 
 Two rigs can run at once (separate worktrees), but they share oMLX; past two
 concurrent Pi requests each one slows down. Reusing one spec across projects
