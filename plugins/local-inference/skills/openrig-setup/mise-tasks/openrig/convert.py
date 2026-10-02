@@ -3,9 +3,14 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
+#MISE description="Copy an OpenRig library starter into a project as a Claude-only rig spec"
+#USAGE arg "<starter>" help="Library rig name, e.g. first-project or conveyor (rig specs ls)"
+#USAGE arg "<dest>" help="Directory to write rig.yaml into, e.g. <repo>/openrig-specs/<rig-name>"
+#USAGE arg "<rig_name>" help="Name for the new rig (no dots)"
+#USAGE flag "--dry-run" help="Print the changes without writing"
 """Copy an OpenRig library rig spec into a project as a Claude-Code-only spec.
 
-Usage: claude_only_spec.py <library-rig> <dest-dir> <rig-name> [--dry-run]
+Usage: mise run openrig:convert <library-rig> <dest-dir> <rig-name> [--dry-run]
 
   - copies the starter's directory (rig.yaml, CULTURE.md, docs) to <dest-dir>
   - rewrites relative `local:` agent_refs to absolute `path:` refs, so the
@@ -82,7 +87,9 @@ def main() -> None:
     dry = "--dry-run" in sys.argv
     if len(args) != 3:
         sys.exit(__doc__)
-    starter, dest, rig_name = args[0], Path(args[1]).resolve(), args[2]
+    # Under mise the task runs elsewhere; resolve a relative dest where it was invoked.
+    base = Path(os.environ.get("MISE_ORIGINAL_CWD", "."))
+    starter, dest, rig_name = args[0], (base / args[1]).resolve(), args[2]
     if "." in rig_name:
         sys.exit("rig name must not contain dots")
     spec = library_spec_path(starter)
