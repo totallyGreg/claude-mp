@@ -34,7 +34,7 @@ pods:                     # required, non-empty
       - id: impl          # no dots; seat address dev-impl@my-rig, logical id dev.impl
         agent_ref: "local:agents/impl"   # local:<relative to rig.yaml> or path:<absolute>
         profile: default
-        runtime: claude-code             # claude-code | codex | terminal
+        runtime: claude-code             # claude-code | codex | terminal | pi (native Pi adapter, untested here)
         cwd: "."                         # session start dir, relative to THIS FILE's dir (or absolute)
         label: "Implementation Lead"
         model: <model-id>                # optional; omit to use the harness default
@@ -67,7 +67,7 @@ startup actions need `idempotent`, and non-idempotent actions can't apply on
 Built-in library specs live under the installed CLI
 (`rig specs show <name>` prints the path) and use `local:../../../agents/...`
 refs. Those break when the yaml is copied elsewhere — rewrite them to `path:`
-(`scripts/claude_only_spec.py` does this).
+(`mise run openrig:convert` does this).
 
 ## AgentSpec — `agent.yaml`
 

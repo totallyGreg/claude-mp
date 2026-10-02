@@ -1,6 +1,6 @@
 {
   "name": "local-inference",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Delegate work to local models on Apple silicon (task tiers, Pi and Claude Code teammates on oMLX), and set up and audit Claude-Code-only OpenRig rigs.",
   "author": {
     "name": "J. Greg Williams",

@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# Read-only audit of an OpenRig install and one project's rig specs.
-# Usage: openrig_check.sh [project-dir]     (default: current directory)
+#MISE description="Read-only audit of OpenRig and a project's rig specs; exit 1 on any FAIL"
+#USAGE arg "[project]" help="Project directory (default: where mise run was invoked)"
+# Checks prerequisites, rig doctor, the daemon, rig workspace doctor, every
+# rig.yaml under the project (version, codex seats, agent_ref and cwd
+# resolution, terminal send_text, rig up --plan) and duplicate rig names.
 # Changes nothing. Prints OK / WARN / FAIL lines, then a summary.
 set -uo pipefail
 
-PROJECT=$(cd "${1:-$PWD}" && pwd)
+PROJECT=$(cd "${usage_project:-${1:-${MISE_ORIGINAL_CWD:-$PWD}}}" && pwd)
 fails=0 warns=0
 ok()   { printf '  OK    %s\n' "$*"; }
 warn() { printf '  WARN  %s\n' "$*"; warns=$((warns + 1)); }
@@ -60,7 +63,7 @@ rig_names=$(cut -f1 <<<"$rigs" | sort -u)
 
 echo "== Project specs under $PROJECT"
 specs=$(find "$PROJECT" -maxdepth 4 -name rig.yaml -not -path '*/node_modules/*' -not -path '*/.git/*' 2>/dev/null)
-[ -z "$specs" ] && warn "no rig.yaml found (rig create <name> for a one-seat rig, or scripts/claude_only_spec.py to start from a starter)"
+[ -z "$specs" ] && warn "no rig.yaml found (rig create <name> for a one-seat rig, or mise run openrig:new for a templated rig)"
 for spec in $specs; do
 	dir=$(dirname "$spec")
 	name=$(sed -n 's/^name: *"\{0,1\}\([^"]*\)"\{0,1\} *$/\1/p' "$spec" | head -1)
@@ -87,9 +90,12 @@ for spec in $specs; do
 			warn "cwd \"$cwd\" → the spec's own folder, not the repo root $root (seats start there and OpenRig projects .claude/ into it)"
 		else ok "cwd \"$cwd\" → $abs"; fi
 	done < <(sed -nE 's/^ *cwd: *"?([^"]*)"? *$/\1/p' "$spec" | sort -u)
-	if grep -q 'runtime: *terminal' "$spec"; then
-		warn "terminal seat(s): send_text is typed into a shell — it must start with a command (e.g. pi --model omlx/code \"<brief>\"), not prose"
-	fi
+	# A terminal seat is a shell: its send_text runs as a command, so it must start with one.
+	while read -r first; do
+		command -v "$first" >/dev/null && ok "terminal seat launches $first" ||
+			fail "terminal seat send_text starts with \"$first\", not a command — prose is run by the shell (launch the agent: pi --model omlx/code \"<brief>\")"
+	done < <(awk '/- id:/ { term = 0 } /runtime: *terminal/ { term = 1 }
+		term && /value:/ { sub(/.*value: *["'"'"']?/, ""); split($0, w, " "); print w[1] }' "$spec")
 	if [ "$daemon" = 1 ]; then
 		plan=$(rig up "$spec" --plan 2>&1); rc=$?
 		[ $rc = 0 ] && ok "rig up --plan validates" || { fail "rig up --plan failed:"; sed 's/^/        /' <<<"$plan" | head -15; }

@@ -1,160 +1,170 @@
 ---
 name: openrig-setup
-description: This skill should be used when the user asks to "set up openrig", "install openrig", "configure openrig for this project", "check my openrig setup", "is openrig set up correctly", "write a rig.yaml", "create a rig for this repo", "convert a codex rig to claude", "openrig doctor", "why won't my rig start", or mentions rig.yaml, agent.yaml, `rig up`, `rig setup`, or the OpenRig daemon in a setup or configuration context. Covers install, the daemon, config keys, RigSpec/AgentSpec authoring, Claude-Code-only rigs (no Codex), and a read-only audit of a project's setup. Do NOT use for operating a running rig day to day (queue triage, handover, recovery) — use the openrig-skills skills OpenRig projects into its seats.
+description: This skill should be used when the user asks to "set up openrig", "install openrig", "configure openrig for this project", "check my openrig setup", "is openrig set up correctly", "create a rig for this repo", "scaffold a rig", "switch rigs", "rename a rig", "write a rig.yaml", "convert a codex rig to claude", "openrig doctor", "why won't my rig start", or mentions rig.yaml, agent.yaml, `rig up`, `rig setup`, `mise run openrig:*`, or the OpenRig daemon in a setup or configuration context. Covers install, the daemon, config keys, rig shapes (Claude lead + Pi coder, Pi alone), naming, starting and switching rigs, RigSpec/AgentSpec authoring, Claude-Code-only rigs (no Codex), and a read-only audit. Do NOT use for operating a running rig day to day (queue triage, handover, recovery) — use the openrig-skills skills OpenRig projects into its seats.
 metadata:
-  version: "1.0.0"
-compatibility: macOS or Linux; OpenRig CLI 0.5.x (checked on 0.5.17); Node 22 or 24; tmux; Claude Code; uv for the Python script
+  version: "1.1.0"
+compatibility: macOS or Linux; OpenRig CLI 0.5.x (checked on 0.5.17); Node 22 or 24; tmux; Claude Code; mise and uv for the tasks; Pi + oMLX for Pi seats
 license: MIT
 ---
 
 # openrig-setup
 
-Install OpenRig, configure it, and give a project a rig that boots, then
-prove the setup with a read-only audit. This setup uses **Claude Code only**:
-there is no Codex. Library starters that use Codex seats get converted.
+Install OpenRig, give a project a rig that boots, and prove it with a read-only
+audit. This setup uses **Claude Code and Pi only** — there is no Codex.
 
 OpenRig in one line: a local daemon (HTTP + SQLite, `127.0.0.1:7433`) owns all
 state; `rig` (CLI), `rig tui` and its MCP server are clients; each seat is a
-Claude Code session in tmux. tmux is the transport and the database is the
-truth. Commands and config are in
-[references/cli-and-config.md](references/cli-and-config.md), and the
-`rig.yaml`/`agent.yaml` schemas are in [references/specs.md](references/specs.md).
+session in tmux — tmux is the transport, the database is the truth. Commands
+and config are in [references/cli-and-config.md](references/cli-and-config.md),
+and the `rig.yaml`/`agent.yaml` schemas are in [references/specs.md](references/specs.md).
+
+## The tools: mise tasks
+
+The skill ships three mise file tasks in `mise-tasks/openrig/`. Install them
+once (and again after a plugin update) into the global mise tasks dir, so they
+work in every project:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/skills/openrig-setup/scripts/install_mise_tasks.sh --check   # what would change
+${CLAUDE_PLUGIN_ROOT}/skills/openrig-setup/scripts/install_mise_tasks.sh
+```
+
+| Task | Does |
+|------|------|
+| `mise run openrig:check [project]` | Read-only audit, exit 1 on any FAIL. Checks prereqs, `rig doctor`, the daemon, `rig workspace doctor`, every `rig.yaml` (version, Codex seats, `agent_ref` and `cwd` resolution, terminal seats launch a command, `rig up --plan`) and duplicate rig names |
+| `mise run openrig:new <claude-pi\|pi-solo> [project] --prefix P --tier code` | Scaffold a rig: spec + briefs in `openrig-specs/<P>-<shape>/`, a worktree at `.worktrees/<P>-<shape>` on `experiment/<P>-<shape>-<date>`, then `rig up --plan`. `--dry-run` first |
+| `mise run openrig:convert <starter> <dest> <name>` | Copy a library starter (`rig specs ls`) as a Claude-only spec |
+
+The project defaults to where `mise run` was invoked. Without mise, run the
+files in `mise-tasks/openrig/` directly.
 
 ## 1. Audit first — always
 
-```bash
-S=${CLAUDE_PLUGIN_ROOT}/skills/openrig-setup/scripts
-$S/openrig_check.sh /path/to/project
-```
-
-It is read-only and runs these checks:
-- prerequisites
-- `rig doctor`
-- daemon status
-- non-default config
-- `rig workspace doctor`
-- every `rig.yaml` in the project: version, Codex seats, `culture_file` and `agent_ref` resolution, and `rig up --plan`
-- all rigs, including stopped ones, with duplicate rig names flagged
-
-Fix FAIL lines in the order printed. Don't change anything before reading the
-audit.
-
-## 2. Install (only if the audit says so)
+`mise run openrig:check` before changing anything, and fix FAILs in the order
+printed. If OpenRig isn't installed:
 
 ```bash
-node --version            # 22 (Apple silicon) or 24
-tmux -V
-npm install -g @openrig/cli   # or the existing Homebrew install
-rig setup --dry-run && rig setup
-rig preflight && rig doctor
-rig daemon start          # after reboot: rig start --last
+npm install -g @openrig/cli            # or Homebrew; Node 22 on Apple silicon
+rig setup --dry-run && rig setup        # ignore its Codex lines
+rig preflight && rig doctor             # "cmux not found" is fine — optional
+rig daemon start                        # after reboot: rig start --last
 ```
 
-`rig doctor` warning that cmux is missing is fine: cmux is optional. Skip every
-Codex step, and ignore the Codex lines in `rig setup` output.
+## 2. Pick a shape
 
-## 3. Give a project a rig
+| Shape | Seats | Use when |
+|-------|-------|----------|
+| `claude-pi` | `dev-lead` (Claude Code) → `dev-coder` (Pi) | Design, judgment and review from Claude; typing from a local model |
+| `pi-solo` | `dev-coder` (Pi) | Well-specified tasks, cheap and private; you hand it tasks directly |
 
-Pick the smallest shape that fits:
+Don't build two-Pi orchestrator + coder rigs. The split pays off only when the
+orchestrator is stronger than the coder, or the second seat is independent; two
+copies of one local model add messaging, two contexts and oMLX contention, and
+"review" shares the coder's blind spots. A second Pi earns a seat only with a
+different job — e.g. a read-only reviewer on `omlx/deep`
+(`--tools read,grep,find,ls`). Idle seats cost nothing on oMLX.
 
-| Need | Do |
-|------|-----|
-| One seat, no spec | `rig create <name>` |
-| A pair or team from a proven starter | convert a library starter (below) |
-| A custom topology | write `rig.yaml` from references/specs.md |
+## 3. Name it
 
-**Converting a starter to Claude-only.** `rig specs ls` lists the starters;
-`first-project` is an owner plus a checker, `conveyor` is intake → plan →
-build → review. Convert one with:
+Rig `<project-prefix>-<shape>` (e.g. `qs-claude-pi`), seats by role (`lead`,
+`coder`), runtime and tier in the `label`. Ids: lowercase, no dots. Addresses
+are `{pod}-{member}@{rig}` and the briefs hardcode them, so **renaming a rig
+means new briefs** — scaffold a new rig rather than editing `name:`. Rig names
+must be unique among stopped rigs too, or `rig up <name>` is ambiguous; archive
+old ones with `rig archive <rigId>` (reversible: `rig unarchive`).
+
+## 4. Start, switch, retire
+
+There is no "project's rig" setting (`rig project` is a task classifier). A rig
+belongs to a project through where its spec lives and its seats' `cwd`.
 
 ```bash
-$S/claude_only_spec.py first-project <project>/.openrig <rig-name> --dry-run
-$S/claude_only_spec.py first-project <project>/.openrig <rig-name>
-rig up <project>/.openrig/rig.yaml --plan
+mise run openrig:new claude-pi --prefix qs --dry-run && mise run openrig:new claude-pi --prefix qs
+rig up openrig-specs/qs-claude-pi/rig.yaml      # first boot; later: rig up qs-claude-pi
+rig ps --nodes --rig qs-claude-pi
+rig doctor --spec openrig-specs/qs-claude-pi/rig.yaml
+
+rig down qs-claude-pi --snapshot && rig up qs-pi-solo   # switch
+rig down old --snapshot && rig archive <rigId>           # retire (rig ps --json --filter status=stopped for ids)
 ```
 
-The script makes these changes:
-- copies the starter's `rig.yaml` and `CULTURE.md`
-- points `cwd` at the enclosing git repo root
-- rewrites the starter's relative `local:../../../agents/…` refs to absolute
-  `path:` refs, because copying the yaml breaks the relative ones
-- sets `runtime: claude-code`
-- drops the GPT `model:` lines
+Two rigs can run at once (separate worktrees), but they share oMLX; past two
+concurrent Pi requests each one slows down. Reusing one spec across projects
+doesn't work: library specs can't use relative `cwd`, and `rig up --cwd`
+overrides *every* seat's cwd, collapsing the coder's worktree into the lead's
+directory. Scaffold one spec per project instead.
 
-The library AgentSpecs work with either runtime, so nothing else changes.
+## 5. What the scaffold gets right — and hand-written specs got wrong
 
-Before booting, check four things in the spec:
-1. `name` is unique. `rig up <name>` resolves by name, so leftover rigs with the
-   same name make it ambiguous. Archive extras with `rig archive <rigId>`.
-2. `cwd` points at the repo. It resolves against the spec's own directory, not
-   where you run `rig up`, so `cwd: "."` in `<repo>/.openrig/rig.yaml` starts
-   seats in `.openrig/`. The script rewrites it to the repo root; `--cwd`
-   overrides it for one run.
-3. Pod and member ids contain no dots.
-4. A permission posture is recorded: `rig policy apply standard --spec <dir>`.
-   Without one, `--plan` warns `launch_posture=floor`. The posture is only
-   recorded; Claude Code's own permission settings enforce it.
+- **`cwd` resolves against the spec's directory**, not where `rig up` runs. In
+  `openrig-specs/<rig>/rig.yaml`, the repo root is `"../.."`.
+- **A terminal seat is a shell.** Its `send_text` is typed in as a command, so
+  it must launch the agent; prose runs as a shell command. For Pi:
+  `pi --model omlx/code --append-system-prompt <abs brief> "<kick>"` —
+  `--append-system-prompt` takes a file and keeps the brief in the system
+  prompt for the whole session. Escape `'` as `''` inside a YAML single-quoted value.
+- **Briefs use absolute paths** — the coder's worktree doesn't contain an
+  untracked or ignored `openrig-specs/`.
+- **The coder gets its own worktree** (`.worktrees/` is added to
+  `.git/info/exclude`), so it can't touch the main checkout; the lead reviews
+  with `git -C <worktree> diff`.
 
-Then boot and confirm:
+## 6. What a Claude seat writes into its cwd
+
+When a `claude-code` seat boots, OpenRig projects into its `cwd`: managed
+blocks in `CLAUDE.md` (culture, `openrig-start`), `.claude/plugins/` and
+`.claude/skills/` (openrig-core), and hooks + status line merged into
+`.claude/settings.local.json` (existing rules are kept). A seat started in the
+wrong directory leaves these behind there — a sign `cwd` is wrong.
+
+**One instructions file (AGENTS.md).** The block target is only configurable
+between `CLAUDE.md` (default) and `CLAUDE.local.md` (`managed_blocks:
+{claude-code: CLAUDE.local.md}` in `rig.yaml`); AGENTS.md isn't allowed. To keep
+a single file, append the existing `CLAUDE.md` to `AGENTS.md`, then
+`ln -s AGENTS.md CLAUDE.md`. OpenRig writes with `writeFileSync`, which follows
+the symlink, so later block updates land in AGENTS.md and Claude Code and Pi
+read the same file. Every agent started in that directory sees the OpenRig
+blocks — if that's unwanted, target `CLAUDE.local.md` instead. In a repo you
+don't own, add `CLAUDE.md` to `.git/info/exclude`.
+
+**Codex leftovers.** A Codex starter (e.g. `first-project`) projects
+`.codex/plugins/` and `.agents/skills/` into its cwd even when Codex never
+launches; with no Codex seats they're unused and safe to delete.
+
+## 7. Permissions
+
+`permission_policy: builtin:standard` is recorded only (`launch_posture:
+floor`); Claude Code's own settings decide. Expect the lead to ask before every
+`rig` command until you allow them — answer "don't ask again" in its pane, or
+add to the repo's `.claude/settings.local.json` `permissions.allow`:
+`Bash(rig whoami:*)`, `Bash(rig send:*)`, `Bash(rig capture:*)`,
+`Bash(rig context:*)`, `Bash(git -C:*)`. Pi has no permission prompts — its
+worktree is its boundary.
+
+## 8. Configure
 
 ```bash
-rig up <project>/.openrig/rig.yaml
-rig ps --nodes --rig <rig-name>
-rig doctor --spec <project>/.openrig/rig.yaml   # spec matches the running rig
-rig tui
+rig config --with-source               # every key + which layer won
+rig config set <key> <value>           # rig config reset <key> to undo
 ```
 
-**Pi (or any CLI agent) as a seat.** Use a terminal node: `runtime: terminal`,
-`agent_ref: "builtin:terminal"`, `profile: none`, all three. The seat is a plain
-shell, so its `send_text` is typed in as a command. Prose would run as a shell
-command, so launch the agent with its brief:
+Precedence: flag → env → config file → default (`default` paths are derived
+per machine). After editing config, `rig workspace doctor` reports
+`daemon_reload_needed`: there is no `rig daemon restart` in 0.5.17 —
+`rig daemon stop && rig daemon start`. Long Claude seats: consider a pod
+`continuity_policy` or `policies.claude_compaction.enabled`.
 
-```yaml
-startup:
-  actions:
-    - type: send_text
-      value: 'pi --model omlx/code "Read <repo>/path/brief.md and do the tasks in it."'
-      phase: after_ready
-      applies_on: [fresh_start]
-      idempotent: true
-```
+## Next steps once the loop works
 
-Paths in the brief are relative to the seat's `cwd`. The local-inference
-skill covers tiers and Pi flags.
-
-## 4. Configure
-
-```bash
-rig config --with-source          # every key + which layer won
-rig config get workspace.root --show-source
-rig config set <key> <value>      # rig config reset <key> to undo
-rig config init-workspace --dry-run
-```
-
-The precedence order is flag → env → config file → default. A `default` path is
-derived per machine, so don't hardcode it. Changing the files allowlist or the
-progress scan roots needs `rig daemon stop && rig daemon start`. The Claude-relevant
-keys are `policies.claude_compaction.*` (off by default) and
-`health.context_pressure.*`. Claude compacts more aggressively than Codex, so for
-long seats consider a pod `continuity_policy` or turning on Claude compaction.
-
-## 5. Startup content: what each seat knows at boot
-
-Put role, project and environment facts into guidance files
-(`delivery_hint: guidance_merge`, merged into CLAUDE.md before boot). Put
-reusable procedures into skills (`skill_install`). Then use one `send_text`
-action, `phase: after_ready`, to tell the seat to load them. Hook, MCP and
-runtime-resource projection are experimental, so describe the desired state in
-guidance and have the seat verify it. The full layering order is in
-references/specs.md.
+- Hand tasks through the queue instead of bare `rig send`
+  (`rig queue create --destination dev-coder@<rig> --body-file …`): owned,
+  stateful, visible to `rig parked` / `rig heartbeat`.
+- `rig down --snapshot` whenever you switch; periodic snapshots are on (300 s).
 
 ## Verify
 
-The setup counts as correct only when all of these hold:
-- `openrig_check.sh` exits 0
-- `rig up … --plan` reports `Status: planned` without errors
-- after `rig up`, every seat in `rig ps --nodes` is running
-- `rig doctor --spec` passes `spec_live_conformance`
-
-Report each result to the user with its command output. Don't claim the
-setup works from `rig ps` alone.
+Done only when: `mise run openrig:check` exits 0; `rig up … --plan` says
+`Status: planned`; after `rig up`, `rig ps --nodes` shows every seat running and
+`rig capture <coder>` shows Pi on the right tier and branch; `rig doctor --spec`
+passes `spec_live_conformance`. Report each with its output — not `rig ps`
+alone.
