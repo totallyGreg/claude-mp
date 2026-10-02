@@ -305,10 +305,15 @@ def main() -> None:
         print(f"linked    {link_pi_models(f'dev-coder@{rig}')} -> your Pi models.json")
     if a.shape == "claude-pi":
         # The lead works from the rig folder; let it read and edit the repo.
-        # OpenRig merges its own keys into this file and keeps ours.
+        # Merge, don't overwrite: a regenerated rig keeps the user's allow rules,
+        # and OpenRig merges its own keys in on boot.
         settings = spec_dir / ".claude" / "settings.local.json"
         settings.parent.mkdir(exist_ok=True)
-        settings.write_text(json.dumps({"permissions": {"additionalDirectories": [str(repo)]}}, indent=2) + "\n")
+        data = json.loads(settings.read_text()) if settings.exists() else {}
+        dirs = data.setdefault("permissions", {}).setdefault("additionalDirectories", [])
+        if str(repo) not in dirs:
+            dirs.append(str(repo))
+        settings.write_text(json.dumps(data, indent=2) + "\n")
     print(f"wrote     {spec_dir}/")
 
     plan = run("rig", "up", str(spec_dir / "rig.yaml"), "--plan")
