@@ -2,7 +2,7 @@
 name: openrig-setup
 description: This skill should be used when the user asks to "set up openrig", "install openrig", "configure openrig for this project", "check my openrig setup", "is openrig set up correctly", "create a rig for this repo", "scaffold a rig", "switch rigs", "rename a rig", "write a rig.yaml", "convert a codex rig to claude", "openrig doctor", "why won't my rig start", or mentions rig.yaml, agent.yaml, `rig up`, `rig setup`, `mise run openrig:*`, or the OpenRig daemon in a setup or configuration context. Covers install, the daemon, config keys, rig shapes (Claude lead + Pi coder, Pi alone), naming, starting and switching rigs, RigSpec/AgentSpec authoring, Claude-Code-only rigs (no Codex), and a read-only audit. Do NOT use for operating a running rig day to day (queue triage, handover, recovery) — use the openrig-skills skills OpenRig projects into its seats.
 metadata:
-  version: "1.3.1"
+  version: "1.3.2"
 compatibility: macOS or Linux; OpenRig CLI 0.5.x (checked on 0.5.17); Node 22 or 24; tmux; Claude Code; mise and uv for the tasks; Pi + oMLX for Pi seats
 license: MIT
 ---
@@ -145,8 +145,18 @@ floor`); Claude Code's own settings decide. Expect the lead to ask before every
 `rig` command until you allow them — answer "don't ask again" in its pane, or
 add to the rig folder's `.claude/settings.local.json` `permissions.allow`:
 `Bash(rig whoami:*)`, `Bash(rig send:*)`, `Bash(rig capture:*)`,
-`Bash(rig context:*)`, `Bash(git -C:*)`. Pi has no permission prompts — its
-worktree is its boundary.
+`Bash(rig context:*)`, `Bash(rig ps:*)`, `Bash(rig transcript:*)`, and
+`Bash(git -C <worktree> status:*)` / `diff` / `log` scoped to the coder's
+worktree. Pi has no permission prompts — its worktree is its boundary.
+
+**RTK multiplies prompts.** An RTK hook rewrites `ls`, `wc`, `git …` into
+`rtk ls`, `rtk git …` before the permission check, so Claude Code no longer
+sees them as read-only and asks. Allow both spellings (`Bash(rtk ls:*)`,
+`Bash(rtk wc:*)`, `Bash(rtk find:*)`, `Bash(rtk grep:*)`, `Bash(rtk git -C
+<worktree> diff:*)` …). A `cd <dir> && git …` compound still triggers Claude
+Code's own safety prompt (untrusted hooks/config); no allow rule covers it —
+approve it in the pane, or run the lead in auto mode. Approving a lead's
+prompts is the human's call; don't press them for the user unasked.
 
 ## 8. Configure
 
