@@ -275,11 +275,17 @@ def main() -> None:
         sys.exit(f"{spec_dir}/rig.yaml exists; not overwriting")
     worktree = repo / ".worktrees" / rig
     branch = f"experiment/{rig}-{datetime.date.today():%Y-%m-%d}"
+    if worktree.exists():
+        # A reused worktree keeps its branch; the briefs must name that one.
+        current = run("git", "-C", str(worktree), "branch", "--show-current").stdout.strip()
+        if not current:
+            sys.exit(f"{worktree} exists but isn't on a branch (detached HEAD?); fix it or remove it first")
+        branch = current
     files = render(a.shape, rig, repo, spec_dir, worktree, branch, a.tier, a.pi)
 
     print(f"rig       {rig}")
     print(f"spec      {spec_dir}/  ({', '.join(files)})")
-    print(f"worktree  {worktree}  ({'exists, reused' if worktree.exists() else 'new, branch ' + branch})")
+    print(f"worktree  {worktree}  ({'exists, reused' if worktree.exists() else 'new'}, branch {branch})")
     if a.dry_run:
         print("(dry run; nothing written)")
         return
