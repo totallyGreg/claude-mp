@@ -44,7 +44,7 @@ if [ "$daemon" = 1 ]; then
 	sed 's/^/  /' <<<"$wsd" | tail -15
 	n=$(grep -c '\[WARN\]' <<<"$wsd"); warns=$((warns + n))
 	n=$(grep -c '\[FAIL\]' <<<"$wsd"); fails=$((fails + n))
-	grep -q daemon_reload_needed <<<"$wsd" && echo "  (0.5.17 has no 'rig daemon restart': rig daemon stop && rig daemon start)"
+	grep -q '\[WARN\] daemon_reload_needed' <<<"$wsd" && echo "  (0.5.17 has no 'rig daemon restart': rig daemon stop && rig daemon start)"
 fi
 
 # All rigs, running or stopped, as "name<TAB>status<TAB>lifecycle<TAB>rigId".

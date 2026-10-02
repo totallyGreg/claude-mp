@@ -307,8 +307,19 @@ def main() -> None:
     for name, text in files.items():
         (spec_dir / name).parent.mkdir(parents=True, exist_ok=True)
         (spec_dir / name).write_text(text)
+    ignore = spec_dir.parent / ".gitignore"
+    if not ignore.exists():
+        # So openrig-specs/ can be committed without OpenRig's per-boot files.
+        ignore.write_text("# Written by OpenRig into a Claude seat's cwd on every boot; machine-local.\n"
+                          "*/.claude/\n*/.openrig/\n*/.mcp.json\n*/CLAUDE.md\n")
+        print(f"wrote     {ignore}")
     if a.pi == "native":
         print(f"linked    {link_pi_models(f'dev-coder@{rig}')} -> your Pi models.json")
+        # A native seat merges OpenRig's blocks into AGENTS.md in its cwd; when the
+        # branch tracks AGENTS.md, keep that out of the diffs the lead reviews.
+        if run("git", "-C", str(worktree), "ls-files", "--error-unmatch", "AGENTS.md").returncode == 0:
+            run("git", "-C", str(worktree), "update-index", "--skip-worktree", "AGENTS.md")
+            print("marked    AGENTS.md skip-worktree in the coder's worktree")
     if a.shape == "claude-pi":
         # The lead works from the rig folder; let it read and edit the repo.
         # Merge, don't overwrite: a regenerated rig keeps the user's allow rules,
