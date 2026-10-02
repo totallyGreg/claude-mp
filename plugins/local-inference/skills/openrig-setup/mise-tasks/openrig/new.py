@@ -16,11 +16,13 @@ the coder's worktree at <repo>/.worktrees/<rig> on experiment/<rig>-<date>, and
 validates with `rig up --plan`. Boot it with `rig up <spec>`.
 
 Shapes:
-  claude-pi  dev-lead (Claude Code) delegates to dev-coder (Pi on oMLX) by rig send
+  claude-pi  dev-lead (Claude Code, cwd = the rig folder) delegates to dev-coder
+             (Pi on oMLX) by rig send
   pi-solo    dev-coder (Pi on oMLX) alone; the human gives it tasks directly
 
 The things this gets right that hand-written specs got wrong: member cwd is
-relative to the spec's directory; a terminal seat's send_text must launch Pi,
+relative to the spec's directory; a Claude seat must not share a cwd with your
+own sessions (OpenRig takes over its status line, hooks and CLAUDE.md); a terminal seat's send_text must launch Pi,
 not be prose; rig names must be unique; seat addresses in the briefs must
 match the rig name.
 """
@@ -95,7 +97,9 @@ pods:
         agent_ref: "{ORCHESTRATOR_REF}"
         runtime: claude-code
         profile: default
-        cwd: "../.."
+        # The rig's own folder, not the repo root: OpenRig writes its status
+        # line, hooks, settings and CLAUDE.md blocks into the lead's cwd.
+        cwd: "."
         startup:
           actions:
             - type: send_text
@@ -115,7 +119,8 @@ edges: []
             "rig.yaml": spec,
             "lead-brief.md": f"""# OpenRig seat: dev-lead@{rig}
 
-You lead the OpenRig rig `{rig}` for {repo.name} ({repo}).
+You lead the OpenRig rig `{rig}` for {repo.name}. You start in the rig's own
+folder ({spec_dir}); the repo is {repo} — use absolute paths or `git -C {repo}`.
 Your coder is `dev-coder@{rig}`: Pi on a local model (omlx/{tier}), working in
 the git worktree {worktree} on branch `{branch}`.
 
@@ -224,6 +229,12 @@ def main() -> None:
     spec_dir.mkdir(parents=True, exist_ok=True)
     for name, text in files.items():
         (spec_dir / name).write_text(text)
+    if a.shape == "claude-pi":
+        # The lead works from the rig folder; let it read and edit the repo.
+        # OpenRig merges its own keys into this file and keeps ours.
+        settings = spec_dir / ".claude" / "settings.local.json"
+        settings.parent.mkdir(exist_ok=True)
+        settings.write_text(json.dumps({"permissions": {"additionalDirectories": [str(repo)]}}, indent=2) + "\n")
     print(f"wrote     {spec_dir}/")
 
     plan = run("rig", "up", str(spec_dir / "rig.yaml"), "--plan")

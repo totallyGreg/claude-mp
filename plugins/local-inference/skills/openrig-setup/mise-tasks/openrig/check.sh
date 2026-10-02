@@ -81,15 +81,22 @@ for spec in $specs; do
 		[ -f "$p/agent.yaml" ] && ok "agent_ref $ref" || fail "agent_ref $ref → no agent.yaml at $p"
 	done < <(grep -oE 'agent_ref: *"?(local|path):[^"]*' "$spec" | sed -E 's/agent_ref: *"?//' | sort -u)
 	# cwd resolves against the spec's directory, not where `rig up` runs.
-	while read -r cwd; do
+	# A Claude seat's cwd gets OpenRig's status line, hooks, settings and CLAUDE.md
+	# blocks, so it must not be a directory you run your own sessions in.
+	while IFS=$'\t' read -r member runtime cwd; do
 		case $cwd in /*) p=$cwd ;; *) p="$dir/$cwd" ;; esac
-		if [ ! -d "$p" ]; then fail "cwd \"$cwd\" → $p does not exist (relative to the spec's dir)"; continue; fi
+		if [ ! -d "$p" ]; then fail "$member cwd \"$cwd\" → $p does not exist (relative to the spec's dir)"; continue; fi
 		abs=$(cd "$p" && pwd)
 		root=$(git -C "$abs" rev-parse --show-toplevel 2>/dev/null)
-		if [ "$abs" = "$(cd "$dir" && pwd)" ] && [ -n "$root" ] && [ "$abs" != "$root" ]; then
-			warn "cwd \"$cwd\" → the spec's own folder, not the repo root $root (seats start there and OpenRig projects .claude/ into it)"
-		else ok "cwd \"$cwd\" → $abs"; fi
-	done < <(sed -nE 's/^ *cwd: *"?([^"]*)"? *$/\1/p' "$spec" | sort -u)
+		if [ "$runtime" = claude-code ] && [ -n "$root" ] && [ "$abs" = "$root" ]; then
+			warn "$member (claude-code) cwd is the repo root $root — OpenRig replaces the status line and hooks there for your own sessions too; use the rig's folder (cwd: \".\") with permissions.additionalDirectories"
+		else ok "$member cwd → $abs"; fi
+	done < <(awk '
+		function flush() { if (rt != "") printf "%s\t%s\t%s\n", id, rt, (cwd == "" ? "." : cwd) }
+		/^ *- id:/ { flush(); id = $3; rt = ""; cwd = "" }
+		/^ *runtime:/ { rt = $2 }
+		/^ *cwd:/ { cwd = $2; gsub(/"/, "", cwd) }
+		END { flush() }' "$spec")
 	# A terminal seat is a shell: its send_text runs as a command, so it must start with one.
 	while read -r first; do
 		command -v "$first" >/dev/null && ok "terminal seat launches $first" ||
