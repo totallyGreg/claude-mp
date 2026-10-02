@@ -34,7 +34,7 @@ pods:                     # required, non-empty
       - id: impl          # no dots; seat address dev-impl@my-rig, logical id dev.impl
         agent_ref: "local:agents/impl"   # local:<relative to rig.yaml> or path:<absolute>
         profile: default
-        runtime: claude-code             # claude-code | codex | terminal | pi (native Pi adapter, untested here)
+        runtime: claude-code             # claude-code | codex | terminal | pi (native: model: omlx/<tier>; see SKILL.md "Terminal or native Pi")
         cwd: "."                         # session start dir, relative to THIS FILE's dir (or absolute)
         label: "Implementation Lead"
         model: <model-id>                # optional; omit to use the harness default
@@ -81,7 +81,7 @@ resources:                # the pool: what exists
   skills: []              # dirs with SKILL.md, delivered by skill_install
   guidance: []            # markdown merged into CLAUDE.md / AGENTS.md as managed content
   subagents: []
-  hooks: []
+  plugins: []             # hooks ship inside plugins; resources.hooks was removed (0.5.x)
   runtime_resources: []   # harness config files (claude settings, mcp)
 profiles:                 # a MAP, not an array; each selects from resources
   default:
@@ -89,7 +89,7 @@ profiles:                 # a MAP, not an array; each selects from resources
       skills: [openrig-user, shared:some-skill]   # qualified when imported
       guidance: [role]
       subagents: []
-      hooks: []
+      plugins: [shared:openrig-core]              # uses.hooks was removed — validator rejects it
       runtime_resources: [shared:claude-default-settings]
     lifecycle:
       restore_policy: resume_if_possible
