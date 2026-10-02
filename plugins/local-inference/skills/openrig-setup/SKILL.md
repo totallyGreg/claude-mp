@@ -2,7 +2,7 @@
 name: openrig-setup
 description: This skill should be used when the user asks to "set up openrig", "install openrig", "configure openrig for this project", "check my openrig setup", "is openrig set up correctly", "create a rig for this repo", "scaffold a rig", "switch rigs", "rename a rig", "write a rig.yaml", "convert a codex rig to claude", "openrig doctor", "why won't my rig start", or mentions rig.yaml, agent.yaml, `rig up`, `rig setup`, `mise run openrig:*`, or the OpenRig daemon in a setup or configuration context. Covers install, the daemon, config keys, rig shapes (Claude lead + Pi coder, Pi alone), naming, starting and switching rigs, RigSpec/AgentSpec authoring, Claude-Code-only rigs (no Codex), and a read-only audit. Do NOT use for operating a running rig day to day (queue triage, handover, recovery) — use the openrig-skills skills OpenRig projects into its seats.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 compatibility: macOS or Linux; OpenRig CLI 0.5.x (checked on 0.5.17); Node 22 or 24; tmux; Claude Code; mise and uv for the tasks; Pi + oMLX for Pi seats
 license: MIT
 ---
@@ -97,7 +97,11 @@ directory. Scaffold one spec per project instead.
 ## 5. What the scaffold gets right — and hand-written specs got wrong
 
 - **`cwd` resolves against the spec's directory**, not where `rig up` runs. In
-  `openrig-specs/<rig>/rig.yaml`, the repo root is `"../.."`.
+  `openrig-specs/<rig>/rig.yaml`, `"."` is the rig folder and `"../.."` the repo root.
+- **The Claude lead runs in the rig folder (`cwd: "."`), never where you
+  work.** OpenRig takes over its cwd (§6). The scaffold gives it the repo via
+  `.claude/settings.local.json` → `permissions.additionalDirectories`, and
+  Claude Code still loads the repo's CLAUDE.md/AGENTS.md from the parent folders.
 - **A terminal seat is a shell.** Its `send_text` is typed in as a command, so
   it must launch the agent; prose runs as a shell command. For Pi:
   `pi --model omlx/code --append-system-prompt <abs brief> "<kick>"` —
@@ -111,21 +115,29 @@ directory. Scaffold one spec per project instead.
 
 ## 6. What a Claude seat writes into its cwd
 
-When a `claude-code` seat boots, OpenRig projects into its `cwd`: managed
-blocks in `CLAUDE.md` (culture, `openrig-start`), `.claude/plugins/` and
-`.claude/skills/` (openrig-core), and hooks + status line merged into
-`.claude/settings.local.json` (existing rules are kept). A seat started in the
-wrong directory leaves these behind there — a sign `cwd` is wrong.
+On every boot of a `claude-code` seat, OpenRig writes into its `cwd`:
+- managed blocks in `CLAUDE.md` (culture, `openrig-start`, onboarding);
+- `.claude/plugins/` and `.claude/skills/` (openrig-core), `.mcp.json`;
+- into `.claude/settings.local.json`: `acceptEdits`, exa/context7, activity
+  hooks, and a **`statusLine` that prints nothing** (it only records context
+  usage) — rewritten each boot, other keys kept;
+- `.openrig/` (the collector and hook scripts).
 
-**One instructions file (AGENTS.md).** The block target is only configurable
-between `CLAUDE.md` (default) and `CLAUDE.local.md` (`managed_blocks:
-{claude-code: CLAUDE.local.md}` in `rig.yaml`); AGENTS.md isn't allowed. To keep
-a single file, append the existing `CLAUDE.md` to `AGENTS.md`, then
-`ln -s AGENTS.md CLAUDE.md`. OpenRig writes with `writeFileSync`, which follows
-the symlink, so later block updates land in AGENTS.md and Claude Code and Pi
-read the same file. Every agent started in that directory sees the OpenRig
-blocks — if that's unwanted, target `CLAUDE.local.md` instead. In a repo you
-don't own, add `CLAUDE.md` to `.git/info/exclude`.
+Any Claude session you start in that directory inherits all of it: a blank
+status bar, OpenRig's hooks reporting your session as rig activity, and its
+blocks in your instructions. Hence the lead lives in the rig folder.
+`openrig:check` warns when a Claude seat's cwd is the repo root. To clean a
+directory a seat used to run in, remove those files and the `statusLine`,
+`hooks`, `enabledMcpjsonServers` and `permissions.defaultMode` keys (a Codex
+seat leaves `.codex/` and `.agents/`).
+
+**One instructions file (AGENTS.md).** Keep project instructions in
+`AGENTS.md` and `ln -s AGENTS.md CLAUDE.md` — Claude Code and Pi then read one
+file. With the lead in the rig folder, OpenRig's blocks go to the rig folder's
+own `CLAUDE.md`, not yours. (`managed_blocks: {claude-code: CLAUDE.local.md}`
+is the only other target; OpenRig can't write AGENTS.md for Claude seats, but
+its `writeFileSync` does follow a symlink.) In a repo you don't own, add
+`CLAUDE.md` to `.git/info/exclude`.
 
 **Codex leftovers.** A Codex starter (e.g. `first-project`) projects
 `.codex/plugins/` and `.agents/skills/` into its cwd even when Codex never
@@ -136,7 +148,7 @@ launches; with no Codex seats they're unused and safe to delete.
 `permission_policy: builtin:standard` is recorded only (`launch_posture:
 floor`); Claude Code's own settings decide. Expect the lead to ask before every
 `rig` command until you allow them — answer "don't ask again" in its pane, or
-add to the repo's `.claude/settings.local.json` `permissions.allow`:
+add to the rig folder's `.claude/settings.local.json` `permissions.allow`:
 `Bash(rig whoami:*)`, `Bash(rig send:*)`, `Bash(rig capture:*)`,
 `Bash(rig context:*)`, `Bash(git -C:*)`. Pi has no permission prompts — its
 worktree is its boundary.

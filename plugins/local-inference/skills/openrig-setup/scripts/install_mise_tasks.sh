@@ -19,6 +19,8 @@ dest=${MISE_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/mise}/tasks/openrig
 changed=0
 for f in $src/*; do
   name=${f:t} target=$dest/${f:t}
+  # iCloud sync-conflict copies ("check 2.sh") would install as extra tasks.
+  [[ $name == *' '* ]] && { print "skipped    $name (sync-conflict copy?)"; continue }
   if [[ ! -e $target ]]; then
     print "new        $name"
     (( check )) || cp -p "$f" "$target"
