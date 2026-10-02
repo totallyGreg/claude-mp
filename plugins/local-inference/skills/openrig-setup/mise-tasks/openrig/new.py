@@ -8,6 +8,7 @@
 #USAGE arg "[project]" help="Git repo to scaffold into (default: where mise run was invoked)"
 #USAGE flag "--prefix <prefix>" help="Rig name prefix (default: the repo's directory name)"
 #USAGE flag "--tier <tier>" help="Pi tier for the coder: fast, code (default) or deep"
+#USAGE flag "--pi <mode>" help="How the coder runs Pi: terminal (default) or native (OpenRig's pi runtime)"
 #USAGE flag "--dry-run" help="Show what would be created without writing anything"
 """Scaffold an OpenRig rig into a git repo.
 
@@ -19,6 +20,14 @@ Shapes:
   claude-pi  dev-lead (Claude Code, cwd = the rig folder) delegates to dev-coder
              (Pi on oMLX) by rig send
   pi-solo    dev-coder (Pi on oMLX) alone; the human gives it tasks directly
+
+Pi modes (--pi):
+  terminal   a terminal seat whose send_text launches `pi --append-system-prompt <brief>`;
+             Pi uses your ~/.pi/agent config and extensions
+  native     OpenRig's pi runtime: it tracks Pi's state, session and restore. Pi
+             gets a per-seat agent dir, so this links your models.json into it;
+             the brief ships as a slim AgentSpec (agents/pi-coder) merged into
+             AGENTS.md in the worktree. Your Pi extensions are not loaded.
 
 The things this gets right that hand-written specs got wrong: member cwd is
 relative to the spec's directory; a Claude seat must not share a cwd with your
@@ -37,6 +46,7 @@ from pathlib import Path
 
 SHAPES = ("claude-pi", "pi-solo")
 TIERS = ("fast", "code", "deep")
+PI_MODES = ("terminal", "native")
 ORCHESTRATOR_REF = "path:/opt/homebrew/lib/node_modules/@openrig/cli/daemon/specs/agents/orchestration/orchestrator"
 
 
@@ -78,12 +88,74 @@ def terminal_member(member_id: str, label: str, cwd: str, command: str) -> str:
 """
 
 
-def render(shape: str, rig: str, repo: Path, spec_dir: Path, worktree: Path, branch: str, tier: str) -> dict[str, str]:
+def native_member(member_id: str, label: str, cwd: str, tier: str) -> str:
+    return f"""      - id: {member_id}
+        label: {label}
+        agent_ref: "local:agents/pi-coder"
+        profile: default
+        runtime: pi
+        model: omlx/{tier}
+        cwd: "{cwd}"
+"""
+
+
+PI_CODER_AGENT = """name: pi-coder
+version: "1.0"
+description: Slim Pi coder; its brief is merged into AGENTS.md in the seat's cwd
+
+profiles:
+  default:
+    uses:
+      skills: []
+      guidance: [brief]
+      subagents: []
+      plugins: []
+      runtime_resources: []
+
+resources:
+  guidance:
+    - id: brief
+      path: brief.md
+
+startup:
+  files:
+    - path: brief.md
+      delivery_hint: guidance_merge
+      required: true
+  actions: []
+"""
+
+
+def coder(pi: str, tier: str, wt_rel: str, brief_text: str, spec_dir: Path, kick: str) -> tuple[str, dict[str, str]]:
+    """The coder member's YAML and the brief files it needs, for either Pi mode."""
+    label = f"Coder (Pi omlx/{tier}{', native' if pi == 'native' else ''})"
+    if pi == "native":
+        return native_member("coder", label, wt_rel, tier), {
+            "agents/pi-coder/agent.yaml": PI_CODER_AGENT,
+            "agents/pi-coder/brief.md": brief_text,
+        }
+    return (terminal_member("coder", label, wt_rel, pi_command(tier, spec_dir / "coder-brief.md", kick)),
+            {"coder-brief.md": brief_text})
+
+
+def render(shape: str, rig: str, repo: Path, spec_dir: Path, worktree: Path, branch: str, tier: str, pi: str) -> dict[str, str]:
     wt_rel = f"../../.worktrees/{worktree.name}"
-    coder_brief = spec_dir / "coder-brief.md"
     head = f'version: "0.2"\nname: {rig}\npermission_policy: builtin:standard\n'
     if shape == "claude-pi":
         lead_brief = spec_dir / "lead-brief.md"
+        coder_yaml, coder_files = coder(pi, tier, wt_rel, f"""# OpenRig seat: dev-coder@{rig}
+
+You are the coder seat in the OpenRig rig `{rig}`, running on a local model.
+Your lead is `dev-lead@{rig}`.
+
+- Tasks arrive as typed messages from the lead. Act only on those.
+- Work only inside your current directory (a git worktree on `{branch}`). Use
+  relative paths. Never touch the main checkout at {repo}.
+- Change only what the task asks. Don't commit; the lead reviews `git diff`.
+- When a task is done or blocked, report with your bash tool, one command:
+  `rig send dev-lead@{rig} "<what you changed, files touched, anything unverified>"`
+  A task isn't finished until that command succeeds.
+""", spec_dir, "Wait for tasks from the lead.")
         spec = head + f"""summary: >
   {repo.name}: Claude Code lead delegates exact tasks to a Pi coder
   (omlx/{tier}) in the worktree {worktree.name}.
@@ -107,8 +179,7 @@ pods:
               phase: after_ready
               applies_on: [fresh_start]
               idempotent: true
-""" + terminal_member("coder", f"Coder (Pi omlx/{tier})", wt_rel,
-                      pi_command(tier, coder_brief, "Wait for tasks from the lead.")) + """    edges:
+""" + coder_yaml + """    edges:
       - kind: delegates_to
         from: lead
         to: coder
@@ -134,37 +205,10 @@ the git worktree {worktree} on branch `{branch}`.
 - Don't edit files in the worktree yourself. Send a corrected task instead.
 - Nothing is committed or merged without the human's go-ahead.
 """,
-            "coder-brief.md": f"""# OpenRig seat: dev-coder@{rig}
-
-You are the coder seat in the OpenRig rig `{rig}`, running on a local model.
-Your lead is `dev-lead@{rig}`.
-
-- Tasks arrive as typed messages from the lead. Act only on those.
-- Work only inside your current directory (a git worktree on `{branch}`). Use
-  relative paths. Never touch the main checkout at {repo}.
-- Change only what the task asks. Don't commit; the lead reviews `git diff`.
-- When a task is done or blocked, report with your bash tool, one command:
-  `rig send dev-lead@{rig} "<what you changed, files touched, anything unverified>"`
-  A task isn't finished until that command succeeds.
-""",
+            **coder_files,
         }
     else:
-        spec = head + f"""summary: >
-  {repo.name}: one Pi coder (omlx/{tier}) in the worktree {worktree.name};
-  the human gives it tasks directly.
-
-pods:
-  - id: dev
-    label: {repo.name}
-    members:
-""" + terminal_member("coder", f"Coder (Pi omlx/{tier})", wt_rel,
-                      pi_command(tier, coder_brief, "Wait for the human's first task.")) + """    edges: []
-
-edges: []
-"""
-        files = {
-            "rig.yaml": spec,
-            "coder-brief.md": f"""# OpenRig seat: dev-coder@{rig}
+        coder_yaml, coder_files = coder(pi, tier, wt_rel, f"""# OpenRig seat: dev-coder@{rig}
 
 You are the only seat in the OpenRig rig `{rig}`, running on a local model.
 The human gives you tasks directly in this terminal.
@@ -174,9 +218,35 @@ The human gives you tasks directly in this terminal.
 - Change only what the task asks. Don't commit; the human reviews `git diff`.
 - End each task with: what you changed, the files touched, how you verified
   it, and anything you couldn't verify.
-""",
-        }
+""", spec_dir, "Wait for the human's first task.")
+        spec = head + f"""summary: >
+  {repo.name}: one Pi coder (omlx/{tier}) in the worktree {worktree.name};
+  the human gives it tasks directly.
+
+pods:
+  - id: dev
+    label: {repo.name}
+    members:
+""" + coder_yaml + """    edges: []
+
+edges: []
+"""
+        files = {"rig.yaml": spec, **coder_files}
     return files
+
+
+def link_pi_models(session: str) -> Path:
+    """Native pi seats run with PI_CODING_AGENT_DIR=<OPENRIG_HOME>/state/pi/<seat>/agent,
+    which has no models.json, so `omlx/<tier>` wouldn't resolve. OpenRig has no
+    resource for it; link the user's models.json in (the runner only mkdirs)."""
+    openrig_home = Path(os.environ.get("OPENRIG_HOME", Path.home() / ".openrig"))
+    pi_dir = Path(os.path.expanduser(os.environ.get("PI_CODING_AGENT_DIR", "~/.pi/agent")))
+    link = openrig_home / "state" / "pi" / session / "agent" / "models.json"
+    link.parent.mkdir(parents=True, exist_ok=True)
+    if not link.is_symlink():
+        link.unlink(missing_ok=True)
+        link.symlink_to(pi_dir / "models.json")
+    return link
 
 
 def main() -> None:
@@ -185,6 +255,7 @@ def main() -> None:
     p.add_argument("project", nargs="?", default=os.environ.get("MISE_ORIGINAL_CWD", "."))
     p.add_argument("--prefix")
     p.add_argument("--tier", choices=TIERS, default="code")
+    p.add_argument("--pi", choices=PI_MODES, default="terminal")
     p.add_argument("--dry-run", action="store_true")
     a = p.parse_args()
 
@@ -204,7 +275,7 @@ def main() -> None:
         sys.exit(f"{spec_dir}/rig.yaml exists; not overwriting")
     worktree = repo / ".worktrees" / rig
     branch = f"experiment/{rig}-{datetime.date.today():%Y-%m-%d}"
-    files = render(a.shape, rig, repo, spec_dir, worktree, branch, a.tier)
+    files = render(a.shape, rig, repo, spec_dir, worktree, branch, a.tier, a.pi)
 
     print(f"rig       {rig}")
     print(f"spec      {spec_dir}/  ({', '.join(files)})")
@@ -228,7 +299,10 @@ def main() -> None:
 
     spec_dir.mkdir(parents=True, exist_ok=True)
     for name, text in files.items():
+        (spec_dir / name).parent.mkdir(parents=True, exist_ok=True)
         (spec_dir / name).write_text(text)
+    if a.pi == "native":
+        print(f"linked    {link_pi_models(f'dev-coder@{rig}')} -> your Pi models.json")
     if a.shape == "claude-pi":
         # The lead works from the rig folder; let it read and edit the repo.
         # OpenRig merges its own keys into this file and keeps ours.

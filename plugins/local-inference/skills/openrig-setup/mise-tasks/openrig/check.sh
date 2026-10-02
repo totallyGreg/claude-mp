@@ -83,7 +83,14 @@ for spec in $specs; do
 	# cwd resolves against the spec's directory, not where `rig up` runs.
 	# A Claude seat's cwd gets OpenRig's status line, hooks, settings and CLAUDE.md
 	# blocks, so it must not be a directory you run your own sessions in.
-	while IFS=$'\t' read -r member runtime cwd; do
+	while IFS=$'\t' read -r member runtime cwd pod; do
+		# A native pi seat runs with its own agent dir; without models.json there,
+		# a custom provider such as omlx/<tier> doesn't resolve.
+		if [ "$runtime" = pi ]; then
+			models="${OPENRIG_HOME:-$HOME/.openrig}/state/pi/$pod-$member@$name/agent/models.json"
+			[ -e "$models" ] && ok "$member (pi) has models.json in its agent dir" ||
+				fail "$member (pi): no $models — ln -s ${PI_CODING_AGENT_DIR:-~/.pi/agent}/models.json \"$models\" (mkdir -p its dir first)"
+		fi
 		case $cwd in /*) p=$cwd ;; *) p="$dir/$cwd" ;; esac
 		if [ ! -d "$p" ]; then fail "$member cwd \"$cwd\" → $p does not exist (relative to the spec's dir)"; continue; fi
 		abs=$(cd "$p" && pwd)
@@ -92,8 +99,9 @@ for spec in $specs; do
 			warn "$member (claude-code) cwd is the repo root $root — OpenRig replaces the status line and hooks there for your own sessions too; use the rig's folder (cwd: \".\") with permissions.additionalDirectories"
 		else ok "$member cwd → $abs"; fi
 	done < <(awk '
-		function flush() { if (rt != "") printf "%s\t%s\t%s\n", id, rt, (cwd == "" ? "." : cwd) }
+		function flush() { if (rt != "") printf "%s\t%s\t%s\t%s\n", id, rt, (cwd == "" ? "." : cwd), pod }
 		/^ *- id:/ { flush(); id = $3; rt = ""; cwd = "" }
+		/^ *members:/ { pod = id }
 		/^ *runtime:/ { rt = $2 }
 		/^ *cwd:/ { cwd = $2; gsub(/"/, "", cwd) }
 		END { flush() }' "$spec")

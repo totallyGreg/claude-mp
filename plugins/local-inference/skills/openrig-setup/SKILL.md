@@ -2,7 +2,7 @@
 name: openrig-setup
 description: This skill should be used when the user asks to "set up openrig", "install openrig", "configure openrig for this project", "check my openrig setup", "is openrig set up correctly", "create a rig for this repo", "scaffold a rig", "switch rigs", "rename a rig", "write a rig.yaml", "convert a codex rig to claude", "openrig doctor", "why won't my rig start", or mentions rig.yaml, agent.yaml, `rig up`, `rig setup`, `mise run openrig:*`, or the OpenRig daemon in a setup or configuration context. Covers install, the daemon, config keys, rig shapes (Claude lead + Pi coder, Pi alone), naming, starting and switching rigs, RigSpec/AgentSpec authoring, Claude-Code-only rigs (no Codex), and a read-only audit. Do NOT use for operating a running rig day to day (queue triage, handover, recovery) — use the openrig-skills skills OpenRig projects into its seats.
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
 compatibility: macOS or Linux; OpenRig CLI 0.5.x (checked on 0.5.17); Node 22 or 24; tmux; Claude Code; mise and uv for the tasks; Pi + oMLX for Pi seats
 license: MIT
 ---
@@ -31,8 +31,8 @@ ${CLAUDE_PLUGIN_ROOT}/skills/openrig-setup/scripts/install_mise_tasks.sh
 
 | Task | Does |
 |------|------|
-| `mise run openrig:check [project]` | Read-only audit, exit 1 on any FAIL. Checks prereqs, `rig doctor`, the daemon, `rig workspace doctor`, every `rig.yaml` (version, Codex seats, `agent_ref` and `cwd` resolution, terminal seats launch a command, `rig up --plan`) and duplicate rig names |
-| `mise run openrig:new <claude-pi\|pi-solo> [project] --prefix P --tier code` | Scaffold a rig: spec + briefs in `openrig-specs/<P>-<shape>/`, a worktree at `.worktrees/<P>-<shape>` on `experiment/<P>-<shape>-<date>`, then `rig up --plan`. `--dry-run` first |
+| `mise run openrig:check [project]` | Read-only audit, exit 1 on any FAIL. Checks prereqs, `rig doctor`, the daemon, `rig workspace doctor`, every `rig.yaml` (version, Codex seats, `agent_ref` and `cwd` resolution, terminal seats launch a command, native pi seats have `models.json`, `rig up --plan`) and duplicate rig names |
+| `mise run openrig:new <claude-pi\|pi-solo> [project] --prefix P --tier code --pi terminal\|native` | Scaffold a rig: spec + briefs in `openrig-specs/<P>-<shape>/`, a worktree at `.worktrees/<P>-<shape>` on `experiment/<P>-<shape>-<date>`, then `rig up --plan`. `--dry-run` first |
 | `mise run openrig:convert <starter> <dest> <name>` | Copy a library starter (`rig specs ls`) as a Claude-only spec |
 
 The project defaults to where `mise run` was invoked. Without mise, run the
@@ -50,6 +50,11 @@ rig preflight && rig doctor             # "cmux not found" is fine — optional
 rig daemon start                        # after reboot: rig start --last
 ```
 
+Start the daemon from a directory that will outlive it (`cd ~ && rig daemon
+start`). It keeps its cwd and runs `pi --version` there; if that directory is
+deleted, Node programs fail and preflight blocks every pi seat with
+"Runtime "pi" not available".
+
 ## 2. Pick a shape
 
 | Shape | Seats | Use when |
@@ -63,6 +68,16 @@ copies of one local model add messaging, two contexts and oMLX contention, and
 "review" shares the coder's blind spots. A second Pi earns a seat only with a
 different job — e.g. a read-only reviewer on `omlx/deep`
 (`--tools read,grep,find,ls`). Idle seats cost nothing on oMLX.
+
+### Terminal or native Pi (`--pi`)
+
+`terminal` (default): a shell seat whose `send_text` launches
+`pi --append-system-prompt <brief>`; Pi keeps your `~/.pi/agent` config and
+extensions, but OpenRig only sees a shell. `native` (`runtime: pi`): OpenRig's
+runner drives Pi and tracks its state, session, restore and handover; Pi gets a
+per-seat agent dir with no extensions, so the scaffold links your
+`models.json` into it. Prefer native when restore/handover matters. Details,
+env and key limits: [references/seats.md](references/seats.md).
 
 ## 3. Name it
 
@@ -115,33 +130,13 @@ directory. Scaffold one spec per project instead.
 
 ## 6. What a Claude seat writes into its cwd
 
-On every boot of a `claude-code` seat, OpenRig writes into its `cwd`:
-- managed blocks in `CLAUDE.md` (culture, `openrig-start`, onboarding);
-- `.claude/plugins/` and `.claude/skills/` (openrig-core), `.mcp.json`;
-- into `.claude/settings.local.json`: `acceptEdits`, exa/context7, activity
-  hooks, and a **`statusLine` that prints nothing** (it only records context
-  usage) — rewritten each boot, other keys kept;
-- `.openrig/` (the collector and hook scripts).
-
-Any Claude session you start in that directory inherits all of it: a blank
-status bar, OpenRig's hooks reporting your session as rig activity, and its
-blocks in your instructions. Hence the lead lives in the rig folder.
-`openrig:check` warns when a Claude seat's cwd is the repo root. To clean a
-directory a seat used to run in, remove those files and the `statusLine`,
-`hooks`, `enabledMcpjsonServers` and `permissions.defaultMode` keys (a Codex
-seat leaves `.codex/` and `.agents/`).
-
-**One instructions file (AGENTS.md).** Keep project instructions in
-`AGENTS.md` and `ln -s AGENTS.md CLAUDE.md` — Claude Code and Pi then read one
-file. With the lead in the rig folder, OpenRig's blocks go to the rig folder's
-own `CLAUDE.md`, not yours. (`managed_blocks: {claude-code: CLAUDE.local.md}`
-is the only other target; OpenRig can't write AGENTS.md for Claude seats, but
-its `writeFileSync` does follow a symlink.) In a repo you don't own, add
-`CLAUDE.md` to `.git/info/exclude`.
-
-**Codex leftovers.** A Codex starter (e.g. `first-project`) projects
-`.codex/plugins/` and `.agents/skills/` into its cwd even when Codex never
-launches; with no Codex seats they're unused and safe to delete.
+On every boot OpenRig writes into a Claude seat's cwd: managed blocks in
+`CLAUDE.md`, `.claude/` plugins, skills and settings (including a `statusLine`
+that prints nothing, plus activity hooks), `.mcp.json` and `.openrig/`. Any
+session you start there inherits it — hence the lead lives in the rig folder.
+Keep one instructions file: project rules in `AGENTS.md`, `ln -s AGENTS.md
+CLAUDE.md`. Cleanup steps and the `managed_blocks` options:
+[references/seats.md](references/seats.md).
 
 ## 7. Permissions
 
