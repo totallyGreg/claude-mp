@@ -197,6 +197,44 @@ Machine: Apple M5 Pro, 64 GB unified memory.
      model. A candidate back end for bulk `decide --schema` work; not tried.
    - Flash-Next and GLM-5.3-Flash got the biggest gains, but neither fits 64 GB.
 
+9. **Clef — Cloudflare's open Jev/SystemOne model (2026-10-02, rejected).**
+   `Cloudflare/clef` (27B) and `clef-flash` (9B) are Qwen3.8 backbones with a
+   joint schema head: one forward pass returns a probability for every option
+   of every typed question (`choice`, ordered `score`, yes/no `noul`). Not a
+   chat model — **oMLX can't serve it**; the mlx-community builds ship
+   `clef_mlx.py` (`predict`, or `serve` = a SystemOne-compatible
+   `POST /v1/systemone` server, one request at a time). Used the Jev way
+   (TypeSafe's guide): plain, literal criteria per option; many questions per
+   call; act on `confidence`, escalate below a threshold. Both engines got
+   identical wording (AGENTS.md's Area descriptions, the sharp bug
+   definition), 45 BACKLOG items, oMLX models unloaded during the Clef runs:
+
+   | Per item | type | area | latency |
+   |---|---|---|---|
+   | Qwen3.8-27B `:decide`, same wording | **35** | 37 | 2.0 s (2 calls) |
+   | Qwen3.8-27B `:decide`, `eval_decide.py`'s terse wording | 31 | **42** | 1.5 s |
+   | clef-flash-4bit, area as one `choice` | 32 | 35 | **0.3 s** (2 questions) |
+   | clef-flash-4bit, a `noul` per area (13 questions, one call) | 32 | 38 | 1.0 s |
+   | clef-4bit (27B), a `noul` per area | 34 | 39 | 4.0 s |
+
+   - **Accuracy is a wash; nothing earns a second runtime.** No Clef variant
+     beats the incumbent's best area score, and the 7 GB (flash) it would keep
+     resident sits on top of the 37.7 GB tier models.
+   - **The cascade (Clef if confident, else Qwen) adds ~1 item.** Clef's
+     confidence is honest (flash ≥ 0.8: type 21/25 right, area 3/3) but on
+     11-way area it is rarely confident (3 of 45 items at ≥ 0.8), so nearly
+     everything escalates.
+   - **"A tenth question costs almost no time" is a GPU-cloud claim.** On this
+     Mac 13 questions took 1.0 s vs 0.3 s for 2 — the questions are prompt tokens.
+   - **Wording moved the score more than the model did:** Qwen went 42 → 37 on
+     area from the longer AGENTS.md descriptions alone. With 45 items a 2–3
+     item gap is noise; compare models only on identical wording.
+
+   Revisit when a job needs calibrated probabilities across many questions at
+   once — e.g. bulk triage that should abstain rather than guess — or a Clef
+   build oMLX can serve. Re-run with `scripts/eval_clef.py` (Clef + the
+   incumbent on identical wording, plus the cascade table).
+
 ## Gotcha: unknown model names must fail
 
 `settings.json` → `model.model_fallback: true` makes oMLX answer a request for
