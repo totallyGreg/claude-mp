@@ -38,6 +38,7 @@ tmux as an automation and structural surface (no longer a sub-topic of terminal-
 - Plugin testing: verify-vs-configure-vs-debug discipline (from #41 retrospective)
 - Mouse bindings, named status-bar ranges
 - Programmatic session creation, sesh integration (tmux side)
+- tmux 3.7/3.8: events, monitor hooks, OSC 133 command events, floating/modal panes, breaking changes (`references/tmux_3_8_features.md`)
 - Alternative multiplexers: `herdr`, an AI-agent-focused tmux alternative (`references/herdr_alternative.md`)
 
 ### Skill: tui-experience (NEW in 5.5.0)
@@ -124,6 +125,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Changes |
 |---------|---------|
+| 5.18.0 | **tmux-dev v1.1.0**: tmux 3.7/3.8 awareness — events, monitor hooks, `wait-for -E`, OSC 133 command-finished events, floating/modal panes, new formats/hooks, themes, and breaking changes (new `references/tmux_3_8_features.md`; tested on tmux 3.8). `tmux_plugins.md` now covers the native option-change trigger. Score 91/100 (unchanged). |
 | 5.17.1 | **zsh-dev v3.2.1**: `keychainctl` rewritten in zsh with only macOS built-ins (`security` + `plutil`; `jq` no longer needed). One `get`/`set`/`rm` command set replaces the separate `pair` namespace (kept as a compatibility alias); `-f FIELD` edits one field of a bundle; `-k` selects the keychain. New `import` stores a JSON bundle from a file, stdin, or a hidden paste (nothing in shell history). Items are tagged Kind `secret` or `json`. Guards: refuse to drop a bundle's fields, or store values that look like paste mistakes (whitespace, `$(`, backtick) unless `--force`. Labels kept across writes; `ls` lists item names, not labels. Brings the long-diverged `~/bin` copy (pair support) back into source. **mise-tooling v2.7.2**: keychain examples updated to the new commands. |
 | 5.17.0 | **mise-tooling v2.7.1**: documented the `#USAGE`/`#MISE` KDL-escape gotcha — mise parses these as KDL (only its built-in escapes are valid); a stray `\$` fails parsing and silently breaks `mise tasks` + tab-completion. Nuance: the error surfaces only when a task's usage spec is loaded (`mise tasks info <name>`/completion), not a plain `mise tasks`. Added to SKILL.md Authoring Conventions + `mise_task_patterns.md`. |
 | 5.16.0 | **terminal-emulation v4.1.1**: corrected `terminal_recording.md` to mirror the canonical `record.sh` pattern — single-script self-replay trick (`--play` mode keeps pacing helpers in scope without a separate lib file), `end()` helper, prereq guards that "fail with the fix", safety gate strips bare UUIDs (legitimate task output). **mise-tooling v2.7.0**: compact-listing readability warning added — long descriptions wrap/overlap in `mise tasks` and completions; lead with ≤72-char summary; guidance updated in SKILL.md and `mise_task_patterns.md`. |
@@ -222,4 +224,23 @@ mise (jdx/mise) configuration, task automation, and environment management:
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
 | 4.1.0 | 2026-08-06 | - | New capability: **terminal recording (asciinema → GIF)**. Added `references/terminal_recording.md`: headless recording with the **single-script self-replay trick** (`record.sh --play <name>` so pacing helpers are in scope without a separate lib file), `say`/`run`/`end` helpers, prereq guards that "fail with the fix", credential safety gate (Bearer/JWT only — bare UUIDs not flagged), tuned `agg` defaults, and `record.sh` scaffolder (target stays plugin-free). Canonical reference implementation: `examples/casts/record.sh` in airs-tasks. Added `license` + `compatibility` frontmatter (spec compliance 80→100). +v4.1.1 (corrected safety gate — removed UUID pattern; aligned with canonical). | 100 | 90 | 100 | 100 | 100 | 98 |
+**Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
+
+## Skill: tmux-dev
+
+### Current Metrics
+
+**Score: 91/100** (Excellent) — 2026-10-09
+
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 98 | 90 | 80 | 100 | 100 |
+
+### Version History
+
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.1.0 | 2026-10-09 | - | **tmux 3.7/3.8 awareness.** New `references/tmux_3_8_features.md`, built from upstream `CHANGES` (tag 3.8) and the 3.8 man page: events + `wait-for -E`, monitor hooks (`set-hook -B`), OSC 133 `pane-command-finished` (wait for a command's exit status instead of polling), floating/modal panes (`new-pane`), new formats/hooks, themes, and a table of breaking changes (mouse on by default, theme-driven colours, `display-panes -b` and `refresh-from-pane` removed). Core recipes tested on an isolated tmux 3.8 server; found two gotchas (a monitor misses changes in its first ~1 s; `wait-for -v` prints payloads of events that `-F` rejects). `tmux_plugins.md` corrected: 3.8 has a native option-change trigger (monitor hooks). SKILL.md gets short *(3.8+)* pointers only (no conciseness regression). | 98 | 90 | 80 | 100 | 100 | 91 |
+| 1.0.0 | — | — | Initial release (plugin 5.5.0). | - | - | - | - | - | 91 |
+
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)

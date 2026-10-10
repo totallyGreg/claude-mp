@@ -1,8 +1,8 @@
 ---
 name: tmux-dev
-description: This skill should be used when the user asks to "send keys to a tmux pane", "capture a tmux pane", "find my pane id", "address a tmux pane", "configure tmux options", "write a tmux format string", "create a tmux plugin", "add a tmux hook", "test my tmux plugin", "bind a tmux mouse click", or "create a tmux session programmatically". Covers tmux as an automation surface — pane/window/session unique IDs (`%N`/`@N`/`$N`), send-keys/capture-pane/pipe-pane, options and format strings, TPM plugins, hooks, and plugin testing patterns. Do NOT use for tmux display issues (TERM, colors-inside-tmux, Unicode) — use terminal-emulation. Do NOT use for sesh session orchestration — use environment-composition.
+description: This skill should be used when the user asks to "send keys to a tmux pane", "capture a tmux pane", "find my pane id", "address a tmux pane", "configure tmux options", "write a tmux format string", "create a tmux plugin", "add a tmux hook", "test my tmux plugin", "bind a tmux mouse click", "create a floating pane", "wait for a command in a pane to finish", "what changed in tmux 3.8", or "create a tmux session programmatically". Covers tmux as an automation surface — pane/window/session unique IDs (`%N`/`@N`/`$N`), send-keys/capture-pane/pipe-pane, options and format strings, TPM plugins, hooks and monitor/event hooks, floating panes, tmux 3.7/3.8 changes, and plugin testing patterns. Do NOT use for tmux display issues (TERM, colors-inside-tmux, Unicode) — use terminal-emulation. Do NOT use for sesh session orchestration — use environment-composition.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # tmux-dev
@@ -25,6 +25,9 @@ The skill answers questions like "what's my current pane ID and how do I send a 
 - Programmatically creating sessions, windows, or panes
 - Mouse bindings, status-bar click ranges
 - tmux session persistence, naming conventions, sesh integration at the tmux level
+- Floating/modal panes, event-driven hooks, or a config that broke after upgrading to tmux 3.7/3.8
+
+**Check `tmux -V` first** — *(3.8+)* recipes fail on older tmux.
 
 ## Stack Boundary
 
@@ -86,12 +89,15 @@ tmux wait-for build-finished &
 
 Use `send-keys` for *input* (driving a REPL, running commands). Use `capture-pane` for *one-shot reads*. Use `pipe-pane` for *continuous output capture* (logging, agent observation). Use `wait-for` for *synchronization* between panes/scripts.
 
+*(3.8+)* To wait for a sent command to finish instead of polling, use `tmux wait-for -E pane-command-finished`. It needs a shell that emits OSC 133 and returns the exit status. Recipe in `references/tmux_3_8_features.md`.
+
 ### 3. Find / Label / Select
 
 ```bash
 tmux choose-tree -Z                  # interactive session+window+pane picker (full-screen)
 tmux find-window 'pattern'           # jump to first window whose name/title matches
-tmux display-panes                   # overlay numeric labels on every pane; press number to select
+tmux display-panes                   # numeric labels on every pane; press number to select (a mode in 3.8; -b removed)
+tmux switch-mode -w                  # (3.8+) fuzzy window switcher; prefix Tab / S-Tab by default
 tmux rename-window -t %12 'logs'     # name the window holding pane %12
 tmux rename-session -t \$1 'work'    # rename session $1
 ```
@@ -118,9 +124,15 @@ TPM plugins live in `~/.config/tmux/plugins/`. Hooks fire on tmux events; plugin
 tmux set-hook -g after-new-window 'run-shell "$HOME/.config/tmux/scripts/on-new-window.sh"'
 ```
 
+*(3.8+)* Monitor hooks (`set-hook -B '@name:target:#{format}'`) fire when a format's value changes. This is the native "on option change" trigger.
+
 See `references/tmux_plugins.md` for TPM layout, hook event taxonomy, option-watching patterns (format re-evaluation, refresh-client triggers), and the testing protocol below.
 
-### 6. Testing: Verify vs Configure vs Debug
+### 6. Floating Panes (3.7+)
+
+`tmux new-pane -d -P -F '#{pane_id}' 'cmd'` creates a pane above the tiled layout. It is a real `%N` pane, so `send-keys` and `capture-pane` work. Modal panes (`-O`) and float/tile conversion are covered in `references/tmux_3_8_features.md`.
+
+### 7. Testing: Verify vs Configure vs Debug
 
 The most common tmux plugin failure mode (from #41) is misidentifying the task type. Pick one before acting:
 
@@ -136,7 +148,8 @@ Full task-type table and the hypothesis-driven debug template are in `references
 2. **Get the unique ID** — `tmux display-message -p '#{pane_id} #{window_id} #{session_id}'` from the relevant pane
 3. **List the landscape** — `tmux list-panes -a -F '#{pane_id} #{window_id} #{session_id} #{pane_current_command}'`
 4. **For options/formats** — `tmux show-options -A` (all scopes), `tmux display-message -p '#{var}'` to evaluate a single variable
-5. **For plugin debugging** — check hook firing with `set-hook -g <event> 'display-message "fired: <event>"'` temporarily
+5. **For plugin debugging** — check hook firing with `set-hook -g <event> 'display-message "fired: <event>"'` temporarily, or (3.8+) `tmux wait-for -E -v <event>` to block and print the payload
+6. **After a tmux upgrade** — check the breaking-changes table in `references/tmux_3_8_features.md`
 
 ## Common Use Cases
 
@@ -168,7 +181,7 @@ See `references/tmux_mouse_bindings.md` for named status ranges (`#[range=user|n
 
 ### "Test that my plugin reacts to a user-option change"
 
-Use the hypothesis-driven template in §6. Verify, don't reconfigure.
+Use the hypothesis-driven template in §7. Verify, don't reconfigure.
 
 ## Resources
 
@@ -178,6 +191,7 @@ Use the hypothesis-driven template in §6. Verify, don't reconfigure.
 - **`tmux_plugins.md`** — TPM layout; hook event taxonomy; option-watching recipe; testing template
 - **`tmux_mouse_bindings.md`** — named status ranges, correct mouse events, diagnostic technique, live binding vs bootstrap
 - **`tmux_session_management.md`** — sesh integration, naming conventions, direnv environment setup, pane logging, session persistence
+- **`tmux_3_8_features.md`** — what's new in 3.7/3.8: events, monitor hooks, `wait-for -E`, OSC 133 command events, floating/modal panes, new formats, themes, breaking changes
 - **`herdr_alternative.md`** — `herdr`, an alternative AI-agent-focused multiplexer some users run instead of (or nested with) tmux; its config, theming, and a known sidebar-divider gap
 
 ## Related Skills
