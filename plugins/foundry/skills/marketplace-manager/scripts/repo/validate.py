@@ -25,6 +25,8 @@ Stdlib-only. Uses pyyaml when available for SKILL.md frontmatter parsing,
 falls back to a minimal subset parser.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import re

@@ -16,6 +16,8 @@ Examples:
     python3 scaffold.py migrate old-skill
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import subprocess
