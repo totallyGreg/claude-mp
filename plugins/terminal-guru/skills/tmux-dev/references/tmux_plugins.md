@@ -68,8 +68,10 @@ tmux set-hook -g <event> '<tmux-command>'
 | `window-pane-changed`       | the active pane in a window changes              |
 | `window-resized`            | a window's dimensions change                     |
 | `alert-bell` / `-activity` / `-silence` | per-window monitor alerts            |
+| `pane-command-finished`     | OSC 133 `D` mark — command done, payload has `command_status` (3.8) |
+| `client-light-theme` / `-dark-theme` | terminal switched appearance (3.8)      |
 
-Inspect available hooks: `tmux show-hooks -g`.
+Inspect available hooks: `tmux show-hooks -g`. tmux 3.8 added ~20 hook names (window created/closed/zoomed, pane moved/resized, prompt opened/closed, etc.) — see `tmux_3_8_features.md`.
 
 ### Hook patterns
 
@@ -95,7 +97,18 @@ tmux show-hooks -g          # list all
 
 ## Option Watching (Dynamic Plugin Behavior)
 
-tmux does NOT have a native "fire on option change" event. Plugins that react to user-variable changes use one of these patterns:
+Before 3.8, tmux had no native "fire on option change" event. On **3.8+**, prefer a monitor hook (Pattern 0). On older tmux, or when a status redraw is all you need, use Patterns 1–3.
+
+### Pattern 0 (tmux 3.8+): Monitor hook
+
+`set-hook -B` re-evaluates a format every second and fires when the value changes (or, with `-T`, becomes true):
+
+```bash
+tmux set-hook -g -B '@theme-changed::#{@theme}' \
+  'run-shell "$HOME/.config/tmux/plugins/my-plugin/scripts/apply_theme.sh"'
+```
+
+The name must start with `@`. Monitors are not inherited, and changes in the first ~1 s after creation are missed (the baseline sample). Details and the payload keys are in `tmux_3_8_features.md`.
 
 ### Pattern 1: Format-string re-evaluation
 
@@ -126,7 +139,7 @@ tmux set-hook -g session-window-changed 'run-shell "$HOME/.config/tmux/plugins/m
 
 ### Anti-pattern: polling loops
 
-Do NOT use `while sleep 1; do tmux show-options ...; done` background scripts. They consume CPU, fight with TPM lifecycle, and miss the actual events. Use hooks or rely on status redraw.
+Do NOT use `while sleep 1; do tmux show-options ...; done` background scripts. They consume CPU, fight with TPM lifecycle, and miss the actual events. Use hooks, monitor hooks (3.8+), or rely on status redraw. A script that must block until something happens should use `tmux wait-for -E <event>` (3.8+).
 
 ## Testing Plugin Behavior
 
@@ -167,7 +180,7 @@ Add a debug hook temporarily:
 tmux set-hook -g <event> 'display-message "fired: <event> at #{T:%H:%M:%S}"'
 ```
 
-Trigger the event; the message appears in the status line. Remove with:
+Trigger the event; the message appears in the status line. On 3.8+, a script can confirm it without touching hooks: `tmux wait-for -E -v <event>` blocks until the event fires and prints its payload. Remove a debug hook with:
 
 ```bash
 tmux set-hook -gu <event>

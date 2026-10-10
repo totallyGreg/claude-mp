@@ -1,0 +1,14 @@
+{
+  "skill_name": "tmux-dev",
+  "content_hash": "f3d039afe094ff86fb01d06c0a586266ca61a08c9840d104ab58046c1c50d005",
+  "score": 91,
+  "metrics": {
+    "conciseness": 98,
+    "complexity": 90,
+    "spec_compliance": 80,
+    "progressive_disclosure": 100,
+    "description_quality": 100
+  },
+  "tool_version": "6.12.1",
+  "date": "2026-10-09"
+}

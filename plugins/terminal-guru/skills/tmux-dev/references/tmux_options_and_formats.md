@@ -128,8 +128,11 @@ Format strings are tmux's templating mini-language. They appear in:
 | `#{client_prefix}`        | 1 if prefix key is being held                 |
 | `#{mouse_x}` / `#{mouse_y}` | mouse coords in `MouseDown*` bindings      |
 | `#{mouse_status_range}`   | name of clicked status range (see tmux_mouse_bindings.md) |
+| `#{version}`              | tmux version — gate 3.8-only config with `#{>=:#{version},3.8}` |
+| `#{pane_floating_flag}`   | 1 if the pane is floating (3.7+)              |
+| `#{hook_pane}` / `#{hook_last}` | pane that fired the hook / previous value of a monitor hook (3.8) |
 
-The complete reference is `man tmux` under `FORMATS`.
+tmux 3.8 also added the `O:` (options) and `V:` (environment) loops, `t/d` time differences, `#{A/count:...}` status animations, and fuzzy `m/z` matching. See `tmux_3_8_features.md`. The complete reference is `man tmux` under `FORMATS`.
 
 ## Debugging Format Strings
 
