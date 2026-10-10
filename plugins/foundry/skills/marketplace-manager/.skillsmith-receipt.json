@@ -1,6 +1,6 @@
 {
   "skill_name": "marketplace-manager",
-  "content_hash": "f74d7997701fc7dc16ec23d0dc99b7ed345f9e87fa7a766b86d54d6255efd78f",
+  "content_hash": "fa0af053abf01e7b37781d5507eab163fc2c309aae9ae5834ef51e964d417470",
   "score": 100,
   "metrics": {
     "conciseness": 100,
@@ -10,5 +10,5 @@
     "description_quality": 100
   },
   "tool_version": "6.12.1",
-  "date": "2026-09-29"
+  "date": "2026-10-09"
 }

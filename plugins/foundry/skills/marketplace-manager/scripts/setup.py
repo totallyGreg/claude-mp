@@ -21,6 +21,8 @@ Usage:
     python3 setup.py all [--name NAME] [--owner-name NAME] [--owner-email EMAIL]
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import shutil
