@@ -16,6 +16,7 @@ them. Three layers, each owning one thing:
 | fast | `Qwen3.6-35B-A3B-oQ4e-mtp:fast` | MoE, 3B active, 20 GB, `Jundot/Qwen3.6-35B-A3B-oQ4e-mtp`. oMLX 0.7.0, 11K prompt: **2,929 tok/s prefill, 107 tok/s decode** with MTP |
 | code | `Qwen3.6-35B-A3B-oQ4e-mtp:code` | Same model; thinking on; MTP engages with the thinking budget |
 | deep | `Qwen3.8-27B-oQ4e-mtp:deep` | Dense, 16 GB, `Jundot/Qwen3.8-27B-oQ4e-mtp`, MTP on. oMLX 0.7.0, 11K prompt: ~34 tok/s decode, ~399 tok/s prefill. Qwen3.8 thinking sampling: temperature **1.0**, top_p 0.95, top_k 20 (not 3.6's 0.6). Set 2026-09-29 — derivation 7 |
+| see | `/usr/bin/fm` (Apple on-device, macOS 27) | The only local model that reads images — the oMLX models are text-only in Pi. Not an oMLX profile; called as `fm respond`. 8K context. Added 2026-10-13; see references/apple-fm.md. A vision model on oMLX could take this tier over |
 | decide | `Qwen3.8-27B-oQ4e-mtp:decide` | Same model as deep. Moved 2026-09-29: 31/45 type, 42/45 area vs the 35B's 27 and 38, at ~1.1 s median vs 0.33 s — accuracy is the point of decide. Called via `scripts/decide.py`, not Pi. Grammar-constrained, so MTP doesn't engage — irrelevant for 1–3-token answers |
 
 MTP is a **base-model** setting (`PUT /admin/api/models/<model>/settings

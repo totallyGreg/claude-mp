@@ -26,7 +26,7 @@ Delegate work to local models on Apple silicon (task tiers, Pi and Claude Code t
 
 ## Tiers
 
-Tiers are defined by task; the model behind each changes as better ones arrive. Each is an oMLX profile exposed as a model (`<model>:<tier>`).
+Tiers are defined by task; the model behind each changes as better ones arrive. Each except `see` is an oMLX profile exposed as a model (`<model>:<tier>`).
 
 | Tier | For | Pi | Claude Code on oMLX |
 |------|-----|----|---------------------|
@@ -34,6 +34,7 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
 | `code` | agentic loops, multi-file edits | `omlx/code` | sonnet |
 | `deep` | one hard question | `omlx/deep` | opus |
 | `decide` | one grammar-constrained answer (label, yes/no, JSON) | `scripts/decide.py` | — |
+| `see` | image → text or JSON (receipt, screenshot, QR); Apple's on-device `fm` | `fm respond` | — |
 
 `skills/local-inference/references/tiers.md` records the current mapping, how it was measured, and the procedure for adopting a new model.
 
@@ -97,7 +98,7 @@ Tiers are defined by task; the model behind each changes as better ones arrive. 
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
-| 2.1.0 | 2026-10-13 | [#210](https://github.com/totallyGreg/claude-mp/issues/210) | Apple `fm` (macOS 27 on-device model) as an `fm` row in the tier table; new `references/apple-fm.md`: OCR + schema for text in images, plain `--image` for charts, Apple's schema dialect (enum works, JSON Schema rejected), 8K shared context, dash-leading input trap, `fm serve` streams by default. Receipt → JSON verified here. | 98 | 90 | 100 | 100 | 100 | 97 |
+| 2.1.0 | 2026-10-13 | [#210](https://github.com/totallyGreg/claude-mp/issues/210) | Apple `fm` (macOS 27 on-device model) as the backend of a new `see` tier (image → text/JSON); new `references/apple-fm.md`: OCR + schema for text in images, plain `--image` for charts, Apple's schema dialect (enum works, JSON Schema rejected), 8K shared context, dash-leading input trap, `fm serve` streams by default. Receipt → JSON verified here. | 98 | 90 | 100 | 100 | 100 | 97 |
 | 2.0.0 | 2026-10-02 | [#198](https://github.com/totallyGreg/claude-mp/issues/198) | Renamed `local-omlx` → `local-inference`; product-neutral description and intro (tiers stay, the stack underneath changes); TurboQuant KV 8-bit on `deep` tested and rejected; 0.7.0 memory-guard ceiling recorded. Description 80 → 100. +v2.0.1 | 93 | 90 | 100 | 100 | 100 | 96 |
 | 1.1.0 | 2026-10-01 | - | Pi extensions moved into `assets/pi-extensions/`; `install_pi_extensions.sh` copies them into Pi's agent dir (`${PI_CODING_AGENT_DIR:-~/.pi/agent}`) instead of Pi loading them from the marketplace clone. Score 94 (no change). +v1.1.1 | 93 | 90 | 100 | 100 | 80 | 94 |
 | 1.0.0 | 2026-10-01 | [#196](https://github.com/totallyGreg/claude-mp/issues/196) | Initial release, moved from a personal skill: fast/code/deep/decide tiers on oMLX profiles; Pi one-shots and pane teammate (`pi_team.sh`); Claude Code on oMLX as a cross-session teammate (`claude_team.sh` + `reply_guard.py`, write tools scoped to its directory); `decide.py`, `bench_decode.py`, `eval_decide.py`; Pi vs Claude comparison and tier derivation references. | 93 | 90 | 100 | 100 | 80 | 94 |
@@ -131,7 +132,7 @@ Scores for 1.0.0–1.2.0 were measured on 2026-10-02 against each release's comm
 
 | Version | Date | Summary |
 |---------|------|---------|
-| 2.5.0 | 2026-10-13 | `local-inference` 2.1.0 ([#210](https://github.com/totallyGreg/claude-mp/issues/210)): Apple's `fm` CLI (macOS 27) for images and small schema extractions — new `references/apple-fm.md` from tests on this Mac and Nikhil Vemu's macOS 27 `fm` write-up: which "eye" to use (OCR + schema for text, plain `--image` for charts), the schema dialect, 8K context, input traps, `fm serve` gotchas. Finder droplet / Folder Action wrappers live in terminal-guru. `eval_decide.py` takes `fm` as a model: on 62 backlog items it was 3× faster than `decide` but less accurate (type 38 vs 45, area 44 vs 54), so it does not replace `decide` (tiers.md derivation 10). |
+| 2.5.0 | 2026-10-13 | `local-inference` 2.1.0 ([#210](https://github.com/totallyGreg/claude-mp/issues/210)): new `see` tier (image → text or JSON) backed by Apple's `fm` CLI (macOS 27) — new `references/apple-fm.md` from tests on this Mac and Nikhil Vemu's macOS 27 `fm` write-up: which "eye" to use (OCR + schema for text, plain `--image` for charts), the schema dialect, 8K context, input traps, `fm serve` gotchas. Finder droplet / Folder Action wrappers live in terminal-guru. `eval_decide.py` takes `fm` as a model: on 62 backlog items it was 3× faster than `decide` but less accurate (type 38 vs 45, area 44 vs 54), so it does not replace `decide` (tiers.md derivation 10). |
 | 2.4.4 | 2026-10-02 | `local-inference` 2.0.1: Cloudflare's Clef (open Jev/SystemOne decision model) evaluated for `decide` and not adopted — no accuracy gain on 45 BACKLOG items, oMLX can't serve it; evidence and when to revisit in tiers.md derivation 9, re-run with the new `scripts/eval_clef.py`. `decide` guidance: wording moved area accuracy 42 → 37 on the same model, so compare models only on identical wording. |
 | 2.4.3 | 2026-10-02 | `openrig-setup` 1.3.3: lifecycle lessons from a full stop/`rig start --last` (never `rig down kernel` — once stopped by hand only `rig up kernel --existing` restores it; the `phase=connections` shutdown timeout is harmless; seats resume but auto mode doesn't) in new `references/lifecycle.md`, plus committing the setup to a branch for worktrees. `openrig:new` writes `openrig-specs/.gitignore` and marks a tracked `AGENTS.md` skip-worktree for native Pi seats. `openrig:check` prints the daemon-restart hint only when the reload check warns. |
 | 2.4.2 | 2026-10-02 | `openrig-setup` 1.3.2: `openrig:new` names a reused worktree's actual branch in the briefs (it used today's date, so a regenerated rig's lead saw a branch that didn't exist). Skill: RTK rewrites read-only commands to `rtk …` and so multiplies the lead's permission prompts — allow both spellings; `cd && git` compounds still need a human or auto mode. |

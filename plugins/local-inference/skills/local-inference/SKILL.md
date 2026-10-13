@@ -39,7 +39,7 @@ Each tier is an oMLX profile exposed as a model. Call it by tier name
 | `omlx/code` | Multi-step agentic work: tool loops, multi-file edits | 128K | on, 4K budget |
 | `omlx/deep` | One hard question: design reasoning, tricky analysis. Slow to answer — it thinks up to 16K tokens first | 128K | on, 16K budget |
 | `decide` | System-1 calls: pick one label, yes/no, or fill a small JSON schema. Not through Pi — see below | 16K | off |
-| `fm` | Images (receipt, screenshot, QR) → JSON on Apple's on-device model. Read [references/apple-fm.md](references/apple-fm.md) first | 8K | off |
+| `see` | Images (receipt, screenshot, QR) → text or JSON. Not oMLX: Apple's `fm` — [references/apple-fm.md](references/apple-fm.md) | 8K | off |
 
 The current model behind each tier, how the tiers were derived, and the
 procedure for a new model are in
