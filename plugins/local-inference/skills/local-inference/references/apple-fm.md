@@ -31,6 +31,45 @@ barcode tools) and on zero setup; the oMLX models win on context (8K vs
 than `decide` but 7–10 of 62 items less accurate (type 38 vs 45, area 44 vs 54;
 references/tiers.md derivation 10) — do not use it in place of `decide`.
 
+## The `see` tier — `scripts/see.sh` and Pi's `see` tool
+
+`scripts/see.sh` wraps the rules below so callers don't re-learn them:
+
+```bash
+S=${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/see.sh
+$S --text --schema fields.json receipt.png          # letters: OCR + schema → JSON (--text refuses without a schema)
+$S chart.png 'Which month is highest?'              # meaning in pixels: plain vision
+$S --code label.png                                 # QR/barcode → exact payload
+$S --text --with-text --schema fields.json r.png    # {"answer": …, "read_text": "<what OCR read>"}
+```
+
+- The schema may be ordinary JSON Schema: `see.sh` adds `title` (unique per
+  object — `fm` merges objects that share a title, turning nested items into
+  copies of the root), `additionalProperties`, `x-order` and `required`.
+- `read_text` comes from the transcript (`--save-transcript`), so every value
+  in the answer can be checked against what OCR actually read. When the OCR or
+  barcode tool reads nothing, `see.sh` fails (exit 1) instead of returning the
+  invented empties and zeros `fm` fills the schema with.
+- Retries OCR/barcode calls (intermittent failures), passes the prompt after
+  `--`, exits 3 when `fm` is unavailable.
+
+**Pi's `see` tool** (`assets/pi-extensions/see.ts`, installed with
+`see.sh` next to it by `install_pi_extensions.sh`) gives the text-only oMLX
+tiers eyes: `see(path, kind: text|picture|code, schema?, question?)`.
+`fm` is never Pi's model — `fm serve` ignores tool definitions (asked to read
+a file it answered `"Read: README.md"`, `finish_reason: stop`) and 8K can't
+hold Pi's prompt and tools.
+
+Tested 2026-10-13, `omlx/code`, a folder of `img1–3.png` (two receipts, one
+printing a wrong total; one QR code), 3 runs: the agent called `see` on every
+image with the right `kind` (once it tried `text` on the QR, then switched to
+`code`) and every value it extracted was exact. **Its own check of the sums
+was not:** it passed the wrong total in 2 of 3 runs — once writing
+"12.00 + 1.00 = 13.00 ✅ matches" against a printed 15.00 — and ignored the
+tool description's instruction to compute with `bash`. Verify anything that
+must be right (sums, comparisons) with `jq`/code on the extracted values, in
+the orchestrator. Evidence rows: references/pi-vs-claude.md.
+
 ## Commands
 
 ```bash

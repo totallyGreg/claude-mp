@@ -39,7 +39,7 @@ Each tier is an oMLX profile exposed as a model. Call it by tier name
 | `omlx/code` | Multi-step agentic work: tool loops, multi-file edits | 128K | on, 4K budget |
 | `omlx/deep` | One hard question: design reasoning, tricky analysis. Slow to answer — it thinks up to 16K tokens first | 128K | on, 16K budget |
 | `decide` | System-1 calls: pick one label, yes/no, or fill a small JSON schema. Not through Pi — see below | 16K | off |
-| `see` | Images (receipt, screenshot, QR) → text or JSON. Not oMLX: Apple's `fm` — [references/apple-fm.md](references/apple-fm.md) | 8K | off |
+| `see` | Images (receipt, screenshot, QR) → text or JSON: `scripts/see.sh`, Pi's `see` tool. Apple's `fm`, not oMLX — [references/apple-fm.md](references/apple-fm.md) | 8K | off |
 
 The current model behind each tier, how the tiers were derived, and the
 procedure for a new model are in
@@ -155,7 +155,7 @@ recommendation when the evidence changes.
 
 `assets/pi-extensions/` holds the Pi side of the setup — `statusline.ts`
 (Claude-style status line), `write-boundary.ts` (edit/write only under Pi's
-launch dir) and `permission-gate.ts`. Pi finds extensions in its own agent dir,
+launch dir), `permission-gate.ts` and `see.ts` (the `see` tier as a tool). Pi finds extensions in its own agent dir,
 so install them there:
 
 ```bash
@@ -163,10 +163,9 @@ ${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/install_pi_extensions.sh --
 ${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/install_pi_extensions.sh           # copy; changed files keep a .bak
 ```
 
-Target is `${PI_CODING_AGENT_DIR:-~/.pi/agent}/extensions` — Pi does not read
-XDG paths; to keep Pi's config under `$XDG_CONFIG_HOME`, set
-`PI_CODING_AGENT_DIR=$XDG_CONFIG_HOME/pi/agent`. Updates are deliberate: after the
-plugin updates, run `--check`, then install, then `/reload` in open Pi sessions.
+Target: `${PI_CODING_AGENT_DIR:-~/.pi/agent}/extensions` (Pi ignores XDG; set
+`PI_CODING_AGENT_DIR=$XDG_CONFIG_HOME/pi/agent` to move it). After a plugin
+update: `--check`, install, then `/reload` in open Pi sessions.
 
 ## Writing the brief
 
