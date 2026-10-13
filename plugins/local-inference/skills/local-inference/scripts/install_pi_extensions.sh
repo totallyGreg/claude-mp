@@ -7,7 +7,8 @@
 # and this script follows it.
 #
 # Per file: missing → copied; identical → left alone; different → diff shown, the
-# installed copy saved as <name>.ts.bak, then replaced. --check reports without changing
+# installed copy saved as <name>.bak, then replaced. see.sh goes along, next to see.ts,
+# which runs it. --check reports without changing
 # anything. Updates are deliberate: run this after the plugin updates, then /reload in
 # open Pi sessions.
 set -u
@@ -20,7 +21,7 @@ dest=$agent/extensions
 (( check )) || mkdir -p "$dest"
 
 changed=0
-for f in $src/*.ts; do
+for f in $src/*.ts ${0:A:h}/see.sh; do
   name=${f:t} target=$dest/${f:t}
   if [[ ! -e $target ]]; then
     print "new        $name"

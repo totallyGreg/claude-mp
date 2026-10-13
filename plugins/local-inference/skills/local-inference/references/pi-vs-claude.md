@@ -54,6 +54,9 @@ Same machine (M5 Pro, 64 GB), same model unless noted
 | 09-30 | Claude long run 1 (7 tasks planned, one session, Edit scoped) | tasks 1–3 read, 4 rename | 16/22/16 s, task 4 **301 s** | 4 of 4 | 4 of 4 (guard on 1 and 4) | context **compacted mid task 4**; afterwards it aimed Bash/Write/4× Edit at the user's main checkout — all blocked by the scope/tool list — then edited its worktree correctly. Task 5 arrived mid-turn and was dropped: the guard skipped because it had already fired that turn (fixed: once per task). Then idle until **killed by SIGUSR1 at 07:00:06** |
 | 10-01 | Claude long run 2 (fresh session, fixed guard) | 7 tasks: 3 read, rename ×2, recall from memory, summarize a script | 17/14/17/47/9/47/20 s — **171 s total** | **7 of 7** (both renames exact, compile + check-loop pass) | **7 of 7** (guard once, task 1) | no compaction, no tool call aimed outside its worktree; prompt grew 13K→16.5K tokens over the session |
 | 09-30 | Pi + `write-boundary.ts` | write inside (relative) / outside (absolute) / `../` escape / same dir via `/tmp` spelling | — | allowed / **blocked** / **blocked** / allowed | yes | outside file unchanged; real-path comparison handles /tmp→/private/tmp |
+| 10-13 | Pi one-shot + `see.ts`, tools read,ls,find,see | 3 images (2 receipts, one with a wrong printed total; 1 QR): extract, check items + tax = total, table | 49 s | values exact; **check wrong** (13.00 passed as 15.00) | yes | `see` kind=text on all 3, then kind=code on the QR after zeros came back — led to `see.sh` failing when OCR reads nothing |
+| 10-13 | same, tool description: compute sums with a tool or say UNVERIFIED | same | — | **check right** (MISMATCH, $2.00) | yes | no tool to compute with; did it in its head anyway, this time correctly |
+| 10-13 | same + bash | same | — | values exact; **check wrong** ("12.00 + 1.00 = 13.00 ✅ matches" 15.00) | yes | used bash only for `ls`; kind=code on the QR first time. Verify sums outside the model |
 
 Claude "slim" = `scripts/claude_team.sh` (brief in `scripts/claude_teammate_brief.txt`):
 `--system-prompt <brief> --tools Read,Grep,Glob,ToolSearch,SendMessage --allowedTools SendMessage --strict-mcp-config --disable-slash-commands --setting-sources user`
@@ -109,6 +112,7 @@ Claude "slim" = `scripts/claude_team.sh` (brief in `scripts/claude_teammate_brie
 | Status line | `statusline.ts` mirroring Claude's | user's statusline | yes |
 | Teammate channel | `pi_team.sh` spawn/ask/close | `claude_team.sh` spawn, then `ListAgents`/`SendMessage`; close the pane by hand | different by nature |
 | Reply guarantee | structural (session file) | `reply_guard.py` Stop hook | yes (09-30) — different mechanism, same effect |
+| Images (`see` tier) | `see.ts` tool → `see.sh` | none — the teammate has no Bash to run `see.sh` | **no** (10-13) |
 
 ## Next tests
 
@@ -118,3 +122,4 @@ Claude "slim" = `scripts/claude_team.sh` (brief in `scripts/claude_teammate_brie
 3a. ~~Pi write boundary~~ — done 09-30 (`~/.pi/agent/extensions/write-boundary.ts`).
 4. Prefix-cache reuse for Pi turns (oMLX log `reused N`) vs Claude's `reused 0`.
 5. Give both the same instruction set (decide: AGENTS.md vs a short brief) and the same skills.
+6. Images for the Claude teammate: allow `Bash(<plugin>/scripts/see.sh:*)` only, then rerun the 10-13 receipts test.

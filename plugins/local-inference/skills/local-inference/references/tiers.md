@@ -16,6 +16,7 @@ them. Three layers, each owning one thing:
 | fast | `Qwen3.6-35B-A3B-oQ4e-mtp:fast` | MoE, 3B active, 20 GB, `Jundot/Qwen3.6-35B-A3B-oQ4e-mtp`. oMLX 0.7.0, 11K prompt: **2,929 tok/s prefill, 107 tok/s decode** with MTP |
 | code | `Qwen3.6-35B-A3B-oQ4e-mtp:code` | Same model; thinking on; MTP engages with the thinking budget |
 | deep | `Qwen3.8-27B-oQ4e-mtp:deep` | Dense, 16 GB, `Jundot/Qwen3.8-27B-oQ4e-mtp`, MTP on. oMLX 0.7.0, 11K prompt: ~34 tok/s decode, ~399 tok/s prefill. Qwen3.8 thinking sampling: temperature **1.0**, top_p 0.95, top_k 20 (not 3.6's 0.6). Set 2026-09-29 — derivation 7 |
+| see | `/usr/bin/fm` (Apple on-device, macOS 27) | The only local model that reads images — the oMLX models are text-only in Pi. Not an oMLX profile; called through `scripts/see.sh` (Pi: the `see` tool). 8K context. Added 2026-10-13; see references/apple-fm.md. A vision model on oMLX could take this tier over |
 | decide | `Qwen3.8-27B-oQ4e-mtp:decide` | Same model as deep. Moved 2026-09-29: 31/45 type, 42/45 area vs the 35B's 27 and 38, at ~1.1 s median vs 0.33 s — accuracy is the point of decide. Called via `scripts/decide.py`, not Pi. Grammar-constrained, so MTP doesn't engage — irrelevant for 1–3-token answers |
 
 MTP is a **base-model** setting (`PUT /admin/api/models/<model>/settings
@@ -234,6 +235,26 @@ Machine: Apple M5 Pro, 64 GB unified memory.
    once — e.g. bulk triage that should abstain rather than guess — or a Clef
    build oMLX can serve. Re-run with `scripts/eval_clef.py` (Clef + the
    incumbent on identical wording, plus the cascade table).
+
+10. **Apple `fm` as a `decide` backend (2026-10-13, rejected).** macOS 27's
+    on-device model (`/usr/bin/fm`, ~3B), choices as an `enum` in its schema
+    dialect, greedy. `eval_decide.py <BACKLOG.md> fm <decide-model>` — same
+    terse wording for both, item on stdin as the user message; 62 BACKLOG items
+    (AudiobookOCD f901fe8; 28 bug / 34 improvement):
+
+    | Per call | type | area | median | p90 |
+    |---|---|---|---|---|
+    | Qwen3.8-27B-oQ4e-mtp `:decide` | **45** | **54** | 1.2 s | 2.6 s |
+    | Apple `fm` | 38 | 44 | **0.39 s** | 0.48 s |
+    | always "improvement" | 34 | — | — | — |
+
+    - **Not a substitute.** 7 items worse on type and 10 on area — well past the
+      2–3 item noise — and on type barely above always answering the majority
+      class. No refusals or errors in 124 calls.
+    - **3× faster and needs no server**, so it stays the choice for images
+      (built-in OCR) and for coarse pre-sorting where a wrong label is cheap.
+    - Revisit when Apple ships a new on-device model (the transcript's
+      `assetIDs` name it; see references/apple-fm.md).
 
 ## Gotcha: unknown model names must fail
 
