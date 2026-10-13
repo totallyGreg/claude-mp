@@ -235,6 +235,26 @@ Machine: Apple M5 Pro, 64 GB unified memory.
    build oMLX can serve. Re-run with `scripts/eval_clef.py` (Clef + the
    incumbent on identical wording, plus the cascade table).
 
+10. **Apple `fm` as a `decide` backend (2026-10-13, rejected).** macOS 27's
+    on-device model (`/usr/bin/fm`, ~3B), choices as an `enum` in its schema
+    dialect, greedy. `eval_decide.py <BACKLOG.md> fm <decide-model>` — same
+    terse wording for both, item on stdin as the user message; 62 BACKLOG items
+    (AudiobookOCD f901fe8; 28 bug / 34 improvement):
+
+    | Per call | type | area | median | p90 |
+    |---|---|---|---|---|
+    | Qwen3.8-27B-oQ4e-mtp `:decide` | **45** | **54** | 1.2 s | 2.6 s |
+    | Apple `fm` | 38 | 44 | **0.39 s** | 0.48 s |
+    | always "improvement" | 34 | — | — | — |
+
+    - **Not a substitute.** 7 items worse on type and 10 on area — well past the
+      2–3 item noise — and on type barely above always answering the majority
+      class. No refusals or errors in 124 calls.
+    - **3× faster and needs no server**, so it stays the choice for images
+      (built-in OCR) and for coarse pre-sorting where a wrong label is cheap.
+    - Revisit when Apple ships a new on-device model (the transcript's
+      `assetIDs` name it; see references/apple-fm.md).
+
 ## Gotcha: unknown model names must fail
 
 `settings.json` → `model.model_fallback: true` makes oMLX answer a request for

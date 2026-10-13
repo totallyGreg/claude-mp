@@ -27,8 +27,9 @@ shell do anything that must be right [NV].
 
 Compared with the oMLX tiers: `fm` wins on images (built-in Vision OCR and
 barcode tools) and on zero setup; the oMLX models win on context (8K vs
-16–128K), reasoning and code. `fm` has not been measured on the
-`eval_decide.py` set — do not swap it in for `decide` until it has.
+16–128K), reasoning and code. On the `eval_decide.py` set `fm` was 3× faster
+than `decide` but 7–10 of 62 items less accurate (type 38 vs 45, area 44 vs 54;
+references/tiers.md derivation 10) — do not use it in place of `decide`.
 
 ## Commands
 
