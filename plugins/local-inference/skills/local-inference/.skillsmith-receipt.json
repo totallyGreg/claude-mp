@@ -1,14 +1,14 @@
 {
   "skill_name": "local-inference",
-  "content_hash": "2eae482b4d98124ac78263b4f8a23a1fa614326d876235190d02b002bc3c8940",
-  "score": 96,
+  "content_hash": "1a62d87fc7af6e04f341f77a78407db200ef4fdd5bea84179594f0adbc5c25bb",
+  "score": 97,
   "metrics": {
-    "conciseness": 93,
+    "conciseness": 98,
     "complexity": 90,
     "spec_compliance": 100,
     "progressive_disclosure": 100,
     "description_quality": 100
   },
   "tool_version": "6.12.1",
-  "date": "2026-10-01"
+  "date": "2026-10-13"
 }

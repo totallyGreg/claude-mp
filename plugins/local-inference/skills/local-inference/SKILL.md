@@ -1,9 +1,9 @@
 ---
 name: local-inference
-description: This skill should be used when the user says "use pi", "use the local model", "local inference", "run it on the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, repetitive edits with an exact spec) can run on a local model — via Pi or via Claude Code launched on the local server — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
+description: This skill should be used when the user says "use pi", "use the local model", "local inference", "run it on the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", "use fm", "extract this receipt", "OCR this image", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON, also from an image) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, exact-spec edits) can run on a local model — via Pi or via Claude Code launched on the local server — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
 metadata:
-  version: "2.0.1"
-compatibility: macOS on Apple silicon; oMLX server on 127.0.0.1:8000; pi; tmux 3.5+ for pane teammates; uv for the Python scripts
+  version: "2.1.0"
+compatibility: macOS on Apple silicon; oMLX server on 127.0.0.1:8000; macOS 27+ for `fm`; pi; tmux 3.5+ for pane teammates; uv for the Python scripts
 license: MIT
 ---
 
@@ -39,6 +39,7 @@ Each tier is an oMLX profile exposed as a model. Call it by tier name
 | `omlx/code` | Multi-step agentic work: tool loops, multi-file edits | 128K | on, 4K budget |
 | `omlx/deep` | One hard question: design reasoning, tricky analysis. Slow to answer — it thinks up to 16K tokens first | 128K | on, 16K budget |
 | `decide` | System-1 calls: pick one label, yes/no, or fill a small JSON schema. Not through Pi — see below | 16K | off |
+| `fm` | Images (receipt, screenshot, QR) → JSON on Apple's on-device model. Read [references/apple-fm.md](references/apple-fm.md) first | 8K | off |
 
 The current model behind each tier, how the tiers were derived, and the
 procedure for a new model are in
