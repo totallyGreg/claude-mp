@@ -1,0 +1,14 @@
+{
+  "skill_name": "signals-monitoring",
+  "content_hash": "a99a7de0d0a6a651eef0a60cb0c2953557b39dc4144654b7425d875f447fe9cb",
+  "score": 92,
+  "metrics": {
+    "conciseness": 100,
+    "complexity": 90,
+    "spec_compliance": 80,
+    "progressive_disclosure": 100,
+    "description_quality": 100
+  },
+  "tool_version": "6.12.1",
+  "date": "2026-10-13"
+}

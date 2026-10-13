@@ -125,6 +125,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Changes |
 |---------|---------|
+| 5.19.0 | **environment-composition v2.1.0** ([#210](https://github.com/totallyGreg/claude-mp/issues/210)): wrap any script in a Finder **droplet** or **Folder Action** — `scripts/finder_surface.sh` generates both and detaches them, and `references/macos_finder_surfaces.md` gives the core-script contract (absolute paths for `do shell script`'s minimal PATH, no TTY, skip own output) and gotchas. Worked example: receipt image → JSON with Apple's on-device `fm`, verified through both surfaces. **signals-monitoring v1.0.1**: file-watching guide points to Folder Actions. Agent routes droplet/Folder Action requests (100/100, unchanged). Scores unchanged: environment-composition 90, signals-monitoring 92. |
 | 5.18.0 | **tmux-dev v1.1.0**: tmux 3.7/3.8 awareness — events, monitor hooks, `wait-for -E`, OSC 133 command-finished events, floating/modal panes, new formats/hooks, themes, and breaking changes (new `references/tmux_3_8_features.md`; tested on tmux 3.8). `tmux_plugins.md` now covers the native option-change trigger. Score 91/100 (unchanged). |
 | 5.17.1 | **zsh-dev v3.2.1**: `keychainctl` rewritten in zsh with only macOS built-ins (`security` + `plutil`; `jq` no longer needed). One `get`/`set`/`rm` command set replaces the separate `pair` namespace (kept as a compatibility alias); `-f FIELD` edits one field of a bundle; `-k` selects the keychain. New `import` stores a JSON bundle from a file, stdin, or a hidden paste (nothing in shell history). Items are tagged Kind `secret` or `json`. Guards: refuse to drop a bundle's fields, or store values that look like paste mistakes (whitespace, `$(`, backtick) unless `--force`. Labels kept across writes; `ls` lists item names, not labels. Brings the long-diverged `~/bin` copy (pair support) back into source. **mise-tooling v2.7.2**: keychain examples updated to the new commands. |
 | 5.17.0 | **mise-tooling v2.7.1**: documented the `#USAGE`/`#MISE` KDL-escape gotcha — mise parses these as KDL (only its built-in escapes are valid); a stray `\$` fails parsing and silently breaks `mise tasks` + tab-completion. Nuance: the error surfaces only when a task's usage spec is loaded (`mise tasks info <name>`/completion), not a plain `mise tasks`. Added to SKILL.md Authoring Conventions + `mise_task_patterns.md`. |
@@ -154,7 +155,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 ### Current Metrics
 
-**Score: 90/100** (Good) — 2026-05-03
+**Score: 90/100** (Good) — 2026-10-13
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -164,6 +165,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 2.1.0 | 2026-10-13 | [#210](https://github.com/totallyGreg/claude-mp/issues/210) | macOS Finder surfaces: new `references/macos_finder_surfaces.md` (core-script contract, droplet, Folder Action, Quick Action, launchd) and `scripts/finder_surface.sh` (droplet / folder-action / detach); Script → Finder Surface graduation step; `fm` receipt → JSON worked example. | 100 | 80 | 80 | 100 | 100 | 90 |
 | 2.0.0 | 2026-05-03 | - | Evolved into composition engine: composition philosophy, fzf patterns, workflow discovery script, tool landscape analysis. Expanded from sesh-specific to general tool composition. | 100 | 80 | 80 | 100 | 100 | 90 |
 | 1.0.0 | 2026-04-01 | - | Initial release: sesh.toml config, claude CLI composition, direnv integration, workflow patterns (setup/worktree/teardown/decay), Lens framework | 100 | 80 | 80 | 100 | 100 | 90 |
 
@@ -173,7 +175,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 ### Current Metrics
 
-**Score: 92/100** (Good) — 2026-03-22
+**Score: 92/100** (Good) — 2026-10-13
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|

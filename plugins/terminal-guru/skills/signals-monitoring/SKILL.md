@@ -2,7 +2,7 @@
 name: signals-monitoring
 description: This skill should be used when working with Unix process signals, shell trap handlers, macOS unified logging, file watching, process monitoring, and terminal notifications. Use when users ask to "check system logs", "debug my app", "fix script cleanup on Ctrl+C", "add signal handling to a script", "configure log streaming", "build a file watcher", "send a notification from the terminal", or "open a log stream in tmux".
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
 ---
 
 # Signals & Monitoring

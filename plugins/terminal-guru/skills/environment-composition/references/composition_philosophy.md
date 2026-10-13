@@ -49,6 +49,7 @@ Ad-hoc Command  →  Shell History  →  Zsh Function  →  Mise Task
 | Function → Mise Task | Team needs it, has dependencies, needs isolated env, needs DAG ordering | Create `mise run` task with `usage` field for arg parsing |
 | Function → Sesh Template | Involves session setup, multiple windows/panes, startup commands | Add `[[session]]` or `[[wildcard]]` to `sesh.toml` |
 | Any → fzf Composition | User manually selects from a list before acting | Wrap with `source | fzf --preview | action` pattern |
+| Script → Finder Surface | Runs on files the user picks in Finder, or on every file that lands in a folder | Droplet or Folder Action via `finder_surface.sh` (see `macos_finder_surfaces.md`) |
 
 ### Decision Shortcuts
 
@@ -57,6 +58,7 @@ Ad-hoc Command  →  Shell History  →  Zsh Function  →  Mise Task
 - "This modifies my working directory or exports" → zsh function
 - "This has build steps that depend on each other" → mise task (DAG model)
 - "I want to pick from a list first" → fzf composition
+- "I want to drop files on it in Finder" → droplet; "run it on whatever lands in this folder" → Folder Action
 
 ---
 

@@ -188,7 +188,7 @@ These criteria are non-negotiable — they reflect lessons from prior diagnoses 
 - **tmux-dev**: tmux automation — pane/window/session unique IDs (`$N`/`@N`/`%N`), send-keys/capture-pane/pipe-pane, options & format strings, TPM plugins, hooks, plugin testing patterns
 - **tui-experience**: TUI app theming/keybindings/quirks (fzf, television, gum, btop, lazygit, k9s, glow, charm), terminal recording (asciinema, agg, svg-term-cli, vhs)
 - **signals-monitoring**: macOS system logs, Unix process signals, trap/cleanup, file watching, notifications
-- **environment-composition**: Composing dev environments (sesh + claude CLI + worktrees), sesh.toml configuration, session templates, environment lifecycle, **unix composition primer** (piping/filtering/transforming + tool preference matrix)
+- **environment-composition**: Composing dev environments (sesh + claude CLI + worktrees), sesh.toml configuration, session templates, environment lifecycle, **unix composition primer** (piping/filtering/transforming + tool preference matrix), macOS Finder surfaces (droplets, Folder Actions)
 - **mise-tooling**: mise (jdx/mise) configuration, task automation, environment variables, tool version management, multi-tenant credential patterns, task_config.includes, DRY task organization
 
 ## Symptom-to-Domain Routing
@@ -240,6 +240,7 @@ These criteria are non-negotiable — they reflect lessons from prior diagnoses 
 | sesh picker integration (fzf, tv, gum) | environment-composition | tui-experience |
 | Pipe through fzf in a shell pipeline (glue) | environment-composition | - |
 | How do I combine X and Y? (composition q) | environment-composition | - |
+| Droplet, drag-and-drop script, Folder Action, Quick Action | environment-composition | signals-monitoring |
 | What's the best tool for filtering/transforming? | environment-composition | - |
 | direnv not loading in sesh session | environment-composition | zsh-dev |
 | startup_command fails or gets killed | environment-composition | signals-monitoring |

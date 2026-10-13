@@ -4,6 +4,8 @@
 
 File watching triggers actions automatically when files or directories change — useful for rebuilding on save, running tests continuously, syncing files, or monitoring config changes. macOS has built-in FSEvents support; the best CLI tools wrap it.
 
+To run a script on every file added to a folder without a terminal open, use a Folder Action instead — see environment-composition `macos_finder_surfaces.md`.
+
 ---
 
 ## `fswatch` — Event-Based File Watcher
