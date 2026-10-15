@@ -19,11 +19,11 @@ spawn)
   # --approve: trust project files for this run, or a repo with .pi/settings.json
   # stops at a trust prompt nobody is watching.
   pane=$(tmux split-window -h -d -t "${TMUX_PANE:-}" -l 45% -c "$dir" -P -F '#{pane_id}' \
-    "pi --approve --session-dir '$sd' --model omlx/$tier")
+    "env PI_AGENT=1 pi --approve --session-dir '$sd' --model omlx/$tier")
+  # PI_AGENT=1 lets project hooks refuse default-branch commits. It must be in the
+  # pane's command: typed into the pane, it would be a message to the model.
   tmux set -p -t "$pane" @alias "$name"
   tmux set -p -t "$pane" @pi_session_dir "$sd"
-  # Export PI_AGENT=1 so project hooks can refuse default-branch commits/merges
-  tmux send-keys -t "$pane" "export PI_AGENT=1" Enter
   sleep 6
   echo "$pane"
   ;;
@@ -36,7 +36,16 @@ ask)
     (( $#files )) && cat $files | grep -c '"role":"user"' || echo 0
   }
   before=$(count_users)
-  tmux send-keys -t "$pane" -l -- "$*"
+  task="$*"
+  # A long or multi-line task typed into Pi's editor can open its completion menu,
+  # and the Enter then accepts a suggestion instead of submitting (2026-10-15: a
+  # 3,000-character brief gained ".claude/" and sat unsent). Hand it over as a file.
+  if [[ $task == *$'\n'* || ${#task} -gt 300 ]]; then
+    tf=$(mktemp "$sd/task.XXXXXX") && print -r -- "$task" > "$tf"
+    task="Read the file $tf with the read tool and carry out the task it describes, exactly."
+  fi
+  tmux send-keys -t "$pane" -l -- "$task"
+  sleep 1
   tmux send-keys -t "$pane" Enter
   for i in {1..400}; do
     sleep 3
