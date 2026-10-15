@@ -46,6 +46,13 @@ LaunchServices from any program). `PI_AGENT=1` is set for project hooks.
 - SwiftPM sandboxes its own manifest builds, and macOS forbids a sandbox inside a
   sandbox: inside, call `swift build`/`swift test` with `--disable-sandbox` (the
   outer sandbox is the stricter one). Give the brief the exact commands.
+- **Xcode builds stay outside.** `xcodebuild` needs LaunchServices (`com.apple.lsd.*`
+  — it rejects a workspace as "not a workspace file" without it), and that same
+  service launches apps, which run unsandboxed: allowing `com.apple.lsd.mapdb` alone
+  let an NSWorkspace launch out (2026-10-15). So Pi's loop inside covers the fast
+  check, package builds and tests; the orchestrator runs app builds and app tests
+  outside and briefs Pi again with any errors. SwiftPM's manifest cache
+  (`~/Library/Caches/org.swift.swiftpm`) is a `--write` path when SwiftPM runs inside.
 - A one-shot run: `$T run --dir <worktree> --write <scratch> -- -p --no-session …`.
   Any command, for checking what Pi would hit: `$T exec --dir <worktree> -- <cmd>`.
 - `$T profile --dir <worktree>` prints the profile to read before trusting it.

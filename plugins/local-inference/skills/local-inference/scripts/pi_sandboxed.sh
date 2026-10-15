@@ -113,12 +113,12 @@ ${(F)lines})
   (subpath $(sbquote "$HOME/.aws")) (subpath $(sbquote "$HOME/Library/Keychains")))
 
 ;; No way to start a process outside the sandbox.
-;; open, osascript and tmux may run — Pi itself runs `open`, and blocking an exec
+;; open, osascript and tmux may run — Pi itself runs open, and blocking an exec
 ;; crashes it — but they fail at the LaunchServices, AppleEvents and socket rules.
 (deny process-exec
   (literal "/bin/launchctl") (literal "/usr/bin/ssh") (literal "/usr/bin/screen"))
 ;; LaunchServices starts apps outside the sandbox (NSWorkspace from any Swift or
-;; Python script, not only `open`), and AppleEvents drive apps that do.
+;; Python script, not only open), and AppleEvents drive apps that do.
 (deny mach-lookup (global-name-regex #"^com\.apple\.(lsd\.|coreservices\.)"))
 
 ;; Network: the model server only. Unix sockets: DNS and syslog only.
