@@ -1,7 +1,8 @@
 #!/bin/zsh
-# pi_sandbox_selftest.sh — acceptance test for pi_sandboxed.sh (`pi_sandboxed.sh self-test`).
+# agent_sandbox_selftest.sh — acceptance test for agent_sandbox.sh, pi_sandboxed.sh and
+# sandbox_build_broker.sh (`pi_sandboxed.sh self-test`).
 #
-#   pi_sandbox_selftest.sh [--live]
+#   agent_sandbox_selftest.sh [--live]
 #
 # Builds a throwaway repo under $HOME (outside every writable path) with a linked
 # worktree on branch pi/task, then checks each rule both ways: what a gated edit needs
@@ -18,8 +19,9 @@ live=0; [[ ${1:-} == --live ]] && live=1
 fails=0
 root=$(mktemp -d "$HOME/.pi-sandbox-selftest.XXXXXX")
 escape="$HOME/.pi-sandbox-escape-$$"
-BR=${0:A:h}/pi_build_broker.sh
-export PI_BROKER_HOME=$root/broker-home   # outside every path Pi may write
+BR=${0:A:h}/sandbox_build_broker.sh
+AS=${0:A:h}/agent_sandbox.sh
+export SANDBOX_BROKER_HOME=$root/broker-home   # outside every path the agent may write
 trap 'zsh "$BR" stop --dir "$root/wt" >/dev/null 2>&1; rm -rf -- "$root" "$escape"' EXIT
 
 git -C "$root" init -q -b main main
@@ -49,11 +51,23 @@ check allowed "write in the worktree"            "echo x > inside.txt"
 check allowed "commit on its own branch"         "git add inside.txt && git commit -q -m inside"
 check allowed "write \$TMPDIR"                   "touch \$TMPDIR/pi-selftest-$$ && rm \$TMPDIR/pi-selftest-$$"
 check allowed "reach localhost:8000 (oMLX)"      "curl -s -m 3 -o /dev/null http://127.0.0.1:8000/ || [ \$? -ne 7 ]"
-check allowed "PI_AGENT=1 is set"                "[ \"\$PI_AGENT\" = 1 ]"
+export PI_SELFTEST_API_TOKEN=canary
+check refused "a secret in the caller's environment reaches the agent" "[ -n \"\$PI_SELFTEST_API_TOKEN\" ]"
+check allowed "PI_AGENT=1 and AGENT_SANDBOX=1 are set" "[ \"\$PI_AGENT\$AGENT_SANDBOX\" = 11 ]"
 git -C "$root/main" pack-refs --all
 check allowed "commit after its branch is packed" "echo y >> inside.txt && git commit -q -am packed"
 
 (( fails )) && { print "\nThe allowed cases failed, so refusals below would prove nothing."; exit 1; }
+
+print "— the generic layer (agent_sandbox.sh, no Pi allowances)"
+generic() { (cd "$wt" && perl -e 'setpgrp; $SIG{ALRM} = sub { kill "KILL", -$$; exit 124 }; alarm 20;
+  system @ARGV; exit($? >> 8)' zsh "$AS" exec --dir "$wt" -- /bin/zsh -c "$1") >/dev/null 2>&1 }
+generic "git commit -q --allow-empty -m generic && [ \"\$AGENT_SANDBOX\" = 1 ]" \
+  && print "PASS  commits on its branch, AGENT_SANDBOX=1 (allowed)" || { print "FAIL  generic layer can't commit"; (( fails++ )) }
+generic "curl -s -m 3 -o /dev/null http://127.0.0.1:8000/" \
+  && { print "FAIL  generic layer reached a port it wasn't given"; (( fails++ )) } || print "PASS  no port unless --port gives one (refused)"
+generic "touch \$HOME/.pi/agent/sessions/x-$$" \
+  && { print "FAIL  generic layer wrote Pi's state"; (( fails++ )) } || print "PASS  no agent state unless --state gives it (refused)"
 
 print "— every way out"
 check refused "write outside (\$HOME)"           "touch '$escape'"
@@ -99,9 +113,13 @@ launchctl remove pi.selftest.copy 2>/dev/null
   || { print "FAIL  a copied launchctl started a job outside"; (( fails++ )) }
 
 print "— build broker (builds Pi asks for, run outside the sandbox)"
-zsh "$BR" start --dir "$wt" --cmd build='sh Scripts/build.sh' --cmd where=pwd \
+zsh "$BR" start --dir "$wt" --cmd build=true >/dev/null 2>&1 \
+  && { print "FAIL  started without a preset on an unknown tree"; (( fails++ )); zsh "$BR" stop --dir "$wt" >/dev/null 2>&1 } \
+  || print "PASS  refuses to start on a tree whose build system it doesn't know"
+zsh "$BR" start --dir "$wt" --preset swift --preset node --preset rust --preset python \
+  --cmd build='sh Scripts/build.sh' --cmd where=pwd \
   --cmd fail='echo "src.txt:1:1: error: boom"; exit 1' >/dev/null || { print "FAIL  broker didn't start"; (( fails++ )) }
-snap=$PI_BROKER_HOME/$(print -rn -- "$wt" | shasum | cut -c1-12)/src
+snap=$SANDBOX_BROKER_HOME/$(print -rn -- "$wt" | shasum | cut -c1-12)/src
 R="zsh '$BR' request"
 check allowed "a build Pi asks for runs"         "$R build | grep -q 'built: v1'"
 check allowed "  …and builds Pi's latest edit"   "print v2 > src.txt && $R build | grep -q 'built: v2'"
@@ -114,6 +132,17 @@ inside "git checkout -- Scripts/build.sh"
 check refused "  …or commits a build-script change" \
   "print 'echo x' >> Scripts/build.sh && git commit -qam s && $R build"
 inside "git reset -q --hard HEAD~1"
+check refused "  …or adds a package.json (node: npm scripts run)" "print '{}' > package.json; $R build"
+inside "rm -f package.json"
+check refused "  …or a nested build.rs (rust)"  "mkdir -p crate && print 'fn main(){}' > crate/build.rs; $R build"
+inside "rm -rf crate"
+check refused "  …or a setup.py (python)"        "print 'import os' > setup.py; $R build"
+inside "rm -f setup.py"
+check refused "  …or Swift macro code (it runs in the compiler)" \
+  "mkdir -p Sources/M && print 'import SwiftCompilerPlugin' > Sources/M/Plugin.swift; $R build"
+inside "rm -rf Sources"
+check refused "  …or deletes a build script" "rm Scripts/build.sh; $R build"
+inside "git checkout -- Scripts/build.sh"
 check refused "write the broker's snapshot"      "touch '$snap/x'"
 [[ ! -e $escape ]] && print "PASS  no build script of Pi's ran outside" \
   || { print "FAIL  a build script of Pi's ran outside"; (( fails++ )) }

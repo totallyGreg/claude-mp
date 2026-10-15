@@ -50,20 +50,21 @@ LaunchServices from any program). `PI_AGENT=1` is set for project hooks.
   (`com.apple.lsd.*`; without it a workspace is "not a workspace file"), and that
   service launches apps, which run unsandboxed — allowing `com.apple.lsd.mapdb` alone
   let an NSWorkspace launch out (2026-10-15). So it never runs inside. Instead the
-  orchestrator starts `scripts/pi_build_broker.sh` outside, naming the builds Pi may
-  ask for, and Pi runs `pi_build_broker.sh request <name>` in its loop and reads the
-  compiler output:
+  orchestrator starts `scripts/sandbox_build_broker.sh` outside, naming the builds Pi
+  may ask for, and Pi runs `sandbox_build_broker.sh request <name>` in its loop and
+  reads the compiler output:
   ```bash
-  B=<skill dir>/scripts/pi_build_broker.sh
+  B=<skill dir>/scripts/sandbox_build_broker.sh
   $B start --dir <worktree> --cmd app='mise run app:build'    # outside, before spawning
   # in the brief: "after each edit run `$B request app` and fix what it reports"
   $B stop --dir <worktree>                                    # when the edit is merged
   ```
   Each request builds a snapshot of Pi's tree (new files included) in a worktree only
   the broker writes, so nothing changes between check and build. It refuses when the
-  tree changes a build-defining file — Xcode projects, `Package.swift`, plugins,
-  `mise.toml`, `Scripts/`, hooks (`--guard` adds globs) — because a build runs those,
-  outside. **Name builds only, never tests**: a test runs code Pi wrote, outside the
+  tree changes a build-defining file, because a build runs those outside: the
+  guards of each `--preset` (swift, xcode, node, rust, python, gradle, cmake, make —
+  detected from the tree when none is given, and it won't start on a tree it doesn't
+  recognise) plus `--guard` globs, and changed Swift macro or Rust proc-macro code. **Name builds only, never tests**: a test runs code Pi wrote, outside the
   sandbox. App tests stay with the orchestrator.
 - SwiftPM inside: `--disable-sandbox` (macOS won't nest sandboxes), and its manifest
   cache (`~/Library/Caches/org.swift.swiftpm`) as a `--write` path.
@@ -82,3 +83,15 @@ if [[ ${PI_AGENT:-} == 1 ]]; then
     && { echo "PI_AGENT=1: no commits on ${default:-main}" >&2; exit 1; }
 fi
 ```
+
+## Other agents and toolchains
+
+Nothing here is Pi-only. `scripts/agent_sandbox.sh` is the sandbox for any agent:
+`exec --dir <worktree> --state <its state dir> --port <its model port> -- <agent>`;
+`pi_sandboxed.sh` is Pi's launcher on it. It drops secrets from the environment it
+passes on (`*TOKEN*`, `*SECRET*`, `*API_KEY*`, cloud and forge credentials,
+`CLAUDE*`, ssh-agent, tmux), and sets `AGENT_SANDBOX=1` and `AGENT_SANDBOX_DIR`.
+`sandbox_build_broker.sh` takes any build command, for any agent that can run one
+shell line; its safety is in the guards, so name the project's ecosystem with
+`--preset`, or its build files with `--guard`. Only Pi, Xcode, SwiftPM and plain
+scripts have been tested end to end.

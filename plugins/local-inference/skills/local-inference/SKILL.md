@@ -176,4 +176,4 @@ change. The recipe: **prepare** the worktree outside (deps,
 warm build) → **spawn** with `--write <build dir>` → **brief** with the exact
 check/build/test commands and "commit only on your branch; never merge, push or
 release" → **review** every hunk and run the full gate yourself → **merge**.
-App builds go through `pi_build_broker.sh`, outside. Details: [references/gated-edit.md](references/gated-edit.md).
+App builds go through `sandbox_build_broker.sh`, outside. Details: [references/gated-edit.md](references/gated-edit.md).
