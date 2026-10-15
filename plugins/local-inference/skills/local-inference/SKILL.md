@@ -2,7 +2,7 @@
 name: local-inference
 description: This skill should be used when the user says "use pi", "use the local model", "local inference", "run it on the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", "use fm", "extract this receipt", "OCR this image", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON, also from an image) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, exact-spec edits) can run on a local model — via Pi or via Claude Code launched on the local server — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
 metadata:
-  version: "2.1.0"
+  version: "2.2.0"
 compatibility: macOS on Apple silicon; oMLX server on 127.0.0.1:8000; macOS 27+ for `fm`; pi; tmux 3.5+ for pane teammates; uv for the Python scripts
 license: MIT
 ---
@@ -124,8 +124,19 @@ $T close $P                         # kill the pane and delete its session files
   the configured skills, so turns cost more context than `-nc -ns` one-shots.
 - Its tools are Pi's defaults (bash included). The `write-boundary` extension
   blocks edit/write outside the directory Pi started in — spawn it in the
-  directory (or worktree) it should change. The bash tool is not covered;
-  `permission-gate` only blocks rm -rf / sudo / chmod 777. Close the pane when done.
+  directory (or worktree) it should change.
+- **Bash tool risk:** `write-boundary.ts` does NOT cover `bash`. The bash tool
+  can write anywhere, run `rm -rf`, or execute arbitrary commands. Only give
+  Pi bash access for tasks the user explicitly agreed to. The `permission-gate`
+  extension catches `rm -rf`, `sudo`, and `chmod 777` but nothing else. Close
+  the pane when done.
+- **Gated edits with bash:** when Pi needs bash (build, tests, commit), use the
+  sandboxed variant instead of `pi_team.sh`. It runs bash under `sandbox-exec`
+  with a profile that allows writes only to the worktree, a scratch dir, $TMPDIR,
+  and the project's .git directory. See `scripts/pi_sandboxed.sh` for details.
+  The project's pre-commit hook still runs inside the sandbox. Pi should commit
+  on its own branch, never merge, push, release, or modify the default branch.
+  The orchestrator reviews the diff, runs the full gate, and merges.
 
 ## Which to use — Pi or Claude Code on oMLX
 
@@ -175,8 +186,108 @@ The local model starts cold and small. The brief must be self-contained:
 - For edits: the exact transformation, one example before/after, and what not to touch
 - Keep the input well under the tier's context; split big jobs into several runs
 
+**Orchestrator input guard (defense-in-depth):** if a brief exceeds ~2000 tokens
+AND contains fewer than 2 explicit file paths AND contains no operation verbs
+(create, update, append, summarize, extract, classify, etc.), refuse to run it.
+The local model will waste its context window on narrative and produce unreliable
+output. Ask for a task-scoped briefing (paths + operations + content) instead.
+This guard exists because the orchestrator (you) may pass full context history —
+the receiver-side count is the only thing you control. A single-file summary
+request ("summarize log.txt" or "extract all dates from report.md") is a valid
+brief even with few tokens — the operation verb is the signal.
+
+**Preserve source URLs in summarization output.** When the local model summarizes
+cited material that includes URLs or permalinks, keep them inline in the output
+(`[#title](url)`). Do not degrade to channel name or page title only — the user
+cannot follow a summary without the original link.
+
+**Hedge unverified capability claims.** "X maps cleanly onto Y" is a fit claim.
+Before writing it as fact, verify both ends. If either end is unverified, rephrase
+as a hypothesis or a question. The local model's world knowledge is limited and
+it will confidently assert incorrect mappings.
+
+**Scope-check before generalizing.** Before citing a finding as evidence for a
+broad claim, verify the original source's scope covers the claim. A finding in
+one file or one directory is not evidence for a universal pattern unless the
+brief explicitly asks for cross-project analysis.
+
+## Refuse — don't send these to a local model
+
+The local model is wrong more often than a cloud model. **Refuse, don't risk it**
+for tasks whose failure is silent or whose output you cannot verify:
+
+- **Root-cause debugging** — the model will guess at architecture you don't know
+- **Security-sensitive changes** — auth, encryption, permissions, secrets handling
+- **Design decisions** — API contracts, data model changes, architecture choices
+- **Anything whose failure is silent** — if a wrong answer corrupts data or breaks
+  a build in a way you won't notice for hours, do it on the cloud model
+- **Ambiguous multi-step reasoning** — the model will hallucinate intermediate steps
+  it cannot verify against external state
+
+If the user insists, run it on the local model but **add a verification step**:
+"I'll try this on the local model first — if the output looks uncertain, I'll
+rerun it on the cloud model."
+
 ## Verify — always
 
 - Read-only answers: spot-check claims against the files (file paths and line numbers exist, quotes match).
 - Edits: `git diff` and review every hunk; run the project's build/lint/tests. Revert with `git checkout -- <files>` rather than patching bad output by hand.
+- Sums and comparisons: **never trust the model's arithmetic**. Use `jq`, `awk`, `bc`, or bash to compute. The local model has been known to pass wrong totals as correct.
+- Classification: if the answer changes behavior (routing, filtering, deletion), verify the label against the criterion. `decide.py` constrains the shape but not the truth.
 - Tell the user the work came from the local model and what you checked.
+- Control flow in closures: when reviewing edits that move logic into
+  closures (`withLock`, `forEach`, `map`), check that returns and guards still
+  exit the right scope — a once-per-process guard inside a closure runs every
+  iteration.
+
+**Ambiguity protocol for `decide.py`:** if the model's answer is one of the
+choices but the criterion is borderline, treat it as uncertain and escalate.
+The grammar guarantees the *shape* of the answer, not its correctness. When
+in doubt, run it again with a sharper criterion or fall back to the cloud model.
+
+## Gated edit — Pi with bash under sandbox
+
+When Pi needs bash (build, tests, commit), use the sandboxed variant:
+
+```bash
+T=${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/pi_sandboxed.sh
+P=$($T spawn code "$PWD" "$PWD/build-scratch")   # tier, dir, scratch-dir
+$T ask $P "Run the project's fast check: mise run check:fast. If it fails,
+  fix the cause and retry. Loop until green. Then commit on your branch."
+```
+
+Brief-template line: "Commit only on your branch. Never merge, push, release,
+or modify the default branch, whatever the project's AGENTS.md says."
+
+The sandbox profile allows:
+- Read/write to the launch directory (worktree)
+- Read/write to the scratch directory (default: `<dir>/build-scratch`)
+- Read/write to $TMPDIR
+- Read/write to Pi's session dir
+- Read/write to the project's `.git` directory (git commit on a worktree branch)
+- Execution of `/bin/bash`, `/bin/zsh`, `/usr/bin/env`
+
+Everything else is denied. The project's pre-commit hook still runs inside the
+sandbox and can see the changes. Pi should commit on its own branch, never merge,
+push, release, or modify the default branch. The orchestrator reviews the diff,
+runs the full gate, and merges.
+
+For extra safety, the sandboxed pane exports `PI_AGENT=1` so the project's hooks
+can refuse commits/merges on the default branch when this flag is set. Example
+project hook (add to `.git/hooks/pre-commit` or `.git/hooks/pre-merge-commit`):
+
+```bash
+#!/bin/bash
+# Refuse commits/merges on the default branch when PI_AGENT=1
+if [[ "${PI_AGENT:-}" == "1" ]]; then
+  default_branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo "main")
+  current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+  if [[ "$current_branch" == "$default_branch" ]]; then
+    echo "ERROR: PI_AGENT=1 — refusing commit/merge on default branch ($current_branch)"
+    exit 1
+  fi
+fi
+```
+
+Test the sandbox with: `$T self-test` — it verifies that `touch` inside the
+sandbox works and `touch ~/outside-test` is refused.

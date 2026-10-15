@@ -163,6 +163,11 @@ permissive-content-transformations` [NV]. Some benign inputs are refused
 anyway (non-English translations, a tax note with a schema, degenerate
 repeated text [here]); no flag helps — route those to the oMLX tiers.
 
+**Orchestrator note:** when `see.sh` exits with the guardrails error, do not
+retry with different flags. The refusal is input-dependent, not flag-dependent.
+Either rephrase the prompt, split the image into parts, or route to the oMLX
+tiers where the model can handle the input.
+
 ## `fm chat`
 
 Without `-i`, chat injects Apple's own "Format responses using Markdown"

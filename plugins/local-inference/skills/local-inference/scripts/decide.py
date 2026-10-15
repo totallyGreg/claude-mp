@@ -11,6 +11,13 @@
 
 The output is grammar-constrained by oMLX: with --choices it is exactly one of
 the choices; with --schema it is JSON matching the schema. Exit 1 on error.
+
+**Guardrails:**
+- Rejects >20 choices (the model's accuracy drops sharply with many options).
+- Requires --system with a criterion when using --choices (no bare "pick one").
+- If --choices has an "other" option, the model can abstain instead of guessing.
+- The grammar guarantees the *shape* of the answer, not its correctness.
+  When in doubt, run again with a sharper criterion or fall back to the cloud model.
 """
 
 import argparse
@@ -60,7 +67,14 @@ def main() -> int:
 
     question = a.question if a.question is not None else sys.stdin.read()
     if a.choices:
-        constraint = {"choice": [c.strip() for c in a.choices.split(",") if c.strip()]}
+        choices = [c.strip() for c in a.choices.split(",") if c.strip()]
+        if len(choices) > 20:
+            print(f"decide: too many choices ({len(choices)}); cap is 20 — split the question or narrow the options", file=sys.stderr)
+            return 1
+        if a.system.strip() == "Answer the question.":
+            print("decide: --choices requires --system with a criterion (e.g. 'Classify this as bug or improvement')", file=sys.stderr)
+            return 1
+        constraint = {"choice": choices}
     else:
         with open(a.schema) as f:
             constraint = {"json": json.load(f)}

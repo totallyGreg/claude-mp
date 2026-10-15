@@ -65,7 +65,13 @@ for try in 1 2 3; do
   [[ $mode == pixels ]] && break
 done
 if [[ ! -s $tmp/out ]] || grep -q '^Error:' $tmp/err; then
-  print -u2 "see: $(grep -m1 '^Error:' $tmp/err || print 'fm returned nothing')"; exit 1
+  err_msg=$(grep -m1 '^Error:' $tmp/err || print 'fm returned nothing')
+  # fm's safety guardrails refuse benign inputs (non-English, tax notes, repeated text).
+  # These are not fixable with flags — route to the oMLX tiers.
+  if echo "$err_msg" | grep -qi 'guardrails\|refused'; then
+    print -u2 "see: fm's safety guardrails triggered — route this image to the oMLX tiers"; exit 1
+  fi
+  print -u2 "see: $err_msg"; exit 1
 fi
 if [[ -n $schema ]] && ! /usr/bin/jq -e . $tmp/out >/dev/null 2>&1; then
   print -u2 "see: fm did not return JSON"; exit 1

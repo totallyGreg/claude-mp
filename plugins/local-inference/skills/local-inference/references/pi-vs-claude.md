@@ -57,6 +57,7 @@ Same machine (M5 Pro, 64 GB), same model unless noted
 | 10-13 | Pi one-shot + `see.ts`, tools read,ls,find,see | 3 images (2 receipts, one with a wrong printed total; 1 QR): extract, check items + tax = total, table | 49 s | values exact; **check wrong** (13.00 passed as 15.00) | yes | `see` kind=text on all 3, then kind=code on the QR after zeros came back — led to `see.sh` failing when OCR reads nothing |
 | 10-13 | same, tool description: compute sums with a tool or say UNVERIFIED | same | — | **check right** (MISMATCH, $2.00) | yes | no tool to compute with; did it in its head anyway, this time correctly |
 | 10-13 | same + bash | same | — | values exact; **check wrong** ("12.00 + 1.00 = 13.00 ✅ matches" 15.00) | yes | used bash only for `ls`; kind=code on the QR first time. Verify sums outside the model |
+| 10-14 | Pi pane (`pi_team.sh`), own worktree | **edit:** NSLock→Mutex exact-spec, 4 boxes, ~15 hunks in 3 files | ~4 min | 3 of ~15 hunks wrong | yes (reverted 3, applied 12) | `return` inside `withLock` ran every iteration (once-per-process guard); tuple types passed as Mutex values; one unused local. Evidence commit: 813514d in AudiobookOCD. Control flow moved into a closure — check it still exits what it exited before. |
 
 Claude "slim" = `scripts/claude_team.sh` (brief in `scripts/claude_teammate_brief.txt`):
 `--system-prompt <brief> --tools Read,Grep,Glob,ToolSearch,SendMessage --allowedTools SendMessage --strict-mcp-config --disable-slash-commands --setting-sources user`

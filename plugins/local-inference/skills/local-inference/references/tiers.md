@@ -268,6 +268,28 @@ check this first. `decide.py` still resolves the `:decide` ID from
 `/v1/models`, and verification still checks `model=` and `max_tokens=` in the
 server log.
 
+## Gotcha: local models are wrong more often
+
+A local model will confidently produce output that is structurally correct but
+factually wrong. This is the central risk of the entire stack:
+
+- **Arithmetic**: the model has been known to pass wrong totals as correct.
+  Always compute sums/comparisons with `jq`, `awk`, `bc`, or bash.
+- **URLs and links**: the model strips permalinks during summarization.
+  Preserve source URLs inline in output — the user cannot follow a summary
+  without the original link.
+- **Capability claims**: "X maps cleanly onto Y" is asserted as fact without
+  verification. Hedge unverified claims as hypotheses.
+- **Scope overgeneralization**: a finding in one file/directory is cited as
+  evidence for a universal pattern. Scope-check before generalizing.
+- **Safety refusals**: `fm` refuses some benign inputs (non-English, tax notes,
+  degenerate repeated text) with no flag to override. Route those to the oMLX
+  tiers.
+
+**Rule of thumb**: if the task's failure is silent (corrupts data, breaks a
+build hours later), run it on the cloud model. If you run it locally anyway,
+add an explicit verification step and tell the user what you checked.
+
 ## When a new model comes out
 
 1. **Download** it into `~/.omlx/models` (oMLX's model manager or HF). Prefer a

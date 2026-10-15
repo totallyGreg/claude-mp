@@ -22,6 +22,8 @@ spawn)
     "pi --approve --session-dir '$sd' --model omlx/$tier")
   tmux set -p -t "$pane" @alias "$name"
   tmux set -p -t "$pane" @pi_session_dir "$sd"
+  # Export PI_AGENT=1 so project hooks can refuse default-branch commits/merges
+  tmux send-keys -t "$pane" "export PI_AGENT=1" Enter
   sleep 6
   echo "$pane"
   ;;
