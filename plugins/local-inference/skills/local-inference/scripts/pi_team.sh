@@ -36,7 +36,16 @@ ask)
     (( $#files )) && cat $files | grep -c '"role":"user"' || echo 0
   }
   before=$(count_users)
-  tmux send-keys -t "$pane" -l -- "$*"
+  task="$*"
+  # A long or multi-line task typed into Pi's editor can open its completion menu,
+  # and the Enter then accepts a suggestion instead of submitting (2026-10-15: a
+  # 3,000-character brief gained ".claude/" and sat unsent). Hand it over as a file.
+  if [[ $task == *$'\n'* || ${#task} -gt 300 ]]; then
+    tf=$(mktemp "$sd/task.XXXXXX") && print -r -- "$task" > "$tf"
+    task="Read the file $tf with the read tool and carry out the task it describes, exactly."
+  fi
+  tmux send-keys -t "$pane" -l -- "$task"
+  sleep 1
   tmux send-keys -t "$pane" Enter
   for i in {1..400}; do
     sleep 3
