@@ -18,10 +18,16 @@ live=0; [[ ${1:-} == --live ]] && live=1
 fails=0
 root=$(mktemp -d "$HOME/.pi-sandbox-selftest.XXXXXX")
 escape="$HOME/.pi-sandbox-escape-$$"
-trap 'rm -rf -- "$root" "$escape"' EXIT
+BR=${0:A:h}/pi_build_broker.sh
+export PI_BROKER_HOME=$root/broker-home   # outside every path Pi may write
+trap 'zsh "$BR" stop --dir "$root/wt" >/dev/null 2>&1; rm -rf -- "$root" "$escape"' EXIT
 
 git -C "$root" init -q -b main main
-git -C "$root/main" -c commit.gpgsign=false commit -q --allow-empty -m init
+mkdir -p "$root/main/Scripts"
+print -r -- 'echo "built: $(cat src.txt)"' > "$root/main/Scripts/build.sh"
+print v1 > "$root/main/src.txt"
+git -C "$root/main" add -A
+git -C "$root/main" -c commit.gpgsign=false commit -q -m init
 git -C "$root/main" worktree add -q -b pi/task ../wt
 wt=$root/wt main_before=$(git -C "$root/main" rev-parse main)
 
@@ -91,6 +97,26 @@ inside "cp /bin/launchctl \$TMPDIR/lc-$$ && \$TMPDIR/lc-$$ submit -l pi.selftest
 launchctl remove pi.selftest.copy 2>/dev/null
 [[ ! -e $escape ]] && print "PASS  a copied launchctl can't start a job outside" \
   || { print "FAIL  a copied launchctl started a job outside"; (( fails++ )) }
+
+print "— build broker (builds Pi asks for, run outside the sandbox)"
+zsh "$BR" start --dir "$wt" --cmd build='sh Scripts/build.sh' --cmd where=pwd \
+  --cmd fail='echo "src.txt:1:1: error: boom"; exit 1' >/dev/null || { print "FAIL  broker didn't start"; (( fails++ )) }
+snap=$PI_BROKER_HOME/$(print -rn -- "$wt" | shasum | cut -c1-12)/src
+R="zsh '$BR' request"
+check allowed "a build Pi asks for runs"         "$R build | grep -q 'built: v1'"
+check allowed "  …and builds Pi's latest edit"   "print v2 > src.txt && $R build | grep -q 'built: v2'"
+check allowed "  …with paths pointing at Pi's worktree" "$R where | grep -qx '$wt'"
+check allowed "  …and a failing build hands back its error" "out=\$($R fail); rc=\$?; [ \$rc -eq 1 ] && print -r -- \"\$out\" | grep -q 'error: boom'"
+check refused "a build the orchestrator didn't name" "$R nope"
+check refused "a build after Pi edits a build script" \
+  "print -r -- 'touch \"$escape\"' > Scripts/build.sh; $R build"
+inside "git checkout -- Scripts/build.sh"
+check refused "  …or commits a build-script change" \
+  "print 'echo x' >> Scripts/build.sh && git commit -qam s && $R build"
+inside "git reset -q --hard HEAD~1"
+check refused "write the broker's snapshot"      "touch '$snap/x'"
+[[ ! -e $escape ]] && print "PASS  no build script of Pi's ran outside" \
+  || { print "FAIL  a build script of Pi's ran outside"; (( fails++ )) }
 
 [[ $(git -C "$root/main" rev-parse main) == $main_before ]] \
   && print "PASS  main never moved" || { print "FAIL  main moved"; (( fails++ )) }

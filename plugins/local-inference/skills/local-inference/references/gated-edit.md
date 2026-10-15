@@ -46,13 +46,27 @@ LaunchServices from any program). `PI_AGENT=1` is set for project hooks.
 - SwiftPM sandboxes its own manifest builds, and macOS forbids a sandbox inside a
   sandbox: inside, call `swift build`/`swift test` with `--disable-sandbox` (the
   outer sandbox is the stricter one). Give the brief the exact commands.
-- **Xcode builds stay outside.** `xcodebuild` needs LaunchServices (`com.apple.lsd.*`
-  — it rejects a workspace as "not a workspace file" without it), and that same
-  service launches apps, which run unsandboxed: allowing `com.apple.lsd.mapdb` alone
-  let an NSWorkspace launch out (2026-10-15). So Pi's loop inside covers the fast
-  check, package builds and tests; the orchestrator runs app builds and app tests
-  outside and briefs Pi again with any errors. SwiftPM's manifest cache
-  (`~/Library/Caches/org.swift.swiftpm`) is a `--write` path when SwiftPM runs inside.
+- **Xcode builds go through the broker.** `xcodebuild` needs LaunchServices
+  (`com.apple.lsd.*`; without it a workspace is "not a workspace file"), and that
+  service launches apps, which run unsandboxed — allowing `com.apple.lsd.mapdb` alone
+  let an NSWorkspace launch out (2026-10-15). So it never runs inside. Instead the
+  orchestrator starts `scripts/pi_build_broker.sh` outside, naming the builds Pi may
+  ask for, and Pi runs `pi_build_broker.sh request <name>` in its loop and reads the
+  compiler output:
+  ```bash
+  B=<skill dir>/scripts/pi_build_broker.sh
+  $B start --dir <worktree> --cmd app='mise run app:build'    # outside, before spawning
+  # in the brief: "after each edit run `$B request app` and fix what it reports"
+  $B stop --dir <worktree>                                    # when the edit is merged
+  ```
+  Each request builds a snapshot of Pi's tree (new files included) in a worktree only
+  the broker writes, so nothing changes between check and build. It refuses when the
+  tree changes a build-defining file — Xcode projects, `Package.swift`, plugins,
+  `mise.toml`, `Scripts/`, hooks (`--guard` adds globs) — because a build runs those,
+  outside. **Name builds only, never tests**: a test runs code Pi wrote, outside the
+  sandbox. App tests stay with the orchestrator.
+- SwiftPM inside: `--disable-sandbox` (macOS won't nest sandboxes), and its manifest
+  cache (`~/Library/Caches/org.swift.swiftpm`) as a `--write` path.
 - A one-shot run: `$T run --dir <worktree> --write <scratch> -- -p --no-session …`.
   Any command, for checking what Pi would hit: `$T exec --dir <worktree> -- <cmd>`.
 - `$T profile --dir <worktree>` prints the profile to read before trusting it.

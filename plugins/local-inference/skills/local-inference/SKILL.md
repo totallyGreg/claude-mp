@@ -171,9 +171,9 @@ The local model starts cold and small. The brief must be self-contained:
 When Pi should carry an edit to green itself — edit, run the project's checks,
 fix, commit — give it bash only inside `scripts/pi_sandboxed.sh`: one worktree
 branch, no other writes, no network but localhost:8000, nothing started outside.
-Run `pi_sandboxed.sh self-test` (`--live` adds the real Pi) after any change to
-the script, macOS or Pi. The recipe: **prepare** the worktree outside (deps,
+Rerun `pi_sandboxed.sh self-test` (`--live`: the real Pi) when it, macOS or Pi
+change. The recipe: **prepare** the worktree outside (deps,
 warm build) → **spawn** with `--write <build dir>` → **brief** with the exact
 check/build/test commands and "commit only on your branch; never merge, push or
 release" → **review** every hunk and run the full gate yourself → **merge**.
-Details and tool notes: [references/gated-edit.md](references/gated-edit.md).
+App builds go through `pi_build_broker.sh`, outside. Details: [references/gated-edit.md](references/gated-edit.md).
