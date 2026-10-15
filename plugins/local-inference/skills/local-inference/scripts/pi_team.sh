@@ -19,11 +19,11 @@ spawn)
   # --approve: trust project files for this run, or a repo with .pi/settings.json
   # stops at a trust prompt nobody is watching.
   pane=$(tmux split-window -h -d -t "${TMUX_PANE:-}" -l 45% -c "$dir" -P -F '#{pane_id}' \
-    "pi --approve --session-dir '$sd' --model omlx/$tier")
+    "env PI_AGENT=1 pi --approve --session-dir '$sd' --model omlx/$tier")
+  # PI_AGENT=1 lets project hooks refuse default-branch commits. It must be in the
+  # pane's command: typed into the pane, it would be a message to the model.
   tmux set -p -t "$pane" @alias "$name"
   tmux set -p -t "$pane" @pi_session_dir "$sd"
-  # Export PI_AGENT=1 so project hooks can refuse default-branch commits/merges
-  tmux send-keys -t "$pane" "export PI_AGENT=1" Enter
   sleep 6
   echo "$pane"
   ;;

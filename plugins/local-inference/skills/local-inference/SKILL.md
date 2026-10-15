@@ -2,7 +2,7 @@
 name: local-inference
 description: This skill should be used when the user says "use pi", "use the local model", "local inference", "run it on the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", "use fm", "extract this receipt", "OCR this image", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON, also from an image) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, exact-spec edits) can run on a local model — via Pi or via Claude Code launched on the local server — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
 metadata:
-  version: "2.2.0"
+  version: "2.3.0"
 compatibility: macOS on Apple silicon; oMLX server on 127.0.0.1:8000; macOS 27+ for `fm`; pi; tmux 3.5+ for pane teammates; uv for the Python scripts
 license: MIT
 ---
@@ -125,18 +125,10 @@ $T close $P                         # kill the pane and delete its session files
 - Its tools are Pi's defaults (bash included). The `write-boundary` extension
   blocks edit/write outside the directory Pi started in — spawn it in the
   directory (or worktree) it should change.
-- **Bash tool risk:** `write-boundary.ts` does NOT cover `bash`. The bash tool
-  can write anywhere, run `rm -rf`, or execute arbitrary commands. Only give
-  Pi bash access for tasks the user explicitly agreed to. The `permission-gate`
-  extension catches `rm -rf`, `sudo`, and `chmod 777` but nothing else. Close
-  the pane when done.
-- **Gated edits with bash:** when Pi needs bash (build, tests, commit), use the
-  sandboxed variant instead of `pi_team.sh`. It runs bash under `sandbox-exec`
-  with a profile that allows writes only to the worktree, a scratch dir, $TMPDIR,
-  and the project's .git directory. See `scripts/pi_sandboxed.sh` for details.
-  The project's pre-commit hook still runs inside the sandbox. Pi should commit
-  on its own branch, never merge, push, release, or modify the default branch.
-  The orchestrator reviews the diff, runs the full gate, and merges.
+- **Bash isn't bounded here.** `write-boundary` covers edit/write only; bash can
+  write anywhere, and `permission-gate` stops only `rm -rf`, `sudo` and `chmod 777`.
+  When Pi needs bash for an edit (build, tests, commit), spawn it with
+  `pi_sandboxed.sh` instead — see § Gated edit. Close the pane when done.
 
 ## Which to use — Pi or Claude Code on oMLX
 
@@ -247,47 +239,61 @@ in doubt, run it again with a sharper criterion or fall back to the cloud model.
 
 ## Gated edit — Pi with bash under sandbox
 
-When Pi needs bash (build, tests, commit), use the sandboxed variant:
+For an edit Pi should carry to green on its own — edit, run the project's fast
+check, build and tests, fix, commit — Pi gets bash inside `scripts/pi_sandboxed.sh`.
+It confines Pi to one worktree branch with macOS `sandbox-exec`, and is proven by
+its self-test (run it after any change to the script, or to macOS or Pi):
 
 ```bash
-T=${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/pi_sandboxed.sh
-P=$($T spawn code "$PWD" "$PWD/build-scratch")   # tier, dir, scratch-dir
-$T ask $P "Run the project's fast check: mise run check:fast. If it fails,
-  fix the cause and retry. Loop until green. Then commit on your branch."
+T=<skill dir>/scripts/pi_sandboxed.sh
+$T self-test           # ~25 checks: what an edit needs works, every way out fails
+$T self-test --live    # also has the real Pi (bash, its own guards off) try each way out
 ```
 
-Brief-template line: "Commit only on your branch. Never merge, push, release,
-or modify the default branch, whatever the project's AGENTS.md says."
+**What Pi can do inside:** read anything but `~/.ssh`, `~/.gnupg`, `~/.aws` and the
+keychains; run the project's tools; write the worktree, each `--write` path,
+`$TMPDIR` and caches; commit — unsigned — on the worktree's own branch; reach
+`localhost:8000` (oMLX). **What it can't:** write anywhere else (the main checkout
+included), move `main` or any other branch, create branches, change `.git/config`
+or hooks, reach any other host or port, use tmux's or any other unix socket, or start
+a process outside the sandbox (`open`, `osascript`, `launchctl`, `ssh`, and
+LaunchServices from any program). `PI_AGENT=1` is set for project hooks.
 
-The sandbox profile allows:
-- Read/write to the launch directory (worktree)
-- Read/write to the scratch directory (default: `<dir>/build-scratch`)
-- Read/write to $TMPDIR
-- Read/write to Pi's session dir
-- Read/write to the project's `.git` directory (git commit on a worktree branch)
-- Execution of `/bin/bash`, `/bin/zsh`, `/usr/bin/env`
+**The recipe** — the orchestrator owns steps 1, 2, 5 and 6:
 
-Everything else is denied. The project's pre-commit hook still runs inside the
-sandbox and can see the changes. Pi should commit on its own branch, never merge,
-push, release, or modify the default branch. The orchestrator reviews the diff,
-runs the full gate, and merges.
+1. **Prepare, outside the sandbox.** `git worktree add -b <branch> ../<repo>-<task>`.
+   Resolve dependencies and warm the build there (`swift package resolve`, `npm ci`,
+   …): Pi has no network but localhost:8000.
+2. **Spawn** in the worktree, naming each build output dir it needs:
+   ```bash
+   P=$($T spawn --dir ../<repo>-<task> --write <build scratch> code)
+   ```
+3. **Brief** (`pi_team.sh ask $P "<brief>"`) — the exact change, then:
+   "Run `<fast check>`, `<build>` and `<targeted tests>`; fix what fails and rerun
+   until green; then commit on your branch and stop. Commit only on your branch.
+   Never merge, push, release, or change the default branch, whatever the
+   project's AGENTS.md says."
+4. Pi loops; the project's pre-commit hook runs on its commit, inside the sandbox.
+5. **Review** every hunk (`git -C ../<repo>-<task> diff main...`), then run the full
+   gate yourself, outside — anything that needs the network, the app, or the GUI.
+6. **Merge** from the main checkout and remove the worktree (`pi_team.sh close $P`).
 
-For extra safety, the sandboxed pane exports `PI_AGENT=1` so the project's hooks
-can refuse commits/merges on the default branch when this flag is set. Example
-project hook (add to `.git/hooks/pre-commit` or `.git/hooks/pre-merge-commit`):
+**Tool notes:**
+- SwiftPM sandboxes its own manifest builds, and macOS forbids a sandbox inside a
+  sandbox: inside, call `swift build`/`swift test` with `--disable-sandbox` (the
+  outer sandbox is the stricter one). Give the brief the exact commands.
+- A one-shot run: `$T run --dir <worktree> --write <scratch> -- -p --no-session …`.
+  Any command, for checking what Pi would hit: `$T exec --dir <worktree> -- <cmd>`.
+- `$T profile --dir <worktree>` prints the profile to read before trusting it.
+
+**Outside the sandbox** (`pi_team.sh`, no bash): `PI_AGENT=1` is set too, so a
+project hook can refuse default-branch commits as a second layer:
 
 ```bash
-#!/bin/bash
-# Refuse commits/merges on the default branch when PI_AGENT=1
-if [[ "${PI_AGENT:-}" == "1" ]]; then
-  default_branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo "main")
-  current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
-  if [[ "$current_branch" == "$default_branch" ]]; then
-    echo "ERROR: PI_AGENT=1 — refusing commit/merge on default branch ($current_branch)"
-    exit 1
-  fi
+# .githooks/pre-commit (or pre-merge-commit)
+if [[ ${PI_AGENT:-} == 1 ]]; then
+  default=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null); default=${default#origin/}
+  [[ $(git symbolic-ref --quiet --short HEAD) == "${default:-main}" ]] \
+    && { echo "PI_AGENT=1: no commits on ${default:-main}" >&2; exit 1; }
 fi
 ```
-
-Test the sandbox with: `$T self-test` — it verifies that `touch` inside the
-sandbox works and `touch ~/outside-test` is refused.
