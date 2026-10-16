@@ -51,6 +51,14 @@ it can't write arbitrary content byte-exactly. `vault-write` writes the file dir
 picks up external changes. This departs from the owner's "use the Obsidian CLI" rule for agents, on
 purpose: the CLI is the controlled channel now.
 
+### Guard hook (Claude Code)
+
+Permission rules turned out too weak to block destructive Obsidian CLI calls: a `*` in the middle
+of a Bash rule matches one space-free token (verified 2026-10-16), and `obsidian vault=X delete`
+puts an option before the subcommand. `hooks/obsidian_guard.py` parses commands with a quote-aware
+tokenizer and denies `delete` and `create … overwrite`, asks for `move` and for `rm`/`mv` on vault
+paths. It reuses `vault-write`'s config loader for the vault path.
+
 ### Other harnesses
 
 Pi (and anything else) calls the same binary through a `~/bin/vault-write` shim that resolves the
