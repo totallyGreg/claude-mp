@@ -93,7 +93,7 @@ description: |
 
   Do NOT use this agent for general note-taking advice unrelated to an existing Obsidian vault.
 
-tools: ["Read", "Bash", "Grep", "Glob", "Edit", "Write", "AskUserQuestion"]
+tools: ["Read", "Bash", "Grep", "Glob", "Edit", "Write", "AskUserQuestion", "SendMessage"]
 model: inherit
 color: magenta
 ---
@@ -187,17 +187,21 @@ Reads never require user confirmation. Choose the fastest available method:
 
 Never ask permission before reading a vault file.
 
-## Write Path (Read-Prepare-Write)
+## Write Path (Read-Prepare-Write, through `vault-write`)
 
-All writes follow a strict three-step pattern:
+Note content is written with **`vault-write`**, the plugin's guarded write CLI (on the Bash tool's `PATH`). It enforces the rules below in code, so they hold whatever harness or agent calls it: write zones from `.local.md`, compare-and-swap against the hash you read, lint (blocks unclosed code fences and inline code starting with an equals sign, which Dataview executes; warns on unresolved wikilinks), a git snapshot of the note before writing, and an atomic, verified write. It never deletes or moves notes. Output is one line of JSON.
 
-1. **Read** — always read the target note first (`obsidian read` or Read tool). Never write blind.
-2. **Prepare** — build the complete updated content in memory. Never write placeholders or partial content.
-3. **Write** — single atomic operation: Edit tool for targeted changes, `obsidian property:set` for frontmatter, or Write tool for full rewrites.
+1. **Read** — `vault-write stat "<path>"` for the hash, then read the content (`obsidian read` or Read tool). Never write blind.
+2. **Prepare** — build the complete new content (whole note, or one section starting with its heading line) in a staging file. Never write placeholders or partial content.
+3. **Write** — `vault-write apply "<path>" --from <staging file> --base <hash>`; add `--section "## Heading"` to replace one section only. New notes need no `--base`.
+4. **Report** — relay the JSON: `hash`, `lines`, `snapshot`, `warnings`, and the `restore` command.
 
-- NEVER use `obsidian create overwrite` with test/placeholder content — it is destructive and atomic
-- Use `obsidian property:set` for frontmatter changes — it is additive and safe
-- Use `obsidian create` (without overwrite) only for NEW notes
+On a refusal (exit 2) — drift, outside the zones, missing `--base`, no git — stop and report; re-read and rebuild on drift. On lint errors (exit 3), fix the content. **`vault-write force`** skips the base and zone checks; use it only after the user approved that specific write (their permission rules should ask for it).
+
+- `obsidian property:set` stays fine for single frontmatter values — it is additive and safe
+- Deleting, moving, or renaming notes is outside `vault-write`: ask the user, and use `obsidian move` (link-safe) only with their approval
+- NEVER use `obsidian create overwrite`, or the Edit/Write tools on vault notes, while `vault-write` is available
+- **Fallback** (no `vault-write`, e.g. claude.ai or Cowork, which don't install plugin `bin/`): Edit tool for targeted changes, Write tool for full rewrites, `obsidian create` (without overwrite) only for new notes — and verify by re-reading
 - When uncertain about write permissions, ASK the user — do not probe destructively
 - **One file, one write** — editing a note should NOT trigger cascading updates to other notes. Bases views and graph connections handle cross-note relationships automatically.
 
@@ -254,6 +258,12 @@ Alternatively, add the entry to the project's `.claude/settings.json` scoped to 
 This pattern is observed empirically but not yet root-caused to a specific harness mechanism. The only reliable recovery is to restart the Claude Code session and approve the Read prompt when it surfaces. A `settings.json` entry alone will not clear an already-cached in-session deny.
 
 If you want both immediate recovery and durable coverage, apply Mode 1 first (so the next session loads with the entry pre-approved) and then restart per Mode 2.
+
+## Reporting Back (when spawned as a subagent)
+
+- Your final result is truncated at about 4,000 characters. Keep it short: what changed, the `vault-write` JSON fields, and anything that needs a decision.
+- For longer output (verbatim note contents, diffs, tables), write it to a file outside the vault and return the path.
+- Use `SendMessage` to answer follow-up questions from the agent that spawned you when it is available.
 
 ## Obsidian CLI Usage
 

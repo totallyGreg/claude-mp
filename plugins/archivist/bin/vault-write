@@ -1,0 +1,429 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
+"""
+vault-write: guarded writes to an Obsidian vault, the same for every harness.
+
+Agents decide what to write; this tool decides whether it may be written.
+It never deletes or moves notes.
+
+Usage:
+    vault-write stat  <note>
+    vault-write check <file> [--as <note>]
+    vault-write apply <note> --from <file|-> [--base HASH] [--section HEADING]
+    vault-write force <note> --from <file|-> [--base HASH] [--section HEADING]
+
+<note> is a vault-relative path ("600 Projects/x/y.md") or an absolute path inside the vault.
+Output is one line of JSON. Exit codes: 0 ok, 1 usage/IO error, 2 refused by policy, 3 lint errors.
+
+Config: `.local.md` beside the plugin root (override with ARCHIVIST_LOCAL_MD), flat keys:
+    vault_path, architect_write_zones, curator_write_zones, designated_output_zones,
+    ignore_drift_keys (default: date modified)
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+import unicodedata
+from pathlib import Path, PurePosixPath
+
+ZONE_KEYS = ("architect_write_zones", "curator_write_zones", "designated_output_zones")
+DEFAULT_IGNORE_KEYS = ("date modified",)
+FENCE_RE = re.compile(r"^\s*(```|~~~)")
+HEADING_RE = re.compile(r"^(#{1,6})\s")
+INLINE_CODE_RE = re.compile(r"(`+)(.+?)\1")
+WIKILINK_RE = re.compile(r"!?\[\[([^\]\|#\^]*)")
+SKIP_DIRS = {".git", ".obsidian", ".trash"}
+
+
+class Refused(Exception):
+    """Policy refusal: exit 2."""
+
+
+class LintFailed(Exception):
+    """Lint errors: exit 3."""
+
+    def __init__(self, errors, warnings):
+        super().__init__("lint errors")
+        self.errors, self.warnings = errors, warnings
+
+
+def nfc(s: str) -> str:
+    return unicodedata.normalize("NFC", s)
+
+
+def sha(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+# ---------- config ----------
+
+def load_config() -> dict:
+    path = os.environ.get("ARCHIVIST_LOCAL_MD") or str(Path(__file__).resolve().parent.parent / ".local.md")
+    p = Path(path)
+    if not p.is_file():
+        raise Refused(f"no archivist config at {p} (set ARCHIVIST_LOCAL_MD or create .local.md)")
+    text = re.sub(r"<!--.*?-->", "", p.read_text(encoding="utf-8"), flags=re.S)
+    cfg: dict[str, str] = {}
+    for line in text.splitlines():
+        if line.startswith("vaults:"):
+            raise Refused("multi-vault `vaults:` config is not supported by vault-write yet")
+        m = re.match(r"^([a-z_]+):\s*(.*)$", line)
+        if m:
+            cfg[m.group(1)] = m.group(2).strip()
+    if not cfg.get("vault_path"):
+        raise Refused(f"vault_path missing in {p}")
+    root = Path(cfg["vault_path"]).expanduser()
+    if not root.is_dir():
+        raise Refused(f"vault_path is not a directory: {root}")
+    zones = [z.strip().rstrip("/") for k in ZONE_KEYS for z in cfg.get(k, "").split(",") if z.strip()]
+    keys = [k.strip() for k in cfg.get("ignore_drift_keys", "").split(",") if k.strip()] or list(DEFAULT_IGNORE_KEYS)
+    return {"root": root.resolve(), "zones": zones, "ignore_keys": keys, "config": str(p)}
+
+
+def resolve_note(cfg: dict, note: str) -> tuple[Path, str]:
+    root: Path = cfg["root"]
+    p = Path(note).expanduser()
+    p = p if p.is_absolute() else root / p
+    p = p.resolve()
+    try:
+        rel = p.relative_to(root)
+    except ValueError:
+        raise Refused(f"path is outside the vault: {note}")
+    if any(part == ".." for part in rel.parts) or not rel.parts:
+        raise Refused(f"invalid vault path: {note}")
+    return p, nfc(rel.as_posix())
+
+
+def in_zone(rel: str, zones: list[str]) -> bool:
+    parts = PurePosixPath(rel).parts
+    for z in zones:
+        zp = PurePosixPath(nfc(z)).parts
+        if parts[: len(zp)] == zp:
+            return True
+    return False
+
+
+def missing_zones(cfg: dict) -> list[str]:
+    return [z for z in cfg["zones"] if not (cfg["root"] / z).exists()]
+
+
+# ---------- hashing ----------
+
+def stable_text(text: str, ignore_keys: list[str]) -> str:
+    lines = [l.rstrip() for l in text.splitlines()]
+    if lines and lines[0] == "---":
+        try:
+            end = lines.index("---", 1)
+        except ValueError:
+            end = 0
+        if end:
+            prefixes = tuple(f"{k}:" for k in ignore_keys)
+            fm = [l for l in lines[1:end] if not l.startswith(prefixes)]
+            lines = ["---", *fm, *lines[end:]]
+    while lines and not lines[-1]:
+        lines.pop()
+    return "\n".join(lines) + "\n"
+
+
+def hashes(data: bytes, ignore_keys: list[str]) -> dict:
+    text = data.decode("utf-8", errors="replace")
+    return {"hash": sha(data), "stable": sha(stable_text(text, ignore_keys).encode())}
+
+
+def base_matches(base: str, h: dict) -> bool:
+    base = base.strip().lower()
+    return len(base) >= 12 and (h["hash"].startswith(base) or h["stable"].startswith(base))
+
+
+# ---------- markdown structure ----------
+
+def outside_fences(lines: list[str]):
+    """Yield (index, line) for lines outside fenced code blocks."""
+    fence = None
+    for i, line in enumerate(lines):
+        m = FENCE_RE.match(line)
+        if m:
+            if fence is None:
+                fence = m.group(1)
+            elif m.group(1) == fence:
+                fence = None
+            continue
+        if fence is None:
+            yield i, line
+
+
+def replace_section(text: str, heading: str, replacement: str) -> str:
+    lines = text.splitlines(keepends=True)
+    plain = [l.rstrip("\r\n") for l in lines]
+    want = heading.strip()
+    m = HEADING_RE.match(want)
+    if not m:
+        raise Refused(f"--section must be a markdown heading line, got: {heading!r}")
+    level = len(m.group(1))
+    starts = [i for i, l in outside_fences(plain) if l.rstrip() == want]
+    if len(starts) != 1:
+        raise Refused(f"--section heading must match exactly one line outside code fences; matched {len(starts)}")
+    start = starts[0]
+    end = len(lines)
+    for i, l in outside_fences(plain):
+        hm = HEADING_RE.match(l)
+        if i > start and hm and len(hm.group(1)) <= level:
+            end = i
+            break
+    rep_first = replacement.lstrip("\n").splitlines()[0].rstrip() if replacement.strip() else ""
+    if rep_first != want:
+        raise Refused("replacement for --section must start with the same heading line")
+    if not replacement.endswith("\n"):
+        replacement += "\n"
+    if end < len(lines) and not replacement.endswith("\n\n"):
+        replacement += "\n"
+    return "".join(lines[:start]) + replacement + "".join(lines[end:])
+
+
+# ---------- lint ----------
+
+def vault_names(root: Path) -> set[str]:
+    names: set[str] = set()
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        rel_dir = Path(dirpath).relative_to(root)
+        for f in filenames:
+            names.add(nfc(f).lower())
+            if f.endswith(".md"):
+                names.add(nfc(f[:-3]).lower())
+                names.add(nfc((rel_dir / f[:-3]).as_posix()).lower())
+    return names
+
+
+def lint(text: str, names: set[str] | None = None, self_name: str | None = None) -> tuple[list[str], list[str]]:
+    """Errors block a write; warnings don't. `names` (from vault_names) enables wikilink checks."""
+    errors, warnings = [], []
+    lines = text.splitlines()
+    fence_lines = [i for i, l in enumerate(lines) if FENCE_RE.match(l)]
+    # Unclosed fence: outside_fences ends still inside a fence.
+    fence = None
+    for l in lines:
+        m = FENCE_RE.match(l)
+        if m:
+            fence = m.group(1) if fence is None else (None if m.group(1) == fence else fence)
+    if fence is not None:
+        errors.append(f"unclosed code fence (opened by one of lines {[i + 1 for i in fence_lines][-3:]})")
+    if names is not None and self_name:
+        names = names | {nfc(self_name).lower()}
+    for i, line in outside_fences(lines):
+        for m in INLINE_CODE_RE.finditer(line):
+            body = m.group(2).strip()
+            if body.startswith("=") or body.startswith("$="):
+                errors.append(f"line {i + 1}: inline code starts with an equals sign; Dataview will execute it: {m.group(0)[:60]}")
+        if names is None:
+            continue
+        stripped = INLINE_CODE_RE.sub("", line)
+        for m in WIKILINK_RE.finditer(stripped):
+            target = nfc(m.group(1).strip())
+            if not target:
+                continue
+            key = (target[:-3] if target.endswith(".md") else target).lower()
+            if key not in names:
+                warnings.append(f"line {i + 1}: unresolved wikilink [[{target}]]")
+    return errors, warnings
+
+
+def _key(msg: str) -> str:
+    return re.sub(r"^line \d+: ", "", msg)
+
+
+def introduced(old: str, new: str, root: Path | None, self_name: str | None) -> tuple[list[str], list[str]]:
+    """Lint findings in `new` that `old` didn't already have, so pre-existing issues don't block edits."""
+    names = vault_names(root) if root else None
+    old_e, old_w = lint(old, names, self_name) if old else ([], [])
+    new_e, new_w = lint(new, names, self_name)
+
+    def fresh(new_list, old_list):
+        budget: dict[str, int] = {}
+        for m in old_list:
+            budget[_key(m)] = budget.get(_key(m), 0) + 1
+        out = []
+        for m in new_list:
+            k = _key(m)
+            if budget.get(k, 0):
+                budget[k] -= 1
+            else:
+                out.append(m)
+        return out
+
+    return fresh(new_e, old_e), fresh(new_w, old_w)
+
+
+# ---------- git ----------
+
+def git(root: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True)
+
+
+def snapshot(root: Path, path: Path) -> tuple[str | None, str | None]:
+    """Commit the note's current content if it has uncommitted changes. Returns (sha, warning)."""
+    if not path.exists():
+        return None, None
+    top = git(root, "rev-parse", "--show-toplevel")
+    if top.returncode != 0:
+        return None, "vault is not a git repository; no snapshot taken"
+    rel = str(path)
+    status = git(root, "status", "--porcelain", "--", rel)
+    if status.returncode != 0:
+        raise Refused(f"git status failed: {status.stderr.strip()}")
+    if status.stdout.strip():
+        if status.stdout.startswith("??"):
+            add = git(root, "add", "--", rel)
+            if add.returncode != 0:
+                raise Refused(f"git add failed (retry later?): {add.stderr.strip()}")
+        msg = f"vault-write: snapshot {path.name} before write"
+        c = git(root, "commit", "-q", "-m", msg, "--", rel)
+        if c.returncode != 0:
+            raise Refused(f"snapshot commit failed (retry later?): {(c.stderr or c.stdout).strip()}")
+    head = git(root, "rev-parse", "HEAD")
+    return (head.stdout.strip() or None), None
+
+
+# ---------- commands ----------
+
+def read_source(src: str) -> str:
+    data = sys.stdin.buffer.read() if src == "-" else Path(src).expanduser().read_bytes()
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        raise Refused("--from content is not valid UTF-8")
+
+
+def cmd_stat(args) -> dict:
+    cfg = load_config()
+    path, rel = resolve_note(cfg, args.note)
+    out = {"ok": True, "action": "stat", "path": rel, "exists": path.is_file(), "in_zone": in_zone(rel, cfg["zones"])}
+    if path.is_file():
+        data = path.read_bytes()
+        out.update(hashes(data, cfg["ignore_keys"]))
+        out["lines"] = data.decode("utf-8", errors="replace").count("\n")
+    return out
+
+
+def cmd_check(args) -> dict:
+    text = Path(args.file).expanduser().read_text(encoding="utf-8")
+    root, self_name = None, None
+    try:
+        cfg = load_config()
+        root = cfg["root"]
+        if args.as_note:
+            self_name = PurePosixPath(resolve_note(cfg, args.as_note)[1]).stem
+    except Refused:
+        pass
+    errors, warnings = lint(text, vault_names(root) if root else None, self_name)
+    if errors:
+        raise LintFailed(errors, warnings)
+    return {"ok": True, "action": "check", "errors": [], "warnings": warnings}
+
+
+def cmd_write(args, forced: bool) -> dict:
+    cfg = load_config()
+    path, rel = resolve_note(cfg, args.note)
+    warnings: list[str] = [f"zone does not exist in vault: {z}" for z in missing_zones(cfg)]
+    if not in_zone(rel, cfg["zones"]):
+        if not forced:
+            raise Refused(f"{rel} is outside the write zones {cfg['zones']}; use `vault-write force` (asks the user)")
+        warnings.append("outside write zones (forced)")
+    incoming = read_source(args.source)
+    exists = path.is_file()
+    before = path.read_bytes() if exists else b""
+    h_before = hashes(before, cfg["ignore_keys"]) if exists else None
+    if exists:
+        if args.base:
+            if not base_matches(args.base, h_before):
+                raise Refused(f"drift: {rel} changed since --base {args.base[:12]} (now {h_before['hash'][:12]}); re-read and rebuild")
+        elif not forced:
+            raise Refused(f"{rel} exists; pass --base <hash from `vault-write stat`> or use `vault-write force`")
+        else:
+            warnings.append("overwrote without --base (forced)")
+    if args.section:
+        if not exists:
+            raise Refused("--section needs an existing note")
+        new_text = replace_section(before.decode("utf-8"), args.section, incoming)
+    else:
+        new_text = incoming
+    errors, lint_warn = introduced(before.decode("utf-8", errors="replace"), new_text, cfg["root"], PurePosixPath(rel).stem)
+    warnings += lint_warn
+    if errors:
+        raise LintFailed(errors, warnings)
+    sha_snap, snap_warn = snapshot(cfg["root"], path)
+    if snap_warn:
+        if not forced:
+            raise Refused(snap_warn + "; use `vault-write force` to write without a safety net")
+        warnings.append(snap_warn)
+    new_bytes = new_text.encode("utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.vault-write.tmp")
+    tmp.write_bytes(new_bytes)
+    if exists:
+        os.chmod(tmp, path.stat().st_mode & 0o777)
+    os.replace(tmp, path)
+    if path.read_bytes() != new_bytes:
+        raise Refused(f"verify failed: {rel} differs from what was written")
+    out = {
+        "ok": True,
+        "action": "force" if forced else "apply",
+        "path": rel,
+        "created": not exists,
+        "hash_before": h_before["hash"] if h_before else None,
+        "hash": sha(new_bytes),
+        "lines": new_text.count("\n"),
+        "snapshot": sha_snap,
+        "warnings": warnings,
+    }
+    if sha_snap and exists:
+        out["restore"] = f"git -C {json.dumps(str(cfg['root']))} checkout {sha_snap[:12]} -- {json.dumps(str(path))}"
+    return out
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(prog="vault-write", description=__doc__.split("\n\n")[1])
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    s = sub.add_parser("stat", help="hash and line count of a note")
+    s.add_argument("note")
+    c = sub.add_parser("check", help="lint a file without writing")
+    c.add_argument("file")
+    c.add_argument("--as", dest="as_note", help="vault note the file is meant for (resolves self-links)")
+    for name, helptext in (("apply", "guarded write"), ("force", "write that may skip base/zone checks; ask the user first")):
+        w = sub.add_parser(name, help=helptext)
+        w.add_argument("note")
+        w.add_argument("--from", dest="source", required=True, help="file with the new content, or - for stdin")
+        w.add_argument("--base", help="hash (or stable hash, >=12 chars) from `vault-write stat`")
+        w.add_argument("--section", help="replace only this heading's section, e.g. '## 13. Gaps'")
+    args = ap.parse_args(argv)
+    try:
+        if args.cmd == "stat":
+            out = cmd_stat(args)
+        elif args.cmd == "check":
+            out = cmd_check(args)
+        else:
+            out = cmd_write(args, forced=args.cmd == "force")
+        print(json.dumps(out, ensure_ascii=False))
+        return 0
+    except Refused as e:
+        print(json.dumps({"ok": False, "error": "refused", "detail": str(e)}, ensure_ascii=False))
+        return 2
+    except LintFailed as e:
+        print(json.dumps({"ok": False, "error": "lint", "errors": e.errors, "warnings": e.warnings}, ensure_ascii=False))
+        return 3
+    except (OSError, UnicodeDecodeError) as e:
+        print(json.dumps({"ok": False, "error": "io", "detail": str(e)}, ensure_ascii=False))
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.11.0"
+  version: "1.13.0"
   plugin: "archivist"
   stage: "3"
 ---
@@ -311,7 +311,7 @@ After architect work, offer curator follow-through to close the loop:
 
 Before writing to any path in the vault, check whether it falls within your allowed zones.
 
-**How to check:** Read `${CLAUDE_PLUGIN_ROOT}/.local.md` and parse the `architect_write_zones:` field. This contains a comma-separated list of vault-relative directory paths. A write is allowed if the target path starts with any listed zone prefix. When multiple zones match, the most-specific (longest) prefix wins.
+**How to check:** `vault-write stat <path>` reports `in_zone` and `vault-write apply` refuses out-of-zone writes itself. To reason about zones before writing, read `${CLAUDE_PLUGIN_ROOT}/.local.md` and parse the `architect_write_zones:` field. This contains a comma-separated list of vault-relative directory paths. A write is allowed if the target path starts with any listed zone prefix. When multiple zones match, the most-specific (longest) prefix wins.
 
 **Allowed writes:** Template directories, Bases files, script directories, vault infrastructure files (`_vault-profile.md`, system guides), and any path listed in `architect_write_zones`.
 
@@ -319,7 +319,7 @@ Before writing to any path in the vault, check whether it falls within your allo
 
 **No zones configured in `.local.md`:** The archivist agent's initialization derives zones from `_vault-profile.md`'s "Directory Trust Levels" table when present (mapping: `infrastructure` → `architect_write_zones`; `personal/guarded`/`project-scoped` → `curator_write_zones`; `automated/generated` → `designated_output_zones`). If derived zones cover the target, proceed (still with confirmation per architect tier). If neither `.local.md` nor the profile provides coverage, refuse with `Archivist policy:` prefix and offer to run vault profiling.
 
-**All writes require confirmation** — regardless of zone. The zone model determines *which skill* may write, not *whether* to confirm. Confirmation-free writes are deferred until hook-based enforcement is available.
+**Confirmation follows the write channel.** Writes through `vault-write apply` inside your zones need no confirmation: the CLI enforces the zone, refuses drift against the `--base` you read, blocks broken Markdown, and snapshots the note in git first. Ask the user before `vault-write force` (out of zone, or overwriting without `--base`), before any delete/move/rename, and before any write made without `vault-write` (the fallback when it isn't installed).
 
 **Refusal phrasing:** Always prefix policy-based refusals with `Archivist policy:` to disambiguate from Claude Code tooling-layer permission denials. Never use bare "denied" wording for your own rules.
 
