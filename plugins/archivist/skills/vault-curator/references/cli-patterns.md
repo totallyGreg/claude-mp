@@ -29,7 +29,7 @@ Rule of thumb: if Obsidian's index adds value, use CLI. If it's plain text manip
   obsidian move file="Note Title.md" to="Folder/SubFolder"
   ```
 
-- **`obsidian file` is read-only** — `content` and `overwrite` params are silently ignored with no error. To update file content, use `create` with `overwrite`:
+- **`obsidian file` is read-only** — `content` and `overwrite` params are silently ignored with no error. To update file content, use `vault-write apply` (guarded); `create … overwrite` only as the fallback when `vault-write` isn't installed:
   ```bash
   # WRONG — silently does nothing:
   obsidian file path="note.md" overwrite content="updated content" silent
@@ -76,7 +76,7 @@ obsidian move file="Note Title.md" to="New/Folder"
 
 ## Safety Rules
 
-- **`create overwrite` is destructive** — replaces entire file. Never pipe shell-processed content into it (empty output = wiped note). For partial updates, use Read + Edit tools on the vault file directly.
+- **`create overwrite` is destructive** — replaces entire file, and `content=` turns `\n` sequences into newlines. Never pipe shell-processed content into it (empty output = wiped note). Use `vault-write apply` (whole note or `--section`) instead.
 - **Always use `silent`** with `create` — prevents files opening in Obsidian UI (focus steal)
 - **Always use `format=json`** for programmatic output parsing
 

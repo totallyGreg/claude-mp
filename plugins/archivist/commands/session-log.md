@@ -35,11 +35,11 @@ obsidian quickadd:run choice="logEntries" vars='{"action":"ACTION", ...}'
 First, determine whether a specific project was mentioned in the user's request.
 
 **start — no project mentioned (default):**
-1. Find today's daily note:
+1. Find today's daily note. Don't assume a folder: `vault-write config` reports `daily_notes.format` (from the vault's Periodic Notes or Daily notes settings; default `YYYY-MM-DD`). Format today's date with it, take the last path component as the name, and resolve the note by name:
    ```bash
-   obsidian search query="fileClass:journal" limit=1 sort=created
+   obsidian file file="<today's date in that format>"    # prints `path	<vault-relative path>`
    ```
-   If no result, open today's note by date so Obsidian creates it from the daily note template.
+   If no note is found, open today's note by date so Obsidian creates it from the daily note template.
 2. Store the returned path as `SESSION_LOG` for this session.
 3. Create a session-start log entry:
    ```bash

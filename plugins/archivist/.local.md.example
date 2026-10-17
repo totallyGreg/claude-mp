@@ -1,17 +1,17 @@
 <!-- PKM Plugin Configuration -->
-<!-- Copy this file to .local.md and customize for your vault -->
+<!-- Copy this file to ~/.config/archivist/local.md and customize for your vault. -->
+<!-- Policy only. Vault facts (daily-notes folder, templates) are read from the vault itself. -->
 
 <!-- ============================================================ -->
 <!-- OPTION A: Single vault (legacy format — always supported)    -->
 <!-- ============================================================ -->
 
 vault_path: /Users/username/Documents/MyVault
-daily_notes_path: Daily Notes
-templates_path: Templates
 
 <!-- Permission Zones -->
 <!-- These are discovered by vault-architect during vault profiling and confirmed by the user. -->
-<!-- Each zone is a comma-separated list of vault-relative directory paths (prefix-matched). -->
+<!-- Each zone is a comma-separated list of vault-relative paths, matched per path component. -->
+<!-- Use folder names exactly as `obsidian folders` prints them, emoji included; `vault-write config` lists any that don't exist. -->
 <!-- The most-specific matching path wins when zones overlap. -->
 <!-- Both skills can read any file — zones restrict writes only. -->
 

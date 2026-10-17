@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.15.0"
+  version: "1.17.0"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -73,8 +73,8 @@ Before writing any note to the vault:
     For surviving candidates, run a single batch existence check using `obsidian search query="<phrase>"` (or `obsidian aliases`). At the end of the scan, surface unresolved or multi-match candidates in one consolidated message:
       "These mentions may want to be wikilinks: - 'Prisma AIRS Team' — no vault note found (write as plain text, create a stub, or specify a target?) - 'AIRS' — matches 3 notes (specify which, or leave plain?) Reply with link decisions or 'skip all' to proceed."
     The user makes the call; rewrite only the mentions confirmed. Do NOT scan-and-rewrite autonomously. Do NOT issue one search per candidate inline.
-4. **NEVER use `obsidian create overwrite` with placeholder content** — the command is destructive and atomic; it replaces the entire note body instantly. Always prepare the FULL content first, then write in one operation. To test write permissions, use `obsidian property:set` on a non-critical property — it is additive, not destructive. Never write "test", empty strings, or partial content to existing notes.
-5. **ALWAYS read before writing** — the Read tool or `obsidian read` must be called on the target path before any Edit, Write, or `obsidian create overwrite` operation. This ensures you have the current content and can prepare a complete replacement.
+4. **Write note content with `vault-write`** (`vault-write stat` → stage → `vault-write apply <path> --from <file> --base <hash> [--section "## Heading"]`); see the agent's Write Path. NEVER use `obsidian create overwrite` while `vault-write` is available — it is destructive, unguarded, and turns `\n` sequences in content into newlines. Always prepare the FULL content (or the full section) first, then write in one operation. To test write permissions, use `obsidian property:set` on a non-critical property — it is additive, not destructive. Never write "test", empty strings, or partial content to existing notes.
+5. **ALWAYS read before writing** — `vault-write stat` plus `obsidian read` (or the Read tool) on the target path before any write. The `stat` hash is your `--base`; it makes the write fail instead of overwriting edits made since you read.
 6. **fileClass validation** — when `fileClass:` is present in content being written:
    a. Re-read `_vault-profile.md` from disk (do not rely on the cached session-init copy — the architect may have registered new fileClasses mid-session).
    b. Parse `## Active fileClasses`: if rendered as a markdown table, extract the first column; else if a `-` bulleted list, take the first capitalized token on each line; else emit warning ("fileClass validation skipped — `_vault-profile.md` `## Active fileClasses` is empty or unparseable") and proceed.
@@ -96,11 +96,11 @@ Run drift scripts inline when fixes are mechanical. Escalate to architect when f
   "Creating a new fileClass/folder convention/template schema is vault-architect work. I can handle content migration and metadata backfill after the architect establishes the schema."
 Do NOT attempt the operation, even partially.
 
-Check `curator_write_zones:` in `${CLAUDE_PLUGIN_ROOT}/.local.md` before any write. A write is allowed if the target path starts with a listed zone prefix. Canvas files and discovery views are always allowed as generated output regardless of zone.
+Check `curator_write_zones` (from `vault-write config`) before any write. A write is allowed if the target path starts with a listed zone prefix. Canvas files and discovery views are always allowed as generated output regardless of zone.
 
-**Out-of-zone:** refuse with `Archivist policy:` prefix and suggest vault-architect. **No zones configured in `.local.md`:** the archivist agent's initialization derives zones from `_vault-profile.md`'s "Directory Trust Levels" table when present — if those derived zones cover the target path, proceed; otherwise refuse with `Archivist policy:` prefix and offer to run vault profiling.
+**Out-of-zone:** refuse with `Archivist policy:` prefix and suggest vault-architect. **No zones configured:** the archivist agent's initialization derives zones from `_vault-profile.md`'s "Directory Trust Levels" table when present — if those derived zones cover the target path, proceed; otherwise refuse with `Archivist policy:` prefix and offer to run vault profiling.
 
-**All writes require confirmation** — the zone model determines *which skill* may write, not *whether* to confirm.
+**Confirmation follows the write channel.** Writes through `vault-write apply` inside your zones need no confirmation: the CLI enforces the zone, refuses drift against the `--base` you read, blocks broken Markdown, and snapshots the note in git first. Ask the user before `vault-write force` (out of zone, or overwriting without `--base`), before any delete/move/rename, and before any write made without `vault-write` (the fallback when it isn't installed).
 
 **Refusal phrasing:** Always prefix policy-based refusals with `Archivist policy:` to disambiguate from Claude Code tooling-layer permission denials. Never use bare "denied" wording for your own rules.
 
