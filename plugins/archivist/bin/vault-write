@@ -10,6 +10,7 @@ Agents decide what to write; this tool decides whether it may be written.
 It never deletes or moves notes.
 
 Usage:
+    vault-write config
     vault-write stat  <note>
     vault-write check <file> [--as <note>]
     vault-write apply <note> --from <file|-> [--base HASH] [--section HEADING]
@@ -18,14 +19,18 @@ Usage:
 <note> is a vault-relative path ("600 Projects/x/y.md") or an absolute path inside the vault.
 Output is one line of JSON. Exit codes: 0 ok, 1 usage/IO error, 2 refused by policy, 3 lint errors.
 
-Config: `.local.md` beside the plugin root (override with ARCHIVIST_LOCAL_MD), flat keys:
+Config: the first file found of $ARCHIVIST_LOCAL_MD, ${XDG_CONFIG_HOME:-~/.config}/archivist/local.md,
+or (legacy) `.local.md` in an installed plugin version. Flat keys:
     vault_path, architect_write_zones, curator_write_zones, designated_output_zones,
     ignore_drift_keys (default: date modified)
+It lives outside the plugin cache so updates keep it, and outside the vault so a vault write
+can't widen its own zones. `vault-write config` shows what was loaded and what the vault says.
 """
 
 from __future__ import annotations
 
 import argparse
+import difflib
 import hashlib
 import json
 import os
@@ -66,11 +71,26 @@ def sha(data: bytes) -> str:
 
 # ---------- config ----------
 
+def user_config_path() -> Path:
+    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "archivist" / "local.md"
+
+
+def config_path() -> tuple[Path, bool]:
+    """(path, legacy). Legacy = a `.local.md` inside the versioned plugin cache, newest first."""
+    if os.environ.get("ARCHIVIST_LOCAL_MD"):
+        return Path(os.environ["ARCHIVIST_LOCAL_MD"]).expanduser(), False
+    user = user_config_path()
+    if user.is_file():
+        return user, False
+    plugin_root = Path(__file__).resolve().parent.parent
+    legacy = [plugin_root / ".local.md", *sorted(plugin_root.parent.glob("*/.local.md"), key=lambda f: f.stat().st_mtime, reverse=True)]
+    return next((f for f in legacy if f.is_file()), user), True
+
+
 def load_config() -> dict:
-    path = os.environ.get("ARCHIVIST_LOCAL_MD") or str(Path(__file__).resolve().parent.parent / ".local.md")
-    p = Path(path)
+    p, legacy = config_path()
     if not p.is_file():
-        raise Refused(f"no archivist config at {p} (set ARCHIVIST_LOCAL_MD or create .local.md)")
+        raise Refused(f"no archivist config at {p} (create it, or set ARCHIVIST_LOCAL_MD)")
     text = re.sub(r"<!--.*?-->", "", p.read_text(encoding="utf-8"), flags=re.S)
     cfg: dict[str, str] = {}
     for line in text.splitlines():
@@ -86,7 +106,8 @@ def load_config() -> dict:
         raise Refused(f"vault_path is not a directory: {root}")
     zones = [z.strip().rstrip("/") for k in ZONE_KEYS for z in cfg.get(k, "").split(",") if z.strip()]
     keys = [k.strip() for k in cfg.get("ignore_drift_keys", "").split(",") if k.strip()] or list(DEFAULT_IGNORE_KEYS)
-    return {"root": root.resolve(), "zones": zones, "ignore_keys": keys, "config": str(p)}
+    by_key = {k: [z.strip().rstrip("/") for z in cfg.get(k, "").split(",") if z.strip()] for k in ZONE_KEYS}
+    return {"root": root.resolve(), "zones": zones, "by_key": by_key, "ignore_keys": keys, "config": str(p), "legacy": legacy}
 
 
 def resolve_note(cfg: dict, note: str) -> tuple[Path, str]:
@@ -114,6 +135,37 @@ def in_zone(rel: str, zones: list[str]) -> bool:
 
 def missing_zones(cfg: dict) -> list[str]:
     return [z for z in cfg["zones"] if not (cfg["root"] / z).exists()]
+
+
+def suggest(root: Path, zone: str) -> str | None:
+    """Closest real folder at the zone's level, e.g. "500 Cycles" -> "500 ♽ Cycles"."""
+    zp = PurePosixPath(nfc(zone))
+    parent = root / zp.parent
+    if not parent.is_dir():
+        return None
+    names = [nfc(d.name) for d in parent.iterdir() if d.is_dir() and d.name not in SKIP_DIRS]
+    hit = difflib.get_close_matches(zp.name, names, n=1, cutoff=0.6)
+    return (zp.parent / hit[0]).as_posix() if hit else None
+
+
+def daily_notes(root: Path) -> dict | None:
+    """Where Obsidian creates daily notes: Periodic Notes if enabled, else the core Daily notes plugin."""
+    def read(rel):
+        try:
+            return json.loads((root / ".obsidian" / rel).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+    found = None
+    periodic = (read("plugins/periodic-notes/data.json") or {}).get("daily") or {}
+    if "periodic-notes" in (read("community-plugins.json") or []) and periodic.get("enabled"):
+        found = {"source": "periodic-notes", "folder": periodic.get("folder") or "", "format": periodic.get("format") or ""}
+    elif (read("core-plugins.json") or {}).get("daily-notes"):
+        core = read("daily-notes.json") or {}
+        found = {"source": "daily-notes", "folder": core.get("folder") or "", "format": core.get("format") or ""}
+    if found:
+        found["format"] = found["format"] or "YYYY-MM-DD"
+        found["exists"] = (root / found["folder"]).is_dir()
+    return found
 
 
 # ---------- hashing ----------
@@ -303,6 +355,20 @@ def read_source(src: str) -> str:
         raise Refused("--from content is not valid UTF-8")
 
 
+def cmd_config(args) -> dict:
+    cfg = load_config()
+    root = cfg["root"]
+    missing = [{"zone": z, "did_you_mean": suggest(root, z)} for z in missing_zones(cfg)]
+    daily = daily_notes(root)
+    if daily:
+        daily["in_zone"] = in_zone(nfc(daily["folder"]), cfg["zones"])
+    out = {"ok": True, "action": "config", "config": cfg["config"], "vault": str(root), **cfg["by_key"],
+           "missing_zones": missing, "daily_notes": daily}
+    if cfg["legacy"]:
+        out["legacy"] = f"config is inside the plugin cache and is lost on update; move it to {user_config_path()}"
+    return out
+
+
 def cmd_stat(args) -> dict:
     cfg = load_config()
     path, rel = resolve_note(cfg, args.note)
@@ -333,7 +399,7 @@ def cmd_check(args) -> dict:
 def cmd_write(args, forced: bool) -> dict:
     cfg = load_config()
     path, rel = resolve_note(cfg, args.note)
-    warnings: list[str] = [f"zone does not exist in vault: {z}" for z in missing_zones(cfg)]
+    warnings: list[str] = [f"zone does not exist in vault: {z} (see `vault-write config`)" for z in missing_zones(cfg)]
     if not in_zone(rel, cfg["zones"]):
         if not forced:
             raise Refused(f"{rel} is outside the write zones {cfg['zones']}; use `vault-write force` (asks the user)")
@@ -393,6 +459,7 @@ def cmd_write(args, forced: bool) -> dict:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="vault-write", description=__doc__.split("\n\n")[1])
     sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("config", help="show the loaded config, zones that don't exist, and the daily-notes folder")
     s = sub.add_parser("stat", help="hash and line count of a note")
     s.add_argument("note")
     c = sub.add_parser("check", help="lint a file without writing")
@@ -406,7 +473,9 @@ def main(argv=None) -> int:
         w.add_argument("--section", help="replace only this heading's section, e.g. '## 13. Gaps'")
     args = ap.parse_args(argv)
     try:
-        if args.cmd == "stat":
+        if args.cmd == "config":
+            out = cmd_config(args)
+        elif args.cmd == "stat":
             out = cmd_stat(args)
         elif args.cmd == "check":
             out = cmd_check(args)

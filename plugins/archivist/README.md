@@ -51,24 +51,28 @@ Ask Claude to help with Obsidian PKM tasks. The `archivist` agent will orchestra
 
 ## Configuration
 
-Copy `.local.md.example` to `.local.md` and set your vault path:
+The archivist creates `~/.config/archivist/local.md` on first run (or copy `.local.md.example` there). It holds write **policy** only: `vault_path` and the three write-zone keys. It lives outside the plugin cache, so updates keep it, and outside the vault, so no vault write can widen its own zones. `$ARCHIVIST_LOCAL_MD` overrides the location; a `.local.md` left in an older plugin version is still read and reported as `legacy`.
 
 ```markdown
 vault_path: /Users/username/Documents/MyVault
+curator_write_zones: 700 Notes, 600 Projects
 ```
+
+What the vault *is* — folders, plugins, fileClasses, conventions, trust levels — goes in `_vault-profile.md` inside the vault, where it travels with the vault and is shared by every machine. Facts Obsidian already stores, like the daily-notes folder and filename format, are read from the vault's plugin settings each time (`vault-write config`), never copied into either file.
 
 ## vault-write (guarded writes, any harness)
 
 `bin/vault-write` is on the Bash tool's `PATH` while the plugin is enabled. It enforces the write rules in code, so they hold for the archivist, the main session, Pi, or any other harness:
 
 ```bash
+vault-write config                                                 # config in use, zones that don't exist (with did_you_mean), daily-notes folder
 vault-write stat  "600 Projects/x/note.md"                         # hash, stable hash, lines, in_zone
 vault-write apply "600 Projects/x/note.md" --from new.md --base <hash> [--section "## Heading"]
 vault-write check new.md                                           # lint only
 vault-write force …                                                # may skip base/zone checks: ask the user first
 ```
 
-`apply` refuses writes outside the `.local.md` zones and writes over a note that changed since `--base` (the *stable* hash ignores trailing whitespace and `date modified`). It blocks unclosed code fences and inline code that starts with an equals sign (Dataview executes it), warns on unresolved wikilinks, commits a git snapshot of the note first, then writes atomically and verifies. It never deletes or moves notes. Output is one line of JSON; exit codes 0 ok, 2 refused, 3 lint.
+`apply` refuses writes outside the configured zones and writes over a note that changed since `--base` (the *stable* hash ignores trailing whitespace and `date modified`). It blocks unclosed code fences and inline code that starts with an equals sign (Dataview executes it), warns on unresolved wikilinks, commits a git snapshot of the note first, then writes atomically and verifies. It never deletes or moves notes. Output is one line of JSON; exit codes 0 ok, 2 refused, 3 lint.
 
 **Guard hook.** `hooks/obsidian_guard.py` (PreToolUse on Bash) parses every command, quotes and option order included, and returns a decision: **deny** `obsidian delete` and `obsidian create … overwrite`, **ask** for `obsidian move` and for `rm`/`mv` on paths inside the vault. Permission rules can't do this reliably: a `*` in the middle of a rule matches a single space-free token, so `Bash(obsidian create * overwrite *)` misses `create path=x content="y" overwrite`, and `obsidian vault=X delete` slips past `Bash(obsidian delete:*)`.
 
@@ -77,7 +81,7 @@ Suggested permission rules (`~/.claude/settings.json`), as a second layer:
 ```json
 {
   "permissions": {
-    "allow": ["Bash(vault-write stat:*)", "Bash(vault-write check:*)", "Bash(vault-write apply:*)",
+    "allow": ["Bash(vault-write config:*)", "Bash(vault-write stat:*)", "Bash(vault-write check:*)", "Bash(vault-write apply:*)",
               "Bash(obsidian read:*)", "Bash(obsidian search:*)"],
     "ask":   ["Bash(vault-write force:*)"],
     "deny":  ["Bash(obsidian delete:*)", "Bash(obsidian create * overwrite *)"]
@@ -97,7 +101,7 @@ SH
 chmod +x ~/bin/vault-write
 ```
 
-Config is read from `.local.md` beside the plugin (override with `ARCHIVIST_LOCAL_MD`). claude.ai and Cowork don't install plugins with a `bin/` directory; there the archivist falls back to its previous write path.
+claude.ai and Cowork don't install plugins with a `bin/` directory; there the archivist falls back to its previous write path.
 
 ## Skill Documentation
 
@@ -138,7 +142,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary |
 |---------|------|-------|---------|
-| 1.29.0 | 2026-10-16 | [#215](https://github.com/totallyGreg/claude-mp/issues/215) | Write safety moves from prompt text into code: new `bin/vault-write` (zones, compare-and-swap on `--base`, lint for unclosed fences and Dataview-executed inline code, git snapshot, atomic verified write; no delete/move) for every harness, plus a PreToolUse guard hook (deny `obsidian delete` / `create … overwrite`, ask for `move` and for `rm`/`mv` inside the vault), with 31 tests. Agent Write Path now writes through `vault-write` (fallback kept for harnesses without plugin `bin/`); added `SendMessage` and a Reporting Back section (results are truncated at ~4K chars; long output goes to a file). Agent eval 93 (no change). |
+| 1.29.0 | 2026-10-16 | [#215](https://github.com/totallyGreg/claude-mp/issues/215), [#217](https://github.com/totallyGreg/claude-mp/issues/217), [#218](https://github.com/totallyGreg/claude-mp/issues/218) | Config moves to `~/.config/archivist/local.md` (survives plugin updates; legacy `.local.md` still read and flagged). `vault-write config` reports zones that don't exist with a `did_you_mean`, and the daily-notes folder and format read from the vault's plugin settings; profiling copies folder names exactly; `/session-log` resolves today's note by name. Write safety moves from prompt text into code: new `bin/vault-write` (zones, compare-and-swap on `--base`, lint for unclosed fences and Dataview-executed inline code, git snapshot, atomic verified write; no delete/move) for every harness, plus a PreToolUse guard hook (deny `obsidian delete` / `create … overwrite`, ask for `move` and for `rm`/`mv` inside the vault), with 31 tests. Agent Write Path now writes through `vault-write` (fallback kept for harnesses without plugin `bin/`); added `SendMessage` and a Reporting Back section (results are truncated at ~4K chars; long output goes to a file). Agent eval 93 (no change). |
 | 1.28.0 | 2026-06-08 | - | Auto-discover write zones from vault profile when `.local.md` lacks them. Init step 3 now derives `architect_write_zones`/`curator_write_zones`/`designated_output_zones` from `_vault-profile.md` "Directory Trust Levels" table using mapping: `infrastructure` → architect, `personal/guarded`+`project-scoped` → curator, `automated/generated` → designated_output. Derived zones apply for the session; one-time AskUserQuestion offer to persist to `.local.md`. Policy-based refusals now prefix `Archivist policy:` to disambiguate from Claude Code tooling-layer denials (the "denied" wording was sending users down the wrong debugging path — see today's friction report). Empirical evidence: today's session spent ~90 min chasing a Claude Code permission bug that turned out to be the archivist's own bounded-autonomy refusing due to missing `.local.md`. Agent eval 93 (no change — substantive logic, not example/length metrics). |
 | 1.27.0 | 2026-06-06 | [#176](https://github.com/totallyGreg/claude-mp/issues/176) | Pass A (friction batch 2026-06-05). A1: Denial Handling — Mode 1/Mode 2 recovery guidance with `permissions.allow` schema + JSON example; Mode 2 labeled "observed empirically, not root-caused." A2: Subagent Input Volume Guard — token-count + file-path-count trigger (not category labels); soft-confirm path before refusal; defense-in-depth framing. A3: External-System Handoffs — new table in §Post-Workflow routing meeting-extraction action items to `attache:attache`. Agent eval 93 (no change). |
 | 1.26.0 | 2026-06-04 | [#160](https://github.com/totallyGreg/claude-mp/issues/160), [#129](https://github.com/totallyGreg/claude-mp/issues/129) | Friction fixes (2026-06-04 + 2026-05-28 reports) + Tier-1 wins from #160. Strict Denial Handling (stop on first denial across primitives, Read tool ≠ obsidian read ≠ Write's internal gate, pre-flight refusal when zones missing). Reference Formatting rule (wikilink intra-vault, file:// external, backticks code-only). Index refresh after Python writes. Init drift signal on primary fileClass. New `duplicate-detection-thresholds.md` policy reference. Closed #129 as superseded by current architecture. Agent eval 92→93 (Prompt 91→95). |
@@ -199,7 +203,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
-| 1.13.0 | 2026-10-16 | [#215](https://github.com/totallyGreg/claude-mp/issues/215) | Write Boundaries: zone checks happen in `vault-write`; in-zone writes through it need no confirmation, `force`/delete/move/fallback writes still ask. Fixes SKILL.md version drift (was 1.11.0 while this table had 1.12.0). Score 84: the current evaluator also scores unmodified main at 84 (was 93 under the June evaluator); Concs 79→77 from added text. | 77 | 90 | 100 | 100 | 100 | 84 |
+| 1.13.0 | 2026-10-16 | [#215](https://github.com/totallyGreg/claude-mp/issues/215) | Vault Profiling copies folder names exactly and records no daily-notes folder (#218). Write Boundaries: zone checks happen in `vault-write`; in-zone writes through it need no confirmation, `force`/delete/move/fallback writes still ask. Fixes SKILL.md version drift (was 1.11.0 while this table had 1.12.0). Score 84: the current evaluator also scores unmodified main at 84 (was 93 under the June evaluator); Concs 79→77 from added text. | 77 | 90 | 100 | 100 | 100 | 84 |
 | 1.12.0 | 2026-06-08 | - | Align §Write Boundaries with auto-discovery: "No zones configured in `.local.md`" now references the agent's profile-derived zones (mapping doc) rather than refusing outright; refusals prefixed `Archivist policy:` to disambiguate from Claude Code tooling-layer denials. Score 94→93 (Concs 77→76 from added prose; substantive consistency with agent v1.28.0). | 76 | 90 | 100 | 100 | 100 | 93 |
 | 1.11.0 | 2026-06-06 | [#176](https://github.com/totallyGreg/claude-mp/issues/176) | Pass C (friction batch 2026-06-05). C1: notation hygiene added to Design Principles "Do:" — per-template pick, prefer Obsidian-native `- [ ]`/`- [x]`, extended markers require Tasks plugin verification, no proactive retrofit. §10 Vault System Documentation updated to include Notation Conventions entry. Also fixed SKILL.md version drift (was stuck at 1.9.0 while README was at 1.10.0). Score 94 (Concs 79→77 from added text; overall floor met). | 77 | 90 | 100 | 100 | 100 | 94 |
 | 1.10.0 | 2026-04-14 | [#160](https://github.com/totallyGreg/claude-mp/issues/160) | Add vault-analysis-checks.md (analyze_vault.py check reference) and frontmatter-schema-reference.md (validate_frontmatter.py fields, severity, violations); update SKILL.md to reference both | 79 | 90 | 100 | 100 | 100 | 93 |

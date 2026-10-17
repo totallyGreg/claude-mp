@@ -64,9 +64,27 @@ paths. It reuses `vault-write`'s config loader for the vault path.
 Pi (and anything else) calls the same binary through a `~/bin/vault-write` shim that resolves the
 latest installed plugin version. Config path override: `ARCHIVIST_LOCAL_MD`.
 
+### Config location and vault discovery (#217, #218)
+
+The config held both write policy and vault facts, lived in the versioned plugin cache (so an
+update dropped it), and its zones were typed from `_vault-profile.md` prose that had lost the
+folders' emoji (`500 Cycles` for `500 ♽ Cycles`), which silently refused every daily-note write.
+
+- **Policy vs facts.** The config keeps policy only: `vault_path` and the zones. Facts about the
+  vault go in `_vault-profile.md` (in the vault, shared across machines) or are read from Obsidian's
+  own settings. `daily_notes_path` and `templates_path` were never read by anything; removed.
+- **Location.** `$ARCHIVIST_LOCAL_MD`, then `${XDG_CONFIG_HOME:-~/.config}/archivist/local.md`,
+  then a legacy `.local.md` in any installed plugin version (reported as `legacy`). Not
+  `${CLAUDE_PLUGIN_DATA}`: that variable isn't exported to the Bash tool and is Claude Code-only,
+  and Pi needs the same file. Outside the vault, so a vault write can't widen its own zones; the
+  agent's Write tool asks before changing it.
+- **`vault-write config`** prints the config in use, each zone that doesn't exist with a
+  `did_you_mean` (closest real folder), and the daily-notes folder and filename format from
+  Periodic Notes (if enabled) or the core Daily notes plugin. `/session-log` resolves today's note
+  by name with that format (its old `fileClass:journal` search errors on the current CLI), since
+  templates can move notes out of the configured folder.
+
 ## Out of scope (follow-ups)
 
-- `.local.md` lives in the versioned plugin cache and is lost on update (should move to
-  `${CLAUDE_PLUGIN_DATA}`).
 - Multi-vault `vaults:` profiles in `.local.md` (CLI refuses them for now).
 - Mermaid render check.

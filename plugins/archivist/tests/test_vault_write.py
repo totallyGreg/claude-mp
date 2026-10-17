@@ -173,3 +173,44 @@ def test_stdin_source(vault):
 def test_check(vault, tmp_path):
     assert run("check", staged(tmp_path, "fine\n"))[0] == 0
     assert run("check", staged(tmp_path, "`=x`\n"))[0] == 3
+
+
+def test_config_suggests_real_folder_for_missing_zone(vault):
+    code, out = run("config")
+    assert code == 0
+    assert out["curator_write_zones"][0] == "Notes"
+    assert out["missing_zones"] == [{"zone": "Missing Zone", "did_you_mean": None}]
+    (vault / "Missing ♽ Zone").mkdir()
+    assert run("config")[1]["missing_zones"][0]["did_you_mean"] == "Missing ♽ Zone"
+
+
+def test_config_discovers_daily_notes(vault):
+    obs = vault / ".obsidian"
+    (obs / "plugins" / "periodic-notes").mkdir(parents=True)
+    assert run("config")[1]["daily_notes"] is None
+    (obs / "core-plugins.json").write_text('{"daily-notes": true}')
+    (obs / "daily-notes.json").write_text('{"folder": "500 ♽ Cycles", "format": ""}')
+    daily = run("config")[1]["daily_notes"]
+    assert daily == {"source": "daily-notes", "folder": "500 ♽ Cycles", "format": "YYYY-MM-DD", "exists": True, "in_zone": True}
+    # Periodic Notes wins when it is enabled.
+    (obs / "community-plugins.json").write_text('["periodic-notes"]')
+    (obs / "plugins" / "periodic-notes" / "data.json").write_text('{"daily": {"enabled": true, "folder": "Private", "format": "YYYY/MM-DD"}}')
+    daily = run("config")[1]["daily_notes"]
+    assert (daily["source"], daily["folder"], daily["format"], daily["in_zone"]) == ("periodic-notes", "Private", "YYYY/MM-DD", False)
+
+
+def test_config_location_order(vault, tmp_path, monkeypatch):
+    cfg = Path(os.environ["ARCHIVIST_LOCAL_MD"])
+    monkeypatch.delenv("ARCHIVIST_LOCAL_MD")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    code, out = run("config")  # no user config; the source tree has no .local.md
+    if code == 0:  # a developer's checkout may have a legacy .local.md beside the plugin
+        assert "legacy" in out
+    else:
+        assert out["error"] == "refused"
+    user = tmp_path / "xdg" / "archivist" / "local.md"
+    user.parent.mkdir(parents=True)
+    user.write_text(cfg.read_text())
+    code, out = run("config")
+    assert code == 0 and out["config"] == str(user) and "legacy" not in out

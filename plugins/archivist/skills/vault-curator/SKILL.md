@@ -96,9 +96,9 @@ Run drift scripts inline when fixes are mechanical. Escalate to architect when f
   "Creating a new fileClass/folder convention/template schema is vault-architect work. I can handle content migration and metadata backfill after the architect establishes the schema."
 Do NOT attempt the operation, even partially.
 
-Check `curator_write_zones:` in `${CLAUDE_PLUGIN_ROOT}/.local.md` before any write. A write is allowed if the target path starts with a listed zone prefix. Canvas files and discovery views are always allowed as generated output regardless of zone.
+Check `curator_write_zones` (from `vault-write config`) before any write. A write is allowed if the target path starts with a listed zone prefix. Canvas files and discovery views are always allowed as generated output regardless of zone.
 
-**Out-of-zone:** refuse with `Archivist policy:` prefix and suggest vault-architect. **No zones configured in `.local.md`:** the archivist agent's initialization derives zones from `_vault-profile.md`'s "Directory Trust Levels" table when present — if those derived zones cover the target path, proceed; otherwise refuse with `Archivist policy:` prefix and offer to run vault profiling.
+**Out-of-zone:** refuse with `Archivist policy:` prefix and suggest vault-architect. **No zones configured:** the archivist agent's initialization derives zones from `_vault-profile.md`'s "Directory Trust Levels" table when present — if those derived zones cover the target path, proceed; otherwise refuse with `Archivist policy:` prefix and offer to run vault profiling.
 
 **Confirmation follows the write channel.** Writes through `vault-write apply` inside your zones need no confirmation: the CLI enforces the zone, refuses drift against the `--base` you read, blocks broken Markdown, and snapshots the note in git first. Ask the user before `vault-write force` (out of zone, or overwriting without `--base`), before any delete/move/rename, and before any write made without `vault-write` (the fallback when it isn't installed).
 
