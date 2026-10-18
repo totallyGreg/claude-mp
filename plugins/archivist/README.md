@@ -74,7 +74,12 @@ vault-write force …                                                # may skip 
 
 `apply` refuses writes outside the configured zones and writes over a note that changed since `--base` (the *stable* hash ignores trailing whitespace and `date modified`). It blocks unclosed code fences and inline code that starts with an equals sign (Dataview executes it), warns on unresolved wikilinks, commits a git snapshot of the note first, then writes atomically and verifies. It never deletes or moves notes. Output is one line of JSON; exit codes 0 ok, 2 refused, 3 lint.
 
-**Guard hook.** `hooks/obsidian_guard.py` (PreToolUse on Bash) parses every command, quotes and option order included, and returns a decision: **deny** `obsidian delete` and `obsidian create … overwrite`, **ask** for `obsidian move` and for `rm`/`mv` on paths inside the vault. Permission rules can't do this reliably: a `*` in the middle of a rule matches a single space-free token, so `Bash(obsidian create * overwrite *)` misses `create path=x content="y" overwrite`, and `obsidian vault=X delete` slips past `Bash(obsidian delete:*)`.
+**Guard hook.** `hooks/obsidian_guard.py` (PreToolUse on Bash) parses every command, quotes and option order included, and returns a decision:
+- **deny** `obsidian delete`, `eval`, `dev:cdp` and `create … overwrite`.
+- **deny** CLI writes (`create`, `append`, `prepend`, `property:set`, `property:remove`, task updates) that lack an explicit `path=` or target a path outside the write zones. Without `path=`, the CLI writes to whatever note is open in Obsidian.
+- **ask** for `move`, `rename`, `command`, `template:insert`, `history:restore`, `sync:restore`, plugin/theme installs, and `rm`/`mv` on paths inside the vault.
+
+Wrappers (`timeout`, `env`, `nice`, `xargs`, `sudo`, …) and `bash -c` / `eval` are unwrapped first. Permission rules can't do this reliably: a `*` in the middle of a rule matches a single space-free token, so `Bash(obsidian create * overwrite *)` misses `create path=x content="y" overwrite`, and `obsidian vault=X delete` slips past `Bash(obsidian delete:*)`.
 
 Suggested permission rules (`~/.claude/settings.json`), as a second layer:
 
@@ -115,7 +120,7 @@ Progressive disclosure:
 
 ## Version
 
-1.29.0
+1.30.0
 
 ## License
 
@@ -129,6 +134,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Principle | Score | % | Status |
 |-----------|-------|---|--------|
+| 1.30.0 | 2026-10-18 | [#222](https://github.com/totallyGreg/claude-mp/issues/222) | Guard hook hardened: wrappers (`timeout`, `env`, `xargs`, `sudo`, …) and `bash -c`/`eval` are unwrapped, so `timeout 5 obsidian delete` no longer slips through. `eval`/`dev:cdp` denied. `rename`, `command`, `template:insert`, history/sync restores and plugin/theme installs ask. CLI writes (`create`, `append`, `prepend`, `property:set`, `property:remove`, task updates) need an explicit `path=` inside the write zones (verified on Obsidian 1.14.4: a missing or mistyped target edits the open note). `_vault-profile.md` is written per section via `vault-write apply` (the old `create … overwrite` step was already denied). drift/canvas/collection/duplicates take arguments (`argument-hint`). Agent eval 93 (no change). |
 | Shared Workspace | 7.5/8 | 94% | ✅ |
 | Capability Discovery | 6.5/7 | 93% | ✅ |
 | Prompt-Native Features | 28/32 | 88% | ✅ |
@@ -193,7 +199,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 ### Current Metrics
 
-**Score: 84/100** (Good) — 2026-10-16
+**Score: 84/100** (Good) — 2026-10-18
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -203,6 +209,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.14.0 | 2026-10-18 | [#222](https://github.com/totallyGreg/claude-mp/issues/222) | `tags all counts` → `tags counts` (vault-wide is now the default in Obsidian 1.14). Score 84 (no change). | 77 | 90 | 100 | 100 | 100 | 84 |
 | 1.13.0 | 2026-10-16 | [#215](https://github.com/totallyGreg/claude-mp/issues/215) | Vault Profiling copies folder names exactly and records no daily-notes folder (#218). Write Boundaries: zone checks happen in `vault-write`; in-zone writes through it need no confirmation, `force`/delete/move/fallback writes still ask. Fixes SKILL.md version drift (was 1.11.0 while this table had 1.12.0). Score 84: the current evaluator also scores unmodified main at 84 (was 93 under the June evaluator); Concs 79→77 from added text. | 77 | 90 | 100 | 100 | 100 | 84 |
 | 1.12.0 | 2026-06-08 | - | Align §Write Boundaries with auto-discovery: "No zones configured in `.local.md`" now references the agent's profile-derived zones (mapping doc) rather than refusing outright; refusals prefixed `Archivist policy:` to disambiguate from Claude Code tooling-layer denials. Score 94→93 (Concs 77→76 from added prose; substantive consistency with agent v1.28.0). | 76 | 90 | 100 | 100 | 100 | 93 |
 | 1.11.0 | 2026-06-06 | [#176](https://github.com/totallyGreg/claude-mp/issues/176) | Pass C (friction batch 2026-06-05). C1: notation hygiene added to Design Principles "Do:" — per-template pick, prefer Obsidian-native `- [ ]`/`- [x]`, extended markers require Tasks plugin verification, no proactive retrofit. §10 Vault System Documentation updated to include Notation Conventions entry. Also fixed SKILL.md version drift (was stuck at 1.9.0 while README was at 1.10.0). Score 94 (Concs 79→77 from added text; overall floor met). | 77 | 90 | 100 | 100 | 100 | 94 |
@@ -225,7 +232,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 ### Current Metrics
 
-**Score: 86/100** (Good) — 2026-10-16
+**Score: 96/100** (Excellent) — 2026-10-18
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -235,6 +242,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.18.0 | 2026-10-18 | [#222](https://github.com/totallyGreg/claude-mp/issues/222) | `cli-patterns.md` rewritten from live `obsidian help` (1.14.4): errors print `Error:` and exit 0, missing or mistyped `path=` falls back to the open note, `</dev/null` in loops, bounded listings, graph caveats; dropped `silent`, `tasks all`, `tags all`, `unresolved sources=true`, `create folder=`. `property:set` inline needs `path=` (guard zone-checks it). Score 86→96: Ref Currency 0→100 from the refreshed reference. | 80 | 100 | 100 | 100 | 100 | 96 |
 | 1.17.0 | 2026-10-16 | [#215](https://github.com/totallyGreg/claude-mp/issues/215) | Write rules 4–5 and Write Boundaries now go through `vault-write` (stat → stage → apply with `--base`); in-zone writes need no confirmation; `cli-patterns.md` points updates at `vault-write`. Fixes SKILL.md version drift (was 1.15.0 while this table had 1.16.0). Score 86, same as unmodified main under the current evaluator (was 96 under the June evaluator). | 80 | 100 | 100 | 100 | 100 | 86 |
 | 1.16.0 | 2026-06-08 | - | Align §Write Boundaries with agent's profile-derived zone discovery: "No zones configured in `.local.md`" no longer terminates — derived zones from `_vault-profile.md` apply if present. Refusal phrasing standardized to `Archivist policy:` prefix to disambiguate from Claude Code tooling-layer denials. Score 96 (Concs 79→78 from added refusal-phrasing rule; overall unchanged). | 78 | 100 | 100 | 100 | 100 | 96 |
 | 1.15.0 | 2026-06-06 | [#176](https://github.com/totallyGreg/claude-mp/issues/176) | Pass B (friction batch 2026-06-05). B1: fileClass validation gate (item 6) — re-read `_vault-profile.md` from disk per write (freshness), parse Active fileClasses (table→bullet→warn-and-skip), refuse+surface gap if value absent. B2: entity wikilink check (item 3a) — batch scan with stop-list, code-fence skip, ~20 cap, single consolidated end-of-scan prompt (no per-candidate blocking). B3: schema-change guard in §Write Boundaries — hard-stop on fileClass/folder-convention/template-schema creation, explicit vault-architect routing. Score 96 (Concs 80→79 from added prose, overall unchanged). | 79 | 100 | 100 | 100 | 100 | 96 |

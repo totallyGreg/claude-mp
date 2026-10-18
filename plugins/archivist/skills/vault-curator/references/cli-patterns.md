@@ -1,61 +1,80 @@
 ---
-last_verified: 2026-04-28
+last_verified: 2026-10-18
 sources:
   - type: github
     repo: "kepano/obsidian-skills"
     paths: ["skills/obsidian-cli/", "skills/obsidian-markdown/", "skills/obsidian-bases/", "skills/json-canvas/", "skills/defuddle/"]
     description: "All 5 obsidian-skills the archivist delegates to — track for new capabilities"
+  - type: web
+    url: "https://obsidian.md/help/cli"
+    description: "Official Obsidian CLI reference"
+  - type: github
+    repo: "rokokol/obsidian-cli-skill"
+    paths: ["SKILL.md"]
+    description: "Community CLI skill with measured gotchas (forum.obsidian.md/t/119334)"
 ---
 
 # CLI Gotchas for Vault Curator
 
-For full command reference, use the `obsidian-cli` skill from the [obsidian-skills](https://github.com/kepano/obsidian-skills) marketplace. These are vault-specific bugs, caveats, and decision rules.
+Checked against `obsidian help` on Obsidian 1.14.4 (macOS). For the full command list run `obsidian help` or `obsidian help <command>`. The [obsidian-skills](https://github.com/kepano/obsidian-skills) `obsidian-cli` skill also covers it. This file lists vault-specific caveats and decision rules.
 
 ## CLI vs File Tools
 
 **Use CLI** when you need Obsidian's index or app features:
 search, backlinks, links, tags, tasks, properties, bases, templates, outline, orphans, unresolved links
 
-**Use file tools** (Read/Write/Edit/Grep/Glob on `${VAULT_PATH}`) for:
-simple file read/write, bulk text replacement, grep across files — no app dependency
+**Use file tools** (Read/Grep/Glob on `${VAULT_PATH}`) for reading and grepping. Write note content with `vault-write`, not Write/Edit.
 
-Rule of thumb: if Obsidian's index adds value, use CLI. If it's plain text manipulation, use file tools.
+Rule of thumb: if Obsidian's index adds value, use CLI. If it's plain text, use file tools.
 
-## Known Bugs
+## Read the Output, Not the Exit Status
 
-- **`folder=` in `create` is broken** — files land at vault root regardless. Always use `create` + `move`:
-  ```bash
-  obsidian create name="Note Title" silent
-  obsidian move file="Note Title.md" to="Folder/SubFolder"
-  ```
+- **Errors exit 0.** Failures print `Error: …` on stdout and still exit 0 (`Error: File "x.md" not found.`, `Error: Command "x" not found.`). Treat any output starting with `Error:` as a failure.
+- **A missing or mistyped target falls back to the open note.** `obsidian read pth="x.md"` silently drops `pth=` and reads whatever note is open in Obsidian. On a write, that edits the wrong note.
+  - Always pass `path=` (exact vault path) for writes.
+  - The archivist guard hook denies `create`, `append`, `prepend`, `property:set`, `property:remove` and task updates that lack `path=`, or whose path is outside the write zones.
+- **`file=` resolves like a wikilink; `path=` is exact.** Prefer `path=` whenever you know it.
 
-- **`obsidian file` is read-only** — `content` and `overwrite` params are silently ignored with no error. To update file content, use `vault-write apply` (guarded); `create … overwrite` only as the fallback when `vault-write` isn't installed:
-  ```bash
-  # WRONG — silently does nothing:
-  obsidian file path="note.md" overwrite content="updated content" silent
+## Writes
 
-  # CORRECT:
-  obsidian create path="note.md" overwrite content="updated content" silent
-  ```
+| Need | Use |
+|---|---|
+| Note content (new note, whole note, one section) | `vault-write apply` (zones, compare-and-swap, lint, snapshot) |
+| One frontmatter value | `obsidian property:set path="…" name=… value=…` (zone-checked by the guard) |
+| A list property | add `type=list` (otherwise the value is stored as text); commas can't be escaped inside a list value |
+| Append a line to today's daily note | `obsidian daily:append content="…"` |
+| Move or rename a note | `obsidian move path="…" to="…"` / `obsidian rename path="…" name=…`. The guard asks first |
 
-- **`tasks todo` defaults to active file** — use `tasks all todo` for vault-wide task queries
-- **`tags counts` defaults to active file** — use `tags all counts` for vault-wide tag counts
+- **`create … overwrite` is denied** by the guard. Use `vault-write apply` (whole note or `--section`). Outside the archivist, `content=` turns `\n` into newlines and empty shell output wipes the note.
+- **`create` opens nothing by default.** `open`/`newtab` are opt-in. The old `silent` flag is gone, and an unknown flag is silently ignored.
+- **`create` has no `folder=`.** Pass the full `path=` instead. Parent folders may need to exist first.
+- **`create` with `template=` may ignore `path=`.** The file lands in the template's configured folder. Verify with `obsidian files folder=…` afterwards.
+- **`template:insert` writes into the open note.** The guard asks first.
+- **`eval` and `dev:cdp` are denied.** They run arbitrary code and bypass every write rule.
+- **A note open with unsaved edits** can conflict with an external write. Write notes the user isn't editing, or ask them to save first.
 
-## Gotchas
+## Listings
 
-- **`create` doesn't auto-create directories** — use `mkdir -p` via Bash first if the parent folder doesn't exist
-- **`create` with `template=` may ignore `path=`** — the file lands in the template's configured folder. Always verify the actual path with `obsidian search` or `obsidian files` after template-based creation
-- **`format=json matches`** returns `[{"file":"path","matches":[{"line":N,"text":"..."}]}]` — prefer this over plain `format=json` for programmatic search
-- **Canvas newline pitfall:** In JSON canvas text nodes, use `\n` for line breaks. Do NOT use the literal `\\n` — Obsidian renders that as the characters `\` and `n`, not a line break
-- **Defuddle skips `.md` URLs:** `defuddle parse` will skip URLs ending in `.md` since they're already markdown. Use WebFetch directly for raw markdown URLs
+- **Vault-wide is the default** for `tasks`, `tags` and `properties`. Add `active` to scope to the open note, or `path=` / `file=` for one note. (The old `tasks all` / `tags all` forms are gone.)
+- **Bound big listings.**
+  - Use `total` for a count first, then `limit=` on `search` / `search:context`.
+  - `search:context` on a broad query can return megabytes.
+- **`search:context format=json`** returns `[{"file": …, "matches": [{"line": N, "text": …}]}]`. Use it for programmatic search.
+- **`format=json`** where offered (`backlinks`, `tags`, `tasks`, `unresolved`, `bookmarks`, `base:query`). `properties` takes `format=json|yaml|tsv`.
+
+## Shell Usage
+
+- **Loops: redirect stdin.** The CLI reads stdin, so inside `while read …; do obsidian …; done` it swallows the rest of the input and the loop stops after one pass. Use `obsidian … </dev/null`.
+- **Wrappers are fine.** `timeout 10 obsidian …` is still checked by the guard hook.
+- **First call to an idle app** can report `Command … not found` while plugins load. Make one cheap call (`obsidian vault`) before a batch.
 
 ## Base Files
 
-**Always check `900 📐Templates/970 Bases/` before creating a new `.base` file.** If a base for that fileClass or topic already exists, add views to it — do not create a duplicate.
+**Always check `900 📐Templates/970 Bases/` before creating a new `.base` file.** If a base for that fileClass or topic already exists, add views to it. Do not create a duplicate.
 
 All canonical base files live in `970 Bases/`. A base co-located with notes (e.g. inside a collection folder) is a sign something went wrong.
 
-**Base filter scoping:** Obsidian Bases defaults to the embedding note's folder when no explicit folder is set. Always use `or` with both an explicit folder path and a `fileClass` filter to ensure vault-wide results when embedded anywhere:
+**Base filter scoping:** Obsidian Bases defaults to the embedding note's folder when no explicit folder is set. To get vault-wide results wherever the base is embedded, always combine an explicit folder path and a `fileClass` filter with `or`:
 
 ```yaml
 filters:
@@ -66,49 +85,48 @@ filters:
 
 ## File Relocation
 
-**Always use `obsidian move` to relocate files** — never recreate + delete, never shell `mv`.
-
-`obsidian move` updates all wikilink references throughout the vault atomically. Recreate + delete leaves references stale. Shell `mv` bypasses Obsidian's index entirely.
+**Use `obsidian move` / `obsidian rename` to relocate files**, never recreate + delete, never shell `mv`. They update wikilinks vault-wide. Recreate + delete leaves references stale, and shell `mv` bypasses Obsidian's index. Both need the user's approval (the guard asks).
 
 ```bash
-obsidian move file="Note Title.md" to="New/Folder"
+obsidian move path="Inbox/Note Title.md" to="New/Folder"
 ```
-
-## Safety Rules
-
-- **`create overwrite` is destructive** — replaces entire file, and `content=` turns `\n` sequences into newlines. Never pipe shell-processed content into it (empty output = wiped note). Use `vault-write apply` (whole note or `--section`) instead.
-- **Always use `silent`** with `create` — prevents files opening in Obsidian UI (focus steal)
-- **Always use `format=json`** for programmatic output parsing
 
 ## Error Handling
 
 | Symptom | Likely cause | Action |
 |---------|-------------|--------|
-| `obsidian version` fails | CLI not installed or not on PATH | Fall back to file tools |
-| Command hangs or times out | Obsidian app not running | Start Obsidian or use file tools |
-| "Unknown command" | CLI version too old | Run `obsidian help` to check available commands |
-| Empty results from search/tags | Vault index not ready | Wait a moment, retry, or use Grep as fallback |
+| `The CLI is unable to find Obsidian` | Obsidian app not running | Ask the user to open it, or fall back to file tools for reads |
+| Output starts with `Error:` (exit 0) | Bad path, unknown command, missing plugin | Treat as failure; check the path with `obsidian files` |
+| `Command "x" not found` | Typo, CLI too old, or plugin not loaded yet | `obsidian help`; retry once after a warm-up call |
+| Result is about the wrong note | Missing/mistyped `path=` fell back to the open note | Re-run with an exact `path=` |
+| Empty results from search/tags | Index not ready | Wait, retry, or use Grep as fallback |
 
 ## Graph Traversal Commands
 
-Use these for authoring, discovery, and health workflows. They require Obsidian's index (CLI must be running).
+Use these for authoring, discovery, and health workflows. They need Obsidian's index (the app must be running).
 
 | Command | Returns |
 |---------|---------|
-| `obsidian backlinks file="<name>"` | All notes linking TO this file |
-| `obsidian links file="<name>"` | All outgoing links FROM this file |
-| `obsidian unresolved` | Broken wikilinks vault-wide (add `sources=true` for source files) |
-| `obsidian orphans` | Files with no incoming links — MOC candidates or deletable |
-| `obsidian deadends` | Files with no outgoing links — cross-referencing candidates |
+| `obsidian backlinks path="<path>"` | All notes linking TO this file |
+| `obsidian links path="<path>"` | All outgoing links FROM this file |
+| `obsidian unresolved verbose` | Broken wikilinks vault-wide, with source files |
+| `obsidian orphans` | Files with no incoming links: MOC candidates or deletable |
+| `obsidian deadends` | Files with no outgoing links: cross-referencing candidates |
+
+**Caveats before treating a list as a repair queue:**
+- Sample a few entries first.
+- Links inside fenced code blocks don't count.
+- Unlinked mentions never appear.
+- Some alias links can show as unresolved, so cross-check against `obsidian aliases verbose`.
 
 **When to use:**
-- **Before authoring** a note: `backlinks` to understand what already connects to a target
-- **After rename / `obsidian move`**: `unresolved sources=true` to catch any broken references
-- **Health check**: `orphans` for MOC gap analysis; `deadends` for under-connected notes
-- **Discovery**: `links` to map a note's connection footprint before consolidating or moving it
+- **Before authoring** a note: `backlinks` to understand what already connects to a target.
+- **After a move or rename**: `unresolved verbose` to catch broken references.
+- **Health check**: `orphans` for MOC gap analysis; `deadends` for under-connected notes.
+- **Discovery**: `links` to map a note's connections before consolidating or moving it.
 
 See `references/linking-discipline.md` for the full linking rationale and decision table.
 
 ## Fallback
 
-CLI requires Obsidian desktop app to be running. If unavailable, fall back to Grep/Glob/Read tools on vault files at `${VAULT_PATH}`.
+The CLI needs the Obsidian desktop app running. If it's unavailable, read with Grep/Glob/Read on `${VAULT_PATH}` and write with `vault-write` (it doesn't need the app).

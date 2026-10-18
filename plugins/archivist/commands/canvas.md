@@ -1,11 +1,12 @@
 ---
 name: canvas
 description: Generate a knowledge map canvas for a scope — visualize notes and their connections as an Obsidian canvas file.
+argument-hint: "[scope]"
 ---
 
 Invoke the archivist agent to generate a knowledge map canvas.
 
-If an argument is provided, use it as the scope path directly (skip scope selection).
+Scope argument: `$ARGUMENTS`. If provided, use it as the scope path directly (skip scope selection).
 
 The agent should:
 1. Initialize normally (load skills, discover vault, ensure `_vault-profile.md` exists)

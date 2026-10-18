@@ -1,13 +1,14 @@
 ---
 name: duplicates
 description: Find similar or duplicate notes within a scope and guide consolidation — merge, alias, or create MOCs.
+argument-hint: "[scope]"
 ---
 
 Invoke the archivist agent to find and consolidate duplicate notes.
 
 The agent should:
 1. Initialize normally (load skills, discover vault, ensure `_vault-profile.md` exists)
-2. Run scope selection — ask the user which directory to scan
+2. Use the scope from `$ARGUMENTS`; if none, run scope selection — ask the user which directory to scan
 3. Run duplicate detection:
    ```bash
    uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/find_similar_notes.py \

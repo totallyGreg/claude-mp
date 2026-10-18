@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.17.0"
+  version: "1.18.0"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -85,7 +85,7 @@ Before writing any note to the vault:
 
 When schema drift is detected, classify each finding before acting:
 
-- **Mechanical** (rename, type coercion, default fill): apply via `detect_schema_drift.py` or `obsidian property:set` inline — deterministic, reversible, no subagent needed
+- **Mechanical** (rename, type coercion, default fill): apply via `detect_schema_drift.py` or `obsidian property:set path="…"` inline (the guard zone-checks it; `type=list` for lists) — deterministic, reversible, no subagent needed
 - **Semantic** (new property design, collection restructuring, template changes): flag for vault-architect, provide the drift report as context
 
 Run drift scripts inline when fixes are mechanical. Escalate to architect when fixes need design decisions. Drift correction should never interrupt a curation workflow — finish the task, then offer drift check as a follow-up.
