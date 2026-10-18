@@ -3,7 +3,7 @@
 #
 # Fires when a Python file inside a scripts/ directory is written or edited.
 # Enforces two mechanical rules:
-#   1. PEP 723 inline metadata block must be present
+#   1. PEP 723 inline metadata block must be present (entry points only)
 #   2. Banned CLI libraries (click, typer) must not be imported
 #
 # Exit codes:
@@ -40,8 +40,15 @@ fi
 
 violations=()
 
-# Check 1: PEP 723 inline metadata block
-if ! grep -q "# /// script" "$file_path"; then
+# Check 1: PEP 723 inline metadata block — entry points only. Package modules
+# (no __main__ guard, __init__.py, conftest.py) are imported, never run by uv.
+base=$(basename "$file_path")
+is_entrypoint=false
+if [[ "$base" != "__init__.py" && "$base" != "conftest.py" ]] \
+    && grep -qE "^if __name__ == ['\"]__main__['\"]" "$file_path"; then
+    is_entrypoint=true
+fi
+if $is_entrypoint && ! grep -q "# /// script" "$file_path"; then
     violations+=("missing PEP 723 header (# /// script ... # ///)")
 fi
 

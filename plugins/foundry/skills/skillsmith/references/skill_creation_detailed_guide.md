@@ -32,7 +32,7 @@ Bad examples (from Anthropic's guide):
 - "Implements the Project entity model" — too technical, no user-facing trigger
 
 Good contrast:
-- "This skill should be used when reviewing pull requests. Use when asked to 'review this PR', 'check my code', or 'give feedback on #123'. Reviews diffs for bugs, style issues, and test coverage, then posts a structured comment grouped by severity."
+- "Reviews pull request diffs for bugs, style issues, and test coverage, then posts a structured comment grouped by severity. Use when asked to 'review this PR', 'check my code', or 'give feedback on #123'." (key use case first: Claude Code truncates description + when_to_use at 1,536 characters)
 
 Also include a `Do NOT use for` clause to prevent overtriggering: `"Do NOT use for general code questions (use the code-review skill instead)."`
 

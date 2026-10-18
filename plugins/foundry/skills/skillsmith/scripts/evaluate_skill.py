@@ -373,6 +373,14 @@ def validate_improvement_plan(skill_path, skill_version=None):
 # ============================================================================
 
 
+_MAIN_GUARD = re.compile(r"""^if __name__ == ['"]__main__['"]""", re.MULTILINE)
+
+
+def is_python_entrypoint(filename, content):
+    """True for runnable scripts: a __main__ guard, and not __init__.py/conftest.py."""
+    return filename not in ('__init__.py', 'conftest.py') and bool(_MAIN_GUARD.search(content))
+
+
 def check_python_scripts_pep723(skill_dir):
     """
     Check if Python scripts use PEP 723 inline metadata.
@@ -401,10 +409,11 @@ def check_python_scripts_pep723(skill_dir):
         try:
             content = script.read_text(encoding='utf-8')
 
-            # Check for PEP 723 metadata block
-            has_pep723 = "# /// script" in content
+            # Only entry points need PEP 723; imported helper modules don't run under uv
+            if not is_python_entrypoint(script.name, content):
+                continue
 
-            if not has_pep723:
+            if "# /// script" not in content:
                 scripts_without_pep723.append(script.name)
 
         except Exception as e:
@@ -413,7 +422,7 @@ def check_python_scripts_pep723(skill_dir):
     if scripts_without_pep723:
         issues.append(
             f"Python scripts missing PEP 723 metadata: {', '.join(scripts_without_pep723)}\n"
-            f"   All Python scripts in skills MUST use PEP 723 inline metadata for uv execution.\n"
+            f"   Runnable Python scripts (with a __main__ guard) MUST use PEP 723 inline metadata for uv execution.\n"
             f"   Load skillsmith's references/python_uv_guide.md for conversion guidance.\n"
             f"   See: https://peps.python.org/pep-0723/"
         )
@@ -1009,15 +1018,54 @@ def calculate_progressive_disclosure_score(basic_metrics):
     }
 
 
+# Claude Code truncates description + when_to_use at this length in the skill
+# listing (code.claude.com/docs/en/skills); the AgentSkills spec caps description
+# alone at 1024.
+CLAUDE_CODE_LISTING_MAX_CHARS = 1536
+SPEC_DESCRIPTION_MAX_CHARS = 1024
+
+_NEGATION_WORDS = {'not', "don't", 'never', 'no', 'without', 'avoid', 'cannot',
+                   "can't", 'stop', 'prevent'}
+_FIRST_OR_SECOND_PERSON = re.compile(
+    r"^you\b|(?-i:\bI(?:'m|'ll|'ve)?\b)|\byou (?:can|should|will|may|might)\b",
+    re.IGNORECASE,
+)
+_QUOTED = re.compile(r'"([^"]+)"|\u201c([^\u201d]+)\u201d')
+
+
+def _quoted_phrases(text):
+    return [a or b for a, b in _QUOTED.findall(text or '')]
+
+
+def _is_trigger_phrase(phrase):
+    """A quoted phrase of up to 10 words that doesn't open with a negation.
+
+    Negation inside a phrase is fine ("agent isn't triggering"); a phrase that
+    opens with one ("don't deploy") describes when NOT to trigger.
+    """
+    words = phrase.lower().split()
+    return 0 < len(words) <= 10 and words[0] not in _NEGATION_WORDS
+
+
+def is_third_person(text):
+    """True unless the text speaks in first or second person ("I can", "You can").
+
+    Quoted trigger phrases are ignored: they are the user's words, not the skill's.
+    """
+    unquoted = _QUOTED.sub('', text or '').strip()
+    return bool(unquoted) and not _FIRST_OR_SECOND_PERSON.search(unquoted)
+
+
 def validate_description_quality(frontmatter_dict):
     """
     Calculate description quality score (0-100)
 
     Scoring:
-    - Trigger phrases present (+40 points): Specific quoted phrases like "create X", "validate Y"
-    - Third-person format (+30 points): Uses "This skill should be used when..."
+    - Trigger phrases present (+40 points): quoted user phrases in description or when_to_use
+    - Third-person voice (+30 points): no "I can..." / "You can..." (any third-person phrasing)
     - Specific vs generic (+20 points): Contains specific scenarios, not just vague terms
-    - Under 1024 chars (+10 points): Complies with AgentSkills spec
+    - Length (+10 points): description <= 1024 (AgentSkills spec) and
+      description + when_to_use <= 1536 (Claude Code listing cap)
 
     Returns: {
         'score': int,
@@ -1025,47 +1073,19 @@ def validate_description_quality(frontmatter_dict):
         'has_third_person': bool,
         'is_specific': bool,
         'length_ok': bool,
+        'leads_with_boilerplate': bool,
         'issues': [str],
         'suggestions': [str]
     }
     """
-    description = frontmatter_dict.get('description', '')
+    description = frontmatter_dict.get('description', '') or ''
+    when_to_use = frontmatter_dict.get('when_to_use', '') or ''
     score = 0
     issues = []
     suggestions = []
-    trigger_phrases_found = []
 
-    # Check for trigger phrases (patterns in quotes)
-    import re
-    _TRIGGER_VERBS = {
-        'create', 'validate', 'evaluate', 'improve', 'analyze', 'check', 'init',
-        'add', 'build', 'configure', 'set up', 'research', 'sync', 'generate',
-        'update', 'fix', 'debug', 'run', 'install', 'migrate', 'deploy', 'optimize',
-        'refactor', 'review', 'test', 'write', 'parse', 'convert', 'search',
-    }
-    _ARTICLES = {'a', 'an', 'the', 'my', 'your', 'its', 'this', 'that', 'all',
-                 'any', 'some', 'new', 'existing'}
-    _NEGATION_WORDS = {'not', "don't", "don't", 'never', 'no', 'without',
-                       'avoid', "don't", 'cannot', "can't", 'stop', 'prevent'}
-
-    def _is_valid_trigger_phrase(phrase):
-        """Return True if phrase has a trigger verb as its first non-article word,
-        with no negation before the verb."""
-        words = phrase.lower().split()
-        if not words:
-            return False
-        # Reject phrases containing negation anywhere
-        if any(w in _NEGATION_WORDS for w in words):
-            return False
-        # Verb must be the first non-article word
-        for word in words:
-            if word in _ARTICLES:
-                continue
-            return any(word == verb or word.startswith(verb) for verb in _TRIGGER_VERBS)
-        return False
-
-    quoted_phrases = re.findall(r'"([^"]+)"', description)
-    trigger_patterns = [p for p in quoted_phrases if _is_valid_trigger_phrase(p)]
+    trigger_patterns = [p for p in _quoted_phrases(f"{description} {when_to_use}")
+                        if _is_trigger_phrase(p)]
     trigger_phrases_found = trigger_patterns
 
     if len(trigger_patterns) >= 3:
@@ -1074,22 +1094,18 @@ def validate_description_quality(frontmatter_dict):
         score += 20
         suggestions.append(f"Add more trigger phrases (found {len(trigger_patterns)}, recommend 3+)")
     else:
-        issues.append("No trigger phrases found in description")
+        issues.append("No trigger phrases found in description or when_to_use")
         suggestions.append("Add specific trigger phrases like '\"create a skill\"', '\"validate for quality\"'")
 
-    # Check for third-person format
-    third_person_patterns = [
-        'this skill should be used',
-        'this skill is used',
-        'use this skill when',
-        'should be used when',
-    ]
-    has_third_person = any(pattern in description.lower() for pattern in third_person_patterns)
+    has_third_person = is_third_person(description)
     if has_third_person:
         score += 30
     else:
-        issues.append("Description not in third-person format")
-        suggestions.append("Start with 'This skill should be used when...'")
+        issues.append("Description not in third person (avoid \"I can...\" / \"You can...\")")
+        suggestions.append("Write in third person, e.g. 'Processes X. Use when ...'")
+
+    # Docs: "Put the key use case first" -- the listing is truncated. Coaching only.
+    leads_with_boilerplate = description.lower().lstrip().startswith('this skill should be used')
 
     # Check specificity (not just generic terms)
     generic_terms = ['provides guidance', 'helps with', 'assists with', 'for working with']
@@ -1104,13 +1120,18 @@ def validate_description_quality(frontmatter_dict):
     else:
         score += 10  # Partial credit
 
-    # Check length
-    length_ok = len(description) <= 1024
+    listing_len = len(description) + (len(when_to_use) + 1 if when_to_use else 0)
+    length_ok = (len(description) <= SPEC_DESCRIPTION_MAX_CHARS
+                 and listing_len <= CLAUDE_CODE_LISTING_MAX_CHARS)
     if length_ok:
         score += 10
-    else:
-        issues.append(f"Description exceeds 1024 characters ({len(description)})")
-        suggestions.append("Shorten description to comply with AgentSkills spec")
+    if len(description) > SPEC_DESCRIPTION_MAX_CHARS:
+        issues.append(f"Description exceeds {SPEC_DESCRIPTION_MAX_CHARS} characters ({len(description)})")
+        suggestions.append("Shorten description to comply with AgentSkills spec; move trigger phrases to when_to_use")
+    if listing_len > CLAUDE_CODE_LISTING_MAX_CHARS:
+        issues.append(f"description + when_to_use is {listing_len} characters; "
+                      f"Claude Code truncates the listing at {CLAUDE_CODE_LISTING_MAX_CHARS}")
+        suggestions.append("Trim description/when_to_use and put the key use case first")
 
     # Detect negative trigger clause (coaching only, not scored)
     # Positive signal: description explicitly says when NOT to use the skill
@@ -1128,6 +1149,7 @@ def validate_description_quality(frontmatter_dict):
         'has_third_person': has_third_person,
         'is_specific': is_specific,
         'length_ok': length_ok,
+        'leads_with_boilerplate': leads_with_boilerplate,
         'has_negative_trigger': has_negative_trigger,
         'issues': issues,
         'suggestions': suggestions
@@ -1292,8 +1314,8 @@ def validate_naming_conventions(skill_path, frontmatter_dict):
         violations.append(f"Description exceeds 1024 characters ({len(description)})")
 
     # Description should be third-person
-    if description and not any(phrase in description.lower() for phrase in ['this skill', 'use when', 'use this']):
-        warnings.append("Description should use third-person (e.g., 'This skill should be used when...')")
+    if description and not is_third_person(description):
+        warnings.append("Description should be in third person (avoid \"I can...\" / \"You can...\")")
 
     return {
         'valid': len(violations) == 0,
@@ -3294,7 +3316,9 @@ def print_explain_output(evaluation):
             print("    No trigger phrases found (need ≥3 quoted action phrases for full score)")
         print(f"    Third-person format: {'✓' if desc.get('has_third_person') else '✗'}")
         print(f"    Specific scenarios: {'✓' if desc.get('is_specific') else '✗'}")
-        print(f"    Under 1024 chars: {'✓' if desc.get('length_ok') else '✗'}")
+        print(f"    Length (≤1024 spec, ≤1536 with when_to_use): {'✓' if desc.get('length_ok') else '✗'}")
+        if desc.get('leads_with_boilerplate'):
+            print("    Leads with boilerplate: consider opening with the capability (listing is truncated; key use case first)")
         # Negative trigger coaching (not scored)
         if desc.get('has_negative_trigger'):
             print("    Negative trigger clause: ✓ (prevents overtriggering)")
@@ -3320,11 +3344,11 @@ def print_explain_output(evaluation):
             for suggestion in desc.get('suggestions', []):
                 print(f"    - {suggestion}")
             if not desc.get('has_third_person'):
-                print('    - Start description with: "This skill should be used when..."')
+                print("    - Write in third person: 'Processes X. Use when ...'")
             if not desc.get('is_specific'):
                 print("    - Add concrete scenarios rather than vague capability descriptions")
             if not desc.get('length_ok'):
-                print("    - Trim description to under 1024 characters")
+                print("    - Trim description to ≤1024 chars (move trigger phrases to when_to_use; combined ≤1536)")
             if not desc.get('has_negative_trigger'):
                 print('    - Add a negative trigger: "Do NOT use for X (use Y skill instead)"')
             delta = int(desc_gap * 0.10)

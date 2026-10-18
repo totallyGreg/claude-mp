@@ -12,6 +12,12 @@ Run the validation command:
 uv run ${CLAUDE_PLUGIN_ROOT}/skills/skillsmith/scripts/evaluate_skill.py $ARGUMENTS --quick
 ```
 
+With `--strict`, if the skill lives under `plugins/<plugin>/skills/`, also run Anthropic's validator on its plugin when the `claude` CLI is available:
+
+```bash
+claude plugin validate plugins/<plugin> --strict
+```
+
 Common arguments:
 - `<skill-path>` - Path to skill directory (required)
 - `--strict` - Treat warnings as errors (for pre-release gates)
@@ -28,5 +34,6 @@ The validator checks:
 - Naming conventions (lowercase, hyphens only)
 - PEP 723 compliance for Python scripts
 - Directory structure compliance
+- With `--strict`: plugin manifest, paths and hook quoting (`claude plugin validate`)
 
 Report validation results with any errors or warnings found.

@@ -1,6 +1,6 @@
 {
   "name": "foundry",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Plugin development toolkit: evaluate and improve skills (skillsmith) and agents (agentsmith), and publish them to a marketplace with enforced version bumps (marketplace-manager)",
   "author": {
     "name": "J. Greg Williams",

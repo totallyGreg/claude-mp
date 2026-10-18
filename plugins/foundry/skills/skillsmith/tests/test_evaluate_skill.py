@@ -36,6 +36,7 @@ from evaluate_skill import (
     validate_skill,
     validate_agentskills_spec,
     validate_description_quality,
+    is_python_entrypoint,
     _frontmatter_field,
     _first_sentence,
     _component_brief,
@@ -330,6 +331,42 @@ class TestDescriptionQuality:
         assert len(result['trigger_phrases_found']) == 3
         assert result['has_negative_trigger'] is True
 
+    def test_trigger_phrases_not_limited_to_verb_whitelist(self):
+        """Quoted phrases count even when they don't open with a known verb"""
+        desc = ('Evaluates agents. Use when users ask "agent score", "as-evaluate", '
+                '"why isn\'t my agent triggering", or "set up an agent".')
+        result = validate_description_quality({'description': desc})
+        assert len(result['trigger_phrases_found']) == 4
+
+    def test_phrase_opening_with_negation_is_not_a_trigger(self):
+        desc = 'Deploys services. Triggers on "deploy the app", "don\'t deploy".'
+        result = validate_description_quality({'description': desc})
+        assert result['trigger_phrases_found'] == ['deploy the app']
+
+    def test_when_to_use_phrases_count(self):
+        fm = {'description': 'Processes PDF forms and extracts fields.',
+              'when_to_use': 'Use when users ask to "fill a PDF", "extract form fields", or "merge PDFs".'}
+        result = validate_description_quality(fm)
+        assert len(result['trigger_phrases_found']) == 3
+        assert result['score'] == 100
+
+    def test_any_third_person_phrasing_passes(self):
+        for desc in ['Processes Excel files and generates reports, i.e. pivots.',
+                     'This skill should be used when users ask to "create a skill".']:
+            assert validate_description_quality({'description': desc})['has_third_person'], desc
+
+    def test_first_and_second_person_fail(self):
+        for desc in ['I can help you process Excel files.',
+                     'You can use this to process Excel files.']:
+            assert not validate_description_quality({'description': desc})['has_third_person'], desc
+
+    def test_combined_listing_cap(self):
+        fm = {'description': 'Processes "fill a PDF" requests. ' + 'x' * 900,
+              'when_to_use': 'y' * 700}
+        result = validate_description_quality(fm)
+        assert result['length_ok'] is False
+        assert any('1536' in i for i in result['issues'])
+
 
 class TestFrontmatterField:
     """Targeted frontmatter extraction, robust to invalid-YAML siblings."""
@@ -585,3 +622,18 @@ class TestEvalReceipts:
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
+
+
+class TestPythonEntrypoint:
+    """PEP 723 applies to runnable scripts, not imported modules."""
+
+    def test_main_guard_is_entrypoint(self):
+        assert is_python_entrypoint('run.py', 'if __name__ == "__main__":\n    main()\n')
+
+    def test_module_without_guard_is_not(self):
+        assert not is_python_entrypoint('helpers.py', 'def f():\n    pass\n')
+
+    def test_init_and_conftest_never_entrypoints(self):
+        guard = "if __name__ == '__main__':\n    pass\n"
+        assert not is_python_entrypoint('__init__.py', guard)
+        assert not is_python_entrypoint('conftest.py', guard)

@@ -77,3 +77,7 @@ Both patterns share the same YAML frontmatter format with `name`, `description`,
 - YAML frontmatter is parsed separately from body content
 - Code blocks (``` ... ```) are stripped before body heuristic analysis to prevent false positives
 - Example blocks in the description are parsed structurally, not via regex on the raw description
+
+## Warnings (unscored)
+
+- **Ignored plugin-agent fields**: inside a plugin, Claude Code ignores `hooks`, `mcpServers`, and `permissionMode` in agent frontmatter ([sub-agents docs](https://code.claude.com/docs/en/sub-agents)). The evaluator warns when one is set; enforce the boundary with `tools`/`disallowedTools` or the plugin's `hooks/hooks.json` instead.
