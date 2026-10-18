@@ -214,3 +214,15 @@ def test_config_location_order(vault, tmp_path, monkeypatch):
     user.write_text(cfg.read_text())
     code, out = run("config")
     assert code == 0 and out["config"] == str(user) and "legacy" not in out
+
+
+def test_config_reports_vault_name(vault):
+    code, out = run("config")
+    assert code == 0 and out["vault_name"] == "vault"
+
+
+def test_canvas_must_be_valid_json(vault):
+    code, out = run("apply", "Notes/map.canvas", "--from", "-", stdin='{"nodes": [], "edges": []')
+    assert code == 3 and "not valid JSON" in out["errors"][0]
+    code, out = run("apply", "Notes/map.canvas", "--from", "-", stdin='{"nodes": [{"text": "```"}], "edges": []}')
+    assert code == 0, out  # a fence inside canvas JSON isn't a markdown lint error

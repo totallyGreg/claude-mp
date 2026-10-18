@@ -7,9 +7,9 @@ argument-hint: "[folder-path]"
 Invoke the archivist agent to set up or audit a collection.
 
 The agent should:
-1. Initialize normally (load skills, discover vault, ensure `_vault-profile.md` exists)
+1. Initialize (config + vault identity; read `_vault-profile.md` only if this workflow needs it)
 2. If a folder path was given (`$ARGUMENTS`): audit it when it exists, offer to create it when it doesn't. Otherwise ask: "Create a new collection or audit an existing one?"
-3. **New collection** — route to vault-architect's New Collection Setup workflow:
+3. **New collection** — hand off to `archivist:archivist-architect` (New Collection Setup):
    - Check existing parts, design schema, create Bases file + folder note + Templater template
    - After setup, offer collection health check
 4. **Audit existing** — route to vault-curator's Collection Health Check workflow:

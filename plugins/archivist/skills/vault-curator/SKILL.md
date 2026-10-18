@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.18.0"
+  version: "1.19.0"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -85,7 +85,7 @@ Before writing any note to the vault:
 
 When schema drift is detected, classify each finding before acting:
 
-- **Mechanical** (rename, type coercion, default fill): apply via `detect_schema_drift.py` or `obsidian property:set path="…"` inline (the guard zone-checks it; `type=list` for lists) — deterministic, reversible, no subagent needed
+- **Mechanical** (rename, type coercion, default fill): apply via `detect_schema_drift.py` or `obsidian vault="<vault_name>" property:set path="…"` inline (the guard zone-checks it; `type=list` for lists) — deterministic, reversible, no subagent needed
 - **Semantic** (new property design, collection restructuring, template changes): flag for vault-architect, provide the drift report as context
 
 Run drift scripts inline when fixes are mechanical. Escalate to architect when fixes need design decisions. Drift correction should never interrupt a curation workflow — finish the task, then offer drift check as a follow-up.
@@ -98,7 +98,7 @@ Do NOT attempt the operation, even partially.
 
 Check `curator_write_zones` (from `vault-write config`) before any write. A write is allowed if the target path starts with a listed zone prefix. Canvas files and discovery views are always allowed as generated output regardless of zone.
 
-**Out-of-zone:** refuse with `Archivist policy:` prefix and suggest vault-architect. **No zones configured:** the archivist agent's initialization derives zones from `_vault-profile.md`'s "Directory Trust Levels" table when present — if those derived zones cover the target path, proceed; otherwise refuse with `Archivist policy:` prefix and offer to run vault profiling.
+**Out-of-zone:** refuse with `Archivist policy:` prefix; structural targets go to `archivist:archivist-architect`. **No zones configured:** the archivist agent's initialization derives zones from `_vault-profile.md`'s "Directory Trust Levels" table when present — if those derived zones cover the target path, proceed; otherwise refuse with `Archivist policy:` prefix and offer to run vault profiling.
 
 **Confirmation follows the write channel.** Writes through `vault-write apply` inside your zones need no confirmation: the CLI enforces the zone, refuses drift against the `--base` you read, blocks broken Markdown, and snapshots the note in git first. Ask the user before `vault-write force` (out of zone, or overwriting without `--base`), before any delete/move/rename, and before any write made without `vault-write` (the fallback when it isn't installed).
 
@@ -295,13 +295,13 @@ When asked "show me a map", "generate canvas", "visualize my notes", or "show kn
 
 When asked to update, reorganize, add nodes to, or redesign an existing `.canvas` file:
 
-1. **Read** the current canvas JSON with the Read tool
+1. **Read** the current canvas JSON (`vault-write stat` for the hash, then the Read tool)
 2. **Plan changes** — identify nodes/edges to add, remove, or modify using `json-canvas` skill knowledge (node types, edge anchors, color presets, layout guidelines)
 3. **Construct updated JSON** — generate unique 16-char hex IDs for new nodes; verify all `fromNode`/`toNode` references resolve to existing node IDs
-4. **Write** the updated canvas with the Write tool to `${VAULT_PATH}/<canvas-path>`
-5. **Verify** — immediately read the file back and confirm the content matches what was written
+4. **Write** it with `vault-write apply "<canvas-path>" --base <hash> --from -` (stdin). `vault-write` rejects invalid JSON and verifies the write.
+5. **Larger redesigns** (new layout, many nodes) go to `archivist:archivist-architect`, which can edit the file directly.
 
-**Critical:** Do NOT use `obsidian create`, `obsidian write`, or any CLI command to write `.canvas` files — the CLI does not handle JSON canvas format reliably and silently drops writes. Always use the Write tool directly.
+**Critical:** Do NOT use `obsidian create` or any other CLI command to write `.canvas` files. The CLI does not handle JSON canvas format reliably and silently drops writes.
 
 **See:** `json-canvas` skill for node types, edge spec, color presets, ID generation, and validation checklist.
 

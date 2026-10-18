@@ -12,9 +12,11 @@ match reliably (a `*` in the middle of a rule spans one token, so argument order
 - obsidian create/append/prepend/property:set/property:remove/task <update>
     without an explicit path=              -> deny (a missing or mistyped target acts on
                                               whatever note is open in Obsidian)
+    without vault=<config vault name>      -> deny (the CLI targets the focused vault;
+                                              daily:append/prepend need it too)
     with path= outside the write zones     -> deny
 - obsidian move/rename/command/template:insert/history:restore/sync:restore,
-  plugin and theme installs                -> ask
+  base:create, plugin and theme installs   -> ask
 - rm / mv on a path inside the vault       -> ask
 
 Wrappers (timeout, env, nice, nohup, command, exec, sudo, xargs, time) and `sh|bash|zsh -c`
@@ -47,6 +49,7 @@ ASK = {
     "rename": "obsidian rename renames a note and rewrites links; confirm the rename.",
     "command": "obsidian command runs an arbitrary Obsidian command (some delete or edit the open note); confirm.",
     "template:insert": "obsidian template:insert writes into whatever note is open in Obsidian; confirm.",
+    "base:create": "obsidian base:create writes a new note where the base decides, outside the zone check; confirm.",
     "history:restore": "obsidian history:restore replaces a note with an older version; confirm.",
     "sync:restore": "obsidian sync:restore replaces a note with a Sync version; confirm.",
     "plugin:install": "Installing an Obsidian plugin runs third-party code in the vault; confirm.",
@@ -56,6 +59,7 @@ ASK = {
 }
 WRITES = {"create", "append", "prepend", "property:set", "property:remove"}
 TASK_UPDATES = {"toggle", "done", "todo"}
+DAILY_WRITES = {"daily:append", "daily:prepend"}
 
 
 def load_vault_write():
@@ -111,12 +115,16 @@ def kv(args: list[str]) -> dict[str, str]:
 
 def check_write(sub: str, args: list[str], vw, cfg) -> tuple[str, str] | None:
     params = kv(args)
-    if sub == "task":
-        if not (TASK_UPDATES & set(args) or "status" in params) or "daily" in args:
-            return None
-        target = params.get("path") or params.get("ref", "").rsplit(":", 1)[0]
-    else:
-        target = params.get("path", "")
+    if sub == "task" and not (TASK_UPDATES & set(args) or "status" in params):
+        return None  # a read
+    if cfg and params.get("vault") != cfg["root"].name:
+        return "deny", (f"Archivist policy: obsidian {sub} needs vault=\"{cfg['root'].name}\". Without it the CLI "
+                        "writes to whichever vault is focused in Obsidian, not the configured one.")
+    if sub in DAILY_WRITES or (sub == "task" and "daily" in args):
+        return None  # the daily note: Obsidian resolves the path
+    target = params.get("path", "")
+    if sub == "task" and not target:
+        target = params.get("ref", "").rsplit(":", 1)[0]
     if not target:
         return "deny", (f"Archivist policy: obsidian {sub} needs an explicit path= (exact vault path). "
                         "Without it, or with a mistyped parameter, the CLI writes to whatever note is open in Obsidian.")
@@ -140,8 +148,8 @@ def check_obsidian(rest: list[str], vw, cfg) -> tuple[str, str] | None:
         return "deny", "obsidian create … overwrite is blocked by the archivist guard; use `vault-write apply --base <hash>`."
     if sub in ASK:
         return "ask", ASK[sub]
-    if sub in WRITES or sub == "task":
-        return check_write(sub, args, vw, cfg)
+    if sub in WRITES or sub in DAILY_WRITES or sub == "task":
+        return check_write(sub, rest, vw, cfg)  # rest: vault= may come before the subcommand
     return None
 
 

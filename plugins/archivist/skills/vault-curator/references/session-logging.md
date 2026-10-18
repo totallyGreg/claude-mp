@@ -14,7 +14,7 @@ Defined in `[[Insert Log]]` (`900 📐Templates/910 File Templates/918 Snippet T
 
 All entry operations dispatch through QuickAdd → `logEntries.js`:
 ```bash
-obsidian quickadd:run choice="logEntries" vars='{"action":"ACTION", "path":"$SESSION_LOG", ...}'
+obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"ACTION", "path":"$SESSION_LOG", ...}'
 ```
 
 | Action | What it does |
@@ -30,23 +30,23 @@ obsidian quickadd:run choice="logEntries" vars='{"action":"ACTION", "path":"$SES
 **Default (no project mentioned):** Use today's daily note as the session log.
 1. Find today's daily note:
    ```bash
-   obsidian search query="fileClass:journal" limit=1 sort=created
+   obsidian vault="$VAULT_NAME" search query="fileClass:journal" limit=1 sort=created
    ```
    If no result, open today's note by date so Obsidian creates it from the daily note template.
 2. Store the returned path as `SESSION_LOG`; report it to the user.
 3. Create a session-start entry:
    ```bash
-   obsidian quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"Session started"}'
+   obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"Session started"}'
    ```
 
 **With project mentioned:** Create a dedicated session note.
 1. Invoke the New Session template:
    ```bash
-   obsidian templater:create-from-template template="900 📐Templates/910 File Templates/🔬 New Session.md" file="800 Generated/temp-session.md"
+   obsidian vault="$VAULT_NAME" templater:create-from-template template="900 📐Templates/910 File Templates/🔬 New Session.md" file="800 Generated/temp-session.md"
    ```
 2. After user completes Obsidian prompts, find the resulting note:
    ```bash
-   obsidian search query="fileClass:session status:\"In Progress\"" limit=1 sort=created
+   obsidian vault="$VAULT_NAME" search query="fileClass:session status:\"In Progress\"" limit=1 sort=created
    ```
 3. Store the returned path as `SESSION_LOG`.
 
@@ -67,14 +67,14 @@ Reconnects a new Claude Code conversation to an existing in-progress session not
 5. **Brief the user** — last entry, current Findings/Next Steps, `summary:` value, open entry count.
 6. **Create a resume entry:**
    ```bash
-   obsidian quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"Session resumed"}'
+   obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"Session resumed"}'
    ```
 
 ## Checkpoint Entries (during session)
 
 Write at major decisions and workflow boundaries — **not** after every tool call:
 ```bash
-obsidian quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"{group} phase — DESCRIPTION"}'
+obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"{group} phase — DESCRIPTION"}'
 ```
 
 Entry types: `decision`, `file-operation`, `workflow-execution`, `discovery`, `resolution`.
@@ -86,7 +86,7 @@ Entry types: `decision`, `file-operation`, `workflow-execution`, `discovery`, `r
 1. Read the most recent `/recap` output from conversation context.
 2. Format as bullets and insert under the open entry:
    ```bash
-   obsidian quickadd:run choice="logEntries" vars='{"action":"update","path":"$SESSION_LOG","selector":"open","content":"- BULLET_1\n- BULLET_2"}'
+   obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"update","path":"$SESSION_LOG","selector":"open","content":"- BULLET_1\n- BULLET_2"}'
    ```
 3. Show the appended bullets to the user and offer to edit before finalizing.
 
@@ -95,7 +95,7 @@ Entry types: `decision`, `file-operation`, `workflow-execution`, `discovery`, `r
 Rolls up work-so-far for cold re-engagement. Session stays `In Progress`.
 
 1. **Close** the open entry via `logEntries` close action.
-2. **Read** all entries via `obsidian read` to see full content.
+2. **Read** all entries via `obsidian vault="$VAULT_NAME" read` to see full content.
 3. **Bulk enrich** unenriched entries — infer phase/outcome from body content and apply via `logEntries` enrich action.
 4. **Write** incremental Findings and Next Steps to note sections above the Log (rough/additive).
 5. **Update** `summary:` in frontmatter.
@@ -110,17 +110,17 @@ Full session close — synthesize everything and finalize.
 
 1. Bring session note to front:
     ```bash
-   obsidian open path="$SESSION_LOG"
+   obsidian vault="$VAULT_NAME" open path="$SESSION_LOG"
     ```
 2. Close the last open entry:
     ```bash
-   obsidian quickadd:run choice="Close Log"
+   obsidian vault="$VAULT_NAME" quickadd:run choice="Close Log"
     ```
 3. If session note (fileClass:session), update frontmatter:
     ```bash
-   obsidian property:set name="status" value="Done" path="$SESSION_LOG"
-   obsidian property:set name="end" value="YYYY-MM-DDTHH:mm:00" path="$SESSION_LOG"
-   obsidian property:set name="summary" value="<final one-line summary>" path="$SESSION_LOG"
+   obsidian vault="$VAULT_NAME" property:set name="status" value="Done" path="$SESSION_LOG"
+   obsidian vault="$VAULT_NAME" property:set name="end" value="YYYY-MM-DDTHH:mm:00" path="$SESSION_LOG"
+   obsidian vault="$VAULT_NAME" property:set name="summary" value="<final one-line summary>" path="$SESSION_LOG"
     ```
    Skip frontmatter updates for daily notes (fileClass:journal).
 4. **Synthesize** — write definitive Goal, Findings, Outcome, Next Steps (replaces pause rough notes).
@@ -131,9 +131,9 @@ Full session close — synthesize everything and finalize.
 
 If archivist exits without `/session-log end` and `SESSION_LOG` is set:
 ```bash
-obsidian quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"abnormal-termination — session ended unexpectedly"}'
+obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"abnormal-termination — session ended unexpectedly"}'
 ```
 If session note (fileClass:session), also set:
 ```bash
-obsidian property:set name="status" value="Interrupted" path="$SESSION_LOG"
+obsidian vault="$VAULT_NAME" property:set name="status" value="Interrupted" path="$SESSION_LOG"
 ```

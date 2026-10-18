@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.14.0"
+  version: "1.15.0"
   plugin: "archivist"
   stage: "3"
 ---
@@ -207,7 +207,7 @@ After setup, offer: "Run collection health check to verify all parts are consist
 
 Create or regenerate `_vault-profile.md` in the vault root. This profile provides accumulated context for all future archivist sessions — installed plugins, active fileClasses, folder philosophy, schema conventions, and directory trust levels.
 
-**When triggered:** By the archivist agent during initialization when `_vault-profile.md` is absent or corrupted.
+**When triggered:** When `_vault-profile.md` is absent or corrupted. The curator (`archivist:archivist`) hands it off to `archivist:archivist-architect`.
 
 **Workflow:**
 
@@ -292,7 +292,7 @@ Create or regenerate `_vault-profile.md` in the vault root. This profile provide
 
    Each section heading is agent-managed. User-added sections (headings not in this list) are preserved during updates.
 
-**On subsequent runs:** The archivist agent's Session Learning handles incremental updates. It diffs current vault state against the profile and updates specific sections by heading, preserving user-added sections.
+**On subsequent runs:** The curator's Session Learning handles incremental updates. It diffs current vault state against the profile and updates specific sections by heading, preserving user-added sections.
 
 **Edge cases:**
 - Vault with minimal structure (few folders, no templates) → create profile with minimal content, don't pad empty sections
@@ -315,17 +315,19 @@ Before writing to any path in the vault, check whether it falls within your allo
 
 **How to check:** `vault-write stat <path>` reports `in_zone` and `vault-write apply` refuses out-of-zone writes itself. To reason about zones before writing, run `vault-write config` and use its `architect_write_zones` list (vault-relative directory paths; the file is `~/.config/archivist/local.md`). A write is allowed if the target path starts with any listed zone prefix. When multiple zones match, the most-specific (longest) prefix wins.
 
-**Allowed writes:** Template directories, Bases files, script directories, vault infrastructure files (`_vault-profile.md`, system guides), and any path listed in `architect_write_zones`.
+**Allowed writes:**
+- Template directories, Bases files, script directories, vault infrastructure files (`_vault-profile.md`, system guides), and any path listed in `architect_write_zones`.
+- Structural files that live inside content zones: folder notes, fileClass notes, Base embeds in a collection folder.
 
-**Out-of-zone writes:** If the target path does not match any architect zone, **refuse the write** and suggest using vault-curator instead. Example: "This path is in a curator-managed zone. Use vault-curator to modify note content."
+**Content isn't yours:** editing note content in curator zones belongs to the curator. Recommend it in your result instead of doing it. A path outside every zone: refuse with `Archivist policy:`.
 
-**No zones configured:** The archivist agent's initialization derives zones from `_vault-profile.md`'s "Directory Trust Levels" table when present (mapping: `infrastructure` → `architect_write_zones`; `personal/guarded`/`project-scoped` → `curator_write_zones`; `automated/generated` → `designated_output_zones`). If derived zones cover the target, proceed (still with confirmation per architect tier). If neither the config nor the profile provides coverage, refuse with `Archivist policy:` prefix and offer to run vault profiling.
+**No zones configured:** Initialization derives zones from `_vault-profile.md`'s "Directory Trust Levels" table when present (mapping: `infrastructure` → `architect_write_zones`; `personal/guarded`/`project-scoped` → `curator_write_zones`; `automated/generated` → `designated_output_zones`). If derived zones cover the target, proceed (still with confirmation per architect tier). If neither the config nor the profile provides coverage, refuse with `Archivist policy:` prefix and offer to run vault profiling.
 
 **Confirmation follows the write channel.** Writes through `vault-write apply` inside your zones need no confirmation: the CLI enforces the zone, refuses drift against the `--base` you read, blocks broken Markdown, and snapshots the note in git first. Ask the user before `vault-write force` (out of zone, or overwriting without `--base`), before any delete/move/rename, and before any write made without `vault-write` (the fallback when it isn't installed).
 
 **Refusal phrasing:** Always prefix policy-based refusals with `Archivist policy:` to disambiguate from Claude Code tooling-layer permission denials. Never use bare "denied" wording for your own rules.
 
-<!-- v2 note: In future versions, this skill may run as an isolated subagent with restricted tools. Write boundaries documented here will become the subagent's tool restrictions. -->
+This skill runs inside `archivist:archivist-architect`. The plugin's `vault_file_guard` hook limits its Edit/Write to the write zones, and the obsidian guard requires `vault=` on CLI writes.
 
 ## Design Principles
 

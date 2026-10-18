@@ -7,7 +7,7 @@ argument-hint: "[scope]"
 Invoke the archivist agent to find and consolidate duplicate notes.
 
 The agent should:
-1. Initialize normally (load skills, discover vault, ensure `_vault-profile.md` exists)
+1. Initialize (config + vault identity; read `_vault-profile.md` only if this workflow needs it)
 2. Use the scope from `$ARGUMENTS`; if none, run scope selection — ask the user which directory to scan
 3. Run duplicate detection:
    ```bash

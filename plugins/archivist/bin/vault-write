@@ -293,6 +293,19 @@ def _key(msg: str) -> str:
     return re.sub(r"^line \d+: ", "", msg)
 
 
+def check_content(rel: str, old: str, new: str, root: Path | None) -> tuple[list[str], list[str]]:
+    """Markdown lint for notes; canvases must be valid JSON; other files pass through."""
+    suffix = PurePosixPath(rel).suffix.lower()
+    if suffix == ".md":
+        return introduced(old, new, root, PurePosixPath(rel).stem)
+    if suffix == ".canvas":
+        try:
+            json.loads(new)
+        except json.JSONDecodeError as e:
+            return [f"canvas is not valid JSON: {e}"], []
+    return [], []
+
+
 def introduced(old: str, new: str, root: Path | None, self_name: str | None) -> tuple[list[str], list[str]]:
     """Lint findings in `new` that `old` didn't already have, so pre-existing issues don't block edits."""
     names = vault_names(root) if root else None
@@ -362,7 +375,7 @@ def cmd_config(args) -> dict:
     daily = daily_notes(root)
     if daily:
         daily["in_zone"] = in_zone(nfc(daily["folder"]), cfg["zones"])
-    out = {"ok": True, "action": "config", "config": cfg["config"], "vault": str(root), **cfg["by_key"],
+    out = {"ok": True, "action": "config", "config": cfg["config"], "vault": str(root), "vault_name": root.name, **cfg["by_key"],
            "missing_zones": missing, "daily_notes": daily}
     if cfg["legacy"]:
         out["legacy"] = f"config is inside the plugin cache and is lost on update; move it to {user_config_path()}"
@@ -422,7 +435,7 @@ def cmd_write(args, forced: bool) -> dict:
         new_text = replace_section(before.decode("utf-8"), args.section, incoming)
     else:
         new_text = incoming
-    errors, lint_warn = introduced(before.decode("utf-8", errors="replace"), new_text, cfg["root"], PurePosixPath(rel).stem)
+    errors, lint_warn = check_content(rel, before.decode("utf-8", errors="replace"), new_text, cfg["root"])
     warnings += lint_warn
     if errors:
         raise LintFailed(errors, warnings)
