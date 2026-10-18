@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "repo"))
 from validate import (  # noqa: E402
     Snapshot,
     _parse_frontmatter_stdlib,
+    check_commands,
     check_duplicate_metadata,
     check_versions,
     resolve_base,
@@ -239,3 +240,15 @@ def test_stdlib_parser_reads_metadata_version():
     fm = _parse_frontmatter_stdlib(raw[3:raw.find("\n---", 3)])
     assert fm["metadata"]["version"] == "3.2.1"
     assert skill_version(raw) == "3.2.1"
+
+
+# -- Commands ----------------------------------------------------------------
+
+def test_command_using_arguments_needs_argument_hint(tmp_path):
+    cmds = tmp_path / "plugins/demo/commands"
+    cmds.mkdir(parents=True)
+    (cmds / "bare.md").write_text("---\ndescription: x\n---\nRun it on $ARGUMENTS\n")
+    (cmds / "hinted.md").write_text("---\ndescription: x\nargument-hint: <path>\n---\nRun $1\n")
+    (cmds / "noargs.md").write_text("---\ndescription: x\n---\nJust run it.\n")
+    warnings = check_commands(tmp_path, ["plugins/demo"])
+    assert len(warnings) == 1 and "bare.md" in warnings[0]

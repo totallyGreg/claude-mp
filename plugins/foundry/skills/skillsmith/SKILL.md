@@ -3,7 +3,7 @@ name: skillsmith
 description: This skill should be used when users ask to "create a skill", "validate a skill for quality", "evaluate skill improvements", "improve my skill", "update my skill", "fix skill", "iterate on skill", "optimize skill", "skill quality", "skill performance", "skill isn't working", "analyze skill metrics", "init a new skill", "check skill compliance", or "sync skill to marketplace". Provides comprehensive skill development with automated validation, metrics tracking, and improvement workflows.
 metadata:
   author: J. Greg Williams
-  version: "6.12.1"
+  version: "6.13.0"
 compatibility: Requires python3 and uv for script execution and validation
 license: Complete terms in LICENSE.txt
 ---
@@ -50,7 +50,7 @@ See `plugin-dev:skill-development` Step 4 for writing style, frontmatter format,
 
 - **Frontmatter**: `name`, `description` (max 1024 chars), `metadata.version`, `compatibility`, `license`
 - **Python scripts**: PEP 723 inline metadata required for `uv run`. See `references/python_uv_guide.md`
-- **Size target**: <300 lines, <2000 tokens; move detailed content to `references/`
+- **Size target**: <300 lines, <2000 tokens (house rule; spec tip is <500 lines, <5,000 tokens); move detailed content to `references/`
 
 ### Step 5: Validate
 
@@ -130,6 +130,7 @@ After improvements, invoke **marketplace-manager** to sync `marketplace.json`.
 | Reference | Content |
 |-----------|---------|
 | `references/agentskills_specification.md` | Complete AgentSkills spec, validation checklist |
+| `references/claude_code_skill_extensions.md` | Claude Code-only fields (`when_to_use`, invocation controls), listing cap, plugin-agent limits, audit tools |
 | `references/skill_creation_detailed_guide.md` | Detailed editing, writing style, progressive disclosure |
 | `references/validation_tools_guide.md` | Full evaluate_skill.py flag reference |
 | `references/python_uv_guide.md` | PEP 723 inline metadata for uv scripts |

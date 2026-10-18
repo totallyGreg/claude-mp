@@ -28,6 +28,7 @@ from evaluate_agent import (
     evaluate_agent,
     print_quick_output,
     strip_code_blocks,
+    check_plugin_agent_fields,
 )
 from utils import find_agent_file
 
@@ -495,3 +496,21 @@ class TestStripCodeBlocks(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestPluginAgentFields:
+    """hooks/mcpServers/permissionMode are ignored for plugin-shipped agents."""
+
+    def test_warns_inside_plugin(self, tmp_path):
+        (tmp_path / '.claude-plugin').mkdir()
+        (tmp_path / '.claude-plugin' / 'plugin.json').write_text('{"name": "demo"}')
+        agent = tmp_path / 'agents' / 'a.md'
+        agent.parent.mkdir()
+        agent.write_text('x')
+        warnings = check_plugin_agent_fields(agent, {'name': 'a', 'permissionMode': 'plan', 'hooks': {}})
+        assert len(warnings) == 2
+
+    def test_silent_outside_plugin(self, tmp_path):
+        agent = tmp_path / 'a.md'
+        agent.write_text('x')
+        assert check_plugin_agent_fields(agent, {'permissionMode': 'plan'}) == []

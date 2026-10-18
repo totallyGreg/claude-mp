@@ -91,6 +91,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 | Version | Changes |
 |---------|---------|
+| 2.1.0 | [#219](https://github.com/totallyGreg/claude-mp/issues/219): align with current Anthropic skill guidance. skillsmith 6.13.0 (description scoring: third person, `when_to_use`, 1,536-char cap, broader trigger-phrase detection; PEP 723 only for entry points; Claude Code extensions reference), agentsmith 1.2.0 (ignored plugin-agent fields), marketplace-manager 5.1.0 (command `argument-hint` check, command wrapper scaffold). `/ss-validate --strict` also runs `claude plugin validate` |
 | 2.0.1 | marketplace-manager 5.0.1: `validate.py`, `setup.py` and `scaffold.py` add `from __future__ import annotations`, so the `X \| None` type hints no longer crash under macOS's system Python 3.9. The pre-commit hook calls bare `python3`, which is 3.9 in a plain `/bin/sh` environment. |
 | 2.0.0 | **BREAKING** ([#193](https://github.com/totallyGreg/claude-mp/issues/193)): marketplace-manager 5.0.0 — `plugin.json` is the single source of truth, `/mp-sync` and `sync.py` removed, pre-commit hook blocks commits that change a plugin or skill without raising its version; `/mp-status` shows pending bumps; improve loops end with a bump check instead of sync. Commands gain frontmatter and hooks quote `${CLAUDE_PLUGIN_ROOT}` (passes `claude plugin validate --strict`) |
 | 1.7.0 | skillsmith 6.12.0: fix the eval score discrepancy — conciseness now measures the SKILL.md **body**, not the full file including frontmatter. `--store-metrics` injected its metric block into frontmatter, inflating line/token counts and lowering conciseness (and overall) on the next eval; evaluation is now idempotent (eval→store→eval is stable). |
@@ -103,7 +104,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 ### Current Metrics
 
-**Score: 90/100** (Good) — 2026-09-29
+**Score: 95/100** (Excellent) — 2026-10-18
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -113,6 +114,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 6.13.0 | 2026-10-18 | [#219](https://github.com/totallyGreg/claude-mp/issues/219) | Description scoring follows current Claude Code docs: any third-person phrasing passes (no "This skill should be used when" required), trigger phrases count from `when_to_use` too and are no longer limited to a 29-verb whitelist, length checks the 1,536-char listing cap. PEP 723 required only for entry points (hook + evaluator). New `claude_code_skill_extensions.md`; spec reference refreshed; init templates lead with the capability and hint invocation controls | 100 | 100 | 100 | 100 | 100 | 95 |
 | 6.12.0 | 2026-09-29 | - | Fix eval score discrepancy: conciseness measures the SKILL.md body, not the full file including frontmatter. `--store-metrics` injected its metric block into frontmatter, inflating line/token counts and lowering conciseness (and overall) on the next eval — evaluation is now idempotent (eval→store→eval yields a stable score). Surfaced by mise-tooling reporting 98 on display but 97 on receipt/verify. +v6.12.1 (2026-09-29): integration and workflow guides describe version-bump checks instead of marketplace.json sync ([#193](https://github.com/totallyGreg/claude-mp/issues/193)) | 100 | 100 | 100 | 100 | 100 | 90 |
 | 6.11.0 | 2026-07-23 | [#191](https://github.com/totallyGreg/claude-mp/issues/191) | Verifiable eval receipts: `--write-receipt` records score + content hash + provenance to `.skillsmith-receipt.json`; `--verify [--expect-score]` fails on stale/mismatched/README-inconsistent scores; `--update-readme` auto-writes a receipt. Anti-confabulation guidance in Step 6. Resolves confabulated-score friction (2026-06-10) | 100 | 100 | 100 | 100 | 100 | 100 |
 | 6.10.0 | 2026-07-23 | [#190](https://github.com/totallyGreg/claude-mp/issues/190) | Human-useful plugin READMEs: `--update-components` generates What's-inside/Install/Components inventory into autogen fences (hand-authored zones preserved); MINOR-only Version History enforcement (`--export-table-row` refuses/auto-folds PATCH, `--allow-patch` override, `--check-version-history` audit); `on-component-edit.sh` warn-only staleness hook | 100 | 100 | 100 | 100 | 100 | 100 |
@@ -130,7 +132,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 ### Current Metrics
 
-**Score: 100/100** (Excellent) — 2026-09-29
+**Score: 100/100** (Excellent) — 2026-10-18
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -140,6 +142,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 5.1.0 | 2026-10-18 | [#219](https://github.com/totallyGreg/claude-mp/issues/219) | `validate.py` warns when a command uses `$ARGUMENTS`/`$N` without `argument-hint`; `scaffold.py --with-commands` writes a thin command wrapper | 100 | 100 | 100 | 100 | 100 | 100 |
 | 5.0.0 | 2026-10-09 | [#193](https://github.com/totallyGreg/claude-mp/issues/193) | **BREAKING**: plugin.json is the single source of truth; `sync.py` and `/mp-sync` removed. validate.py now enforces version bumps (plugin + skill) against the merge-base with origin/main, rejects `version` in marketplace entries, limits changed plugin descriptions to 200 chars, and delegates schema checks to `claude plugin validate`. Checks-only pre-commit hook +v5.0.1 | 100 | 100 | 100 | 100 | 100 | 100 |
 | 4.0.0 | 2026-03-26 | [#145](https://github.com/totallyGreg/claude-mp/issues/145) | Official schema alignment, self-sufficient repo model, 12 scripts replaced by 4, reverse scan + auto-fix | 100 | 100 | 100 | 100 | 100 | 100 |
 | 3.1.0 | 2026-03-25 | - | Fix validator schema guidance, merge SKILL.md sections, add negative trigger clause | 100 | 100 | 100 | 100 | 100 | 100 |
@@ -151,7 +154,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 ### Current Metrics
 
-**Score: 98/100** (Excellent) — 2026-09-29
+**Score: 98/100** (Excellent) — 2026-10-18
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -161,6 +164,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.2.0 | 2026-10-18 | [#219](https://github.com/totallyGreg/claude-mp/issues/219) | Warn when a plugin-shipped agent sets `hooks`, `mcpServers` or `permissionMode` (ignored by Claude Code for plugin agents) | 100 | 90 | 100 | 100 | 100 | 98 |
 | 1.1.0 | 2026-09-29 | - | Add code examples, agent-improvement-guide.md reference with delegation model and improvement patterns. +v1.1.1 (2026-07-23): receipts-not-narration guidance in the improvement loop — report only tool-produced scores, require raw eval output from delegated subagents +v1.1.2 (2026-09-29): improvement loop ends with a version-bump check instead of sync.py ([#193](https://github.com/totallyGreg/claude-mp/issues/193)) | 100 | 90 | 100 | 100 | 100 | 98 |
 | 1.0.0 | 2026-04-28 | - | Initial release — agent evaluation with 3 quality dimensions | 100 | 80 | 100 | 85 | 100 | 93 |
 

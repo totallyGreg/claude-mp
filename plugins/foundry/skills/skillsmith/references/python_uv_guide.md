@@ -61,6 +61,8 @@ uv --version
 
 PEP 723 allows embedding dependency declarations directly in Python files using a special comment block.
 
+**Scope:** entry points only — files with an `if __name__ == "__main__":` guard. Imported helper modules, `__init__.py` and `conftest.py` don't run under `uv run` and need no header; the skillsmith hook and evaluator skip them.
+
 ### Basic Structure
 
 ```python

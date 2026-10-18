@@ -17,6 +17,7 @@ Checks:
    description must also fit the marketplace listing (<= 200 characters)
 4. Reverse scan -- plugins on disk missing from marketplace.json (--fix adds them)
 5. Structure (--check-structure) -- anti-patterns such as shared source paths
+6. Commands -- warn when commands/*.md uses $ARGUMENTS/$N without argument-hint
 
 The base is `git merge-base HEAD <ref>`, where <ref> defaults to the remote's
 default branch (origin/HEAD, falling back to origin/main).
@@ -341,6 +342,23 @@ def check_structure(config: dict) -> list[str]:
     return warnings
 
 
+_ARG_REF = re.compile(r"\$(?:ARGUMENTS|[1-9])\b|\$\{[1-9]")
+
+
+def check_commands(repo_root: Path, plugin_dirs: list[str]) -> list[str]:
+    """Warn when a command takes arguments but has no argument-hint for autocomplete."""
+    warnings = []
+    for d in plugin_dirs:
+        for cmd in sorted((repo_root / d / "commands").glob("*.md")):
+            text = cmd.read_text(encoding="utf-8")
+            body = re.sub(r"\A---\n.*?\n---\n", "", text, count=1, flags=re.DOTALL)
+            if _ARG_REF.search(body) and "argument-hint" not in parse_frontmatter(text):
+                warnings.append(
+                    f"{cmd.relative_to(repo_root)}: uses $ARGUMENTS/$N but has no "
+                    f"argument-hint in frontmatter")
+    return warnings
+
+
 def fix_manifest(config: dict, missing: list[dict], path: Path) -> None:
     """Append missing plugins as minimal {name, source} entries."""
     config["plugins"].extend(missing)
@@ -432,6 +450,8 @@ def main() -> None:
     official_errors, official_warnings = validate_official(repo_root, plugin_dirs)
     errors += official_errors
     warnings += official_warnings
+
+    warnings += check_commands(repo_root, plugin_dirs)
 
     if args.check_structure:
         warnings += check_structure(config)

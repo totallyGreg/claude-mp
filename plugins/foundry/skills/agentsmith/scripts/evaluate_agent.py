@@ -804,6 +804,22 @@ def calculate_overall_score(
     return int(overall)
 
 
+# Ignored for agents shipped in a plugin, "for security reasons"
+# (code.claude.com/docs/en/sub-agents).
+PLUGIN_IGNORED_AGENT_FIELDS = ('hooks', 'mcpServers', 'permissionMode')
+
+
+def check_plugin_agent_fields(agent_path: Path, frontmatter: dict) -> list[str]:
+    """Warn about frontmatter fields Claude Code silently ignores in plugin agents."""
+    if find_plugin_root(str(agent_path)) is None:
+        return []
+    return [
+        f"'{field}' is ignored for plugin-shipped agents; enforce it another way "
+        f"(tool list, plugin hooks/hooks.json, or a .mcp.json at the plugin root)"
+        for field in PLUGIN_IGNORED_AGENT_FIELDS if field in frontmatter
+    ]
+
+
 def evaluate_agent(agent_path: Path) -> dict:
     """Run full evaluation on an agent file.
 
@@ -831,6 +847,7 @@ def evaluate_agent(agent_path: Path) -> dict:
             'overall_score': overall,
         },
         'baseline_delta': None,  # Populated by baseline comparison
+        'warnings': check_plugin_agent_fields(agent_path, frontmatter),
     }
 
 
@@ -893,6 +910,12 @@ def print_quick_output(result: dict) -> None:
         f"[agentsmith] Quick eval: Overall {overall}/100 "
         f"(Trig:{trig} Prompt:{prompt} Coher:{coher})"
     )
+    print_warnings(result)
+
+
+def print_warnings(result: dict) -> None:
+    for w in result.get('warnings', []):
+        print(f"  ⚠ {w}")
 
 
 def print_text_output(result: dict) -> None:
@@ -957,6 +980,10 @@ def print_text_output(result: dict) -> None:
     # Overall
     print(f"Overall:                {m['overall_score']}/100")
     print()
+    if result.get('warnings'):
+        print("Warnings:")
+        print_warnings(result)
+        print()
 
     # Baseline
     delta = result.get('baseline_delta')

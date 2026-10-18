@@ -3,7 +3,7 @@ name: agentsmith
 description: This skill should be used when users ask to "evaluate my agent", "improve agent quality", "agent metrics", "check agent description", "agent isn't triggering", "validate agent", "agent score", "as-evaluate", "as-improve", "agent quality", "fix agent description", or "why isn't my agent triggering". Provides agent quality evaluation with 3 scored dimensions and an improvement loop that orchestrates skillsmith and marketplace-manager. Do NOT use for skill evaluation — route to skillsmith instead. Do NOT use for agent creation — route to plugin-dev:agent-development instead.
 metadata:
   author: J. Greg Williams
-  version: "1.1.2"
+  version: "1.2.0"
 compatibility: Requires python3 and uv for script execution
 license: MIT
 ---

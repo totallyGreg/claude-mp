@@ -34,9 +34,13 @@ TEMPLATE_COMPLETE = "complete"
 
 MINIMAL_SKILL_TEMPLATE = """---
 name: {skill_name}
-description: This skill should be used when users ask to "[TODO: trigger phrase 1]", "[TODO: trigger phrase 2]". [TODO: Brief description of what the skill does.]
+description: >-
+  [TODO: What the skill does -- key use case first.] Use when users ask to "[TODO: trigger phrase 1]" or "[TODO: trigger phrase 2]".
 metadata:
   version: "1.0.0"
+# Invocation controls (code.claude.com/docs/en/skills) -- uncomment if needed:
+# disable-model-invocation: true  # side-effect workflow; run only via /name
+# user-invocable: false           # background knowledge; hide from the / menu
 ---
 
 # {skill_title}
@@ -58,12 +62,16 @@ metadata:
 
 COMPLETE_SKILL_TEMPLATE = """---
 name: {skill_name}
-description: This skill should be used when users ask to "[TODO: trigger phrase 1]", "[TODO: trigger phrase 2]", "[TODO: trigger phrase 3]", or "[TODO: trigger phrase 4]". [TODO: Comprehensive description of skill capabilities.]
+description: >-
+  [TODO: What the skill does -- key use case first.] Use when users ask to "[TODO: trigger phrase 1]", "[TODO: trigger phrase 2]", "[TODO: trigger phrase 3]", or "[TODO: trigger phrase 4]". Do NOT use for [TODO: neighbouring task] (use [TODO: other skill]).
 metadata:
   version: "1.0.0"
   author: [TODO: Author name]
 compatibility: Requires python3 and uv for script execution
 license: See LICENSE.txt
+# Invocation controls (code.claude.com/docs/en/skills) -- uncomment if needed:
+# disable-model-invocation: true  # side-effect workflow; run only via /name
+# user-invocable: false           # background knowledge; hide from the / menu
 ---
 
 # {skill_title}
@@ -137,9 +145,13 @@ For detailed guidance, see reference files:
 
 SKILL_TEMPLATE = """---
 name: {skill_name}
-description: [TODO: Complete and informative explanation of what the skill does and when to use it. Include WHEN to use this skill - specific scenarios, file types, or tasks that trigger it.]
+description: >-
+  [TODO: What the skill does -- key use case first -- then when to use it: specific scenarios, file types, or quoted trigger phrases.]
 metadata:
-  version: 1.0.0
+  version: "1.0.0"
+# Invocation controls (code.claude.com/docs/en/skills) -- uncomment if needed:
+# disable-model-invocation: true  # side-effect workflow; run only via /name
+# user-invocable: false           # background knowledge; hide from the / menu
 ---
 
 # {skill_title}

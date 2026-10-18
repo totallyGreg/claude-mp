@@ -621,7 +621,7 @@ Enhanced validation for reference files with deterministic checks:
    - 500-750 lines: 25 points (Poor)
    - >750 lines: 0-10 points (Very poor - way over)
 
-2. **Token-based scoring (0-50 points)** - Stricter limits:
+2. **Token-based scoring (0-50 points)** - House limits, stricter than the spec's "<5,000 tokens recommended":
    - ≤1500 tokens: 50 points
    - 1500-2000 tokens: 45 points (max recommended)
    - 2000-3000 tokens: 30 points
@@ -739,38 +739,37 @@ The Description Quality Score evaluates how well a skill's description follows o
 
 | Component | Points | Criteria |
 |-----------|--------|----------|
-| Trigger Phrases | 40 | 3+ quoted action phrases (e.g., "create X", "validate Y") |
-| Third-Person Format | 30 | Uses "This skill should be used when..." pattern |
+| Trigger Phrases | 40 | 3+ quoted user phrases in `description` or `when_to_use` (a phrase opening with a negation doesn't count) |
+| Third-Person Voice | 30 | No "I can..." / "You can..."; any third-person phrasing passes |
 | Specificity | 20 | Contains concrete scenarios, not generic terms |
-| Length Compliance | 10 | Under 1024 characters (AgentSkills spec) |
+| Length Compliance | 10 | `description` ≤ 1,024 (spec) and `description` + `when_to_use` ≤ 1,536 (Claude Code listing cap) |
+
+`--explain` also notes (unscored) when a description opens with "This skill should be used when...": the listing is truncated, so lead with the key use case. See `claude_code_skill_extensions.md`.
 
 ### How to Improve Description Quality
 
 **Add trigger phrases:**
 ```yaml
-# Before (score: ~30)
+# Before (score: ~60)
 description: Provides guidance for skill development.
 
 # After (score: 100)
-description: This skill should be used when users ask to "create a skill", "validate a skill for quality", "evaluate skill improvements".
+description: Creates, validates, and improves agent skills. Use when users ask to "create a skill", "validate a skill for quality", or "evaluate skill improvements".
 ```
 
-**Use third-person format:**
+**Use third person:**
 ```yaml
 # Before
-description: Use when developing skills.
+description: I can help you develop skills.
 
 # After
-description: This skill should be used when developing skills.
+description: Scaffolds and evaluates skills. Use when developing skills.
 ```
 
-**Be specific:**
+**Move long trigger lists to `when_to_use` (Claude Code):**
 ```yaml
-# Before (generic)
-description: Helps with skills.
-
-# After (specific)
-description: This skill should be used when users ask to "init a new skill", "check skill compliance", or "sync skill to marketplace".
+description: Evaluates agent skills against the AgentSkills spec and scores their quality.
+when_to_use: Use when users ask to "validate a skill", "score my skill", or "why isn't my skill triggering".
 ```
 
 ### Negative Trigger Coaching (--explain only, unscored)

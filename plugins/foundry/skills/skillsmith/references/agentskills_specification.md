@@ -1,5 +1,5 @@
 ---
-last_verified: 2026-04-29
+last_verified: 2026-10-18
 sources:
   - type: github
     repo: "agentskills/agentskills"
@@ -74,7 +74,8 @@ Every SKILL.md must begin with YAML frontmatter containing two required fields:
 - Must be non-empty
 - Describes what the skill does and when to use it
 - Should include keywords that help agents identify when the skill is relevant
-- Should be written in third-person (e.g., "This skill should be used when...")
+- Should be written in third person and lead with what the skill does (spec example: "Extracts text and tables from PDF files... Use when working with PDF documents..."). The "This skill should be used when..." opener is a house convention from plugin-dev, not part of the spec
+- Claude Code-specific limits and fields (`when_to_use`, the 1,536-character listing cap): see `claude_code_skill_extensions.md`
 
 ### Optional Frontmatter Fields
 
@@ -95,13 +96,13 @@ Every SKILL.md must begin with YAML frontmatter containing two required fields:
 - Commonly used fields:
   - `author`: Skill creator name
   - `version`: Semantic version (e.g., "1.0.0")
-  - `tags`: Categories or keywords
+  - `tags`: Categories or keywords (as a string -- values must be strings)
 - Example:
   ```yaml
   metadata:
     author: John Doe
     version: "1.2.0"
-    tags: ["pdf", "document-processing"]
+    tags: "pdf, document-processing"
   ```
 
 **`allowed-tools`** (experimental):
@@ -115,11 +116,11 @@ Every SKILL.md must begin with YAML frontmatter containing two required fields:
 ```yaml
 ---
 name: pdf-processor
-description: This skill should be used when working with PDF files, including rotation, merging, splitting, and extracting text. Handles both simple and complex PDF operations with error handling.
+description: Rotates, merges, splits, and extracts text from PDF files, with error handling for malformed documents. Use when working with PDF files or when the user mentions PDFs.
 metadata:
   author: Jane Smith
   version: "2.1.0"
-  tags: ["pdf", "document", "processing"]
+  tags: "pdf, document, processing"
 compatibility: Requires python3, PyPDF2>=3.0.0, and PIL for image operations
 license: MIT
 ---

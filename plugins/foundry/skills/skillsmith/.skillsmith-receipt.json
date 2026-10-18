@@ -1,7 +1,7 @@
 {
   "skill_name": "skillsmith",
-  "content_hash": "23bf84363085ed9ae346c4b794ad9bada179860b38ba6db1e4957bb908d45f1d",
-  "score": 90,
+  "content_hash": "1192ccc88be2cc18358e583ae787f0da6728c3063c1f064e91ab074e426db26b",
+  "score": 95,
   "metrics": {
     "conciseness": 100,
     "complexity": 100,
@@ -9,6 +9,6 @@
     "progressive_disclosure": 100,
     "description_quality": 100
   },
-  "tool_version": "6.12.1",
-  "date": "2026-09-29"
+  "tool_version": "6.13.0",
+  "date": "2026-10-18"
 }

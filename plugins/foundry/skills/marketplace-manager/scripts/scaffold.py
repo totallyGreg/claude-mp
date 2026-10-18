@@ -143,6 +143,16 @@ def _make_skill_md(name: str, description: str) -> str:
     )
 
 
+COMMAND_MD_TEMPLATE = """\
+---
+description: "{description}"
+argument-hint: "[args]"
+---
+
+Invoke the `{name}` skill with: $ARGUMENTS
+"""
+
+
 MCP_JSON_TEMPLATE = """\
 {
   "mcpServers": {}
@@ -185,7 +195,10 @@ def cmd_create(args: argparse.Namespace) -> int:
     if args.with_commands:
         commands_dir = plugin_root / "commands"
         commands_dir.mkdir()
-        print(f"  Created {commands_dir.relative_to(plugins_dir.parent)}/")
+        # Thin wrapper: one skill per capability, commands expose it as /plugin:verb
+        command_path = commands_dir / f"{name}.md"
+        command_path.write_text(COMMAND_MD_TEMPLATE.format(name=name, description=description))
+        print(f"  Created {command_path.relative_to(plugins_dir.parent)}")
 
     if args.with_agents:
         agents_dir = plugin_root / "agents"
