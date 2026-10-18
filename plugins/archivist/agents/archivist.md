@@ -187,7 +187,8 @@ Note content is written with **`vault-write`**, the plugin's guarded write CLI (
 
 On a refusal (exit 2) — drift, outside the zones, missing `--base`, no git — stop and report; re-read and rebuild on drift. On lint errors (exit 3), fix the content. **`vault-write force`** skips the base and zone checks; use it only after the user approved that specific write (their permission rules should ask for it).
 
-- `obsidian property:set` stays fine for single frontmatter values — it is additive and safe
+- `obsidian property:set path="<path>" name=… value=…` stays fine for single frontmatter values. Always pass `path=`: the guard hook denies CLI writes without it (a missing or mistyped target writes to whatever note is open in Obsidian) or outside the write zones. Use `type=list` for list properties
+- CLI errors print `Error: …` and exit 0, so check the output, not the exit status (see `cli-patterns.md`)
 - Deleting, moving, or renaming notes is outside `vault-write`: ask the user, and use `obsidian move` (link-safe) only with their approval
 - NEVER use `obsidian create overwrite`, or the Edit/Write tools on vault notes, while `vault-write` is available
 - **Fallback** (no `vault-write`, e.g. claude.ai or Cowork, which don't install plugin `bin/`): Edit tool for targeted changes, Write tool for full rewrites, `obsidian create` (without overwrite) only for new notes — and verify by re-reading
@@ -480,7 +481,7 @@ After any session, update `_vault-profile.md` using **section-based replacement*
 1. Read current profile, diff against observed vault state
 2. Update agent-managed headings only (Installed Plugins, Active fileClasses, Folder Structure, Trust Levels, Known Workflows, Workflow Candidates). Preserve user-added sections.
 3. Update workflow tables: increment `Calls` for Known Workflows, add new rows to Workflow Candidates for novel multi-step requests. Promote candidates with 2+ occurrences to Known Workflows.
-4. Write back via `obsidian create path="_vault-profile.md" overwrite content="..." silent`
+4. Write back one section at a time: `vault-write stat "_vault-profile.md"`, then `vault-write apply "_vault-profile.md" --from <staging file> --base <hash> --section "## <Heading>"`. If it refuses because the profile is outside the write zones, ask the user, and use `vault-write force` only after they approve
 
 Write only stable facts — not task state. Large diffs (50%+ sections changed): present diff to user before applying.
 

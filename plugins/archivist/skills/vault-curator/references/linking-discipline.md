@@ -54,7 +54,7 @@ obsidian backlinks file="Types of Notes"
 obsidian links file="Types of Notes"
 
 # Broken wikilinks vault-wide (with source files)
-obsidian unresolved sources=true
+obsidian unresolved verbose
 
 # Notes with no incoming links (orphans — MOC candidates or deletable)
 obsidian orphans

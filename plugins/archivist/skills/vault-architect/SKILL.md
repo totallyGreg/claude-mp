@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.13.0"
+  version: "1.14.0"
   plugin: "archivist"
   stage: "3"
 ---
@@ -33,7 +33,7 @@ Before making structure recommendations, always discover the current vault state
 
 ```bash
 obsidian templates              # what templates already exist
-obsidian tags all counts        # tag usage distribution
+obsidian tags counts        # tag usage distribution
 obsidian folders               # actual folder structure
 uv run scripts/analyze_vault.py ${VAULT_PATH}   # full health check
 ```
@@ -164,7 +164,7 @@ Each vault should maintain a System Guide documenting: folder structure, metadat
 
 1. **Discover first** — run before asking the user anything:
    ```bash
-   obsidian templates && obsidian tags all counts && obsidian folders
+   obsidian templates && obsidian tags counts && obsidian folders
    uv run scripts/analyze_vault.py ${VAULT_PATH}
    ```
 2. Identify pain points from observed data (orphans, schema gaps, missing templates)
@@ -216,7 +216,7 @@ Create or regenerate `_vault-profile.md` in the vault root. This profile provide
    uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/analyze_vault.py ${VAULT_PATH}
    obsidian folders
    obsidian templates
-   obsidian tags all counts
+   obsidian tags counts
    ```
    If `obsidian` CLI fails (app not running), fall back to Glob/Grep/Read on vault files.
 
