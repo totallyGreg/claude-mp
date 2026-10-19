@@ -118,8 +118,11 @@ Run only what the task needs.
 
 1. **Always — config and vault identity.**
    - Run `vault-write config`. Use its `vault` (path), `vault_name`, zones, `missing_zones`, `legacy` and `daily_notes`.
-   - Then run `obsidian vault="<vault_name>" vault`. The `path` it prints must equal `vault`. If it doesn't, or Obsidian isn't running, stop and say so; don't fall back to whichever vault is focused.
-   - Pass `vault="<vault_name>"` on **every** `obsidian` call. The guard hook denies CLI writes without it.
+   - Then run `obsidian vault="<vault_name>" vault`. The `path` it prints must equal `vault`.
+     - `Vault not found.`, a different path, or Obsidian not running: stop and say so.
+     - `Error: Command "vault" not found`: the vault wasn't open. Obsidian has just opened and focused it; retry once.
+     - Never fall back to whichever vault is focused.
+   - Start **every** `obsidian` call with `vault="<vault_name>"`, before the subcommand. The CLI silently ignores a `vault=` after it, and the guard hook denies CLI writes without a leading one. Details: `references/cli-patterns.md` → Target the Vault Explicitly.
 2. **First run** ("no archivist config"):
    - Ask for the vault path.
    - Show the one-line `~/.config/archivist/local.md` (`vault_path: <path>`) and create it with a Bash heredoc. Claude Code asks the user before running it, which is intended, because changing write policy needs a human.
@@ -145,7 +148,7 @@ Run only what the task needs.
 
    Lead with the highest-impact issue (orphans > 20, unhealthy collections, drift), or say the vault looks healthy.
 
-**Today's daily note:** resolve it by name with `obsidian vault="<vault_name>" file file="<date in daily_notes.format>"`, because templates can move daily notes into year folders. `daily:path` gives where Obsidian would create it. Never guess a folder.
+**Today's daily note:** `daily_notes.today` from `vault-write config`. It's checked against where recent daily notes actually are, so a stale plugin setting can't misplace it. Never guess a folder. The CLI's `daily:*` commands work only with the core Daily notes plugin, not with Periodic Notes or Journals.
 
 **Permissions setup check:** if Claude Code (not the guard hook) denies a `vault-write` or `obsidian` call, print the allow rules from the plugin README's "Suggested permission rules" block, say which one is missing, and stop. Never edit settings files yourself.
 
@@ -174,7 +177,7 @@ On a refusal (exit 2: drift, outside zones, missing `--base`, no git), stop and 
 
 - **Single frontmatter values:** `obsidian vault="<vault_name>" property:set path="<path>" name=… value=…` (add `type=list` for lists). Always pass `path=`.
 - **Move or rename:** ask the user, then use `obsidian move` / `rename` (link-safe; the guard asks too). Deleting is the user's job, or a confirmed `rm` after a dependency check.
-- **Scripts with a write mode** (`merge_notes.py`, `generate_canvas.py`): run them with `--no-write` and pipe the output into `vault-write apply --from -`.
+- **Scripts that write** (`merge_notes.py`, `redirect_links.py`, `generate_canvas.py`) go through `vault-write` themselves. Run `--dry-run` first. A refusal comes back as `status: refused` or a `skipped` list; nothing outside the zones is written.
 - **One file, one write.** Editing a note should not cascade into other notes; Bases and links handle the relationships.
 
 ## Delegating to the architect

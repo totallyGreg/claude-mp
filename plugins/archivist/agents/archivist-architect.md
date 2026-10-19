@@ -72,7 +72,8 @@ If the vault-architect skill isn't already in your context (preloading applies t
 1. **Config and vault identity.**
    - Run `vault-write config`.
    - Then `obsidian vault="<vault_name>" vault`. Its `path` must equal the config's `vault`; stop if not.
-   - Pass `vault="<vault_name>"` on every `obsidian` call.
+   - Start every `obsidian` call with `vault="<vault_name>"`, before the subcommand (a `vault=` after it is silently ignored).
+   - `Vault not found.` or a path mismatch means stop. `Command "vault" not found` means Obsidian just opened the vault; retry once.
 2. **Profile.**
    - Read it with `obsidian vault="<vault_name>" read path="_vault-profile.md"` when the work depends on conventions (fileClasses, folder structure, plugins).
    - If it's absent, run **Vault Profiling** (skill workflow).

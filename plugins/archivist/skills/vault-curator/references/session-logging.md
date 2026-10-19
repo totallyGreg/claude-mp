@@ -28,12 +28,8 @@ obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"A
 ## `/session-log start`
 
 **Default (no project mentioned):** Use today's daily note as the session log.
-1. Find today's daily note:
-   ```bash
-   obsidian vault="$VAULT_NAME" search query="fileClass:journal" limit=1 sort=created
-   ```
-   If no result, open today's note by date so Obsidian creates it from the daily note template.
-2. Store the returned path as `SESSION_LOG`; report it to the user.
+1. Find today's daily note: `daily_notes.today` from `vault-write config`. If `daily_notes.today_exists` is false, open today's note in Obsidian so its plugin creates it from the template.
+2. Store that path as `SESSION_LOG`; report it to the user.
 3. Create a session-start entry:
    ```bash
    obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"Session started"}'

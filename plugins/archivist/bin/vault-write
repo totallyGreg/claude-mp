@@ -148,23 +148,94 @@ def suggest(root: Path, zone: str) -> str | None:
     return (zp.parent / hit[0]).as_posix() if hit else None
 
 
-def daily_notes(root: Path) -> dict | None:
-    """Where Obsidian creates daily notes: Periodic Notes if enabled, else the core Daily notes plugin."""
+_MOMENT = re.compile(r"\[([^\]]*)\]|YYYY|YY|MMMM|MMM|MM|M|DDDD|DD|Do|D|dddd|ddd|WW|W|ww|w|Q")
+_ORD = {1: "st", 2: "nd", 3: "rd"}
+
+
+def render_moment(fmt: str, d: "datetime.date") -> str:
+    """The subset of moment.js formatting that daily-note plugins use for names and folders."""
+    import calendar
+
+    def tok(m: re.Match) -> str:
+        t = m.group(0)
+        if m.group(1) is not None:
+            return m.group(1)  # [literal]
+        iso_week = d.isocalendar()[1]
+        return {
+            "YYYY": f"{d.year:04d}", "YY": f"{d.year % 100:02d}",
+            "MMMM": calendar.month_name[d.month], "MMM": calendar.month_abbr[d.month],
+            "MM": f"{d.month:02d}", "M": str(d.month),
+            "DDDD": f"{d.timetuple().tm_yday:03d}", "DD": f"{d.day:02d}", "D": str(d.day),
+            "Do": f"{d.day}{'th' if 10 <= d.day % 100 <= 20 else _ORD.get(d.day % 10, 'th')}",
+            "dddd": calendar.day_name[d.weekday()], "ddd": calendar.day_abbr[d.weekday()],
+            "WW": f"{iso_week:02d}", "W": str(iso_week), "ww": f"{iso_week:02d}", "w": str(iso_week),
+            "Q": str((d.month - 1) // 3 + 1),
+        }[t]
+    return _MOMENT.sub(tok, fmt)
+
+
+def _render_template(text: str, fmt: str, d) -> str:
+    """Journals-style `{{date}}` / `{{date:FMT}}` placeholders."""
+    return re.sub(r"\{\{date(?::([^}]*))?\}\}", lambda m: render_moment(m.group(1) or fmt, d), text, flags=re.IGNORECASE)
+
+
+def _daily_candidates(root: Path) -> list[dict]:
+    """Every enabled plugin that says where daily notes go, as path templates."""
     def read(rel):
         try:
             return json.loads((root / ".obsidian" / rel).read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return None
-    found = None
+    community = read("community-plugins.json") or []
+    out = []
     periodic = (read("plugins/periodic-notes/data.json") or {}).get("daily") or {}
-    if "periodic-notes" in (read("community-plugins.json") or []) and periodic.get("enabled"):
-        found = {"source": "periodic-notes", "folder": periodic.get("folder") or "", "format": periodic.get("format") or ""}
-    elif (read("core-plugins.json") or {}).get("daily-notes"):
+    if "periodic-notes" in community and periodic.get("enabled"):
+        out.append({"source": "periodic-notes", "folder": periodic.get("folder") or "", "format": periodic.get("format") or "YYYY-MM-DD"})
+    if "journals" in community:
+        journals = (read("plugins/journals/data.json") or {}).get("journals") or {}
+        for name, j in journals.items():
+            if (j.get("write") or {}).get("type") == "day" and "{{index}}" not in (j.get("nameTemplate") or ""):
+                out.append({"source": f"journals:{name}", "folder": j.get("folder") or "",
+                            "format": j.get("dateFormat") or "YYYY-MM-DD", "name": j.get("nameTemplate") or "{{date}}"})
+    if (read("core-plugins.json") or {}).get("daily-notes"):  # last: the plugins above replace it
         core = read("daily-notes.json") or {}
-        found = {"source": "daily-notes", "folder": core.get("folder") or "", "format": core.get("format") or ""}
-    if found:
-        found["format"] = found["format"] or "YYYY-MM-DD"
-        found["exists"] = (root / found["folder"]).is_dir()
+        out.append({"source": "daily-notes", "folder": core.get("folder") or "", "format": core.get("format") or "YYYY-MM-DD"})
+    return out
+
+
+def _daily_path(c: dict, d) -> str:
+    folder = _render_template(c["folder"].replace("{{journal_name}}", c["source"].split(":", 1)[-1]), c["format"], d)
+    name = _render_template(c["name"], c["format"], d) if "name" in c else render_moment(c["format"], d)
+    return nfc(str(PurePosixPath(folder.strip("/")) / f"{name}.md")) if folder.strip("/") else nfc(f"{name}.md")
+
+
+def daily_notes(root: Path, today=None) -> dict | None:
+    """Where today's daily note is. Plugins can disagree (a stale folder in one, a year
+    template in another), so the candidate whose paths match the most existing notes wins:
+    the last 14 days, or the last year when none of the last 14 days exist. Settings break
+    ties in the order Periodic Notes, Journals, core Daily notes (the plugins replace the core one)."""
+    import datetime
+    today = today or datetime.date.today()
+    candidates = _daily_candidates(root)
+    if not candidates:
+        return None
+    def hits(c, days):
+        return sum((root / _daily_path(c, today - datetime.timedelta(days=i))).is_file() for i in range(days))
+    for c in candidates:
+        c["hits"] = hits(c, 14)
+        c["today"] = _daily_path(c, today)
+    if not any(c["hits"] for c in candidates):
+        for c in candidates:
+            c["hits"] = hits(c, 366)
+    best = max(candidates, key=lambda c: c["hits"])  # max keeps the first on ties
+    found = {"source": best["source"], "folder": best["folder"], "format": best["format"],
+             "today": best["today"], "today_exists": (root / best["today"]).is_file(), "recent_matches": best["hits"]}
+    found["exists"] = (root / PurePosixPath(best["today"]).parent).is_dir()
+    # Other day journals (a work log, say) aren't the daily note unless notes exist where they point.
+    others = [c for c in candidates if c is not best and c["today"] != best["today"]
+              and (c["hits"] or not c["source"].startswith("journals:"))]
+    if others:
+        found["disagree"] = [{"source": c["source"], "today": c["today"], "recent_matches": c["hits"]} for c in others]
     return found
 
 
@@ -374,7 +445,7 @@ def cmd_config(args) -> dict:
     missing = [{"zone": z, "did_you_mean": suggest(root, z)} for z in missing_zones(cfg)]
     daily = daily_notes(root)
     if daily:
-        daily["in_zone"] = in_zone(nfc(daily["folder"]), cfg["zones"])
+        daily["in_zone"] = in_zone(daily["today"], cfg["zones"])
     out = {"ok": True, "action": "config", "config": cfg["config"], "vault": str(root), "vault_name": root.name, **cfg["by_key"],
            "missing_zones": missing, "daily_notes": daily}
     if cfg["legacy"]:
@@ -410,29 +481,34 @@ def cmd_check(args) -> dict:
 
 
 def cmd_write(args, forced: bool) -> dict:
-    cfg = load_config()
-    path, rel = resolve_note(cfg, args.note)
+    return write_note(load_config(), args.note, read_source(args.source), args.base, args.section, forced)
+
+
+def write_note(cfg: dict, note: str, incoming: str, base: str | None = None, section: str | None = None,
+               forced: bool = False) -> dict:
+    """The one guarded write path: zones, compare-and-swap on `base`, lint, git snapshot, atomic
+    verified write. The CLI and the curator scripts both call this. Raises Refused / LintFailed."""
+    path, rel = resolve_note(cfg, note)
     warnings: list[str] = [f"zone does not exist in vault: {z} (see `vault-write config`)" for z in missing_zones(cfg)]
     if not in_zone(rel, cfg["zones"]):
         if not forced:
             raise Refused(f"{rel} is outside the write zones {cfg['zones']}; use `vault-write force` (asks the user)")
         warnings.append("outside write zones (forced)")
-    incoming = read_source(args.source)
     exists = path.is_file()
     before = path.read_bytes() if exists else b""
     h_before = hashes(before, cfg["ignore_keys"]) if exists else None
     if exists:
-        if args.base:
-            if not base_matches(args.base, h_before):
-                raise Refused(f"drift: {rel} changed since --base {args.base[:12]} (now {h_before['hash'][:12]}); re-read and rebuild")
+        if base:
+            if not base_matches(base, h_before):
+                raise Refused(f"drift: {rel} changed since --base {base[:12]} (now {h_before['hash'][:12]}); re-read and rebuild")
         elif not forced:
             raise Refused(f"{rel} exists; pass --base <hash from `vault-write stat`> or use `vault-write force`")
         else:
             warnings.append("overwrote without --base (forced)")
-    if args.section:
+    if section:
         if not exists:
             raise Refused("--section needs an existing note")
-        new_text = replace_section(before.decode("utf-8"), args.section, incoming)
+        new_text = replace_section(before.decode("utf-8"), section, incoming)
     else:
         new_text = incoming
     errors, lint_warn = check_content(rel, before.decode("utf-8", errors="replace"), new_text, cfg["root"])

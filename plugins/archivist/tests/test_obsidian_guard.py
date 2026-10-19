@@ -34,8 +34,8 @@ def decide(command):
     ('obsidian create path=x content="a;b" overwrite', "deny"),
     ('echo hi && obsidian delete path="x"', "deny"),
     ("cd /tmp; obsidian move file=a to=b", "ask"),
-    ('obsidian create vault=vault path="Notes/x.md" content="please overwrite this"', None),
-    ('obsidian create vault=vault path=Notes/x content="a | b && c"', None),
+    ('obsidian vault=vault create path="Notes/x.md" content="please overwrite this"', None),
+    ('obsidian vault=vault create path=Notes/x content="a | b && c"', None),
     ('obsidian read path="x.md"', None),
     ('obsidian search query="delete me"', None),
     ("git status", None),
@@ -63,7 +63,7 @@ def decide(command):
     ('obsidian append pth="Notes/a.md" content="x"', "deny"),
     ('obsidian property:set file=a name=status value=done', "deny"),
     ("obsidian task toggle", "deny"),
-    ("obsidian task vault=vault daily toggle", None),
+    ("obsidian vault=vault task daily toggle", None),
     ("obsidian task ref=a.md:3", None),
     ('obsidian vault=vault daily:append content="- did a thing"', None),
     ('obsidian daily:append content="- did a thing"', "deny"),
@@ -80,17 +80,22 @@ def test_rm_in_vault_asks(vault):
 
 
 @pytest.mark.parametrize("command,expected", [
-    ('obsidian append vault=vault path="Notes/a.md" content="x"', None),
+    ('obsidian vault=vault append path="Notes/a.md" content="x"', None),
     ('obsidian vault=vault property:set path="Notes/a.md" name=status value=done', None),
-    ('obsidian property:remove vault=vault path="Notes/a.md" name=status', None),
-    ('obsidian create vault=vault path="Notes/new.md" content="x"', None),
-    ("obsidian task vault=vault ref=Notes/a.md:3 done", None),
+    ('obsidian vault=vault property:remove path="Notes/a.md" name=status', None),
+    ('obsidian vault=vault create path="Notes/new.md" content="x"', None),
+    ("obsidian vault=vault task ref=Notes/a.md:3 done", None),
     # the CLI targets the focused vault unless vault= names the configured one
     ('obsidian append path="Notes/a.md" content="x"', "deny"),
-    ('obsidian append vault=Sandbox path="Notes/a.md" content="x"', "deny"),
-    ('obsidian append vault=vault path="Templates/t.md" content="x"', "deny"),
-    ('obsidian property:set vault=vault path="../outside.md" name=a value=b', "deny"),
-    ("obsidian task vault=vault ref=Templates/t.md:3 toggle", "deny"),
+    ('obsidian vault=Sandbox append path="Notes/a.md" content="x"', "deny"),
+    # vault= after the subcommand is silently ignored by the CLI
+    ('obsidian append vault=vault path="Notes/a.md" content="x"', "deny"),
+    ('obsidian property:set vault=vault path="Notes/a.md" name=a value=b', "deny"),
+    # vault names match case-insensitively, like Obsidian
+    ('obsidian vault=VAULT append path="Notes/a.md" content="x"', None),
+    ('obsidian vault=vault append path="Templates/t.md" content="x"', "deny"),
+    ('obsidian vault=vault property:set path="../outside.md" name=a value=b', "deny"),
+    ("obsidian vault=vault task ref=Templates/t.md:3 toggle", "deny"),
 ])
 def test_cli_writes_are_zone_checked(vault, command, expected):
     assert decide(command) == expected

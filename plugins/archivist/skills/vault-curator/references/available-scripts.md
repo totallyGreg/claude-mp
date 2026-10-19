@@ -3,6 +3,12 @@
 All scripts use PEP 723 inline metadata for `uv run` compatibility. Run via:
 `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/<script> ${VAULT_PATH}`
 
+**Writes go through `vault-write`.**
+- `merge_notes.py`, `redirect_links.py` and `generate_canvas.py` write through `bin/vault-write` (via `_vault_write.py`). They get the same zone check, drift check against what they read, lint or JSON validation, and git snapshot as the CLI.
+- They refuse a vault other than the configured one.
+- `--dry-run` previews the change. `--no-write` returns the content for the agent to apply with `vault-write apply`.
+- Every other script only reads.
+
 | Script | Purpose |
 |--------|---------|
 | `extract_section_to_meeting.py` | Extract meeting from daily note log |

@@ -34,7 +34,7 @@ All intelligence workflows (metadata, consolidation, discovery, visualization) b
 
 1. **Discover vault structure** using CLI or file tools:
    ```bash
-   obsidian folders                          # CLI: list all vault folders
+   obsidian vault="<vault_name>" folders                          # CLI: list all vault folders
    # OR fallback:
    tree -L 2 -d ${VAULT_PATH}               # file tools: directory tree
    ```
@@ -47,7 +47,7 @@ All intelligence workflows (metadata, consolidation, discovery, visualization) b
 
 **Quick path:** If the user mentions a specific topic ("my Docker notes"), search first:
 ```bash
-obsidian search query="Docker" format=json
+obsidian vault="<vault_name>" search query="Docker" format=json
 ```
 
 **Edge cases:** Empty scope → inform and suggest broadening. Whole vault → warn and require confirmation. CLI unavailable → fall back to `tree` + Glob/Grep.
@@ -70,7 +70,7 @@ Before writing any note to the vault:
     - Skip sentence-initial single capitalized words and common acronyms (API, JSON, YAML, HTTP, URL) via a stop-list.
     - Prefer multi-word proper-noun phrases (`Prisma AIRS Team`, `Labs as a Service`) over single-word candidates.
     - Cap candidates per write at ~20; if exceeded, surface a summary ("Found N phrases. Show first 20 or skip?") rather than continuing.
-    For surviving candidates, run a single batch existence check using `obsidian search query="<phrase>"` (or `obsidian aliases`). At the end of the scan, surface unresolved or multi-match candidates in one consolidated message:
+    For surviving candidates, run a single batch existence check using `obsidian vault=… search query="<phrase>"` (or `obsidian aliases`). At the end of the scan, surface unresolved or multi-match candidates in one consolidated message:
       "These mentions may want to be wikilinks: - 'Prisma AIRS Team' — no vault note found (write as plain text, create a stub, or specify a target?) - 'AIRS' — matches 3 notes (specify which, or leave plain?) Reply with link decisions or 'skip all' to proceed."
     The user makes the call; rewrite only the mentions confirmed. Do NOT scan-and-rewrite autonomously. Do NOT issue one search per candidate inline.
 4. **Write note content with `vault-write`** (`vault-write stat` → stage → `vault-write apply <path> --from <file> --base <hash> [--section "## Heading"]`); see the agent's Write Path. NEVER use `obsidian create overwrite` while `vault-write` is available — it is destructive, unguarded, and turns `\n` sequences in content into newlines. Always prepare the FULL content (or the full section) first, then write in one operation. To test write permissions, use `obsidian property:set` on a non-critical property — it is additive, not destructive. Never write "test", empty strings, or partial content to existing notes.
@@ -216,7 +216,7 @@ Merge source note into target (surviving) note:
    ```
 3. **Review** frontmatter changes (added, conflicts, merged lists) and content append
 4. **Resolve conflicts** — present each to user for decision
-5. **Execute merge** (remove `--dry-run`)
+5. **Execute merge** (remove `--dry-run`). The script writes the target through `vault-write`. `status: refused` (exit 2) means the target is outside the zones or changed since the script read it, and nothing was written.
 
 ### Redirect Links
 
@@ -228,7 +228,7 @@ After merge, redirect all vault-wide references from deleted note to surviving n
      ${VAULT_PATH} --old "${OLD_NAME}" --new "${NEW_NAME}" --dry-run
    ```
 2. **Review** affected files and replacement counts
-3. **Execute redirect** (remove `--dry-run`)
+3. **Execute redirect** (remove `--dry-run`). Each file is written through `vault-write`. Files it refuses (outside zones, changed meanwhile, lint) are listed under `skipped` and left unchanged; report them.
 4. **Delete source note** only after redirect is confirmed
 
 ## Discovery Workflows

@@ -191,7 +191,9 @@ def test_config_discovers_daily_notes(vault):
     (obs / "core-plugins.json").write_text('{"daily-notes": true}')
     (obs / "daily-notes.json").write_text('{"folder": "500 ♽ Cycles", "format": ""}')
     daily = run("config")[1]["daily_notes"]
-    assert daily == {"source": "daily-notes", "folder": "500 ♽ Cycles", "format": "YYYY-MM-DD", "exists": True, "in_zone": True}
+    assert (daily["source"], daily["folder"], daily["format"], daily["exists"], daily["in_zone"]) == (
+        "daily-notes", "500 ♽ Cycles", "YYYY-MM-DD", True, True)
+    assert daily["today"].startswith("500 ♽ Cycles/") and daily["today"].endswith(".md")
     # Periodic Notes wins when it is enabled.
     (obs / "community-plugins.json").write_text('["periodic-notes"]')
     (obs / "plugins" / "periodic-notes" / "data.json").write_text('{"daily": {"enabled": true, "folder": "Private", "format": "YYYY/MM-DD"}}')
@@ -226,3 +228,42 @@ def test_canvas_must_be_valid_json(vault):
     assert code == 3 and "not valid JSON" in out["errors"][0]
     code, out = run("apply", "Notes/map.canvas", "--from", "-", stdin='{"nodes": [{"text": "```"}], "edges": []}')
     assert code == 0, out  # a fence inside canvas JSON isn't a markdown lint error
+
+
+def _journals(obs, folder):
+    (obs / "plugins" / "journals").mkdir(parents=True, exist_ok=True)
+    (obs / "plugins" / "journals" / "data.json").write_text(json.dumps({"journals": {
+        "Daily": {"write": {"type": "day"}, "nameTemplate": "{{date}}", "dateFormat": "YYYY-MM-DD", "folder": folder},
+        "Meeting": {"write": {"type": "day"}, "nameTemplate": "{{date}} {{index}}", "dateFormat": "YYYY-MM-DD", "folder": "Notes/M"}}}))
+
+
+def test_daily_notes_follow_the_evidence(vault):
+    """A stale Periodic Notes folder loses to a Journals year template that matches real notes."""
+    import datetime
+    obs = vault / ".obsidian"
+    (obs / "plugins" / "periodic-notes").mkdir(parents=True)
+    (obs / "community-plugins.json").write_text('["periodic-notes", "journals"]')
+    (obs / "plugins" / "periodic-notes" / "data.json").write_text('{"daily": {"enabled": true, "folder": "Notes/Days/2019"}}')
+    _journals(obs, "Notes/Days/{{date:YYYY}}")
+    old = datetime.date.today() - datetime.timedelta(days=40)  # outside 14 days: the one-year fallback decides
+    (vault / "Notes" / "Days" / f"{old:%Y}").mkdir(parents=True)
+    (vault / "Notes" / "Days" / f"{old:%Y}" / f"{old:%Y-%m-%d}.md").write_text("x\n")
+    daily = run("config")[1]["daily_notes"]
+    today = datetime.date.today()
+    assert daily["source"] == "journals:Daily"
+    assert daily["today"] == f"Notes/Days/{today:%Y}/{today:%Y-%m-%d}.md"
+    assert daily["disagree"][0]["source"] == "periodic-notes"  # the indexed Meeting journal isn't a candidate
+
+
+def test_render_moment():
+    import datetime
+    import importlib.machinery
+    import importlib.util
+    loader = importlib.machinery.SourceFileLoader("vw", str(BIN))
+    vw = importlib.util.module_from_spec(importlib.util.spec_from_loader("vw", loader))
+    loader.exec_module(vw)
+    d = datetime.date(2026, 10, 3)
+    assert vw.render_moment("YYYY-MM-DD", d) == "2026-10-03"
+    assert vw.render_moment("dddd MMMM Do, YYYY", d) == "Saturday October 3rd, 2026"
+    assert vw.render_moment("YYYY-[W]WW", d) == "2026-W40"
+    assert vw._render_template("Days/{{date:YYYY}}/{{Date}}", "YYYY-MM-DD", d) == "Days/2026/2026-10-03"

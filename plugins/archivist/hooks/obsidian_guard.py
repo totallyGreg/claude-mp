@@ -12,8 +12,9 @@ match reliably (a `*` in the middle of a rule spans one token, so argument order
 - obsidian create/append/prepend/property:set/property:remove/task <update>
     without an explicit path=              -> deny (a missing or mistyped target acts on
                                               whatever note is open in Obsidian)
-    without vault=<config vault name>      -> deny (the CLI targets the focused vault;
-                                              daily:append/prepend need it too)
+    without vault=<config vault name>      -> deny. It must come before the subcommand: the CLI
+      before the subcommand                   silently ignores a vault= after it and acts on the
+                                              cwd's vault or the focused one (daily:* too)
     with path= outside the write zones     -> deny
 - obsidian move/rename/command/template:insert/history:restore/sync:restore,
   base:create, plugin and theme installs   -> ask
@@ -29,6 +30,7 @@ import os
 import re
 import shlex
 import sys
+import unicodedata
 import importlib.util
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
@@ -113,13 +115,20 @@ def kv(args: list[str]) -> dict[str, str]:
     return dict(a.split("=", 1) for a in args if "=" in a)
 
 
-def check_write(sub: str, args: list[str], vw, cfg) -> tuple[str, str] | None:
+def _vault_key(name: str) -> str:
+    """Obsidian matches vault names case-insensitively; macOS may hand us NFD."""
+    return unicodedata.normalize("NFC", name).casefold()
+
+
+def check_write(sub: str, args: list[str], vault: str | None, vw, cfg) -> tuple[str, str] | None:
+    """`vault` is the vault= given before the subcommand (the only place the CLI reads it)."""
     params = kv(args)
     if sub == "task" and not (TASK_UPDATES & set(args) or "status" in params):
         return None  # a read
-    if cfg and params.get("vault") != cfg["root"].name:
-        return "deny", (f"Archivist policy: obsidian {sub} needs vault=\"{cfg['root'].name}\". Without it the CLI "
-                        "writes to whichever vault is focused in Obsidian, not the configured one.")
+    if cfg and _vault_key(vault or "") != _vault_key(cfg["root"].name):
+        return "deny", (f"Archivist policy: start the command with obsidian vault=\"{cfg['root'].name}\" {sub} …. "
+                        "Without it, or with vault= after the subcommand (which the CLI silently ignores), "
+                        "it writes to the working directory's vault or whichever vault is focused in Obsidian.")
     if sub in DAILY_WRITES or (sub == "task" and "daily" in args):
         return None  # the daily note: Obsidian resolves the path
     target = params.get("path", "")
@@ -149,7 +158,7 @@ def check_obsidian(rest: list[str], vw, cfg) -> tuple[str, str] | None:
     if sub in ASK:
         return "ask", ASK[sub]
     if sub in WRITES or sub in DAILY_WRITES or sub == "task":
-        return check_write(sub, rest, vw, cfg)  # rest: vault= may come before the subcommand
+        return check_write(sub, args, kv(rest[:i] if i is not None else rest).get("vault"), vw, cfg)
     return None
 
 

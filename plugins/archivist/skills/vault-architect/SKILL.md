@@ -29,12 +29,12 @@ Principles: capture quickly, organize via metadata not folders, aggregate automa
 
 Before making structure recommendations, always discover the current vault state. This prevents redundant suggestions and grounds recommendations in what actually exists.
 
-> **CLI source:** `obsidian-cli` skill from the [obsidian-skills](https://github.com/kepano/obsidian-skills) marketplace. Parameter distinction: `path=exact/path.md` (vault-relative path) vs `file=name` (link-style resolution — use `file=` when resolving folder notes, e.g. `obsidian read file="Workflows"`). For bugs and fallback patterns, see `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/cli-patterns.md`. Fallback: Glob/Grep/Read on vault files at `${VAULT_PATH}`.
+> **CLI source:** `obsidian-cli` skill from the [obsidian-skills](https://github.com/kepano/obsidian-skills) marketplace. Parameter distinction: `path=exact/path.md` (vault-relative path) vs `file=name` (link-style resolution — use `file=` when resolving folder notes, e.g. `obsidian vault=… read file="Workflows"`). For bugs and fallback patterns, see `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/cli-patterns.md`. Fallback: Glob/Grep/Read on vault files at `${VAULT_PATH}`.
 
 ```bash
-obsidian templates              # what templates already exist
-obsidian tags counts        # tag usage distribution
-obsidian folders               # actual folder structure
+obsidian vault="<vault_name>" templates              # what templates already exist
+obsidian vault="<vault_name>" tags counts        # tag usage distribution
+obsidian vault="<vault_name>" folders               # actual folder structure
 uv run scripts/analyze_vault.py ${VAULT_PATH}   # full health check
 ```
 
@@ -164,7 +164,7 @@ Each vault should maintain a System Guide documenting: folder structure, metadat
 
 1. **Discover first** — run before asking the user anything:
    ```bash
-   obsidian templates && obsidian tags counts && obsidian folders
+   obsidian vault="<vault_name>" templates && obsidian vault="<vault_name>" tags counts && obsidian vault="<vault_name>" folders
    uv run scripts/analyze_vault.py ${VAULT_PATH}
    ```
 2. Identify pain points from observed data (orphans, schema gaps, missing templates)
@@ -177,8 +177,8 @@ Each vault should maintain a System Guide documenting: folder structure, metadat
 **Before creating a workflow note, always check if one exists:**
 
 ```bash
-obsidian search query="<topic>" limit=10
-obsidian read file="Workflows"   # shows Workflows.base — scan Current Workflows view
+obsidian vault="<vault_name>" search query="<topic>" limit=10
+obsidian vault="<vault_name>" read file="Workflows"   # shows Workflows.base — scan Current Workflows view
 ```
 
 Workflows are discovered by `900 📐Templates/970 Bases/Workflows.base` via any of:
@@ -192,7 +192,7 @@ Workflows are discovered by `900 📐Templates/970 Bases/Workflows.base` via any
 
 Scaffold a Collection Folder (a named folder for a repeating note type):
 
-1. **Check existing state**: `obsidian read file="<Name>"`, `obsidian read path="900 📐Templates/970 Bases/<Name>.base"`, `obsidian templates`
+1. **Check existing state**: `obsidian vault=… read file="<Name>"`, `obsidian vault=… read path="900 📐Templates/970 Bases/<Name>.base"`, `obsidian templates`
 2. **Design schema** — infer from existing notes or ask user for required fields
 3. **Create Bases file** at `900 📐Templates/970 Bases/<Name>.base` — fileClass filter, named view, sorted by `file.mtime DESC`
 4. **Create folder note** at `<Folder>/<Folder>.md` — description, schema table, `![[<Name>.base#<View>]]` embed
@@ -214,9 +214,9 @@ Create or regenerate `_vault-profile.md` in the vault root. This profile provide
 1. **Discover vault structure:**
    ```bash
    uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/analyze_vault.py ${VAULT_PATH}
-   obsidian folders
-   obsidian templates
-   obsidian tags counts
+   obsidian vault="<vault_name>" folders
+   obsidian vault="<vault_name>" templates
+   obsidian vault="<vault_name>" tags counts
    ```
    If `obsidian` CLI fails (app not running), fall back to Glob/Grep/Read on vault files.
 

@@ -6,7 +6,7 @@ argument-hint: [start|resume|pause|end|recap]
 
 Invoke the archivist agent to manage a session log. The argument is `$ARGUMENTS`.
 
-**Vault:** run `vault-write config` once and set `VAULT_NAME` to its `vault_name`. Every `obsidian` call below passes `vault="$VAULT_NAME"`: without it the CLI acts on whichever vault is focused in Obsidian, and the guard hook denies CLI writes that lack it.
+**Vault:** run `vault-write config` once and set `VAULT_NAME` to its `vault_name`. Every `obsidian` call below starts with `vault="$VAULT_NAME"`, before the subcommand. Without it, the CLI acts on the working directory's vault or the focused one, and it silently ignores a `vault=` placed after the subcommand. The guard hook denies CLI writes that lack a leading `vault=`.
 
 ## logEntries.js
 
@@ -37,12 +37,8 @@ obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"A
 First, determine whether a specific project was mentioned in the user's request.
 
 **start — no project mentioned (default):**
-1. Find today's daily note. Don't assume a folder: `vault-write config` reports `daily_notes.format` (from the vault's Periodic Notes or Daily notes settings; default `YYYY-MM-DD`). Format today's date with it, take the last path component as the name, and resolve the note by name:
-   ```bash
-   obsidian vault="$VAULT_NAME" file file="<today's date in that format>"    # prints `path	<vault-relative path>`
-   ```
-   If no note is found, open today's note by date so Obsidian creates it from the daily note template.
-2. Store the returned path as `SESSION_LOG` for this session.
+1. Find today's daily note: `vault-write config` reports `daily_notes.today`, the vault-relative path of today's note. It's worked out from the daily-note plugins' settings (Periodic Notes, Journals, core Daily notes) and checked against where recent notes actually are; `daily_notes.disagree` lists plugins whose settings point elsewhere. If `daily_notes.today_exists` is false, open today's note in Obsidian so the plugin creates it from its template, then continue.
+2. Store that path as `SESSION_LOG` for this session.
 3. Create a session-start log entry:
    ```bash
    obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"Session started"}'
