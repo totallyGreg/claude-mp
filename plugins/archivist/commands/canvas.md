@@ -9,7 +9,7 @@ Invoke the archivist agent to generate a knowledge map canvas.
 Scope argument: `$ARGUMENTS`. If provided, use it as the scope path directly (skip scope selection).
 
 The agent should:
-1. Initialize normally (load skills, discover vault, ensure `_vault-profile.md` exists)
+1. Initialize (config + vault identity; read `_vault-profile.md` only if this workflow needs it)
 2. Run scope selection (or use the provided argument as scope)
 3. Generate canvas with dry-run first:
    ```bash

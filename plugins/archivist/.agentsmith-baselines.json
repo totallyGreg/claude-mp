@@ -1,9 +1,16 @@
 {
   "archivist": {
-    "overall_score": 93,
+    "overall_score": 87,
     "trigger_effectiveness": 93,
-    "system_prompt_quality": 95,
-    "coherence": 93,
+    "system_prompt_quality": 90,
+    "coherence": 79,
+    "last_evaluated": "2026-10-18"
+  },
+  "archivist-architect": {
+    "overall_score": 89,
+    "trigger_effectiveness": 93,
+    "system_prompt_quality": 89,
+    "coherence": 86,
     "last_evaluated": "2026-10-18"
   }
 }

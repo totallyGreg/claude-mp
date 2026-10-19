@@ -3,7 +3,7 @@
 <!-- Policy only. Vault facts (daily-notes folder, templates) are read from the vault itself. -->
 
 <!-- ============================================================ -->
-<!-- OPTION A: Single vault (legacy format — always supported)    -->
+<!-- OPTION A: Single vault (what vault-write supports)          -->
 <!-- ============================================================ -->
 
 vault_path: /Users/username/Documents/MyVault
@@ -28,8 +28,8 @@ designated_output_zones: 800 Generated/
 
 <!-- ============================================================ -->
 <!-- OPTION B: Multiple vaults (named-profile format)             -->
-<!-- Use this instead of the flat vault_path: key above.          -->
-<!-- The vaults: key takes precedence if both are present.        -->
+<!-- Not supported by vault-write: it refuses a config with a     -->
+<!-- vaults: key, so guarded writes stop. Use OPTION A per vault.  -->
 <!-- ============================================================ -->
 
 # vaults:

@@ -12,9 +12,12 @@ match reliably (a `*` in the middle of a rule spans one token, so argument order
 - obsidian create/append/prepend/property:set/property:remove/task <update>
     without an explicit path=              -> deny (a missing or mistyped target acts on
                                               whatever note is open in Obsidian)
+    without vault=<config vault name>      -> deny. It must come before the subcommand: the CLI
+      before the subcommand                   silently ignores a vault= after it and acts on the
+                                              cwd's vault or the focused one (daily:* too)
     with path= outside the write zones     -> deny
 - obsidian move/rename/command/template:insert/history:restore/sync:restore,
-  plugin and theme installs                -> ask
+  base:create, plugin and theme installs   -> ask
 - rm / mv on a path inside the vault       -> ask
 
 Wrappers (timeout, env, nice, nohup, command, exec, sudo, xargs, time) and `sh|bash|zsh -c`
@@ -27,6 +30,7 @@ import os
 import re
 import shlex
 import sys
+import unicodedata
 import importlib.util
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
@@ -47,6 +51,7 @@ ASK = {
     "rename": "obsidian rename renames a note and rewrites links; confirm the rename.",
     "command": "obsidian command runs an arbitrary Obsidian command (some delete or edit the open note); confirm.",
     "template:insert": "obsidian template:insert writes into whatever note is open in Obsidian; confirm.",
+    "base:create": "obsidian base:create writes a new note where the base decides, outside the zone check; confirm.",
     "history:restore": "obsidian history:restore replaces a note with an older version; confirm.",
     "sync:restore": "obsidian sync:restore replaces a note with a Sync version; confirm.",
     "plugin:install": "Installing an Obsidian plugin runs third-party code in the vault; confirm.",
@@ -56,6 +61,7 @@ ASK = {
 }
 WRITES = {"create", "append", "prepend", "property:set", "property:remove"}
 TASK_UPDATES = {"toggle", "done", "todo"}
+DAILY_WRITES = {"daily:append", "daily:prepend"}
 
 
 def load_vault_write():
@@ -109,14 +115,25 @@ def kv(args: list[str]) -> dict[str, str]:
     return dict(a.split("=", 1) for a in args if "=" in a)
 
 
-def check_write(sub: str, args: list[str], vw, cfg) -> tuple[str, str] | None:
+def _vault_key(name: str) -> str:
+    """Obsidian matches vault names case-insensitively; macOS may hand us NFD."""
+    return unicodedata.normalize("NFC", name).casefold()
+
+
+def check_write(sub: str, args: list[str], vault: str | None, vw, cfg) -> tuple[str, str] | None:
+    """`vault` is the vault= given before the subcommand (the only place the CLI reads it)."""
     params = kv(args)
-    if sub == "task":
-        if not (TASK_UPDATES & set(args) or "status" in params) or "daily" in args:
-            return None
-        target = params.get("path") or params.get("ref", "").rsplit(":", 1)[0]
-    else:
-        target = params.get("path", "")
+    if sub == "task" and not (TASK_UPDATES & set(args) or "status" in params):
+        return None  # a read
+    if cfg and _vault_key(vault or "") != _vault_key(cfg["root"].name):
+        return "deny", (f"Archivist policy: start the command with obsidian vault=\"{cfg['root'].name}\" {sub} …. "
+                        "Without it, or with vault= after the subcommand (which the CLI silently ignores), "
+                        "it writes to the working directory's vault or whichever vault is focused in Obsidian.")
+    if sub in DAILY_WRITES or (sub == "task" and "daily" in args):
+        return None  # the daily note: Obsidian resolves the path
+    target = params.get("path", "")
+    if sub == "task" and not target:
+        target = params.get("ref", "").rsplit(":", 1)[0]
     if not target:
         return "deny", (f"Archivist policy: obsidian {sub} needs an explicit path= (exact vault path). "
                         "Without it, or with a mistyped parameter, the CLI writes to whatever note is open in Obsidian.")
@@ -140,8 +157,8 @@ def check_obsidian(rest: list[str], vw, cfg) -> tuple[str, str] | None:
         return "deny", "obsidian create … overwrite is blocked by the archivist guard; use `vault-write apply --base <hash>`."
     if sub in ASK:
         return "ask", ASK[sub]
-    if sub in WRITES or sub == "task":
-        return check_write(sub, args, vw, cfg)
+    if sub in WRITES or sub in DAILY_WRITES or sub == "task":
+        return check_write(sub, args, kv(rest[:i] if i is not None else rest).get("vault"), vw, cfg)
     return None
 
 

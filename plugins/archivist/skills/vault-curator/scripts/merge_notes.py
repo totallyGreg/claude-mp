@@ -45,6 +45,8 @@ from pathlib import Path
 from typing import Any
 import frontmatter
 
+import _vault_write
+
 
 def validate_vault_path(vault_path_str: str) -> Path:
     """Validate vault path for security."""
@@ -207,6 +209,7 @@ def main():
 
         # Load both notes
         source_post = frontmatter.load(source_file)
+        target_original = target_file.read_bytes()  # compare-and-swap base for the write
         target_post = frontmatter.load(target_file)
 
         source_meta = dict(source_post.metadata)
@@ -262,10 +265,15 @@ def main():
             print(json.dumps(result, indent=2, default=str))
             return
 
-        # Write target
-        with open(target_file, 'w', encoding='utf-8') as f:
-            f.write(merged_text)
-        result["written"] = str(target_file.relative_to(vault_path))
+        # Write through vault-write: zones, drift check against what was read, lint, git snapshot
+        vw, cfg = _vault_write.load(vault_path)
+        written = _vault_write.write(vw, cfg, target_path, merged_text, original=target_original)
+        if not written["ok"]:
+            print(json.dumps({"status": "refused", "target": target_path, "error": written["refused"]}))
+            sys.exit(2)
+        result["written"] = written["path"]
+        result["snapshot"] = written.get("snapshot")
+        result["restore"] = written.get("restore")
 
         print(json.dumps(result, indent=2, default=str))
 

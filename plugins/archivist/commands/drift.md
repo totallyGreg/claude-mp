@@ -7,7 +7,7 @@ argument-hint: "[fileClass] [scope]"
 Invoke the archivist agent to run schema drift detection.
 
 The agent should:
-1. Initialize normally (load skills, discover vault, ensure `_vault-profile.md` exists)
+1. Initialize (config + vault identity; read `_vault-profile.md` only if this workflow needs it)
 2. Use the fileClass and scope from the arguments (`$ARGUMENTS`); ask only for what's missing (e.g., Meeting, Person, Project)
 3. Run drift detection:
    ```bash

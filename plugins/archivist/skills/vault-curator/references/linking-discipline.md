@@ -8,7 +8,7 @@ Every reference to another vault entity in authored content should be a wikilink
 
 ## Why It Matters
 
-- **Backlinks** — `[[Target]]` creates a reverse edge visible in Obsidian's Backlinks pane and queryable via `obsidian backlinks file="Target"`. Backticks create nothing.
+- **Backlinks** — `[[Target]]` creates a reverse edge visible in Obsidian's Backlinks pane and queryable via `obsidian vault=… backlinks file="Target"`. Backticks create nothing.
 - **Graph discoverability** — the node graph shows connected clusters only from wikilinks. Backtick references are invisible to the graph.
 - **Rename-safe** — `obsidian move` updates wikilinks vault-wide atomically. Backticked filenames become dead references silently.
 - **Single source of truth** — linking to a canonical note means a reader can navigate there. The `.base` file's default view is the authoritative schema definition for a type; the fileClass note mirrors it.
@@ -23,7 +23,7 @@ Every reference to another vault entity in authored content should be a wikilink
 | Template | `[[🛠 New Meeting]]` | `` `New Meeting` `` |
 | Folder note | `[[700 Notes/Workflows]]` | `` `700 Notes/Workflows/` `` |
 | Any other vault note | `[[Canvas Types]]` | `` `Canvas Types.md` `` |
-| CLI command in prose | `` `obsidian backlinks file="X"` `` | `[[X]]` inside code context |
+| CLI command in prose | `` `obsidian vault=… backlinks file="X"` `` | `[[X]]` inside code context |
 | YAML property key | `` `fileClass` `` | `[[fileClass]]` |
 | YAML property value (literal) | `` `workflow` `` | `[[workflow]]` |
 | Code block / shell example | keep as code | — |
@@ -48,19 +48,19 @@ Use these to surface connections during authoring and discovery sessions:
 
 ```bash
 # Who links to this note?
-obsidian backlinks file="Types of Notes"
+obsidian vault="<vault_name>" backlinks file="Types of Notes"
 
 # What does this note link to?
-obsidian links file="Types of Notes"
+obsidian vault="<vault_name>" links file="Types of Notes"
 
 # Broken wikilinks vault-wide (with source files)
-obsidian unresolved verbose
+obsidian vault="<vault_name>" unresolved verbose
 
 # Notes with no incoming links (orphans — MOC candidates or deletable)
-obsidian orphans
+obsidian vault="<vault_name>" orphans
 
 # Notes with no outgoing links (dead-ends — cross-referencing candidates)
-obsidian deadends
+obsidian vault="<vault_name>" deadends
 ```
 
 **When to use each:**

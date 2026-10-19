@@ -20,7 +20,8 @@ Usage:
 Options:
     --file-class <class>   Target fileClass (e.g., Meeting, Person, Project)
     --scope <path>         Limit scan to vault-relative folder path
-    --dry-run              Show what would be analyzed without scanning
+    --dry-run              Show what would be analyzed without scanning (no counts)
+    --summary              Scan, but return only counts and the top issues (cheap signal)
 
 Returns:
     JSON with drift report:
@@ -244,6 +245,18 @@ def analyze_schema(
     }
 
 
+def summarize(result: dict, top: int = 5) -> dict:
+    """Counts and the first few issue messages: a startup signal without the full report."""
+    from collections import Counter
+    issues = result.get("issues", [])
+    return {
+        "status": result["status"], "file_class": result["file_class"], "scope": result["scope"],
+        "total_notes": result["total_notes"], "drift_count": len(issues),
+        "by_type": dict(Counter(i.get("type") for i in issues)),
+        "top_issues": [i.get("message") for i in issues[:top]],
+    }
+
+
 def main():
     """Main entry point."""
     args = sys.argv[1:]
@@ -251,7 +264,7 @@ def main():
     if not args:
         print(json.dumps({
             "status": "error",
-            "error": "Usage: detect_schema_drift.py <vault-path> [--file-class <class>] [--scope <path>] [--dry-run]"
+            "error": "Usage: detect_schema_drift.py <vault-path> [--file-class <class>] [--scope <path>] [--dry-run] [--summary]"
         }))
         sys.exit(1)
 
@@ -259,6 +272,7 @@ def main():
     file_class = None
     scope = None
     dry_run = False
+    summary = False
 
     # Parse args
     i = 1
@@ -271,6 +285,8 @@ def main():
             i += 2
         elif args[i] == "--dry-run":
             dry_run = True
+        elif args[i] == "--summary":
+            summary = True
             i += 1
         else:
             i += 1
@@ -320,6 +336,8 @@ def main():
         result["scope"] = scope
         result["total_notes"] = len(notes)
 
+        if summary:
+            result = summarize(result)
         print(json.dumps(result, indent=2))
 
     except ValueError as e:

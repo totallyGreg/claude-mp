@@ -1,12 +1,12 @@
 ---
 name: vault
-description: Start a PKM session with the archivist agent for your Obsidian vault. Use when you want to work with your vault — organizing notes, checking health, fixing metadata, finding duplicates, generating canvases, or just exploring what needs attention.
+description: Start a PKM session with the archivist for your Obsidian vault — organizing notes, checking health, fixing metadata, finding duplicates, generating canvases, or designing templates and Bases (`/vault architect`).
+argument-hint: "[architect] [what to work on]"
 ---
 
-Invoke the archivist agent to begin a vault session.
+Arguments: `$ARGUMENTS`
 
-The agent should:
-1. Confirm vault connection via `obsidian vault`
-2. Run a quick health snapshot — orphan count, inbox size, any obvious schema drift
-3. Ask what you'd like to focus on today, or surface the top 2-3 highest-priority issues if nothing is specified
-4. Guide through the chosen workflow using vault-architect (new structures) or vault-curator (evolving existing content) as appropriate
+- If the first word is `architect`, spawn the `archivist:archivist-architect` agent with the rest of the arguments as its task (templates, Bases, schemas, collections, vault profiling).
+- Otherwise spawn the `archivist:archivist` agent (the curator). Tell it this is a `/vault` session, so it runs Quick Vault Signals. If arguments were given, they are what to work on; otherwise it surfaces the top 2–3 issues and asks what to focus on.
+
+Relay the agent's result. Send follow-up vault work to the same agent with SendMessage.

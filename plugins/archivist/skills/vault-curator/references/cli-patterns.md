@@ -27,6 +27,28 @@ search, backlinks, links, tags, tasks, properties, bases, templates, outline, or
 
 Rule of thumb: if Obsidian's index adds value, use CLI. If it's plain text, use file tools.
 
+## Target the Vault Explicitly
+
+Measured on Obsidian 1.14.4 (macOS); the first two rules are also in the official CLI docs:
+
+| Situation | What the CLI does |
+|---|---|
+| No `vault=` | Uses the vault containing the **working directory** (any subfolder counts), otherwise the vault **focused** in Obsidian |
+| `vault=<name>` **before** the subcommand (`obsidian vault=Notes read …`) | Uses that vault and overrides the working directory. Focus doesn't change if it's already open |
+| `vault=<name>` **after** the subcommand (`obsidian read vault=Notes …`) | **Silently ignored**: acts on the working directory's or the focused vault |
+| Name in a different case (`vault=notes`) | Matches. Names are case-insensitive |
+| Unknown name | Prints `Vault not found.` and exits 0 |
+| A known vault that isn't open | Obsidian **opens it and gives it focus**. The first command fails with `Error: Command "…" not found` while it loads; a retry works |
+
+Rules for the archivist:
+- **Always start with `obsidian vault="<vault_name>" <subcommand> …`.** `vault_name` comes from `vault-write config`; a vault's name is its folder name.
+- At startup, `obsidian vault="<vault_name>" vault` must report the config's path.
+  - `Vault not found.` → stop: the config and Obsidian disagree.
+  - `Command "…" not found` → the vault was just opened (and focused); retry once.
+- The guard hook denies CLI writes whose `vault=` is missing, misplaced (after the subcommand) or names another vault.
+- Plugin-registered commands (`quickadd:run`, `templater:…`) follow the same rules. The guard can't list them, so their callers must pass `vault=` first.
+- Two known vaults with the same folder name are ambiguous by name. Rename one in Obsidian.
+
 ## Read the Output, Not the Exit Status
 
 - **Errors exit 0.** Failures print `Error: …` on stdout and still exit 0 (`Error: File "x.md" not found.`, `Error: Command "x" not found.`). Treat any output starting with `Error:` as a failure.
@@ -40,18 +62,24 @@ Rule of thumb: if Obsidian's index adds value, use CLI. If it's plain text, use 
 | Need | Use |
 |---|---|
 | Note content (new note, whole note, one section) | `vault-write apply` (zones, compare-and-swap, lint, snapshot) |
-| One frontmatter value | `obsidian property:set path="…" name=… value=…` (zone-checked by the guard) |
+| One frontmatter value | `obsidian vault=… property:set path="…" name=… value=…` (zone-checked by the guard) |
 | A list property | add `type=list` (otherwise the value is stored as text); commas can't be escaped inside a list value |
-| Append a line to today's daily note | `obsidian daily:append content="…"` |
-| Move or rename a note | `obsidian move path="…" to="…"` / `obsidian rename path="…" name=…`. The guard asks first |
+| Append a line to today's daily note | `obsidian vault=… append path="<daily_notes.today>" content="…"` (path from `vault-write config`) |
+| Move or rename a note | `obsidian vault=… move path="…" to="…"` / `… rename path="…" name=…`. The guard asks first |
 
 - **`create … overwrite` is denied** by the guard. Use `vault-write apply` (whole note or `--section`). Outside the archivist, `content=` turns `\n` into newlines and empty shell output wipes the note.
 - **`create` opens nothing by default.** `open`/`newtab` are opt-in. The old `silent` flag is gone, and an unknown flag is silently ignored.
 - **`create` has no `folder=`.** Pass the full `path=` instead. Parent folders may need to exist first.
-- **`create` with `template=` may ignore `path=`.** The file lands in the template's configured folder. Verify with `obsidian files folder=…` afterwards.
+- **`create` with `template=` may ignore `path=`.** The file lands in the template's configured folder. Verify with `obsidian vault=… files folder=…` afterwards.
 - **`template:insert` writes into the open note.** The guard asks first.
+- **`base:create` writes a new note where the base decides,** outside the zone check. The guard asks first.
 - **`eval` and `dev:cdp` are denied.** They run arbitrary code and bypass every write rule.
 - **A note open with unsaved edits** can conflict with an external write. Write notes the user isn't editing, or ask them to save first.
+
+## Daily Notes
+
+- **The CLI's `daily:*` commands (`daily:path`, `daily:read`, `daily:append`, `daily:prepend`) depend on the core Daily notes plugin.** With Periodic Notes or Journals instead, they fail with `Error: Command "daily:path" not found`.
+- Use `vault-write config` → `daily_notes.today` for today's note. It weighs every daily-note plugin's settings against where recent notes actually are.
 
 ## Listings
 
@@ -61,6 +89,21 @@ Rule of thumb: if Obsidian's index adds value, use CLI. If it's plain text, use 
   - `search:context` on a broad query can return megabytes.
 - **`search:context format=json`** returns `[{"file": …, "matches": [{"line": N, "text": …}]}]`. Use it for programmatic search.
 - **`format=json`** where offered (`backlinks`, `tags`, `tasks`, `unresolved`, `bookmarks`, `base:query`). `properties` takes `format=json|yaml|tsv`.
+
+## Ask the Index Instead of Re-parsing Files
+
+These read-only commands answer from Obsidian's index in one call. Prefer them for a first pass, and keep the Python scripts for detail.
+
+| Need | Command |
+|---|---|
+| Property names and how often each is used, vault-wide | `properties counts format=json` (`name=<prop>` for one) |
+| One property on one note | `property:read path="…" name=…` |
+| A note's headings (check one exists before `vault-write --section`) | `outline path="…" format=json` |
+| Rows a Base returns | `base:query path="….base" format=json` (or `paths`) |
+| Enabled plugins, not just installed | `plugins:enabled format=json versions` |
+| Earlier versions of a note (File Recovery) | `history path="…"`, `history:read path="…" version=N`, `diff path="…"` |
+| Rendered template output | `template:read name="…" resolve title="…"` |
+| Errors Obsidian captured (e.g. a template that throws) | `dev:errors` (`clear` first) |
 
 ## Shell Usage
 
@@ -88,7 +131,7 @@ filters:
 **Use `obsidian move` / `obsidian rename` to relocate files**, never recreate + delete, never shell `mv`. They update wikilinks vault-wide. Recreate + delete leaves references stale, and shell `mv` bypasses Obsidian's index. Both need the user's approval (the guard asks).
 
 ```bash
-obsidian move path="Inbox/Note Title.md" to="New/Folder"
+obsidian vault="Notes" move path="Inbox/Note Title.md" to="New/Folder"
 ```
 
 ## Error Handling
@@ -107,8 +150,8 @@ Use these for authoring, discovery, and health workflows. They need Obsidian's i
 
 | Command | Returns |
 |---------|---------|
-| `obsidian backlinks path="<path>"` | All notes linking TO this file |
-| `obsidian links path="<path>"` | All outgoing links FROM this file |
+| `obsidian vault=… backlinks path="<path>"` | All notes linking TO this file |
+| `obsidian vault=… links path="<path>"` | All outgoing links FROM this file |
 | `obsidian unresolved verbose` | Broken wikilinks vault-wide, with source files |
 | `obsidian orphans` | Files with no incoming links: MOC candidates or deletable |
 | `obsidian deadends` | Files with no outgoing links: cross-referencing candidates |

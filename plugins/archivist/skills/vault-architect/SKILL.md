@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.14.0"
+  version: "1.15.0"
   plugin: "archivist"
   stage: "3"
 ---
@@ -29,12 +29,12 @@ Principles: capture quickly, organize via metadata not folders, aggregate automa
 
 Before making structure recommendations, always discover the current vault state. This prevents redundant suggestions and grounds recommendations in what actually exists.
 
-> **CLI source:** `obsidian-cli` skill from the [obsidian-skills](https://github.com/kepano/obsidian-skills) marketplace. Parameter distinction: `path=exact/path.md` (vault-relative path) vs `file=name` (link-style resolution — use `file=` when resolving folder notes, e.g. `obsidian read file="Workflows"`). For bugs and fallback patterns, see `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/cli-patterns.md`. Fallback: Glob/Grep/Read on vault files at `${VAULT_PATH}`.
+> **CLI source:** `obsidian-cli` skill from the [obsidian-skills](https://github.com/kepano/obsidian-skills) marketplace. Parameter distinction: `path=exact/path.md` (vault-relative path) vs `file=name` (link-style resolution — use `file=` when resolving folder notes, e.g. `obsidian vault=… read file="Workflows"`). For bugs and fallback patterns, see `${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/references/cli-patterns.md`. Fallback: Glob/Grep/Read on vault files at `${VAULT_PATH}`.
 
 ```bash
-obsidian templates              # what templates already exist
-obsidian tags counts        # tag usage distribution
-obsidian folders               # actual folder structure
+obsidian vault="<vault_name>" templates              # what templates already exist
+obsidian vault="<vault_name>" tags counts        # tag usage distribution
+obsidian vault="<vault_name>" folders               # actual folder structure
 uv run scripts/analyze_vault.py ${VAULT_PATH}   # full health check
 ```
 
@@ -164,7 +164,7 @@ Each vault should maintain a System Guide documenting: folder structure, metadat
 
 1. **Discover first** — run before asking the user anything:
    ```bash
-   obsidian templates && obsidian tags counts && obsidian folders
+   obsidian vault="<vault_name>" templates && obsidian vault="<vault_name>" tags counts && obsidian vault="<vault_name>" folders
    uv run scripts/analyze_vault.py ${VAULT_PATH}
    ```
 2. Identify pain points from observed data (orphans, schema gaps, missing templates)
@@ -177,8 +177,8 @@ Each vault should maintain a System Guide documenting: folder structure, metadat
 **Before creating a workflow note, always check if one exists:**
 
 ```bash
-obsidian search query="<topic>" limit=10
-obsidian read file="Workflows"   # shows Workflows.base — scan Current Workflows view
+obsidian vault="<vault_name>" search query="<topic>" limit=10
+obsidian vault="<vault_name>" read file="Workflows"   # shows Workflows.base — scan Current Workflows view
 ```
 
 Workflows are discovered by `900 📐Templates/970 Bases/Workflows.base` via any of:
@@ -192,7 +192,7 @@ Workflows are discovered by `900 📐Templates/970 Bases/Workflows.base` via any
 
 Scaffold a Collection Folder (a named folder for a repeating note type):
 
-1. **Check existing state**: `obsidian read file="<Name>"`, `obsidian read path="900 📐Templates/970 Bases/<Name>.base"`, `obsidian templates`
+1. **Check existing state**: `obsidian vault=… read file="<Name>"`, `obsidian vault=… read path="900 📐Templates/970 Bases/<Name>.base"`, `obsidian templates`
 2. **Design schema** — infer from existing notes or ask user for required fields
 3. **Create Bases file** at `900 📐Templates/970 Bases/<Name>.base` — fileClass filter, named view, sorted by `file.mtime DESC`
 4. **Create folder note** at `<Folder>/<Folder>.md` — description, schema table, `![[<Name>.base#<View>]]` embed
@@ -207,16 +207,16 @@ After setup, offer: "Run collection health check to verify all parts are consist
 
 Create or regenerate `_vault-profile.md` in the vault root. This profile provides accumulated context for all future archivist sessions — installed plugins, active fileClasses, folder philosophy, schema conventions, and directory trust levels.
 
-**When triggered:** By the archivist agent during initialization when `_vault-profile.md` is absent or corrupted.
+**When triggered:** When `_vault-profile.md` is absent or corrupted. The curator (`archivist:archivist`) hands it off to `archivist:archivist-architect`.
 
 **Workflow:**
 
 1. **Discover vault structure:**
    ```bash
    uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/analyze_vault.py ${VAULT_PATH}
-   obsidian folders
-   obsidian templates
-   obsidian tags counts
+   obsidian vault="<vault_name>" folders
+   obsidian vault="<vault_name>" templates
+   obsidian vault="<vault_name>" tags counts
    ```
    If `obsidian` CLI fails (app not running), fall back to Glob/Grep/Read on vault files.
 
@@ -292,7 +292,7 @@ Create or regenerate `_vault-profile.md` in the vault root. This profile provide
 
    Each section heading is agent-managed. User-added sections (headings not in this list) are preserved during updates.
 
-**On subsequent runs:** The archivist agent's Session Learning handles incremental updates. It diffs current vault state against the profile and updates specific sections by heading, preserving user-added sections.
+**On subsequent runs:** The curator's Session Learning handles incremental updates. It diffs current vault state against the profile and updates specific sections by heading, preserving user-added sections.
 
 **Edge cases:**
 - Vault with minimal structure (few folders, no templates) → create profile with minimal content, don't pad empty sections
@@ -315,17 +315,19 @@ Before writing to any path in the vault, check whether it falls within your allo
 
 **How to check:** `vault-write stat <path>` reports `in_zone` and `vault-write apply` refuses out-of-zone writes itself. To reason about zones before writing, run `vault-write config` and use its `architect_write_zones` list (vault-relative directory paths; the file is `~/.config/archivist/local.md`). A write is allowed if the target path starts with any listed zone prefix. When multiple zones match, the most-specific (longest) prefix wins.
 
-**Allowed writes:** Template directories, Bases files, script directories, vault infrastructure files (`_vault-profile.md`, system guides), and any path listed in `architect_write_zones`.
+**Allowed writes:**
+- Template directories, Bases files, script directories, vault infrastructure files (`_vault-profile.md`, system guides), and any path listed in `architect_write_zones`.
+- Structural files that live inside content zones: folder notes, fileClass notes, Base embeds in a collection folder.
 
-**Out-of-zone writes:** If the target path does not match any architect zone, **refuse the write** and suggest using vault-curator instead. Example: "This path is in a curator-managed zone. Use vault-curator to modify note content."
+**Content isn't yours:** editing note content in curator zones belongs to the curator. Recommend it in your result instead of doing it. A path outside every zone: refuse with `Archivist policy:`.
 
-**No zones configured:** The archivist agent's initialization derives zones from `_vault-profile.md`'s "Directory Trust Levels" table when present (mapping: `infrastructure` → `architect_write_zones`; `personal/guarded`/`project-scoped` → `curator_write_zones`; `automated/generated` → `designated_output_zones`). If derived zones cover the target, proceed (still with confirmation per architect tier). If neither the config nor the profile provides coverage, refuse with `Archivist policy:` prefix and offer to run vault profiling.
+**No zones configured:** Initialization derives zones from `_vault-profile.md`'s "Directory Trust Levels" table when present (mapping: `infrastructure` → `architect_write_zones`; `personal/guarded`/`project-scoped` → `curator_write_zones`; `automated/generated` → `designated_output_zones`). If derived zones cover the target, proceed (still with confirmation per architect tier). If neither the config nor the profile provides coverage, refuse with `Archivist policy:` prefix and offer to run vault profiling.
 
 **Confirmation follows the write channel.** Writes through `vault-write apply` inside your zones need no confirmation: the CLI enforces the zone, refuses drift against the `--base` you read, blocks broken Markdown, and snapshots the note in git first. Ask the user before `vault-write force` (out of zone, or overwriting without `--base`), before any delete/move/rename, and before any write made without `vault-write` (the fallback when it isn't installed).
 
 **Refusal phrasing:** Always prefix policy-based refusals with `Archivist policy:` to disambiguate from Claude Code tooling-layer permission denials. Never use bare "denied" wording for your own rules.
 
-<!-- v2 note: In future versions, this skill may run as an isolated subagent with restricted tools. Write boundaries documented here will become the subagent's tool restrictions. -->
+This skill runs inside `archivist:archivist-architect`. The plugin's `vault_file_guard` hook limits its Edit/Write to the write zones, and the obsidian guard requires `vault=` on CLI writes.
 
 ## Design Principles
 

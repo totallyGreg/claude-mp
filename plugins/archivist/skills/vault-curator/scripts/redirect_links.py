@@ -19,6 +19,9 @@ Options:
     --new <name>       New note name (without .md extension)
     --scope <path>     Limit scan to vault-relative folder (default: entire vault)
     --no-write         Return affected file content as JSON without writing (capped at 50 files)
+
+Without --no-write, each file is written through vault-write (zones, drift check, lint,
+git snapshot); files it refuses are listed under "skipped" and left unchanged.
     --dry-run          Show affected files without writing
 
 Returns:
@@ -48,6 +51,8 @@ import sys
 import json
 import re
 from pathlib import Path
+
+import _vault_write
 
 
 def validate_vault_path(vault_path_str: str) -> Path:
@@ -105,11 +110,16 @@ def scan_and_replace(
 
     patterns = build_link_patterns(old_name)
     affected_files = []
+    skipped = []
     total_replacements = 0
+    vw = cfg = None
+    if not dry_run and not no_write:
+        vw, cfg = _vault_write.load(vault_path)
 
     for md_file in search_root.rglob("*.md"):
         try:
-            content = md_file.read_text(encoding='utf-8')
+            original = md_file.read_bytes()
+            content = original.decode('utf-8')
         except (UnicodeDecodeError, OSError):
             continue
 
@@ -128,13 +138,16 @@ def scan_and_replace(
                 "replacements": file_replacements,
             }
             if no_write or dry_run:
-                # Include computed content for agent to apply with Edit tool
+                # Include computed content for the agent to apply with `vault-write apply`
                 entry["content_after"] = new_content
+            if not dry_run and not no_write:
+                # Each file goes through vault-write: zones, drift check, lint, git snapshot
+                written = _vault_write.write(vw, cfg, rel_path, new_content, original=original)
+                if not written["ok"]:
+                    skipped.append({"path": rel_path, "reason": written["refused"]})
+                    continue
             affected_files.append(entry)
             total_replacements += file_replacements
-
-            if not dry_run and not no_write:
-                md_file.write_text(new_content, encoding='utf-8')
 
     if no_write and len(affected_files) > NO_WRITE_FILE_CAP:
         return {
@@ -147,11 +160,14 @@ def scan_and_replace(
             ),
         }
 
-    return {
+    result = {
         "affected_files": affected_files,
         "total_replacements": total_replacements,
         "total_files": len(affected_files),
     }
+    if skipped:
+        result["skipped"] = skipped  # refused by vault-write (outside zones, drift, lint)
+    return result
 
 
 def main():

@@ -24,6 +24,8 @@ Options:
     --node-width <px>    Width of each file node in pixels (default: 300)
     --node-height <px>   Height of each file node in pixels (default: 120)
     --no-write           Return JSON without writing any file (agent controls write)
+
+Without --no-write the canvas is written through vault-write (zones, JSON check, git snapshot).
     --dry-run            Show what would be generated without writing
 
 Returns:
@@ -47,6 +49,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 from collections import defaultdict
+
+import _vault_write
 
 import frontmatter
 
@@ -539,9 +543,13 @@ def main():
             rel_output = str(output_path.relative_to(vault_path))
             result["canvas_path"] = rel_output
 
-        # Write canvas file
-        with open(output_path, 'w') as f:
-            json.dump(canvas_data, f, indent=2)
+        # Write through vault-write: zones, JSON check, git snapshot, verified write
+        vw, cfg = _vault_write.load(vault_path)
+        written = _vault_write.write(vw, cfg, rel_output, json.dumps(canvas_data, indent=2) + "\n")
+        if not written["ok"]:
+            print(json.dumps({"status": "refused", "canvas_path": rel_output, "error": written["refused"]}))
+            sys.exit(2)
+        result["snapshot"] = written.get("snapshot")
 
         if not edges:
             result["message"] = "No wikilinks found between notes in scope. Canvas shows notes without connections. Consider adding [[wikilinks]] to connect related notes."
