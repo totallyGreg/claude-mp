@@ -244,6 +244,75 @@ def daily_notes(root: Path, today=None) -> dict | None:
     return found
 
 
+PROFILE = "_vault-profile.md"
+PROFILE_STALE_DAYS = 30
+DRIFT_LIST_CAP = 20
+
+
+def _name_key(text: str) -> str:
+    """Letters and digits only, lowercased, so `500 Cycles` in prose matches the `500 ♽ Cycles` folder."""
+    return " ".join(re.findall(r"[^\W_]+", nfc(text).casefold()))
+
+
+def _templates_folder(root: Path) -> Path | None:
+    def folder(rel, key):
+        try:
+            value = json.loads((root / ".obsidian" / rel).read_text(encoding="utf-8")).get(key)
+        except (OSError, ValueError, AttributeError):
+            return None
+        return root / value if value and (root / value).is_dir() else None
+    return folder("plugins/templater-obsidian/data.json", "templates_folder") or folder("templates.json", "folder")
+
+
+def profile_drift(root: Path, today=None) -> dict | None:
+    """What exists on disk but isn't mentioned anywhere in `_vault-profile.md`, plus its age.
+
+    The profile is prose an agent wrote, so this checks for mentions instead of parsing
+    sections: new top-level folders, enabled community plugins (by id or manifest name)
+    and template files (informational: inventories are usually summaries). Removals can't be
+    detected from prose and aren't reported."""
+    import datetime
+    path = root / PROFILE
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    known = _name_key(text)
+
+    def unmentioned(names):
+        return sorted(n for n in names if _name_key(n) and _name_key(n) not in known)
+
+    folders = [d.name for d in root.iterdir() if d.is_dir() and not d.name.startswith(".")]
+    plugins = []
+    try:
+        enabled = json.loads((root / ".obsidian" / "community-plugins.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        enabled = []
+    for pid in enabled:
+        try:
+            name = json.loads((root / ".obsidian" / "plugins" / pid / "manifest.json").read_text(encoding="utf-8")).get("name") or pid
+        except (OSError, ValueError):
+            name = pid
+        if _name_key(pid) not in known and _name_key(name) not in known:
+            plugins.append(name)
+    tdir = _templates_folder(root)
+    templates = unmentioned(f.stem for f in tdir.rglob("*.md")) if tdir else []
+
+    out = {"profile": PROFILE}
+    m = re.search(r"(?m)^last_updated:\s*[\"']?(\d{4}-\d{2}-\d{2})", text)
+    if m:
+        age = ((today or datetime.date.today()) - datetime.date.fromisoformat(m.group(1))).days
+        out.update(last_updated=m.group(1), age_days=age, stale=age > PROFILE_STALE_DAYS)
+    for key, items in (("new_folders", unmentioned(folders)), ("new_plugins", sorted(plugins)), ("new_templates", templates)):
+        if items:
+            out[key] = items[:DRIFT_LIST_CAP]
+            if len(items) > DRIFT_LIST_CAP:
+                out[key + "_total"] = len(items)
+    # Template Inventory is usually a summary, so unmentioned templates are informational only.
+    out["drifted"] = bool(out.get("stale") or "new_folders" in out or "new_plugins" in out)
+    return out
+
+
 # ---------- hashing ----------
 
 def stable_text(text: str, ignore_keys: list[str]) -> str:
@@ -452,7 +521,7 @@ def cmd_config(args) -> dict:
     if daily:
         daily["in_zone"] = in_zone(daily["today"], cfg["zones"])
     out = {"ok": True, "action": "config", "config": cfg["config"], "vault": str(root), "vault_name": root.name, **cfg["by_key"],
-           "missing_zones": missing, "daily_notes": daily}
+           "missing_zones": missing, "daily_notes": daily, "profile_drift": profile_drift(root)}
     return out
 
 

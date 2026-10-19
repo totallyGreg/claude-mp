@@ -264,3 +264,28 @@ def test_render_moment():
     assert vw.render_moment("dddd MMMM Do, YYYY", d) == "Saturday October 3rd, 2026"
     assert vw.render_moment("YYYY-[W]WW", d) == "2026-W40"
     assert vw._render_template("Days/{{date:YYYY}}/{{Date}}", "YYYY-MM-DD", d) == "Days/2026/2026-10-03"
+
+
+def test_profile_drift(vault):
+    import datetime
+    obs = vault / ".obsidian"
+    (obs / "plugins" / "dataview").mkdir(parents=True)
+    (obs / "plugins" / "dataview" / "manifest.json").write_text('{"name": "Dataview"}')
+    (obs / "plugins" / "waypoint").mkdir(parents=True)
+    (obs / "community-plugins.json").write_text('["dataview", "waypoint"]')
+    (vault / "Templates").mkdir()
+    (vault / "Templates" / "Meeting.md").write_text("x\n")
+    (vault / "Templates" / "Book.md").write_text("x\n")
+    (obs / "templates.json").write_text('{"folder": "Templates"}')
+    assert run("config")[1]["profile_drift"] is None  # no profile yet
+    old = (datetime.date.today() - datetime.timedelta(days=45)).isoformat()
+    (vault / "_vault-profile.md").write_text(
+        f"---\nlast_updated: {old}\n---\n# Vault Profile\n## Installed Plugins\n- Dataview\n"
+        "## Directory Trust Levels\n| Notes | personal |\n| 500 Cycles | personal |\n| Templates | infrastructure |\n"
+        "## Template Inventory\nMeeting\n")
+    drift = run("config")[1]["profile_drift"]
+    assert drift["age_days"] == 45 and drift["stale"] is True
+    assert drift["new_folders"] == ["Private"]  # "500 Cycles" in prose matches the "500 ♽ Cycles" folder
+    assert drift["new_plugins"] == ["waypoint"]  # Dataview matched by manifest name
+    assert drift["new_templates"] == ["Book"]
+    assert drift["drifted"] is True

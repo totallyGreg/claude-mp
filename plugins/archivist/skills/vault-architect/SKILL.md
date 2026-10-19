@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.15.0"
+  version: "1.16.0"
   plugin: "archivist"
   stage: "3"
 ---
@@ -292,7 +292,14 @@ Create or regenerate `_vault-profile.md` in the vault root. This profile provide
 
    Each section heading is agent-managed. User-added sections (headings not in this list) are preserved during updates.
 
-**On subsequent runs:** The curator's Session Learning handles incremental updates. It diffs current vault state against the profile and updates specific sections by heading, preserving user-added sections.
+**On subsequent runs:**
+- The curator's Session Learning updates the workflow tables.
+- A structural re-profile starts from `vault-write config` → `profile_drift`:
+  - `new_folders` → Folder Structure and Directory Trust Levels
+  - `new_plugins` → Installed Plugins
+  - `new_templates` → Template Inventory, if it lists templates
+- Update only those sections (`vault-write apply … --section`), then set `last_updated` to today in the frontmatter. That date marks the last structural re-profile, and `profile_drift` uses it to flag a stale profile after 30 days.
+- `profile_drift` can't see removals. When re-profiling, also check that folders and plugins the profile names still exist.
 
 **Edge cases:**
 - Vault with minimal structure (few folders, no templates) → create profile with minimal content, don't pad empty sections

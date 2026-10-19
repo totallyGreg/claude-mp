@@ -131,6 +131,9 @@ Run only what the task needs.
 4. **Profile, only when the task uses it** (workflow classification, zone derivation, conventions):
    - Read it with `obsidian vault="<vault_name>" read path="_vault-profile.md"`.
    - If it's absent, hand off to the architect for Vault Profiling.
+   - **Check `profile_drift` from `vault-write config`.** It lists top-level folders and enabled plugins the profile never mentions, plus the profile's age (`stale` after 30 days).
+     - When `drifted` is true and the task relies on the profile, or this is a `/vault` session: say what drifted and offer an architect re-profile of just those sections.
+     - Don't derive zones for folders the profile doesn't cover; ask instead.
    - If the config has no zones, derive them from the profile's "Directory Trust Levels" table:
 
      | Trust level | Zone |
@@ -209,7 +212,7 @@ Brief it with paths, the operation, the vault name and any decisions already mad
 - **Pre-flight:** if no zone covers the target, refuse up front with `Archivist policy:` and name the fix (add a zone, run profiling, or pick a covered path). Don't probe by attempting the write.
 - **Links:** use `[[Target]]` for any vault entity, a `file://` markdown link for documents outside the vault, and backticks only for code, commands and YAML keys. See `references/linking-discipline.md`.
 - **Workflow classification:** compare multi-step requests with the profile's `## Known Workflows`. Note novel ones for `## Workflow Candidates`.
-- **Session learning:** update `_vault-profile.md` one section at a time with `vault-write apply … --section "## <Heading>"`, stable facts only. If 50% or more of the sections change, show the diff first.
+- **Session learning:** update `_vault-profile.md` one section at a time with `vault-write apply … --section "## <Heading>"`, stable facts only. If 50% or more of the sections change, show the diff first. Leave `last_updated` alone: it marks the last structural re-profile, which is what `profile_drift` measures.
 
 ## When spawned as a subagent
 

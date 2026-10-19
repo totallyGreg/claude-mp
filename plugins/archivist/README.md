@@ -65,7 +65,9 @@ vault_path: /Users/username/Documents/MyVault
 curator_write_zones: 700 Notes, 600 Projects
 ```
 
-What the vault *is* — folders, plugins, fileClasses, conventions, trust levels — goes in `_vault-profile.md` inside the vault, where it travels with the vault and is shared by every machine. Facts Obsidian already stores, like the daily-notes folder and filename format, are read from the vault's plugin settings each time (`vault-write config`), never copied into either file.
+What the vault *is* (folders, plugins, fileClasses, conventions, trust levels) goes in `_vault-profile.md` inside the vault, where it travels with the vault and is shared by every machine. Facts Obsidian already stores, like the daily-notes folder and filename format, are read from the vault's plugin settings each time (`vault-write config`), never copied into either file.
+
+`vault-write config` also reports **`profile_drift`**: top-level folders and enabled plugins that exist but aren't mentioned in the profile, templates it doesn't name (informational), and its age (`stale` after 30 days since `last_updated`). It reads files only, so it works without Obsidian running. The curator mentions drift and offers the architect a re-profile of just those sections. Removals aren't detected, since the profile is prose.
 
 ## vault-write (guarded writes, any harness)
 
@@ -134,7 +136,7 @@ Progressive disclosure:
 
 ## Version
 
-2.0.0
+2.1.0
 
 ## License
 
@@ -169,6 +171,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary |
 |---------|------|-------|---------|
+| 2.1.0 | 2026-10-18 | [#179](https://github.com/totallyGreg/claude-mp/issues/179) | `vault-write config` reports `profile_drift`: top-level folders and enabled plugins (by id or manifest name) not mentioned in `_vault-profile.md`, unmentioned templates (informational) and the profile's age (`stale` after 30 days). Name matching ignores emoji and punctuation. File reads only, ~60 ms, no app needed. The curator mentions drift and offers an architect re-profile of just those sections; session learning leaves `last_updated` alone. Agent eval 87 (no change). |
 | 2.0.0 | 2026-10-18 | [#175](https://github.com/totallyGreg/claude-mp/issues/175), [#224](https://github.com/totallyGreg/claude-mp/issues/224) | **Split into two agents** (decided from a measured cost spike on #175). `archivist` is now the curator: `claude-haiku-5-5`, no Edit/Write (writes only via `vault-write` and the guarded CLI), preloads vault-curator, hands structural work to the new `archivist-architect`. Lazy init: config + vault identity always; profile and Quick Vault Signals only when needed. Every CLI call passes `vault=` (#224). Prompt 531 → 246 lines; copies of skill workflows replaced by a routing table. Agent eval 93 → 87: Coherence drops on example/body wording alignment (the old prompt repeated the skill text); Trigger 93, Prompt 90. **Removed:** the pre-2.0 `.local.md` fallback in the plugin cache. `vault-write config` refuses and prints the `mv` to `~/.config/archivist/local.md` if that's the only config it finds; `.local.md.example` is now `local.md.example`. **Fixed:** Quick Vault Signals ran the drift and collection scripts with `--dry-run`, which scans nothing, so the drift signal never produced a count. They now run the full collection check and `detect_schema_drift.py --summary` (new; 537 bytes vs 65 KB). Deferred: #226 (local Pi reader tier), #227 (index queries). | **Also:** `vault-write` finds today's daily note by weighing every daily-note plugin (Periodic Notes, Journals, core) against where recent notes actually are, and reports `daily_notes.today` (it was a stale `…/2025` folder). `merge_notes.py`, `redirect_links.py` and `generate_canvas.py` write through `vault-write` (shared `write_note()`), not directly. `vault=` placement measured: it must come before the subcommand (after it, it's silently ignored), and the guard enforces that.
 | 1.30.0 | 2026-10-18 | [#222](https://github.com/totallyGreg/claude-mp/issues/222) | Guard hook hardened: wrappers (`timeout`, `env`, `xargs`, `sudo`, …) and `bash -c`/`eval` are unwrapped, so `timeout 5 obsidian delete` no longer slips through. `eval`/`dev:cdp` denied. `rename`, `command`, `template:insert`, history/sync restores and plugin/theme installs ask. CLI writes (`create`, `append`, `prepend`, `property:set`, `property:remove`, task updates) need an explicit `path=` inside the write zones (verified on Obsidian 1.14.4: a missing or mistyped target edits the open note). `_vault-profile.md` is written per section via `vault-write apply` (the old `create … overwrite` step was already denied). drift/canvas/collection/duplicates take arguments (`argument-hint`). Agent eval 93 (no change). |
 | 1.29.0 | 2026-10-16 | [#215](https://github.com/totallyGreg/claude-mp/issues/215), [#217](https://github.com/totallyGreg/claude-mp/issues/217), [#218](https://github.com/totallyGreg/claude-mp/issues/218) | Config moves to `~/.config/archivist/local.md` (survives plugin updates; legacy `.local.md` still read and flagged). `vault-write config` reports zones that don't exist with a `did_you_mean`, and the daily-notes folder and format read from the vault's plugin settings; profiling copies folder names exactly; `/session-log` resolves today's note by name. Write safety moves from prompt text into code: new `bin/vault-write` (zones, compare-and-swap on `--base`, lint for unclosed fences and Dataview-executed inline code, git snapshot, atomic verified write; no delete/move) for every harness, plus a PreToolUse guard hook (deny `obsidian delete` / `create … overwrite`, ask for `move` and for `rm`/`mv` inside the vault), with 31 tests. Agent Write Path now writes through `vault-write` (fallback kept for harnesses without plugin `bin/`); added `SendMessage` and a Reporting Back section (results are truncated at ~4K chars; long output goes to a file). Agent eval 93 (no change). |
@@ -224,16 +227,17 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 ### Current Metrics
 
-**Score: 84/100** (Good) — 2026-10-18
+**Score: 83/100** (Good) — 2026-10-18
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
-| 77 | 90 | 100 | 100 | 100 |
+| 75 | 90 | 100 | 100 | 100 |
 
 ### Version History
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.16.0 | 2026-10-18 | [#179](https://github.com/totallyGreg/claude-mp/issues/179) | Re-profiling starts from `profile_drift` and updates only the affected sections, then sets `last_updated`. Score 84→83 (Concs 77→75 from added text). | 75 | 90 | 100 | 100 | 100 | 83 |
 | 1.15.0 | 2026-10-18 | [#175](https://github.com/totallyGreg/claude-mp/issues/175), [#224](https://github.com/totallyGreg/claude-mp/issues/224) | Runs inside `archivist-architect`. Write Boundaries now allow structural files inside content zones (folder notes, fileClass notes), matching the file guard; Vault Profiling is handed off by the curator. Score 84 (no change). Examples start every CLI call with `vault=`. | 77 | 90 | 100 | 100 | 100 | 84 |
 | 1.14.0 | 2026-10-18 | [#222](https://github.com/totallyGreg/claude-mp/issues/222) | `tags all counts` → `tags counts` (vault-wide is now the default in Obsidian 1.14). Score 84 (no change). | 77 | 90 | 100 | 100 | 100 | 84 |
 | 1.13.0 | 2026-10-16 | [#215](https://github.com/totallyGreg/claude-mp/issues/215) | Vault Profiling copies folder names exactly and records no daily-notes folder (#218). Write Boundaries: zone checks happen in `vault-write`; in-zone writes through it need no confirmation, `force`/delete/move/fallback writes still ask. Fixes SKILL.md version drift (was 1.11.0 while this table had 1.12.0). Score 84: the current evaluator also scores unmodified main at 84 (was 93 under the June evaluator); Concs 79→77 from added text. | 77 | 90 | 100 | 100 | 100 | 84 |
