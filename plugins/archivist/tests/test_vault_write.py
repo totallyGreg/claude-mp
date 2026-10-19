@@ -206,16 +206,13 @@ def test_config_location_order(vault, tmp_path, monkeypatch):
     monkeypatch.delenv("ARCHIVIST_LOCAL_MD")
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
-    code, out = run("config")  # no user config; the source tree has no .local.md
-    if code == 0:  # a developer's checkout may have a legacy .local.md beside the plugin
-        assert "legacy" in out
-    else:
-        assert out["error"] == "refused"
+    code, out = run("config")  # no user config: refused (a pre-2.0 .local.md is never read)
+    assert code == 2 and out["error"] == "refused" and "no archivist config" in out["detail"]
     user = tmp_path / "xdg" / "archivist" / "local.md"
     user.parent.mkdir(parents=True)
     user.write_text(cfg.read_text())
     code, out = run("config")
-    assert code == 0 and out["config"] == str(user) and "legacy" not in out
+    assert code == 0 and out["config"] == str(user)
 
 
 def test_config_reports_vault_name(vault):

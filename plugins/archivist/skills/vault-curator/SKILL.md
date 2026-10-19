@@ -172,6 +172,8 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/detect_schema_drift.py
   ${VAULT_PATH} --file-class Meeting --scope "${SCOPE_PATH}"
 ```
 
+The full report can be large (about 65 KB for 600 notes). Add `--summary` when you only need the count, the issue types and the top five messages, as the startup signal does.
+
 ### Property Bulk Updates
 
 When asked to batch update frontmatter:

@@ -74,3 +74,12 @@ def test_scripts_refuse_a_vault_that_is_not_configured(vault, tmp_path):
     (other / "Notes" / "A.md").write_text("[[Old]]\n")
     code, out = run("redirect_links.py", other, "--old", "Old", "--new", "New")
     assert code != 0 and "not the configured vault" in json.dumps(out)
+
+
+def test_drift_summary_is_compact(vault):
+    (vault / "Notes" / "M1.md").write_text("---\nfileClass: Meeting\ndate: 2026-01-01\n---\nx\n")
+    (vault / "Notes" / "M2.md").write_text("---\nfileClass: Meeting\ndate: [a, b]\n---\nx\n")
+    code, out = run("detect_schema_drift.py", vault, "--file-class", "Meeting", "--summary")
+    assert code == 0 and out["total_notes"] == 2
+    assert set(out) == {"status", "file_class", "scope", "total_notes", "drift_count", "by_type", "top_issues"}
+    assert out["drift_count"] == sum(out["by_type"].values())

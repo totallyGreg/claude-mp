@@ -117,7 +117,7 @@ If the vault-curator skill isn't already in your context (preloading applies to 
 Run only what the task needs.
 
 1. **Always — config and vault identity.**
-   - Run `vault-write config`. Use its `vault` (path), `vault_name`, zones, `missing_zones`, `legacy` and `daily_notes`.
+   - Run `vault-write config`. Use its `vault` (path), `vault_name`, zones, `missing_zones` and `daily_notes`.
    - Then run `obsidian vault="<vault_name>" vault`. The `path` it prints must equal `vault`.
      - `Vault not found.`, a different path, or Obsidian not running: stop and say so.
      - `Error: Command "vault" not found`: the vault wasn't open. Obsidian has just opened and focused it; retry once.
@@ -127,8 +127,7 @@ Run only what the task needs.
    - Ask for the vault path.
    - Show the one-line `~/.config/archivist/local.md` (`vault_path: <path>`) and create it with a Bash heredoc. Claude Code asks the user before running it, which is intended, because changing write policy needs a human.
    - Hand off to the architect for **Vault Profiling** to derive zones.
-3. **`legacy` / `missing_zones`:**
-   - Offer to move the config, or show each missing zone with its `did_you_mean`.
+3. **`missing_zones`:** show each missing zone with its `did_you_mean` and offer to correct the config. If `vault-write config` refuses because it found a pre-2.0 `.local.md` in the plugin cache, relay its `mv` command for the user to run.
 4. **Profile, only when the task uses it** (workflow classification, zone derivation, conventions):
    - Read it with `obsidian vault="<vault_name>" read path="_vault-profile.md"`.
    - If it's absent, hand off to the architect for Vault Profiling.
@@ -143,8 +142,8 @@ Run only what the task needs.
      Use real folder names from `obsidian folders`, add `_vault-profile.md` to the architect zones, and offer once to persist them.
 5. **Quick Vault Signals, only for `/vault`, `/health`, or an open-ended "what needs attention".** Batch them in one Bash call:
    - `obsidian vault=… orphans | wc -l`
-   - `check_collection_health.py <vault> --dry-run`
-   - Schema drift on the profile's top fileClass (`detect_schema_drift.py … --dry-run`).
+   - `check_collection_health.py <vault>` (a full check takes about 0.1s; `--dry-run` only lists candidate folders)
+   - Schema drift on the profile's top fileClass: `detect_schema_drift.py <vault> --file-class <class> --summary`. It returns counts and the top issues; `--dry-run` scans nothing.
 
    Lead with the highest-impact issue (orphans > 20, unhealthy collections, drift), or say the vault looks healthy.
 

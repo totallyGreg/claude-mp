@@ -19,8 +19,8 @@ Usage:
 <note> is a vault-relative path ("600 Projects/x/y.md") or an absolute path inside the vault.
 Output is one line of JSON. Exit codes: 0 ok, 1 usage/IO error, 2 refused by policy, 3 lint errors.
 
-Config: the first file found of $ARCHIVIST_LOCAL_MD, ${XDG_CONFIG_HOME:-~/.config}/archivist/local.md,
-or (legacy) `.local.md` in an installed plugin version. Flat keys:
+Config: $ARCHIVIST_LOCAL_MD, else ${XDG_CONFIG_HOME:-~/.config}/archivist/local.md. (2.0 no longer reads
+a `.local.md` inside the plugin cache; it says where to move one if it finds it.) Flat keys:
     vault_path, architect_write_zones, curator_write_zones, designated_output_zones,
     ignore_drift_keys (default: date modified)
 It lives outside the plugin cache so updates keep it, and outside the vault so a vault write
@@ -75,21 +75,26 @@ def user_config_path() -> Path:
     return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "archivist" / "local.md"
 
 
-def config_path() -> tuple[Path, bool]:
-    """(path, legacy). Legacy = a `.local.md` inside the versioned plugin cache, newest first."""
+def config_path() -> Path:
     if os.environ.get("ARCHIVIST_LOCAL_MD"):
-        return Path(os.environ["ARCHIVIST_LOCAL_MD"]).expanduser(), False
-    user = user_config_path()
-    if user.is_file():
-        return user, False
+        return Path(os.environ["ARCHIVIST_LOCAL_MD"]).expanduser()
+    return user_config_path()
+
+
+def legacy_config() -> Path | None:
+    """A pre-2.0 `.local.md` in the versioned plugin cache (lost on every update), newest first."""
     plugin_root = Path(__file__).resolve().parent.parent
-    legacy = [plugin_root / ".local.md", *sorted(plugin_root.parent.glob("*/.local.md"), key=lambda f: f.stat().st_mtime, reverse=True)]
-    return next((f for f in legacy if f.is_file()), user), True
+    found = [plugin_root / ".local.md", *sorted(plugin_root.parent.glob("*/.local.md"), key=lambda f: f.stat().st_mtime, reverse=True)]
+    return next((f for f in found if f.is_file()), None)
 
 
 def load_config() -> dict:
-    p, legacy = config_path()
+    p = config_path()
     if not p.is_file():
+        old = legacy_config()
+        if old:
+            raise Refused(f"no archivist config at {p}. Archivist 2.0 no longer reads {old}; move it: "
+                          f"mkdir -p {json.dumps(str(p.parent))} && mv {json.dumps(str(old))} {json.dumps(str(p))}")
         raise Refused(f"no archivist config at {p} (create it, or set ARCHIVIST_LOCAL_MD)")
     text = re.sub(r"<!--.*?-->", "", p.read_text(encoding="utf-8"), flags=re.S)
     cfg: dict[str, str] = {}
@@ -107,7 +112,7 @@ def load_config() -> dict:
     zones = [z.strip().rstrip("/") for k in ZONE_KEYS for z in cfg.get(k, "").split(",") if z.strip()]
     keys = [k.strip() for k in cfg.get("ignore_drift_keys", "").split(",") if k.strip()] or list(DEFAULT_IGNORE_KEYS)
     by_key = {k: [z.strip().rstrip("/") for z in cfg.get(k, "").split(",") if z.strip()] for k in ZONE_KEYS}
-    return {"root": root.resolve(), "zones": zones, "by_key": by_key, "ignore_keys": keys, "config": str(p), "legacy": legacy}
+    return {"root": root.resolve(), "zones": zones, "by_key": by_key, "ignore_keys": keys, "config": str(p)}
 
 
 def resolve_note(cfg: dict, note: str) -> tuple[Path, str]:
@@ -448,8 +453,6 @@ def cmd_config(args) -> dict:
         daily["in_zone"] = in_zone(daily["today"], cfg["zones"])
     out = {"ok": True, "action": "config", "config": cfg["config"], "vault": str(root), "vault_name": root.name, **cfg["by_key"],
            "missing_zones": missing, "daily_notes": daily}
-    if cfg["legacy"]:
-        out["legacy"] = f"config is inside the plugin cache and is lost on update; move it to {user_config_path()}"
     return out
 
 
