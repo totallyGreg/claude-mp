@@ -2,7 +2,7 @@
 name: local-inference
 description: This skill should be used when the user says "use pi", "use the local model", "local inference", "run it on the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", "use fm", "extract this receipt", "OCR this image", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON, also from an image) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, exact-spec edits) can run on a local model — via Pi or via Claude Code launched on the local server — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
 metadata:
-  version: "2.3.0"
+  version: "2.4.0"
 compatibility: macOS on Apple silicon; oMLX server on 127.0.0.1:8000; macOS 27+ for `fm`; pi; tmux 3.5+ for pane teammates; uv for the Python scripts
 license: MIT
 ---
@@ -72,8 +72,8 @@ pi -p --no-session -nc -ns \
 | `--tools` | **Pi has no permission prompts.** Read-only: `read,grep,find,ls`; edits (in a git tree only): add `edit,write`. Bash: only via § Gated edit |
 | `</dev/null` | **Required** — without it `pi -p` waits on stdin forever |
 
-Run under `run_in_background`, **at most 2 at once**: two nearly double
-throughput; from ~16K-token prompts, more is slower (tiers.md derivation 8).
+Run under `run_in_background`, **one at a time**: parallel runs add ~no
+throughput and delay every answer (tiers.md derivation 11).
 
 ## Decide — one constrained answer, ~1–1.5 s
 

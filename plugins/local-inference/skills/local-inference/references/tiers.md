@@ -165,7 +165,8 @@ Machine: Apple M5 Pro, 64 GB unified memory.
    0.7.0 cycle. Taken from that post (M5 Ultra, 256 GB):
    - **Concurrency:** 2 parallel requests ≈ 2× aggregate decode; from 16K
      context 4 parallel is worse than 2, from 64K worse than 1. → SKILL.md now
-     says at most 2 in parallel.
+     says at most 2 in parallel. *(Not true on this Mac with MTP on —
+     superseded by derivation 11: one at a time.)*
    - **TurboQuant KV 8-bit** was on for all their Qwen runs. **Tested on
      `deep` 2026-10-01 and rejected.** One 56.7K-token request through
      `:deep`, model freshly loaded each time (probe: peak of the admin
@@ -255,6 +256,45 @@ Machine: Apple M5 Pro, 64 GB unified memory.
       (built-in OCR) and for coarse pre-sorting where a wrong label is cheap.
     - Revisit when Apple ships a new on-device model (the transcript's
       `assetIDs` name it; see references/apple-fm.md).
+
+11. **oMLX 0.7.1 re-baseline (2026-10-20, [#230](https://github.com/totallyGreg/claude-mp/issues/230)).**
+    Same `bench_decode.py` run as derivation 8 (AudiobookOCD
+    `Scripts/dashboard.py` at 9d4f027, ~11.4K prompt tokens, other model
+    idle, MTP on — `MTP[…]` lines confirmed 2.2–3.5 tok/cycle, 71–82% accepted):
+
+    | | prefill tok/s | decode tok/s |
+    |---|---|---|
+    | 3.6-35B-A3B, 0.7.0 | 2,929 | 107 |
+    | 3.6-35B-A3B, 0.7.1, battery, cool | 2,743 | 104.7 |
+    | 3.6-35B-A3B, 0.7.1, AC charging, warm (2 runs) | 2,085 / 2,027 | 97.7 / 97.2 |
+    | 3.8-27B, 0.7.0 | 399 | 34.3 |
+    | 3.8-27B, 0.7.1, battery, cool | 381 | 32.4 |
+    | 3.8-27B, 0.7.1, AC charging, warm (2 runs) | 328 / 340 | 27.5 / 29.9 |
+
+    - **No single-request gain from 0.7.1 here.** The cool run is within 2–6%
+      of 0.7.0. The two AC runs, done back to back while charging, were
+      9–30% lower; `pmset -g therm` recorded no thermal warning, so heat vs.
+      charging can't be separated. Low Power Mode was off on both. Bench on a
+      cool machine, on AC, and note the power state with the numbers.
+    - **Parallel requests don't pay with MTP on.**
+      `scripts/bench_parallel.py <file> <model> <prompt-tokens> 1 2 3 4`
+      (nonce per request, 400 output tokens, AC):
+
+      | 35B | x1 | x2 | x3 | x4 |
+      |---|---|---|---|---|
+      | ~2K: aggregate tok/s | 92 | 92 | 95 | 103 |
+      | ~2K: per-request decode | 118 | 57 | 42 | 33 |
+      | ~16K: aggregate tok/s | 33 | 30 | 30 | 30 |
+      | ~16K: median TTFT | 7.6 s | 14.6 s | 20.8 s | 27.3 s |
+
+      `server.log` shows why: prefills ran one after another (TTFTs 7.8 /
+      20.6 / 33 / 46 s at x4), a new prefill stops the others' decode
+      (`late-join-handoff`), and Lightning MTP batches at most 2 sequences and
+      parks the batch when plain decode is faster (`batch parked`). 0.7.1's
+      batched prefill didn't engage. → SKILL.md: one at a time; a second short
+      run is fine. Derivation 8's "2 ≈ 2×" came from an M5 Ultra post and
+      does not hold here.
+    - Re-run both when oMLX changes how MTP batches or prefill is scheduled.
 
 ## Gotcha: unknown model names must fail
 
