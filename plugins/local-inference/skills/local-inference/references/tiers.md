@@ -296,6 +296,36 @@ Machine: Apple M5 Pro, 64 GB unified memory.
       does not hold here.
     - Re-run both when oMLX changes how MTP batches or prefill is scheduled.
 
+12. **Affine KV compression on `deep` (2026-10-21, rejected, [#230](https://github.com/totallyGreg/claude-mp/issues/230)).**
+    oMLX 0.7.1 adds Affine4/Affine8 next to TurboQuant (model setting
+    `turboquant_kv_scheme`: `affine4` / `affine8`, with
+    `turboquant_kv_enabled`). Its release note measured Qwen3.8-27B at 32K:
+    full-attention KV 2.00 → 0.52 GiB (Affine4), prefill about flat. Probe as
+    in derivation 8 — every model unloaded, one request through `:deep`,
+    thinking off, greedy, 300 output tokens, peak of admin
+    `memory_pressure.current_bytes` — plus a fact planted at the start and
+    asked for at the end. `scripts/kv_probe.py <model> <profile> <tokens>
+    <corpus-dir> off affine8 affine4`, 40.9K-token prompt (plugin docs and
+    scripts), AC:
+
+    | | TTFT | decode | peak memory (model + run) | fact recalled |
+    |---|---|---|---|---|
+    | off | 121 s | 25.4 tok/s | 29.8 GB | yes |
+    | Affine8 | 136 s (+12%) | 21.4 tok/s (−16%) | 27.4 GB (−2.4) | yes |
+    | Affine4 | 148 s (+22%) | 19.9 tok/s (−22%) | 26.4 GB (−3.4) | yes |
+
+    - **Same story as TurboQuant:** the log shows "converted 15/64 cache
+      layers" — only Qwen3.8's full-attention layers keep a KV cache — so there
+      is little to save and the conversion slows both prefill and decode.
+      Prefill was not flat here.
+    - **It does not stop `deep` from evicting the 35B.** The 35B is 20.5 GB
+      resident; with a 41K `deep` request that is 50.3 GB (off) or 46.9 GB
+      (Affine4), over the memory guard's hard limit, which moved between 41.0
+      and 49.0 GB tonight with other apps' use.
+    - Recall held at every setting, so the cost is speed, not accuracy. Leave
+      it off for Qwen3.6/3.8; re-test for a model whose KV cache is a larger
+      share of its memory (count its full-attention layers in `config.json`).
+
 ## Gotcha: unknown model names must fail
 
 `settings.json` → `model.model_fallback: true` makes oMLX answer a request for
