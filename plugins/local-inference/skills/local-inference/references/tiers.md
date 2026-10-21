@@ -16,7 +16,7 @@ them. Three layers, each owning one thing:
 | fast | `Qwen3.6-35B-A3B-oQ4e-mtp:fast` | MoE, 3B active, 20 GB, `Jundot/Qwen3.6-35B-A3B-oQ4e-mtp`. oMLX 0.7.0, 11K prompt: **2,929 tok/s prefill, 107 tok/s decode** with MTP |
 | code | `Qwen3.6-35B-A3B-oQ4e-mtp:code` | Same model; thinking on; MTP engages with the thinking budget |
 | deep | `Qwen3.8-27B-oQ4e-mtp:deep` | Dense, 16 GB, `Jundot/Qwen3.8-27B-oQ4e-mtp`, MTP on. oMLX 0.7.0, 11K prompt: ~34 tok/s decode, ~399 tok/s prefill. Qwen3.8 thinking sampling: temperature **1.0**, top_p 0.95, top_k 20 (not 3.6's 0.6). Set 2026-09-29 — derivation 7 |
-| see | `/usr/bin/fm` (Apple on-device, macOS 27) | The only local model that reads images — the oMLX models are text-only in Pi. Not an oMLX profile; called through `scripts/see.sh` (Pi: the `see` tool). 8K context. Added 2026-10-13; see references/apple-fm.md. A vision model on oMLX could take this tier over |
+| see | `Qwen3.6-35B-A3B-oQ4e-mtp:fast` when oMLX is up, else `/usr/bin/fm` (Apple on-device, macOS 27); codes and `--with-text` always `fm` | Called through `scripts/see.sh` (Pi: the `see` tool), never by tier name. The installed Qwen builds carry vision weights; Pi's entries stay text-only on purpose. `fm`-only from 2026-10-13; split 2026-10-21 — derivation 13 and references/apple-fm.md |
 | decide | `Qwen3.8-27B-oQ4e-mtp:decide` | Same model as deep. Moved 2026-09-29: 31/45 type, 42/45 area vs the 35B's 27 and 38, at ~1.1 s median vs 0.33 s — accuracy is the point of decide. Called via `scripts/decide.py`, not Pi. Grammar-constrained, so MTP doesn't engage — irrelevant for 1–3-token answers |
 
 MTP is a **base-model** setting (`PUT /admin/api/models/<model>/settings
@@ -325,6 +325,38 @@ Machine: Apple M5 Pro, 64 GB unified memory.
     - Recall held at every setting, so the cost is speed, not accuracy. Leave
       it off for Qwen3.6/3.8; re-test for a model whose KV cache is a larger
       share of its memory (count its full-attention layers in `config.json`).
+
+13. **`see` on oMLX's `:fast` vs `fm` (2026-10-21, adopted as a split, [#230](https://github.com/totallyGreg/claude-mp/issues/230)).**
+    The installed Qwen3.6-35B-A3B and Qwen3.8-27B oQ builds carry vision
+    weights (333 tensors + preprocessor) and oMLX serves them as vision
+    models. 12 synthetic images, ground truth by construction —
+    `scripts/see_eval_images.py <dir>` (receipts: clean, rotated/blurred/noisy
+    JPEG, 28 lines, a wrong printed total, German, Spanish, Japanese; an
+    invoice; a 1099 tax form; a UI form; a bar chart without value labels; a
+    Wi-Fi QR code) — scored per field by `scripts/eval_see.py <dir> fm omlx`
+    through `see.sh --fm` / `--omlx`, both warm, greedy:
+
+    | | fields | cases | refusals | median / p90 |
+    |---|---|---|---|---|
+    | `fm` (OCR + schema, plain vision, barcode) | 40/41 | 11/12 | 0 | 2.5 / 2.7 s |
+    | `:fast`, `json_schema` only | 34/41 | 5/12 | 0 | 1.0 / 1.3 s |
+    | `:fast`, field descriptions in the prompt | **39/41** | **10/12** | 0 | **0.9 / 1.0 s** |
+
+    - **Same accuracy on text and pictures, ~2.7× faster.** Excluding the QR,
+      39/40 each, one date miss apiece: `fm` read Spanish `03/10/2026`
+      month-first; `:fast` swapped US `10/11/2026` on the long receipt. With
+      12 cases, one item is noise.
+    - **Descriptions must be in the prompt.** `json_schema` constrains the
+      shape only; without the descriptions `:fast` copied every date as
+      printed instead of `YYYY-MM-DD` (34/41).
+    - **Codes stay on `fm`.** `:fast` invented a URL for the Wi-Fi QR code in
+      both runs; `fm`'s barcode tool read it exactly.
+    - **No `fm` refusals here**, including the tax form and non-English
+      receipts — the earlier refusals (apple-fm.md) were input-specific and
+      didn't reproduce.
+    - Synthetic images are cleaner than photos; the degraded JPEG passed on
+      both. → `see.sh` routes text and pictures to `:fast` when oMLX is up
+      (fallback `fm`), codes and `--with-text` to `fm`.
 
 ## Gotcha: unknown model names must fail
 

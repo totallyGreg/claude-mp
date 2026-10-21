@@ -37,11 +37,23 @@ references/tiers.md derivation 10) — do not use it in place of `decide`.
 
 ```bash
 S=${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/see.sh
-$S --text --schema fields.json receipt.png          # letters: OCR + schema → JSON (--text refuses without a schema)
+$S --text --schema fields.json receipt.png          # letters: fields → JSON (--text refuses without a schema)
 $S chart.png 'Which month is highest?'              # meaning in pixels: plain vision
-$S --code label.png                                 # QR/barcode → exact payload
-$S --text --with-text --schema fields.json r.png    # {"answer": …, "read_text": "<what OCR read>"}
+$S --code label.png                                 # QR/barcode → exact payload (always fm)
+$S --text --with-text --schema fields.json r.png    # {"answer": …, "read_text": "<what OCR read>"} (always fm)
+$S --fm … | --omlx …                                # force a backend
 ```
+
+**Two backends (since 2026-10-21).** Text with a schema and plain vision go
+to oMLX's `:fast` profile when the server is up — its Qwen3.6 build reads
+images — and fall back to `fm` when it is down (silently) or fails (with a
+note on stderr). Codes and `--with-text` always use `fm`: the vision model
+made up a QR payload, and `read_text` must come from a real OCR tool to be
+independent evidence. On the synthetic set, `:fast` matched `fm`'s accuracy
+at ~2.7× the speed (references/tiers.md derivation 13). oMLX needs the field
+descriptions in the prompt (`see.sh` adds them): its `json_schema` output
+constrains the shape, but the model never sees the descriptions — without
+them it copied dates as printed instead of `YYYY-MM-DD`.
 
 - The schema may be ordinary JSON Schema: `see.sh` adds `title` (unique per
   object — `fm` merges objects that share a title, turning nested items into
@@ -51,11 +63,14 @@ $S --text --with-text --schema fields.json r.png    # {"answer": …, "read_text
   barcode tool reads nothing, `see.sh` fails (exit 1) instead of returning the
   invented empties and zeros `fm` fills the schema with.
 - Retries OCR/barcode calls (intermittent failures), passes the prompt after
-  `--`, exits 3 when `fm` is unavailable.
+  `--`, exits 3 when neither backend is available.
 
 **Pi's `see` tool** (`assets/pi-extensions/see.ts`, installed with
-`see.sh` next to it by `install_pi_extensions.sh`) gives the text-only oMLX
-tiers eyes: `see(path, kind: text|picture|code, schema?, question?)`.
+`see.sh` next to it by `install_pi_extensions.sh`) gives Pi's tiers eyes:
+`see(path, kind: text|picture|code, schema?, question?)`. `text` and `code`
+pass `--with-text`, so they stay on `fm` and keep the OCR cross-check;
+`picture` goes to oMLX when it is up. Pi's model entries stay text-only on
+purpose: an image read directly by the agent has no `read_text` to check.
 `fm` is never Pi's model — `fm serve` ignores tool definitions (asked to read
 a file it answered `"Read: README.md"`, `finish_reason: stop`) and 8K can't
 hold Pi's prompt and tools.
