@@ -9,8 +9,11 @@
     decide.py --schema schema.json "Extract the version and date from: ..."
     cat item.txt | decide.py --choices bug,improvement --system "Classify the backlog item."
 
-The output is grammar-constrained by oMLX: with --choices it is exactly one of
-the choices; with --schema it is JSON matching the schema. Exit 1 on error.
+With --choices the answer is exactly one of the choices: oMLX's decision model
+(d3-flash, `/v1/decisions`) picks it, or — when that model isn't installed,
+fails, or --chat is given — the `:decide` chat model under a choice grammar.
+With --schema it is JSON matching the schema, always from the chat model.
+Exit 1 on error.
 
 **Guardrails:**
 - Rejects >20 choices (the model's accuracy drops sharply with many options).
@@ -28,6 +31,7 @@ import urllib.request
 
 BASE = "http://127.0.0.1:8000/v1"
 TIER = ":decide"  # the exposed oMLX profile; which model backs it is in references/tiers.md
+DECISION_MODEL = "d3-flash-oQ8e"  # labels via /v1/decisions; references/tiers.md derivation 15
 
 
 def api_key() -> str:
@@ -56,12 +60,29 @@ def decide_model(key: str) -> str:
     return ids[0]
 
 
+def chat(key: str, system: str, question: str, constraint: dict) -> str:
+    body = {
+        "model": decide_model(key),
+        "messages": [{"role": "system", "content": system}, {"role": "user", "content": question}],
+        "structured_outputs": constraint,
+    }
+    return call("/chat/completions", key, body)["choices"][0]["message"]["content"].strip()
+
+
+def decision(key: str, system: str, question: str, choices: list[str]) -> str:
+    """One `choice` question to the decision model; its answer is always one of the choices."""
+    body = {"model": DECISION_MODEL, "input": question,
+            "questions": [{"type": "choice", "name": "answer", "instructions": system, "choices": choices}]}
+    return call("/decisions", key, body)["answers"][0]["choice"]
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     shape = p.add_mutually_exclusive_group(required=True)
     shape.add_argument("--choices", help="comma-separated allowed answers")
     shape.add_argument("--schema", help="path to a JSON Schema file")
     p.add_argument("--system", default="Answer the question.", help="instruction for the model")
+    p.add_argument("--chat", action="store_true", help="--choices on the :decide chat model, not the decision model")
     p.add_argument("question", nargs="?", help="the question; read from stdin when omitted")
     a = p.parse_args()
 
@@ -81,12 +102,13 @@ def main() -> int:
 
     try:
         key = api_key()
-        body = {
-            "model": decide_model(key),
-            "messages": [{"role": "system", "content": a.system}, {"role": "user", "content": question}],
-            "structured_outputs": constraint,
-        }
-        print(call("/chat/completions", key, body)["choices"][0]["message"]["content"].strip())
+        if a.choices and not a.chat and any(m["id"] == DECISION_MODEL for m in call("/models", key)["data"]):
+            try:
+                print(decision(key, a.system, question, constraint["choice"]))
+                return 0
+            except Exception as e:  # noqa: BLE001
+                print(f"decide: {DECISION_MODEL} failed ({e}); using the chat model", file=sys.stderr)
+        print(chat(key, a.system, question, constraint))
     except Exception as e:  # noqa: BLE001 — one line for the caller, not a traceback
         print(f"decide: {e}", file=sys.stderr)
         return 1

@@ -75,11 +75,11 @@ pi -p --no-session -nc -ns \
 Run under `run_in_background`, **one at a time**: parallel runs add ~no
 throughput and delay every answer (tiers.md derivation 11).
 
-## Decide — one constrained answer, ~1–1.5 s
+## Decide — one constrained answer, ~0.3–1.5 s
 
 For a quick judgment that doesn't need an agent loop: triage, routing,
-classification, yes/no, extracting a few fields. oMLX constrains the output
-with a grammar, so the answer is always one of the choices or schema-valid JSON:
+classification, yes/no, extracting a few fields. The answer is always one of
+the choices (a decision model) or schema-valid JSON (a grammar):
 
 ```bash
 S=${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/decide.py
@@ -92,7 +92,7 @@ cat item.txt | $S --choices a,b,c --system "..."      # question from stdin
 - Always give the criterion in `--system`, including what each choice means, and say how to treat the ambiguous case — the measured 93% on 11-way area classification was with a one-line definition per area, and an exact bug/improvement definition gained 2–3 items in 45.
 - Wording moves the score as much as the model: longer area descriptions dropped the same model from 42 to 37 of 45. Keep a definition per choice short and literal, and compare models only on identical wording.
 - It was right 69–93% of the time on real judgment calls, depending on the question (see references/tiers.md). Use it to sort, route and pre-filter; verify any decision that changes something.
-- Decision models on oMLX's `/v1/decisions` (a probability per option): d3-flash matched or beat this tier at ~4× the speed but isn't wired into `decide.py` yet; Clef lost. Evidence: references/tiers.md, derivations 9 and 15.
+- `--choices` uses the decision model d3-flash (`/v1/decisions`) when installed — ~3× faster, no less accurate; `--chat` forces the chat model, which `--schema` always uses. Evidence: references/tiers.md, derivation 15.
 - The grammar guarantees the answer's shape, not its truth: a borderline call is uncertain — sharpen the criterion or escalate.
 - Many decisions → loop in the shell; each call is independent and fast.
 

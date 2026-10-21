@@ -17,7 +17,7 @@ them. Three layers, each owning one thing:
 | code | `Qwen3.6-35B-A3B-oQ4e-mtp:code` | Same model; thinking on; MTP engages with the thinking budget |
 | deep | `Qwen3.8-27B-oQ4e-mtp:deep` | Dense, 16 GB, `Jundot/Qwen3.8-27B-oQ4e-mtp`, MTP on. oMLX 0.7.0, 11K prompt: ~34 tok/s decode, ~399 tok/s prefill. Qwen3.8 thinking sampling: temperature **1.0**, top_p 0.95, top_k 20 (not 3.6's 0.6). Set 2026-09-29 — derivation 7 |
 | see | `Qwen3.6-35B-A3B-oQ4e-mtp:fast` when oMLX is up, else `/usr/bin/fm` (Apple on-device, macOS 27); codes and `--with-text` always `fm` | Called through `scripts/see.sh` (Pi: the `see` tool), never by tier name. The installed Qwen builds carry vision weights; Pi's entries stay text-only on purpose. `fm`-only from 2026-10-13; split 2026-10-21 — derivation 13 and references/apple-fm.md |
-| decide | `Qwen3.8-27B-oQ4e-mtp:decide` | Same model as deep. Moved 2026-09-29: 31/45 type, 42/45 area vs the 35B's 27 and 38, at ~1.1 s median vs 0.33 s — accuracy is the point of decide. Called via `scripts/decide.py`, not Pi. Grammar-constrained, so MTP doesn't engage — irrelevant for 1–3-token answers |
+| decide | `--choices`: `d3-flash-oQ8e` via `/v1/decisions` (2026-10-21, derivation 15; `--chat` or a missing model → the chat model). `--schema`: `Qwen3.8-27B-oQ4e-mtp:decide` | d3-flash: 9B decision model, 8.8 GB loaded on demand, ~0.3 s per question. The chat model is the same model as deep. Moved 2026-09-29: 31/45 type, 42/45 area vs the 35B's 27 and 38, at ~1.1 s median vs 0.33 s — accuracy is the point of decide. Called via `scripts/decide.py`, not Pi. Grammar-constrained, so MTP doesn't engage — irrelevant for 1–3-token answers |
 
 MTP is a **base-model** setting (`PUT /admin/api/models/<model>/settings
 {"mtp_enabled": true}`), not a profile field the templates carry; profiles
@@ -395,7 +395,7 @@ Machine: Apple M5 Pro, 64 GB unified memory.
       half the decode speed on the tiers where speed is the point. Revisit for
       a smaller fast model only if memory gets tight.
 
-15. **Decision models on oMLX for `decide` (2026-10-21, d3-flash kept, [#230](https://github.com/totallyGreg/claude-mp/issues/230)).**
+15. **Decision models on oMLX for `decide` (2026-10-21, d3-flash adopted for `--choices`, [#230](https://github.com/totallyGreg/claude-mp/issues/230)).**
     oMLX 0.7.1 serves decision models (Clef, d3) and any chat model through
     `POST /v1/decisions` (OpenAI Decisions API: `choice` / `predicate` /
     `score` questions, a probability per option, many questions per call;
@@ -427,10 +427,23 @@ Machine: Apple M5 Pro, 64 GB unified memory.
       cascade added nothing over d3 alone; for `:decide` via `/v1/decisions`
       a ≥ 0.5 type cascade reached 51/62, but that mixes two calls of the
       same model.
-    - Not wired in yet: `decide.py` speaks chat + grammar. Adopting d3-flash
-      means a `/v1/decisions` path in `decide.py` (choices → a `choice`
-      question with per-option descriptions; `--schema` stays on the chat
-      model) and the tier note above. Re-run with any candidate.
+    - **Adopted for `--choices`.** `decide.py` sends `--choices` to d3-flash
+      as one `choice` question (`--system` → its instructions) when the model
+      is served, falls back to the chat model if the call fails (stderr
+      note), and keeps `--schema` and `--chat` on `:decide`. Measured through
+      `decide.py` itself, same 62 items and wording (definitions as prose in
+      `--system`), 2 calls per item including process start:
+
+      | `decide.py` | type | area | median / item |
+      |---|---|---|---|
+      | default (d3-flash) | **48** | **54** | **0.60 s** |
+      | `--chat` | 46 | 53 | 1.79 s |
+
+      `--chat` reproduced the chat baseline exactly. Type was 51 when each
+      option carried its own description (eval mode above) vs 48 with prose
+      in `--system` — 3 items, about the noise; per-option descriptions in
+      `decide.py` aren't worth the syntax yet. Re-run any candidate with
+      `eval_clef.py decisions`.
 
 ## Gotcha: unknown model names must fail
 
