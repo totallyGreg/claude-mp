@@ -203,7 +203,7 @@ Machine: Apple M5 Pro, 64 GB unified memory.
    `Cloudflare/clef` (27B) and `clef-flash` (9B) are Qwen3.8 backbones with a
    joint schema head: one forward pass returns a probability for every option
    of every typed question (`choice`, ordered `score`, yes/no `noul`). Not a
-   chat model — **oMLX can't serve it**; the mlx-community builds ship
+   chat model — **oMLX couldn't serve it** (0.7.0; 0.7.1 does — derivation 15); the mlx-community builds ship
    `clef_mlx.py` (`predict`, or `serve` = a SystemOne-compatible
    `POST /v1/systemone` server, one request at a time). Used the Jev way
    (TypeSafe's guide): plain, literal criteria per option; many questions per
@@ -295,6 +295,16 @@ Machine: Apple M5 Pro, 64 GB unified memory.
       run is fine. Derivation 8's "2 ≈ 2×" came from an M5 Ultra post and
       does not hold here.
     - Re-run both when oMLX changes how MTP batches or prefill is scheduled.
+    - **Other 0.7.1 behavior that matters here.** A prompt over the tier's
+      context now returns HTTP 400 `context_length_exceeded` ("Prompt is too
+      long: 70012 tokens > 65536 maximum context length", checked on
+      `:fast`); Pi's overflow detector (`pi-ai/dist/utils/overflow.js`,
+      `/prompt (?:is )?too long/i`) matches it, so Pi should compact and
+      retry — read from the code, not yet seen live. Under memory pressure
+      running requests pause and resume instead of aborting (release note,
+      not reproduced). Splash can run as an external engine (Model Settings
+      › Advanced, Splash 1.3.0+) — derivation 8's candidate for bulk
+      `decide --schema`, still untried.
 
 12. **Affine KV compression on `deep` (2026-10-21, rejected, [#230](https://github.com/totallyGreg/claude-mp/issues/230)).**
     oMLX 0.7.1 adds Affine4/Affine8 next to TurboQuant (model setting
@@ -444,6 +454,33 @@ Machine: Apple M5 Pro, 64 GB unified memory.
       in `--system` — 3 items, about the noise; per-option descriptions in
       `decide.py` aren't worth the syntax yet. Re-run any candidate with
       `eval_clef.py decisions`.
+
+16. **`deep` alternatives (2026-10-21, none adopted, [#230](https://github.com/totallyGreg/claude-mp/issues/230)).**
+    - `Jundot/Qwen3.8-27B-oQ4e-fp16-mtp` stores the quantization scales,
+      biases and unquantized tensors in FP16 instead of BF16 and keeps the
+      vision encoder in FP32 — not a different MTP head. `bench_decode.py`,
+      each model alone, AC, MTP on:
+
+      | | prefill tok/s | decode tok/s | MTP accepted | resident |
+      |---|---|---|---|---|
+      | oQ4e-fp16-mtp | 381 | 31.9 | 81–83% | 16.82 GB |
+      | oQ4e-mtp (installed) | 368 | 31.3 | 79–81% | 16.69 GB |
+
+      Same within noise → deleted. Run in the same session, the 35B
+      (`fast`/`code`) measured 2,970 prefill / 110.8 decode on a cool machine
+      — back at the 0.7.0 numbers, which supports derivation 11's reading
+      that its lower AC runs were heat, not 0.7.1.
+    - Gemma 4 31B dense was to be tried only if Gemma beat Qwen in
+      derivation 14; it didn't, so it wasn't downloaded.
+
+## Gotcha: sampling lives in oMLX profiles, not Pi
+
+Pi 0.99+ can set `samplingParams` / `samplingParamsByThinkingLevel` per model
+in `~/.pi/agent/models.json` (OpenAI-compatible APIs). Don't: the oMLX
+profiles own each family's sampling, so every client that sends none —
+Pi, `decide.py`'s chat path, `omlx launch claude` — gets the same values.
+Request values take precedence over profile defaults in oMLX, so a Pi
+setting would apply to Pi alone and drift from the profile.
 
 ## Gotcha: unknown model names must fail
 

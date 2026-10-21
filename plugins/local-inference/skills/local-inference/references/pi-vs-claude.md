@@ -116,6 +116,12 @@ Claude "slim" = `scripts/claude_team.sh` (brief in `scripts/claude_teammate_brie
 | Reply guarantee | structural (session file) | `reply_guard.py` Stop hook | yes (09-30) — different mechanism, same effect |
 | Images (`see` tier) | `see.ts` tool → `see.sh` | none — the teammate has no Bash to run `see.sh` | **no** (10-13) |
 
+oMLX 0.7.1 adds `omlx launch claude_desktop`, which points the Claude
+Desktop app at oMLX, and a Claude Desktop toggle in oMLX that maps
+`claude-opus` / `claude-sonnet` / `claude-haiku` to the tier models set in
+oMLX (release note; which settings it reads is unverified). Not tested here; Claude
+Desktop is not a teammate (no `SendMessage`), so it isn't in this table.
+
 ## Next tests
 
 1. ~~Stop hook~~ and ~~tier mapping~~ — done 09-30.
