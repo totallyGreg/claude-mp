@@ -358,6 +358,43 @@ Machine: Apple M5 Pro, 64 GB unified memory.
       both. → `see.sh` routes text and pictures to `:fast` when oMLX is up
       (fallback `fm`), codes and `--with-text` to `fm`.
 
+14. **Gemma 4 26B-A4B for fast/code (2026-10-21, rejected, [#230](https://github.com/totallyGreg/claude-mp/issues/230)).**
+    `Jundot/gemma-4-26B-A4B-it-oQ4e-mtp` (25.2B total, 3.8B active, vision,
+    MTP head; 15.8 GB resident vs the 35B's 20.3 GB). Temporary `gcode`
+    profile = the `code` template + Gemma's card sampling (temperature 1.0,
+    top_p 0.95, top_k 64); MTP on (75–79% accepted, 2.3–2.9 tok/cycle).
+
+    `bench_decode.py`, derivation 8's file, each model alone, AC:
+
+    | | prefill tok/s | decode tok/s |
+    |---|---|---|
+    | Qwen3.6-35B-A3B | **2,427** | **102.0** |
+    | Gemma 4 26B-A4B | 2,159 | 58.0 |
+
+    Agentic: one sandboxed `pi -p` (`pi_sandboxed.sh run`, tools
+    read/edit/write/bash/grep/find/ls) per fresh worktree of a small Python
+    project — rename `parse_amount` → `parse_money` across 3 modules and the
+    tests, accept `(12.50)` / `-$3.00` / `$-3.00`, add tests, run them to
+    green, commit. Scored outside the sandbox with hidden tests (incl. the
+    callers) the model never saw:
+
+    | | wall time | own tests | hidden tests | old name left | commit |
+    |---|---|---|---|---|---|
+    | 35B `code`, run 1 / 2 | 234 / 67 s | pass / pass | pass / pass | 0 / 0 | yes / yes |
+    | Gemma `gcode`, run 1 / 2 | 404 / 152 s | pass / pass | pass / pass | 0 / 0 | yes / yes |
+
+    - **Same correctness, ~2× slower.** Both passed everything in both runs;
+      Gemma decoded at 57% of the 35B's speed and took 1.7–2.3× the wall time.
+    - **Code quality was a wash.** Gemma's run 1 was the shortest diff (a
+      sign flag; the minus forms fall out of `float()`); its run 2 duplicated
+      the module docstring and stripped every `-` in the string. The 35B's
+      run 2 left an unused `import re`. Two runs each can't separate them.
+    - oMLX parsed Gemma's tool calls cleanly: `server.log` shows 42
+      `finish_reason=tool_calls` and no tool-parse errors.
+    - → fast/code stay on Qwen3.6-35B-A3B. Saving 4.5 GB resident isn't worth
+      half the decode speed on the tiers where speed is the point. Revisit for
+      a smaller fast model only if memory gets tight.
+
 ## Gotcha: unknown model names must fail
 
 `settings.json` → `model.model_fallback: true` makes oMLX answer a request for
