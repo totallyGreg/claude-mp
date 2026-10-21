@@ -7,7 +7,10 @@
 
     eval_clef.py clef <BACKLOG.md> <hf-repo> <out.json>   # choice + noul fan-out, one call per item
     eval_clef.py qwen <BACKLOG.md> <out.json>              # oMLX :decide, two calls per item
-    eval_clef.py cascade <clef.json> <qwen.json>          # clef if confident, else qwen
+    eval_clef.py decisions <BACKLOG.md> <model> <out.json> [--fanout]
+                                                           # any oMLX model via /v1/decisions, one call per item;
+                                                           # --fanout adds a predicate per area (Clef/d3 style)
+    eval_clef.py cascade <clef.json> <qwen.json>          # clef (or decisions) if confident, else qwen
 """
 import json, os, re, sys, time, urllib.request
 
@@ -88,13 +91,42 @@ def run_qwen(backlog, out):
     json.dump(rows, open(out, "w"), indent=1)
 
 
+def run_decisions(backlog, model, out, fanout=""):
+    key = json.load(open(os.path.expanduser("~/.omlx/settings.json")))["auth"]["api_key"]
+    hdr = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    qs = [{"type": "choice", "name": "type", "instructions": TYPE_Q,
+           "choices": [{"value": k, "description": v} for k, v in TYPE.items()]},
+          {"type": "choice", "name": "area", "instructions": AREA_Q,
+           "choices": [{"value": k, "description": v} for k, v in AREAS.items()]}]
+    if fanout == "--fanout":
+        qs += [{"type": "predicate", "name": f"is_{a}", "instructions": f"This backlog item is about the {a} area: {d}"}
+               for a, d in AREAS.items()]
+
+    def ask(text, questions):
+        body = {"model": model, "input": f"{CONTEXT}\n\n{text}", "questions": questions}
+        req = urllib.request.Request("http://127.0.0.1:8000/v1/decisions", json.dumps(body).encode(), hdr)
+        t = time.time()
+        answers = json.load(urllib.request.urlopen(req, timeout=300))["answers"]
+        # The shape run_clef writes, so cascade() reads both.
+        return {a["name"]: {"choice": a["choice"], "confidence": a["confidence"]} if a["type"] == "choice"
+                else {"noul": a["probability"]} for a in answers}, (time.time() - t) * 1000
+
+    ask("warm up", qs[:1])
+    rows = []
+    for it in items(backlog):
+        ans, ms = ask(it["text"], qs)
+        rows.append({**it, "ms": ms, "answers": ans})
+    json.dump(rows, open(out, "w"), indent=1)
+
+
 def cascade(clef_path, qwen_path):
     c, q = json.load(open(clef_path)), json.load(open(qwen_path))
     n = len(c)
     ms = sorted(r["ms"] for r in c)
-    print(f"clef: median {ms[n//2]:.0f} ms/item (all 13 questions)   qwen: median {sorted(r['ms'] for r in q)[n//2]:.0f} ms/item (2 calls)")
-    fan = lambda r: max(AREAS, key=lambda a: r["answers"][f"is_{a}"]["noul"])
-    print(f"clef area via noul fan-out (argmax): {sum(fan(r) in r['areas'] for r in c)}/{n}")
+    print(f"clef: median {ms[n//2]:.0f} ms/item ({len(c[0]['answers'])} questions)   qwen: median {sorted(r['ms'] for r in q)[n//2]:.0f} ms/item (2 calls)")
+    if all(f"is_{a}" in c[0]["answers"] for a in AREAS):
+        fan = lambda r: max(AREAS, key=lambda a: r["answers"][f"is_{a}"]["noul"])
+        print(f"clef area via noul fan-out (argmax): {sum(fan(r) in r['areas'] for r in c)}/{n}")
     for qn, right_c, right_q in (("type", lambda r: r["answers"]["type"]["choice"] == r["kind"], lambda r: r["type"] == r["kind"]),
                                  ("area", lambda r: r["answers"]["area"]["choice"] in r["areas"], lambda r: r["area"] in r["areas"])):
         print(f"\n{qn}: clef alone {sum(map(right_c, c))}/{n}   qwen alone {sum(map(right_q, q))}/{n}")
@@ -108,4 +140,5 @@ def cascade(clef_path, qwen_path):
 
 if __name__ == "__main__":
     {"clef": lambda: run_clef(*sys.argv[2:5]), "qwen": lambda: run_qwen(*sys.argv[2:4]),
+     "decisions": lambda: run_decisions(*sys.argv[2:6]),
      "cascade": lambda: cascade(*sys.argv[2:4])}[sys.argv[1]]()

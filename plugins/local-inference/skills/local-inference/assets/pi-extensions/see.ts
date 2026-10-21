@@ -1,11 +1,12 @@
 /**
- * See — gives Pi's text-only local models eyes: a `see` tool that reads an image with
- * Apple's on-device model (`fm`, macOS 27) through `see.sh`, the skill's one
- * implementation of the `see` tier. install_pi_extensions.sh copies see.sh next to this
- * file; `$SEE_SH` overrides the path.
+ * See — gives Pi's local models eyes: a `see` tool that reads an image through `see.sh`,
+ * the skill's one implementation of the `see` tier. kind=text and kind=code pass
+ * --with-text, so they use Apple's on-device model (`fm`, macOS 27) and its OCR/barcode
+ * tools; kind=picture uses oMLX's :fast vision model when the server is up, else `fm`.
+ * install_pi_extensions.sh copies see.sh next to this file; `$SEE_SH` overrides the path.
  *
  * Not `fm` as Pi's model: `fm serve` ignores tool definitions and has an 8K context.
- * Here the agent (e.g. omlx/code) does the reasoning and arithmetic; `fm` only reads.
+ * Here the agent (e.g. omlx/code) does the reasoning and arithmetic; the tool only reads.
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -23,7 +24,7 @@ export default function (pi: ExtensionAPI) {
 			name: "see",
 			label: "See",
 			description: [
-				"Read an image file with Apple's on-device vision model (local, a few seconds). You cannot see images yourself; use this.",
+				"Read an image file with a local vision model (a few seconds). You cannot see images yourself; use this.",
 				"kind=text — receipts, invoices, forms, screenshots of text. Requires `schema` (JSON Schema of the fields to extract).",
 				"  Returns {answer, read_text}: read_text is exactly what OCR read. Check every value in answer against read_text.",
 				"  Ask only for fields printed on the image: a field that isn't there gets invented. Fails if the image has no text.",

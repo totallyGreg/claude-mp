@@ -98,6 +98,7 @@ Claude "slim" = `scripts/claude_team.sh` (brief in `scripts/claude_teammate_brie
 - **09-30/10-01 Claude:** teammate killed by SIGUSR1 at 20:00:02 and 07:00:06, idle the second time. No cron/launchd job or Claude/Homebrew update found at those times. Open.
 - **10-01 Claude:** `omlx launch claude` runs Claude Code 2.1.270 from `~/.local/share/claude`, while `claude` on PATH is Homebrew's 2.1.284 — the teammate is two versions behind the lead.
 - **09-30 Claude:** after mapping opus→`:deep`, launching without a tier starts the teammate on deep (the user's default Claude tier is opus). `claude_team.sh` passes `--model sonnet`.
+- **10-21 Pi:** pi-verdict (auto-mode gate) judged tool calls with the session model; on `:code` its 512-token verdicts ran out of tokens, retried at 1,024 and sometimes failed closed — over half of each run's wall time. `pi_env.sh` now points its judge at the fast tier (tiers.md derivation 17); runs ~3× faster, no blocks in real work.
 - **09-30 Claude:** each request re-read the whole prompt (`reused 0` in oMLX's log) — no prefix-cache reuse between turns. Not yet checked for Pi.
 
 ## Parity — configure both alike
@@ -115,6 +116,12 @@ Claude "slim" = `scripts/claude_team.sh` (brief in `scripts/claude_teammate_brie
 | Teammate channel | `pi_team.sh` spawn/ask/close | `claude_team.sh` spawn, then `ListAgents`/`SendMessage`; close the pane by hand | different by nature |
 | Reply guarantee | structural (session file) | `reply_guard.py` Stop hook | yes (09-30) — different mechanism, same effect |
 | Images (`see` tier) | `see.ts` tool → `see.sh` | none — the teammate has no Bash to run `see.sh` | **no** (10-13) |
+
+oMLX 0.7.1 adds `omlx launch claude_desktop`, which points the Claude
+Desktop app at oMLX, and a Claude Desktop toggle in oMLX that maps
+`claude-opus` / `claude-sonnet` / `claude-haiku` to the tier models set in
+oMLX (release note; which settings it reads is unverified). Not tested here; Claude
+Desktop is not a teammate (no `SendMessage`), so it isn't in this table.
 
 ## Next tests
 

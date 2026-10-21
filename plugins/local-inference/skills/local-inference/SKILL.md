@@ -2,7 +2,7 @@
 name: local-inference
 description: This skill should be used when the user says "use pi", "use the local model", "local inference", "run it on the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", "use fm", "extract this receipt", "OCR this image", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON, also from an image) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, exact-spec edits) can run on a local model — via Pi or via Claude Code launched on the local server — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
 metadata:
-  version: "2.3.0"
+  version: "2.4.0"
 compatibility: macOS on Apple silicon; oMLX server on 127.0.0.1:8000; macOS 27+ for `fm`; pi; tmux 3.5+ for pane teammates; uv for the Python scripts
 license: MIT
 ---
@@ -30,16 +30,16 @@ using it.
 
 ## Tiers — pick by task, never by model
 
-Each tier is an oMLX profile exposed as a model. Call it by tier name
-(`omlx/<tier>`); which model backs it changes over time.
+Call a tier by name (`omlx/<tier>`); the model behind it changes.
 
 | Tier | Use for | Context | Thinking |
 |------|---------|---------|----------|
 | `omlx/fast` | Bulk reading, extraction, summarizing, reformatting, exact-spec edits — the default for this skill | 64K | off |
 | `omlx/code` | Multi-step agentic work: tool loops, multi-file edits | 128K | on, 4K budget |
-| `omlx/deep` | One hard question: design reasoning, tricky analysis. Slow to answer — it thinks up to 16K tokens first | 128K | on, 16K budget |
+| `omlx/deep` | One hard question: design reasoning, tricky analysis. Slow: thinks up to 16K tokens first | 128K | on, 16K budget |
 | `decide` | System-1 calls: pick one label, yes/no, or fill a small JSON schema. Not through Pi — see below | 16K | off |
-| `see` | Images (receipt, screenshot, QR) → text or JSON: `scripts/see.sh`, Pi's `see` tool. Apple's `fm`, not oMLX — [references/apple-fm.md](references/apple-fm.md) | 8K | off |
+| `see` | Images → text or JSON via `scripts/see.sh`, Pi's `see`: oMLX `:fast` if up, else `fm`; codes `fm` — [apple-fm.md](references/apple-fm.md) | 64K / 8K | off |
+| review | Not a model: build, lint, tests first; `omlx/deep` only for a second opinion | — | — |
 
 The current model behind each tier, how the tiers were derived, and the
 procedure for a new model are in
@@ -72,14 +72,14 @@ pi -p --no-session -nc -ns \
 | `--tools` | **Pi has no permission prompts.** Read-only: `read,grep,find,ls`; edits (in a git tree only): add `edit,write`. Bash: only via § Gated edit |
 | `</dev/null` | **Required** — without it `pi -p` waits on stdin forever |
 
-Run under `run_in_background`, **at most 2 at once**: two nearly double
-throughput; from ~16K-token prompts, more is slower (tiers.md derivation 8).
+Run under `run_in_background`, **one at a time**: parallel runs add ~no
+throughput and delay every answer (tiers.md derivation 11).
 
-## Decide — one constrained answer, ~1–1.5 s
+## Decide — one constrained answer, ~0.3–1.5 s
 
 For a quick judgment that doesn't need an agent loop: triage, routing,
-classification, yes/no, extracting a few fields. oMLX constrains the output
-with a grammar, so the answer is always one of the choices or schema-valid JSON:
+classification, yes/no, extracting a few fields. The answer is always one of
+the choices (a decision model) or schema-valid JSON (a grammar):
 
 ```bash
 S=${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/decide.py
@@ -92,7 +92,7 @@ cat item.txt | $S --choices a,b,c --system "..."      # question from stdin
 - Always give the criterion in `--system`, including what each choice means, and say how to treat the ambiguous case — the measured 93% on 11-way area classification was with a one-line definition per area, and an exact bug/improvement definition gained 2–3 items in 45.
 - Wording moves the score as much as the model: longer area descriptions dropped the same model from 42 to 37 of 45. Keep a definition per choice short and literal, and compare models only on identical wording.
 - It was right 69–93% of the time on real judgment calls, depending on the question (see references/tiers.md). Use it to sort, route and pre-filter; verify any decision that changes something.
-- Cloudflare's Clef (open Jev/SystemOne: probabilities per option, many questions per call) was evaluated for this tier and not adopted — not more accurate here, and oMLX can't serve it. Evidence and when to revisit: references/tiers.md, derivation 9.
+- `--choices` uses the decision model d3-flash (`/v1/decisions`) when installed — ~3× faster, no less accurate; `--chat` forces the chat model, which `--schema` always uses. Evidence: references/tiers.md, derivation 15.
 - The grammar guarantees the answer's shape, not its truth: a borderline call is uncertain — sharpen the criterion or escalate.
 - Many decisions → loop in the shell; each call is independent and fast.
 

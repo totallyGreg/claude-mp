@@ -19,6 +19,7 @@ cmd=${1:-}; shift 2>/dev/null
 SELF=${0:A}
 AS=${SELF:h}/agent_sandbox.sh
 PI_DIR=$HOME/.pi/agent
+source ${SELF:h}/pi_env.sh
 
 # Pi's allowances, added to whatever options were given.
 pi_opts() {
@@ -33,7 +34,7 @@ split() { opts=() rest=(); while (( $# )); do [[ $1 == -- ]] && { shift; rest=("
 
 case $cmd in
 profile) pi_opts "$@"; zsh "$AS" profile "$@" "${extra[@]}" ;;
-exec) split "$@"; pi_opts "${opts[@]}"; zsh "$AS" exec "${opts[@]}" "${extra[@]}" -- env PI_AGENT=1 "${rest[@]}" ;;
+exec) split "$@"; pi_opts "${opts[@]}"; pi_env; zsh "$AS" exec "${opts[@]}" "${extra[@]}" -- env "${reply[@]}" "${rest[@]}" ;;
 run) split "$@"; exec zsh "$SELF" exec "${opts[@]}" -- pi "${rest[@]}" ;;
 spawn)
   # Leading options, then [tier] [name].
