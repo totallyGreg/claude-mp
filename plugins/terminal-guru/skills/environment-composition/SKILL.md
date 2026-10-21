@@ -2,7 +2,7 @@
 name: environment-composition
 description: This skill should be used when the user asks to "compose tools", "automate this workflow", "make this repeatable", "what patterns do you see", "pipe through fzf", "what tools am I using", "configure sesh.toml", "create a dev environment", "build a session template", "set up sesh config", "clean up worktrees", "resume my session", "should this be a function or a task", "make a droplet", "drag and drop script", "folder action", "run a script when files land in a folder", "Finder Quick Action", "right-click menu item", or needs help composing workflows from existing CLI tools. Also trigger on fzf composition, workflow discovery, pattern graduation, tool landscape, sesh wildcards, or wrapping a script (even one calling Apple's `fm`) in a Finder droplet or Folder Action. Do NOT use for tmux display or keybindings (use terminal-emulation). Do NOT use for worktree lifecycle (use chronicle). Do NOT use for signals or logging (use signals-monitoring). Do NOT use for mise config or tasks (use mise-tooling).
 metadata:
-  version: "2.2.0"
+  version: "2.3.0"
 ---
 
 # Environment Composition
@@ -37,9 +37,9 @@ See `references/composition_philosophy.md` for the full philosophy, Pattern Grad
 
 ### 2. fzf Composition Patterns
 
-fzf is the universal composition glue: `source | fzf [--preview] | action`. Master the pattern for git branches, brew packages, mise tasks, file operations, and process management. Know when to use alternatives (tv for file search, gum for confirmations).
+fzf is the universal composition glue: `source | fzf [--preview] | action`. Master the pattern for git branches, brew packages, mise tasks, file operations, and process management. Use fzf, not tv, for pickers; gum for confirmations.
 
-See `references/fzf_composition.md` for the complete pattern library, power features, and comparison with tv and gum.
+See `references/fzf_composition.md` for the complete pattern library, power features, and comparison with tv and gum. New fzf actions by version: `tui-experience/references/fzf_features.md`.
 
 ### 3. Workflow Discovery
 

@@ -219,7 +219,8 @@ These criteria are non-negotiable — they reflect lessons from prior diagnoses 
 | Test my tmux plugin (verify vs configure vs debug) | tmux-dev | - |
 | Theme lazygit, k9s skin, btop config | tui-experience | - |
 | Configure fzf preview, fzf bindings (in-app) | tui-experience | - |
-| Create television channel, configure tv | tui-experience | - |
+| Create television channel, configure tv (prefer fzf for new pickers) | tui-experience | - |
+| Build a picker / popup selector, new fzf features | tui-experience | environment-composition |
 | TUI app rendering broken (after substrate ruled out) | tui-experience | terminal-emulation |
 | Record terminal session (asciinema) | tui-experience | - |
 | Convert .cast to GIF/SVG/MP4 | tui-experience | - |
