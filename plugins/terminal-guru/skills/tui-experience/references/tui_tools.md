@@ -8,7 +8,9 @@ For the underlying ANSI color protocol and palette setup, see `terminal-emulatio
 
 ## fzf
 
-Fuzzy finder; the most-used TUI primitive. Theme inherits from the terminal's 16 ANSI colors by default — set a base16 theme system-wide and fzf follows.
+Fuzzy finder; the most-used TUI primitive and the **default picker** — prefer it over television (see below). Theme inherits from the terminal's 16 ANSI colors by default — set a base16 theme system-wide and fzf follows.
+
+New actions, events and popup behaviour arrive every few weeks: check `fzf --version` against **`fzf_features.md`** (what's new through the stamped version, and how to update it) before writing a picker.
 
 ### Config
 
@@ -21,9 +23,7 @@ export FZF_DEFAULT_OPTS='
   --layout=reverse
   --border=rounded
   --preview-window=right:60%:wrap
-  --color=fg:#cdd6f4,bg:-1,hl:#f38ba8
-  --color=fg+:#cdd6f4,bg+:#313244,hl+:#f38ba8
-  --color=border:#585b70,header:#f9e2af,gutter:-1
+  --color=16,fg+:-1:bold,bg+:-1,hl:9,hl+:9:bold,gutter:-1
   --bind ctrl-y:execute-silent(echo {} | pbcopy)
   --bind ctrl-o:execute(open {})
   --bind ?:toggle-preview
@@ -49,6 +49,9 @@ Common actions: `execute(cmd)`, `execute-silent(cmd)`, `toggle-preview`, `change
 - **`become(cmd)`** is fzf's clean exit — replaces the fzf process with the target command (no shell wrapper needed)
 - **Preview not updating?** Add `--preview-window=follow` if previewing log files
 - **Multi-select** with `-m` (multi); `{+}` expands to all selected items
+- **Hex colours don't follow light/dark.** `--color=16` (palette base) plus `-1` (terminal fg/bg) does, when the terminal swaps palettes on OS appearance
+- **Global `--tmux`/`--popup` in `FZF_DEFAULT_OPTS`** leaks into pickers that already run in a tmux popup; clear it per call (`FZF_DEFAULT_OPTS= fzf …`)
+- **`--popup` on tmux 3.7+ is a floating pane** (fzf 0.74+), not a modal popup; an explicit `--border` brings the popup back
 
 For fzf as **composition glue in shell pipelines** (`source | fzf --preview | action`), see `environment-composition/references/fzf_composition.md`.
 
@@ -56,7 +59,7 @@ For fzf as **composition glue in shell pipelines** (`source | fzf --preview | ac
 
 ## television (tv)
 
-Rust-based cross-shell, cross-platform fuzzy picker (alvarofpp/television). Faster than fzf for large datasets, with first-class "channels" — pluggable data sources (files, env vars, git log, custom commands, even MCP-style integrations).
+Rust-based fuzzy picker (alexpasmantier/television) with "channels" — pluggable data sources defined in TOML. **Not the default:** use fzf for pickers you build; reach for tv only to browse its bundled channel library. As of 2026-10 the latest release is 0.15.9 (2026-06-14), and its limits are listed under Quirks.
 
 ### Config
 
@@ -128,11 +131,12 @@ Then: `tv k8s-pods`.
 | Key            | Action                            |
 | -------------- | --------------------------------- |
 | `Enter`        | Select and run                    |
-| `Tab` / `↓`    | Next entry                        |
-| `Shift-Tab` / `↑` | Previous entry                 |
+| `↓` / `↑`      | Next / previous entry             |
+| `Tab` / `Shift-Tab` | Toggle selection (multi-select) |
 | `Ctrl-O`       | Toggle preview                    |
 | `Ctrl-Y`       | Yank current selection            |
-| `Ctrl-S`       | Toggle source/remote channel      |
+| `Ctrl-S`       | Cycle a channel's sources (forward only) |
+| `Ctrl-T`       | Remote control (switch channel)   |
 | `?` / `Ctrl-H` | Toggle help                       |
 | `Esc` / `Ctrl-C` | Quit                            |
 
@@ -155,14 +159,20 @@ Wrap sesh in a tv-backed selector by replacing `fzf-tmux` with `tv` in your sesh
 
 ### tv vs fzf decision
 
-| Use tv when                                              | Use fzf when                                          |
+**Default to fzf.** A 2026-10 comparison on a 4-source tmux picker (tv 0.15.9 vs fzf 0.74.5) found fzf did everything the tv channel did, plus backward source cycling and terminal-following colours, and reached the first entry faster (~140 ms vs ~210 ms). fzf also ships every 2–4 weeks. Details and the picker recipe: `fzf_features.md`.
+
+| Use tv when                                              | Use fzf (default) when                                |
 | -------------------------------------------------------- | ----------------------------------------------------- |
-| You have a repeatable data source (custom channel)       | One-off shell pipeline (`source \| fzf \| action`)    |
-| Dataset is huge (tens of thousands of entries) — tv is faster | You want maximum compatibility / scripts depend on fzf |
-| You want pluggable channels users can install            | You're composing a quick interactive selector inline  |
-| You want config-driven UI tweaks (themes via toml)       | You want env-var-driven config (`FZF_DEFAULT_OPTS`)   |
+| Browsing a bundled channel ad hoc (`tv tldr`, `tv env`)  | Building any picker, popup or shell widget            |
+|                                                          | Colours must follow the terminal's light/dark mode    |
+|                                                          | Keys must move both ways between modes or sources     |
 
 ### Quirks
+- **No backward `cycle_sources`** (0.15.9); repeating an action in one binding collapses to one step, so it can't be faked
+- **Colours:** only `#rrggbb` and the 16 ANSI names; `reset`/`default` are rejected (`none` is on unreleased main). One invalid `[ui.theme_overrides]` entry silently discards **all** overrides; a theme file with an invalid colour silently falls back to `default`. No light/dark detection and no `--theme` flag
+- **`[actions]` are per channel, not per source**; Ctrl-T remote control can switch channels out from under a script reading tv's output
+- **Frecency keys include ANSI codes**, so recolouring a source orphans its history
+- **Unreleased main renames `toggle_selection_down/up`** to `toggle_selection` — configs binding the old names will break on the next release
 
 - **Channels are first-class** — define one for any recurring picker you build instead of re-writing the same fzf pipeline
 - **`tv --working-directory <dir>`** scopes channels to a specific dir without `cd`

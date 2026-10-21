@@ -2,7 +2,7 @@
 name: tui-experience
 description: This skill should be used when the user asks to "theme lazygit", "configure k9s skin", "set up fzf preview", "create a television channel", "configure tv channel", "customize btop theme", "configure gum prompt", "style glow markdown", "record a terminal session", "play asciinema cast", "convert asciinema to gif", "convert asciinema to svg", "convert cast to mp4", "render terminal recording with vhs", "share asciinema recording", or needs help with TUI application theming/keybindings/quirks (fzf, television/tv, gum, btop, lazygit, k9s, glow, charm) or terminal session recording (asciinema, agg, vhs, svg-term-cli). Do NOT use for the underlying color protocol (ANSI/256/truecolor) — use terminal-emulation. Do NOT use for tmux automation — use tmux-dev. Do NOT use for shell-level fzf composition pipelines — use environment-composition.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # tui-experience
@@ -51,6 +51,8 @@ Most TUI apps follow one of three theme models:
 The "inherits terminal palette" group respects whatever you've set in your terminal emulator (see terminal-emulation/ansi_colors.md → base16/pywal). Setting a new base16 theme automatically updates fzf and gum.
 
 See `references/tui_tools.md` for per-tool theme paths, keybinding overrides, and the most common debugging quirks.
+
+**Pickers: default to fzf, not television.** fzf cycles sources both ways, follows the terminal's light/dark colours (`--color=16` + `-1`) and ships every few weeks; tv 0.15.9 does none of these. Before writing an fzf picker, compare `fzf --version` with the stamp in `references/fzf_features.md` and use the newer actions it lists; when fzf is newer than the stamp, follow that file's update procedure.
 
 ### 2. TUI App Keybindings
 
@@ -196,7 +198,8 @@ See `references/tui_tools.md` for skin file format and where to find community s
 ## Resources
 
 ### references/
-- **`tui_tools.md`** — per-tool theming, keybindings, quirks for fzf, gum, btop, lazygit, k9s, glow, charm/bubbletea apps
+- **`tui_tools.md`** — per-tool theming, keybindings, quirks for fzf, television, gum, btop, lazygit, k9s, glow, charm/bubbletea apps
+- **`fzf_features.md`** — fzf features by version (transform, events, popups, colours), the verified multi-source picker recipe, breaking changes, and how to keep it current
 - **`asciinema.md`** — recording, playback, upload, conversion matrix (agg/svg-term-cli/vhs), `.cast` editing, embedding patterns, vhs vs asciinema
 
 ## Related Skills

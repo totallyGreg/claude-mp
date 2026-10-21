@@ -44,6 +44,7 @@ tmux as an automation and structural surface (no longer a sub-topic of terminal-
 ### Skill: tui-experience (NEW in 5.5.0)
 The "experience" layer — apps you live in, and recording what happens there:
 - TUI app theming/keybindings/quirks: fzf, television (tv), gum, btop, lazygit, k9s, glow, charm/bubbletea
+- fzf as the default picker, and fzf features by version with an update procedure (`references/fzf_features.md`)
 - Terminal recording: asciinema (rec/play/upload), `.cast` editing
 - Conversion: agg → GIF, svg-term-cli → SVG, ffmpeg → MP4
 - Scripted demos with charmbracelet `vhs` (`.tape` syntax, vhs-vs-asciinema decision)
@@ -125,6 +126,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Changes |
 |---------|---------|
+| 5.21.0 | **tui-experience v1.1.0, environment-composition v2.3.0** ([#232](https://github.com/totallyGreg/claude-mp/issues/232)): recommend **fzf over television** for pickers. tv 0.15.9 (no release since 2026-06) can't cycle sources backwards or use the terminal's default colours, and one invalid theme override silently drops them all; fzf did all the tv picker did plus Shift-Tab and light/dark-following colours, ~140 vs ~210 ms to first entry. New `references/fzf_features.md`: features by version through fzf 0.74.5 (transform, events, `--popup` floating panes, `--color=16`), the verified Tab/Shift-Tab multi-source picker, breaking changes, and how to keep it current from upstream `CHANGELOG.md`. `tui_tools.md` corrects the tv repo, default keys and decision table; agent routes picker requests to tui-experience. Scores unchanged: tui-experience 92, environment-composition 90. |
 | 5.20.0 | **environment-composition v2.2.0**: `finder_surface.sh droplet` now embeds the script (re-run to update; `--link` to reference it instead, `--self-reporting` for scripts that show their own results), shows a progress window with Stop, and reports by exit status (0 done, 3 already reported, other = failure dialog). Double-clicking the droplet opens a settings window that toggles a Finder right-click Quick Action. Scripts drive a real progress bar via `$DROPLET_PROGRESS_FILE`. `macos_finder_surfaces.md` adds the exit contract, progress protocol, and hurdles from a real build (Finder's environment, bash 3.2 traps, GUI-free testing with a stub `osascript`, SSH over one connection). Score 90/100 (unchanged). |
 | 5.19.0 | **environment-composition v2.1.0** ([#210](https://github.com/totallyGreg/claude-mp/issues/210)): wrap any script in a Finder **droplet** or **Folder Action** — `scripts/finder_surface.sh` generates both and detaches them, and `references/macos_finder_surfaces.md` gives the core-script contract (absolute paths for `do shell script`'s minimal PATH, no TTY, skip own output) and gotchas. Worked example: receipt image → JSON with Apple's on-device `fm`, verified through both surfaces. **signals-monitoring v1.0.1**: file-watching guide points to Folder Actions. Agent routes droplet/Folder Action requests (100/100, unchanged). Scores unchanged: environment-composition 90, signals-monitoring 92. |
 | 5.18.0 | **tmux-dev v1.1.0**: tmux 3.7/3.8 awareness — events, monitor hooks, `wait-for -E`, OSC 133 command-finished events, floating/modal panes, new formats/hooks, themes, and breaking changes (new `references/tmux_3_8_features.md`; tested on tmux 3.8). `tmux_plugins.md` now covers the native option-change trigger. Score 91/100 (unchanged). |
@@ -156,7 +158,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 ### Current Metrics
 
-**Score: 90/100** (Good) — 2026-10-13
+**Score: 90/100** (Good) — 2026-10-21
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -166,6 +168,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 2.3.0 | 2026-10-21 | [#232](https://github.com/totallyGreg/claude-mp/issues/232) | fzf, not tv, for pickers; points to `tui-experience/references/fzf_features.md` for new fzf actions; multi-source picker pattern in `fzf_composition.md`. | 100 | 80 | 80 | 100 | 100 | 90 |
 | 2.2.0 | 2026-10-20 | - | Droplets embed the script and show a progress window with Stop; exit contract (0/3/other) and `$DROPLET_PROGRESS_FILE` progress protocol; double-click settings window toggles a right-click Quick Action; `--link` / `--self-reporting`; build hurdles in `macos_finder_surfaces.md`. | 100 | 80 | 80 | 100 | 100 | 90 |
 | 2.1.0 | 2026-10-13 | [#210](https://github.com/totallyGreg/claude-mp/issues/210) | macOS Finder surfaces: new `references/macos_finder_surfaces.md` (core-script contract, droplet, Folder Action, Quick Action, launchd) and `scripts/finder_surface.sh` (droplet / folder-action / detach); Script → Finder Surface graduation step; `fm` receipt → JSON worked example. | 100 | 80 | 80 | 100 | 100 | 90 |
 | 2.0.0 | 2026-05-03 | - | Evolved into composition engine: composition philosophy, fzf patterns, workflow discovery script, tool landscape analysis. Expanded from sesh-specific to general tool composition. | 100 | 80 | 80 | 100 | 100 | 90 |
@@ -229,6 +232,23 @@ mise (jdx/mise) configuration, task automation, and environment management:
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
 | 4.1.0 | 2026-08-06 | - | New capability: **terminal recording (asciinema → GIF)**. Added `references/terminal_recording.md`: headless recording with the **single-script self-replay trick** (`record.sh --play <name>` so pacing helpers are in scope without a separate lib file), `say`/`run`/`end` helpers, prereq guards that "fail with the fix", credential safety gate (Bearer/JWT only — bare UUIDs not flagged), tuned `agg` defaults, and `record.sh` scaffolder (target stays plugin-free). Canonical reference implementation: `examples/casts/record.sh` in airs-tasks. Added `license` + `compatibility` frontmatter (spec compliance 80→100). +v4.1.1 (corrected safety gate — removed UUID pattern; aligned with canonical). | 100 | 90 | 100 | 100 | 100 | 98 |
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
+
+## Skill: tui-experience
+
+### Current Metrics
+
+**Score: 92/100** (Excellent) — 2026-10-21
+
+| Concs | Complx | Spec | Progr | Descr |
+|-------|--------|------|-------|-------|
+| 100 | 90 | 80 | 100 | 100 |
+
+### Version History
+
+| Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
+|---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.1.0 | 2026-10-21 | [#232](https://github.com/totallyGreg/claude-mp/issues/232) | **fzf as the default picker.** New `references/fzf_features.md` (features by version through 0.74.5, verified Tab/Shift-Tab multi-source picker, terminal-following colours, `--popup` floating panes, breaking changes, update procedure). `tui_tools.md`: tv limits at 0.15.9, corrected repo, default keys and decision table. | 100 | 90 | 80 | 100 | 100 | 92 |
+| 1.0.0 | — | — | Initial release (plugin 5.5.0). | - | - | - | - | - | 92 |
 
 ## Skill: tmux-dev
 

@@ -137,6 +137,10 @@ function fbr() {
 
 For team-shared compositions, graduate to a mise task with the `usage` field for argument parsing.
 
+### Multi-source pickers
+
+One picker over several sources (sessions, windows, panes, commands), switched with Tab / Shift-Tab: a stepper script prints `change-prompt(...)+reload-sync(...)` for `--bind 'tab:transform:…'`, reading the current source from `$FZF_PROMPT`. The verified recipe is in `tui-experience/references/fzf_features.md`.
+
 ---
 
 ## Alternatives Comparison
@@ -144,18 +148,12 @@ For team-shared compositions, graduate to a mise task with the `usage` field for
 | Tool | Model | Best For |
 |------|-------|----------|
 | **fzf** | Pipe-based filter | Any list → interactive selection |
-| **tv** (television) | Standalone with built-in sources | File search, code grep, git files |
+| **tv** (television) | Standalone with built-in channels | Ad-hoc browsing of its bundled channels only |
 | **gum** | Structured prompts | Confirmations, forms, multi-step input |
 
-### When to Prefer tv
+### fzf over tv for pickers
 
-tv (television) has built-in "channels" for common sources (files, git files, grep). Use it when the source is already built-in — no piping needed:
-
-```bash
-tv                      # Default file search
-tv --channel git-files  # Search git-tracked files
-tv --channel grep       # Search file contents
-```
+Build pickers, popups and widgets with fzf, not tv: fzf can cycle sources both ways, follow the terminal's light/dark colours, and ships every few weeks. tv 0.15.9 can't, and has had no release since 2026-06 (see `tui-experience/references/tui_tools.md` → television). Recent fzf actions (`transform`, `reload-sync`, `every(N)`, `--popup` floating panes) replace most wrapper scripts — check `tui-experience/references/fzf_features.md` for what the installed version supports.
 
 ### When to Prefer gum
 
