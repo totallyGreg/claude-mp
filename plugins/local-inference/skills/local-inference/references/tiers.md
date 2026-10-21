@@ -395,6 +395,43 @@ Machine: Apple M5 Pro, 64 GB unified memory.
       half the decode speed on the tiers where speed is the point. Revisit for
       a smaller fast model only if memory gets tight.
 
+15. **Decision models on oMLX for `decide` (2026-10-21, d3-flash kept, [#230](https://github.com/totallyGreg/claude-mp/issues/230)).**
+    oMLX 0.7.1 serves decision models (Clef, d3) and any chat model through
+    `POST /v1/decisions` (OpenAI Decisions API: `choice` / `predicate` /
+    `score` questions, a probability per option, many questions per call;
+    for chat models it reads the option letters' next-token probabilities).
+    That retires derivation 9's "oMLX can't serve it". 62 BACKLOG items
+    (AudiobookOCD f901fe8, 28 bug), `eval_clef.py`'s wording for every engine
+    (one-line definition per option), new `eval_clef.py decisions <BACKLOG>
+    <model> <out> [--fanout]` (`--fanout` adds a yes/no per area):
+
+    | | type | area | per-area fan-out | median / item | resident |
+    |---|---|---|---|---|---|
+    | 3.8-27B `:decide`, chat + `choice` grammar (today, 2 calls) | 46 | 53 | — | 1.73 s | shared with `deep` |
+    | 3.8-27B `:decide`, `/v1/decisions` (1 call) | 47 | 50 | — | 1.54 s | shared |
+    | `Jundot/clef-flash-oQ4e` (13 questions) | 44 | 47 | 50 | 1.17 s | 5.9 GB |
+    | `Jundot/d3-mini-oQ8e` (13 questions) | **53** | 47 | 41 | 1.13 s | 4.3 GB |
+    | `Jundot/d3-flash-oQ8e` (13 questions) | 51 | **54** | 46 | 2.03 s | 8.8 GB |
+    | `Jundot/d3-flash-oQ8e` (2 questions) | 51 | **54** | — | **0.41 s** | 8.8 GB |
+
+    - **d3-flash** (vLLM Semantic Router's Decision 3.0, 9B on Qwen3.5-9B,
+      text/images/video) matches or beats `:decide` on both questions —
+      type +5 (past the 2–3-item noise), area +1 (noise) — at ~4× the speed
+      with two questions per call. Cold first call 0.9 s. Cost: 8.8 GB when
+      loaded, beyond the 37.7 GB fast+deep pair, so it would load on demand
+      and be evicted under the memory guard.
+    - **d3-mini** is best on type (53) but loses 6 on area; **clef-flash**
+      loses on both. Both deleted.
+    - **Confidence doesn't cascade here.** d3's `confidence` was rarely high
+      (d3-mini: 12 of 62 type answers ≥ 0.5 while 53 were right), so the
+      cascade added nothing over d3 alone; for `:decide` via `/v1/decisions`
+      a ≥ 0.5 type cascade reached 51/62, but that mixes two calls of the
+      same model.
+    - Not wired in yet: `decide.py` speaks chat + grammar. Adopting d3-flash
+      means a `/v1/decisions` path in `decide.py` (choices → a `choice`
+      question with per-option descriptions; `--schema` stays on the chat
+      model) and the tier note above. Re-run with any candidate.
+
 ## Gotcha: unknown model names must fail
 
 `settings.json` → `model.model_fallback: true` makes oMLX answer a request for

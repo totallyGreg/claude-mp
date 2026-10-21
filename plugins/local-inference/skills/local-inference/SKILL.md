@@ -92,7 +92,7 @@ cat item.txt | $S --choices a,b,c --system "..."      # question from stdin
 - Always give the criterion in `--system`, including what each choice means, and say how to treat the ambiguous case — the measured 93% on 11-way area classification was with a one-line definition per area, and an exact bug/improvement definition gained 2–3 items in 45.
 - Wording moves the score as much as the model: longer area descriptions dropped the same model from 42 to 37 of 45. Keep a definition per choice short and literal, and compare models only on identical wording.
 - It was right 69–93% of the time on real judgment calls, depending on the question (see references/tiers.md). Use it to sort, route and pre-filter; verify any decision that changes something.
-- Cloudflare's Clef (open Jev/SystemOne: probabilities per option, many questions per call) was evaluated for this tier and not adopted — not more accurate here, and oMLX can't serve it. Evidence and when to revisit: references/tiers.md, derivation 9.
+- Decision models on oMLX's `/v1/decisions` (a probability per option): d3-flash matched or beat this tier at ~4× the speed but isn't wired into `decide.py` yet; Clef lost. Evidence: references/tiers.md, derivations 9 and 15.
 - The grammar guarantees the answer's shape, not its truth: a borderline call is uncertain — sharpen the criterion or escalate.
 - Many decisions → loop in the shell; each call is independent and fast.
 
