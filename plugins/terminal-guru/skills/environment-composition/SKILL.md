@@ -1,8 +1,8 @@
 ---
 name: environment-composition
-description: This skill should be used when the user asks to "compose tools", "automate this workflow", "make this repeatable", "what patterns do you see", "pipe through fzf", "what tools am I using", "configure sesh.toml", "create a dev environment", "build a session template", "set up sesh config", "clean up worktrees", "resume my session", "should this be a function or a task", "make a droplet", "drag and drop script", "folder action", "run a script when files land in a folder", "Finder Quick Action", or needs help composing workflows from existing CLI tools. Also trigger on fzf composition, workflow discovery, pattern graduation, tool landscape, sesh wildcards, or wrapping a script in a Finder droplet or Folder Action (including scripts that call Apple's `fm` model). Do NOT use for tmux display or keybindings (use terminal-emulation). Do NOT use for worktree lifecycle (use chronicle). Do NOT use for signals or logging (use signals-monitoring). Do NOT use for mise config or tasks (use mise-tooling).
+description: This skill should be used when the user asks to "compose tools", "automate this workflow", "make this repeatable", "what patterns do you see", "pipe through fzf", "what tools am I using", "configure sesh.toml", "create a dev environment", "build a session template", "set up sesh config", "clean up worktrees", "resume my session", "should this be a function or a task", "make a droplet", "drag and drop script", "folder action", "run a script when files land in a folder", "Finder Quick Action", "right-click menu item", or needs help composing workflows from existing CLI tools. Also trigger on fzf composition, workflow discovery, pattern graduation, tool landscape, sesh wildcards, or wrapping a script (even one calling Apple's `fm`) in a Finder droplet or Folder Action. Do NOT use for tmux display or keybindings (use terminal-emulation). Do NOT use for worktree lifecycle (use chronicle). Do NOT use for signals or logging (use signals-monitoring). Do NOT use for mise config or tasks (use mise-tooling).
 metadata:
-  version: "2.1.0"
+  version: "2.2.0"
 ---
 
 # Environment Composition
@@ -25,7 +25,7 @@ Sesh + claude CLI + worktrees are one common composition target, but any combina
 - Setting up paired sesh + claude CLI sessions
 - Graceful teardown and decay detection for environments
 - fzf composition patterns (preview, multi-select, keybindings)
-- Wrapping a script in a macOS Finder surface: droplet, Folder Action, Quick Action
+- Wrapping a script in a macOS Finder surface: droplet (with progress window and a right-click Quick Action toggle), Folder Action
 
 ## Core Capabilities
 
@@ -67,17 +67,19 @@ See `references/workflow_patterns.md` for patterns, commands, and diagnostic che
 
 ### 7. macOS Finder Surfaces
 
-Put a script behind Finder: a **droplet** (drop files on an app icon) or a **Folder Action** (files added to a folder run the script). Write and test the core script first — file paths as arguments, absolute tool paths, no TTY, skip files it doesn't handle — then generate the wrapper:
+Put a script behind Finder: a **droplet** (drop files on an app icon, or right-click → Quick Actions) or a **Folder Action** (files added to a folder run the script). Write and test the core script first — file paths as arguments, absolute tool paths, its own `PATH`/`SSH_AUTH_SOCK`, no TTY, skip files it doesn't handle — then generate the wrapper:
 
 ```bash
 S=${CLAUDE_PLUGIN_ROOT}/skills/environment-composition/scripts/finder_surface.sh
-$S droplet ~/Applications/"Receipt to JSON.app" ~/bin/receipt2json
+$S droplet ~/Applications/"Receipt to JSON.app" ~/bin/receipt2json   # --link, --self-reporting
 $S folder-action ~/Receipts ~/bin/receipt2json      # $S detach ~/Receipts to remove
 ```
 
+A generated droplet embeds the script (re-run to update), shows a progress window with Stop, reports by exit status (0 done, 3 already reported, other = failure dialog), and its double-click settings window toggles the Finder right-click Quick Action. Scripts get a real progress bar by writing `$DROPLET_PROGRESS_FILE`.
+
 Scripts that call Apple's on-device model (`/usr/bin/fm`, macOS 27) wrap like any other command — the receipt image → JSON example is worked end to end.
 
-See `references/macos_finder_surfaces.md` for the script contract, choosing a surface (droplet, Folder Action, Quick Action, launchd), and gotchas (output re-triggering the folder, partial downloads, privacy prompts).
+See `references/macos_finder_surfaces.md` for the script contract, exit contract and progress protocol, choosing a surface (droplet, Folder Action, Quick Action, launchd), gotchas (output re-triggering the folder, partial downloads, privacy prompts), and hurdles from a real build (Finder's environment, bash 3.2 traps, GUI-free testing, SSH over one connection). Check those before writing the script.
 
 ## Common Use Cases
 
@@ -107,7 +109,7 @@ See `references/macos_finder_surfaces.md` for the script contract, choosing a su
 
 1. Write the core script; run it by hand on real files under `env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin`
 2. On-demand batches → `finder_surface.sh droplet`; hands-off inbox → `finder_surface.sh folder-action`
-3. Test a droplet with `open -a Name.app file`; test a folder action by copying a file in
+3. Test the script first with a stub `osascript` on `PATH` (no pop-ups); then a droplet with `open -a Name.app file`; a folder action by copying a file in
 4. See `macos_finder_surfaces.md` for gotchas
 
 ### "Set up a project environment"

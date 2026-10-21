@@ -1,6 +1,6 @@
 {
   "skill_name": "environment-composition",
-  "content_hash": "cbb28c4273c2e6eda20ae39c38eadb0b8c4ea2bc7d3daf0376fb66193543a633",
+  "content_hash": "49d401f052f377ab8b3b6f6533b5f1930e9f8d8a1ebb25ad9a93399c4592170e",
   "score": 90,
   "metrics": {
     "conciseness": 100,
@@ -9,6 +9,6 @@
     "progressive_disclosure": 100,
     "description_quality": 100
   },
-  "tool_version": "6.12.1",
-  "date": "2026-10-13"
+  "tool_version": "6.13.0",
+  "date": "2026-10-20"
 }

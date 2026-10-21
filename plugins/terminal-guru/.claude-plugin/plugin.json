@@ -1,6 +1,6 @@
 {
   "name": "terminal-guru",
-  "version": "5.19.0",
+  "version": "5.20.0",
   "description": "Terminal diagnostics and tooling for macOS/Unix: terminal emulation, zsh, tmux, TUI apps, signals and logging, mise, and tool composition, with an orchestrator agent and multi-Claude tmux teams.",
   "author": {
     "name": "J. Greg Williams",
