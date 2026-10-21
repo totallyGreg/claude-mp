@@ -11,17 +11,19 @@
 # Run `ask` with </dev/null under run_in_background, like any pi call.
 set -u
 cmd=${1:-}; shift 2>/dev/null
+source ${0:A:h}/pi_env.sh
 
 case $cmd in
 spawn)
   tier=${1:-code} dir=${2:-$PWD} name=${3:-pi-${1:-code}}
   sd=$(mktemp -d "${TMPDIR:-/tmp}/pi-team.XXXXXX")
+  pi_env
   # --approve: trust project files for this run, or a repo with .pi/settings.json
   # stops at a trust prompt nobody is watching.
   pane=$(tmux split-window -h -d -t "${TMUX_PANE:-}" -l 45% -c "$dir" -P -F '#{pane_id}' \
-    "env PI_AGENT=1 pi --approve --session-dir '$sd' --model omlx/$tier")
-  # PI_AGENT=1 lets project hooks refuse default-branch commits. It must be in the
-  # pane's command: typed into the pane, it would be a message to the model.
+    "env ${(j: :)${(@q)reply}} pi --approve --session-dir '$sd' --model omlx/$tier")
+  # pi_env's variables must be in the pane's command: typed into the pane, they
+  # would be a message to the model.
   tmux set -p -t "$pane" @alias "$name"
   tmux set -p -t "$pane" @pi_session_dir "$sd"
   sleep 6
