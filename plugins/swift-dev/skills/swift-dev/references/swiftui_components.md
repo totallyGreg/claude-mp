@@ -1,6 +1,6 @@
 # SwiftUI Components Reference
 
-Comprehensive reference for SwiftUI views, modifiers, and patterns.
+SwiftUI views, modifiers, and state. For Liquid Glass and macOS 26/27 changes see [macos_apps.md](macos_apps.md); when Xcode's `swiftui-specialist` skill is installed, it is the authority on current API.
 
 ## Layout Containers
 
@@ -826,6 +826,38 @@ struct ChildView: View {
 ChildView(text: $inputText)
 ```
 
+### @Observable (macOS 14+ / iOS 17+, the default)
+
+```swift
+@Observable final class LibraryModel {
+    var books: [Book] = []
+    var filter = ""
+}
+
+struct LibraryView: View {
+    @State private var model = LibraryModel()        // owned: @State, not @StateObject
+
+    var body: some View {
+        BookList(model: model)                       // passed: a plain property
+            .environment(model)                      // or injected by type
+    }
+}
+
+struct BookList: View {
+    @Bindable var model: LibraryModel                // only when you need $model.filter
+    var body: some View { TextField("Filter", text: $model.filter) }
+}
+
+struct Toolbar: View {
+    @Environment(LibraryModel.self) private var model
+    var body: some View { Text("\(model.books.count) books") }
+}
+```
+
+Views re-render only for properties they actually read. On the macOS 27 SDK `@State` is a macro and a class stored in it is created lazily; with only the Command Line Tools installed `@State` doesn't build — see [project_tooling.md](project_tooling.md#command-line-tools-only-builds).
+
+The `ObservableObject` wrappers below remain for code that must support older OS releases.
+
 ### @StateObject
 
 ```swift
@@ -883,7 +915,7 @@ Button("Close") {
 1. **Performance**
    - Use `LazyVStack`/`LazyHStack` for large lists
    - Avoid expensive operations in view body
-   - Use `@State` for local state, `@StateObject` for owned objects
+   - Use `@State` for local state and owned `@Observable` models
    - Profile with Instruments to identify bottlenecks
 
 2. **Code Organization**
