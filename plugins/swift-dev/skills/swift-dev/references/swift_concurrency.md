@@ -1050,6 +1050,8 @@ func fetchUser(id: String) async throws -> User {
 
 ## Swift 6 Concurrency Changes
 
+Swift 6.2 changed the defaults again (main-actor isolation by default, `nonisolated(nonsending)`, `@concurrent`). See [approachable_concurrency.md](approachable_concurrency.md) before applying the patterns below to new code.
+
 ### Complete Concurrency Checking
 
 Swift 6 enables strict concurrency checking by default:

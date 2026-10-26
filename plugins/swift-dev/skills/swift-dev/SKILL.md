@@ -1,272 +1,122 @@
 ---
 name: swift-dev
-description: Expert guidance for Swift development including SwiftUI, iOS/macOS frameworks, Server-side Swift, and Objective-C to Swift 6 migration. Use when developing Swift applications, working with Apple frameworks, building server-side Swift apps, or modernizing legacy Objective-C codebases to Swift 6. Supports Swift 5.0-6.0 with version annotations and live documentation fetching.
+description: Current Swift and Apple-platform practice for apps on macOS 26 and macOS 27 (Swift 6.2–6.4, Xcode 26/27) — approachable concurrency, Swift Testing, Liquid Glass, menu bar apps, toolchain, linting and release tooling. Use when asked to "set up a Swift project", "review this Swift code", "fix a Swift 6 concurrency error", "write Swift Testing tests", "adopt Liquid Glass", "build a menu bar app", "notarize a Mac app", "build with Command Line Tools only", or "migrate Objective-C to Swift". Do NOT use for Xcode-shipped SwiftUI or App Intents API detail when Apple's own Xcode skills are installed (use swiftui-specialist / app-intents-specialist), or for non-Swift languages.
 metadata:
-  version: "1.2.0"
-  license: "MIT"
-  compatibility: ">=5.0"
+  version: "2.0.0"
+license: MIT
+compatibility: claude-code. Python scripts need python3; guidance targets Swift 6.2+ and macOS 26+.
 ---
 
-# Swift Development Expert
+# Swift Development
 
-Expert guidance for modern Swift development across all Apple platforms and server-side applications. Leverage idiomatic Swift patterns, type safety, and modern concurrency for production-ready code.
+What "current" means for a Swift app today, and where the deeper guidance lives. Default to the baseline below unless the project says otherwise; when a project's own `AGENTS.md`/`CLAUDE.md` sets a rule, it wins.
 
-## Quick Start
+## Baseline
 
-When to use this skill:
-- **SwiftUI Development**: Building modern declarative UIs for Apple platforms
-- **Language Features**: Using async/await, actors, generics, and modern Swift patterns
-- **Frameworks**: Integrating with Combine, Core Data, CloudKit, StoreKit, URLSession
-- **Server-Side**: Building backend APIs with Vapor, Fluent ORM, Swift NIO
-- **Migration**: Modernizing legacy Objective-C to Swift 6
+| | Floor | Latest |
+|---|---|---|
+| macOS | 26 (Tahoe) | 27 |
+| Xcode | 26.x (Swift 6.3) | 27.x (Swift 6.4, Apple silicon only) |
+| Language mode | Swift 6, with approachable concurrency | |
 
-## Core Capabilities
+Support the latest macOS and one back. Build a **deprecation canary** at the newest deployment target — deprecation warnings only fire at the target you build for, so the floor build is blind to them. Gate new APIs with `if #available(macOS 27, *)`; most 27 SwiftUI APIs do not back-deploy.
 
-### 1. SwiftUI Development
+Before trusting a version-specific claim from memory, check [Swift.org](https://www.swift.org/blog/) or Apple's release notes with WebFetch. Details: [→ Version timeline](references/swift_language_features.md#swift-version-timeline)
 
-Declarative UI framework for all Apple platforms (iOS, macOS, watchOS, tvOS).
+## Project setup
 
-**Key Areas:**
-- **State Management**: @State, @Binding, @StateObject, @EnvironmentObject, @Environment
-- **Navigation**: NavigationStack, NavigationSplitView, TabView, modal presentations
-- **Views**: Lists, Forms, Grids, ScrollView, custom modifiers
-- **Animations & Transitions**: Interactive, spring-based, with async support
-- **Gestures**: Tap, long-press, drag, combined gestures
-- **Performance**: LazyVStack/LazyHStack, @ViewBuilder, EquatableView
+```swift
+// swift-tools-version: 6.2
+import PackageDescription
 
-**Deep Dive:** [→ SwiftUI Components Reference](references/swiftui_components.md)
+// Swift 6 mode already includes the rest of approachable concurrency.
+let approachableConcurrency: [SwiftSetting] = [
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+    .enableUpcomingFeature("InferIsolatedConformances"),
+]
 
-**Key Patterns:**
-- State management for responsive UIs: [→ State Management](references/swiftui_components.md#state-management)
-- Navigation in iOS 16+: [→ Navigation Stack](references/swiftui_components.md#navigationstack-ios-16)
-- Custom view modifiers: [→ View Modifiers](references/swiftui_components.md#view-modifiers)
+let package = Package(
+    name: "App",
+    platforms: [.macOS(.v26)],
+    targets: [
+        // UI-facing targets: everything on the main actor unless it says otherwise.
+        .target(name: "AppUI", swiftSettings: approachableConcurrency + [.defaultIsolation(MainActor.self)]),
+        // Engines and models: nonisolated by default, actors where state is shared.
+        .target(name: "Core", swiftSettings: approachableConcurrency),
+    ]
+)
+```
 
----
+App targets in Xcode: `SWIFT_APPROACHABLE_CONCURRENCY = YES`, `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, `SWIFT_TREAT_WARNINGS_AS_ERRORS = YES`.
 
-### 2. Swift Language Features
+[→ Project tooling](references/project_tooling.md): pinned toolchain, `-warnings-as-errors`, `swift format` rules, build scratch outside iCloud, launching the right binary, notarization, CLT-only builds.
 
-Modern patterns and idioms for idiomatic, type-safe Swift code.
+## Concurrency defaults
 
-**Core Concepts:**
-- **Concurrency** (Swift 5.5+): async/await, actors, structured concurrency, TaskGroups
-  - [→ Complete Concurrency Guide](references/swift_concurrency.md)
-- **Protocols**: Protocol-oriented programming, extensions, associated types
-  - [→ Protocol Examples](references/swift_language_features.md#protocol-oriented-programming)
-- **Generics**: Type parameters, constraints, conditional conformance
-  - [→ Generics Deep Dive](references/swift_language_features.md#generics-and-associated-types)
-- **Property Wrappers** (Swift 5.1+): Custom attribute behavior, projectedValue
-  - [→ Property Wrapper Patterns](references/swift_language_features.md#property-wrappers)
-- **Result Builders** (Swift 5.4+): DSL creation for view hierarchies
-  - [→ Result Builder Guide](references/swift_language_features.md#result-builders)
-- **Error Handling**: throws, Result, async/await, typed throws (Swift 6)
-  - [→ Error Patterns](references/swift_language_features.md#error-handling-patterns)
-- **Availability**: Platform and version annotations
-  - [→ Platform Availability](references/swift_language_features.md#platform-availability)
+```swift
+@Observable final class LibraryModel {          // main actor by default isolation
+    var books: [Book] = []
 
-**Version Timeline:**
-- Swift 5.5: async/await, actors, structured concurrency
-- Swift 5.7: Generics improvements, `if let` shorthand
-- Swift 5.9: Macros, parameter packs, @Observable macro
-- Swift 6.0: Complete concurrency checking, typed throws
+    func reload() async throws {
+        books = try await Catalog.scan(root)    // awaits off-actor work, resumes here
+    }
+}
 
-[→ Full Swift Language Features Reference](references/swift_language_features.md)
+enum Catalog {
+    @concurrent                                 // explicitly off the caller's actor
+    static func scan(_ root: URL) async throws -> [Book] { … }
+}
+```
 
----
+- `async` functions run on the caller's actor (`nonisolated(nonsending)`); mark CPU-heavy work `@concurrent`.
+- Actors for engines with mutable state; `Sendable` value types across boundaries; no `@unchecked Sendable` without a written reason.
+- `Task.detached` and GCD are escapes, not defaults. Never block the cooperative pool (`waitUntilExit`, semaphores, synchronous pipe reads).
 
-### 3. iOS/macOS Frameworks
+[→ Approachable concurrency](references/approachable_concurrency.md) · [→ Concurrency reference](references/swift_concurrency.md)
 
-Essential Apple platform frameworks for native app development.
+## Testing
 
-**Framework Overview:**
+Swift Testing (`import Testing`, `@Test`, `#expect`, `#require`) for all new tests; XCTest only for UI tests and performance `measure`. Swift 6.4 reports XCTest assertions inside Swift Testing (and the reverse), so migrate file by file.
 
-| Framework | Purpose | Use When |
-|-----------|---------|----------|
-| **Combine** | Reactive programming | Data binding, reactive flows |
-| **Core Data** | Local data persistence | Structured data storage, querying |
-| **CloudKit** | Cloud sync & sharing | Multi-device sync, collaboration |
-| **StoreKit 2** | In-app purchases | Monetization, subscriptions |
-| **URLSession** | Networking | API requests, async/await |
+- A test never reads ambient machine state (`UserDefaults.standard`, `~/Library`, the App Group container) — inject it.
+- Never weaken an assertion to pass; never assert exact OS-formatted strings.
 
-**Key Patterns:**
+[→ Swift Testing](references/swift_testing.md) · [→ XCTest, doubles, UI tests](references/testing_strategies.md)
 
-- **Core Data**: @FetchRequest in SwiftUI, background contexts, relationships
-  - [→ Core Data Setup & Usage](references/ios_macos_frameworks.md#core-data)
+## macOS apps
 
-- **CloudKit**: Database management, subscriptions, record sharing
-  - [→ CloudKit Guide](references/ios_macos_frameworks.md#cloudkit)
+Liquid Glass comes free with standard controls — don't paint materials over it. `MenuBarExtra`, `SMAppService` login items, `NSApp.activate()`, Icon Composer `.icon`, process handling, Gatekeeper.
 
-- **StoreKit 2**: Product loading, purchase flows, transaction handling
-  - [→ Modern In-App Purchases](references/ios_macos_frameworks.md#storekit-2)
+[→ macOS 26/27 apps](references/macos_apps.md) · [→ SwiftUI components](references/swiftui_components.md) · [→ Frameworks](references/ios_macos_frameworks.md)
 
-- **URLSession**: Async/await networking, error handling
-  - [→ Networking Patterns](references/ios_macos_frameworks.md#urlsession-and-networking)
+## Code quality
 
-- **Combine**: Publishers, operators, subscribers
-  - [→ Combine Framework](references/combine_framework.md)
+- Follow the [API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/). No `!`, `try!` or IUOs; early exits; value types first.
+- `@Observable` over `ObservableObject`; async/await and `Observations` over Combine in new code.
+- Prefer Apple frameworks before writing machinery; never name a type identically to an Apple class.
+- Doc comments on public API; throw typed, actionable errors.
 
-[→ Complete iOS/macOS Frameworks Guide](references/ios_macos_frameworks.md)
+[→ Language features](references/swift_language_features.md) · [→ Design patterns](references/design_patterns.md)
 
----
+## Reference library
 
-### 4. Server-Side Swift
-
-Backend services with Vapor, Fluent ORM, and Swift NIO.
-
-**Frameworks:**
-
-- **Vapor**: Web framework with routing, middleware, async/await
-  - REST API endpoints, middleware stack, authentication, validation
-  - [→ Vapor Framework Guide](references/server_side_frameworks.md#vapor-framework)
-
-- **Fluent ORM**: Type-safe database interaction
-  - Model definitions, relationships, migrations, querying
-  - [→ Fluent ORM Reference](references/server_side_frameworks.md#fluent-orm)
-
-- **Swift NIO**: Low-level async networking
-  - Custom protocols, EventLoopFuture, channel handlers
-  - [→ Swift NIO Guide](references/server_side_frameworks.md#swift-nio)
-
-**Databases:** PostgreSQL, MongoDB, Redis, SQLite
-**Deployment:** Docker, Kubernetes, environment configuration
-
-[→ Complete Server-Side Frameworks Guide](references/server_side_frameworks.md)
-
----
-
-### 5. Objective-C Migration
-
-Modernize legacy Objective-C to Swift 6.
-
-**Migration Strategy (5 Phases):**
-
-1. **Assessment** - Use `scripts/migration_analyzer.py` to identify opportunities
-2. **Foundation** - Migrate models and utilities first
-3. **Swift 6 Modernization** - GCD → Task, locks → actors, KVO → @Observable
-4. **UI Layer** - Update views incrementally with MainActor
-5. **Polish** - Enable complete concurrency checking
-
-**Key Modernizations:**
-
-- **Concurrency**: From GCD (dispatch_async, queues) to Task-based structured concurrency
-  - [→ Concurrency Migration](references/objc_to_swift6_migration.md#concurrency-migration)
-
-- **Data Flow**: From KVO to @Observable macro, NSNotificationCenter to AsyncStream
-  - [→ Data Flow Migration](references/objc_to_swift6_migration.md#data-flow-state)
-
-- **Interoperability**: Bridging headers, @objc exposure, nullability
-  - [→ Objective-C Interop](references/objc_interop.md)
-
-[→ Complete Migration Guide](references/objc_to_swift6_migration.md)
-[→ Bridging & Interop Patterns](references/objc_interop.md)
-
----
-
-## Response Guidelines
-
-### Initial Assessment Questions
-
-When helping with Swift development, clarify:
-1. **Target platform(s)**: iOS, macOS, watchOS, tvOS, server
-2. **Minimum Swift version**: Language features depend on Swift version
-3. **Deployment target**: iOS 15+, macOS 12+, etc.
-4. **Architecture**: SwiftUI vs UIKit/AppKit, MVVM vs other patterns
-
-### Code Quality Standards
-
-Follow these principles:
-- **[Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/)**: Naming, parameter labels, clarity
-- **Access Control**: private, fileprivate, internal, public appropriately
-- **Type Safety**: Leverage Swift's type system, avoid force unwrapping
-- **Error Handling**: Use throws, Result, or optionals appropriately
-  - [→ Error Handling Patterns](references/swift_language_features.md#error-handling-patterns)
-- **Testability**: Dependency injection, modular design
-  - [→ Design Patterns](references/design_patterns.md)
-
-### Design Patterns
-
-Proven architectural approaches for maintainable code:
-
-- **MVVM**: Model-View-ViewModel for SwiftUI apps
-  - [→ MVVM Pattern](references/design_patterns.md#mvvm-with-swiftui)
-
-- **Dependency Injection**: Constructor, property, method injection
-  - [→ DI Patterns](references/design_patterns.md#dependency-injection)
-
-- **Repository Pattern**: Abstract data access, swap implementations
-  - [→ Repository Pattern](references/design_patterns.md#repository-pattern)
-
-- **Coordinator**: Navigation and flow management
-  - [→ Coordinator Pattern](references/design_patterns.md#coordinator-pattern)
-
-[→ Complete Design Patterns Guide](references/design_patterns.md)
-
-### Testing Approach
-
-- **Unit Tests**: Test business logic with XCTest
-- **Async Tests**: `async throws` test functions
-- **Test Doubles**: Mocks, stubs, fakes for dependencies
-- **TDD**: Test-driven development workflows
-
-[→ Testing Strategies](references/testing_strategies.md)
-
----
-
-## Reference Library
-
-Complete guides organized by category:
-
-### Language & Patterns
-- **[Swift Language Features](references/swift_language_features.md)** - Protocols, generics, property wrappers, error handling, version management
-- **[Swift Concurrency](references/swift_concurrency.md)** - async/await, actors, TaskGroups, async sequences, structured concurrency
-- **[Design Patterns](references/design_patterns.md)** - MVVM, DI, Repository, Coordinator, composition patterns
-
-### Frameworks
-- **[SwiftUI Components](references/swiftui_components.md)** - Views, modifiers, navigation, animations, gestures, state management
-- **[iOS/macOS Frameworks](references/ios_macos_frameworks.md)** - Core Data, CloudKit, StoreKit 2, URLSession, framework overview
-- **[Combine Framework](references/combine_framework.md)** - Publishers, operators, subscribers, reactive patterns
-
-### Platform-Specific
-- **[Server-Side Frameworks](references/server_side_frameworks.md)** - Vapor, Fluent ORM, Swift NIO, WebSockets, authentication
-- **[Swift Package Manager](references/swift_package_manager.md)** - Package configuration, dependencies, multi-target projects
-- **[Testing Strategies](references/testing_strategies.md)** - XCTest, mocking, async testing, TDD approaches
-
-### Migration & Interop
-- **[Objective-C to Swift 6 Migration](references/objc_to_swift6_migration.md)** - Comprehensive guide with concurrency, data flow, and pattern translations
-- **[Objective-C Interop](references/objc_interop.md)** - Bridging headers, @objc exposure, nullability, blocks to closures
-
----
-
-## Tools & Resources
-
-### Scripts
-
-- **`scripts/migration_analyzer.py`** - Analyze Objective-C code for Swift 6 opportunities
-  - Detects legacy concurrency patterns, KVO usage, error handling patterns
-  - Provides specific migration recommendations
-
-- **`scripts/swift_package_init.py`** - Initialize Swift Package Manager projects
-  - Sets up Package.swift, directory structure, git configuration
-
-### Templates
-
-- **SwiftUI app** - Complete app template with MVVM architecture
-- **Vapor server** - REST API boilerplate with database integration
-- **Package** - Swift Package Manager library template
-
----
-
-## Accessing Official Documentation
-
-Use WebFetch to retrieve current Swift documentation:
-
-- **[Swift Language Guide](https://docs.swift.org/swift-book/)** - Official language reference
-- **[Apple Frameworks](https://developer.apple.com/documentation/)** - Platform framework documentation
-- **[Vapor Docs](https://docs.vapor.codes/)** - Server-side Swift framework
-- **[Swift Evolution](https://github.com/apple/swift-evolution)** - Language proposals and changes
-
-Use WebFetch when asking about latest API changes, feature availability, or official best practices.
-
----
-
-**Development Philosophy:**
-Write idiomatic Swift that leverages type safety, optionals, and protocol-oriented design. Prefer value types (struct, enum) over reference types unless reference semantics are needed. Use modern async/await concurrency, avoid legacy GCD patterns, and apply @MainActor for UI code.
+| Reference | Covers |
+|---|---|
+| [approachable_concurrency.md](references/approachable_concurrency.md) | Swift 6.2+ isolation defaults, `@concurrent`, isolated conformances, migration |
+| [swift_concurrency.md](references/swift_concurrency.md) | async/await, tasks, actors, Sendable, streams |
+| [swift_testing.md](references/swift_testing.md) | `@Test`, `#expect`, parameterized tests, traits, seams, CLT caveats |
+| [testing_strategies.md](references/testing_strategies.md) | XCTest, test doubles, UI and performance tests |
+| [macos_apps.md](references/macos_apps.md) | macOS 26/27: Liquid Glass, menu bar, login items, activation, signing |
+| [project_tooling.md](references/project_tooling.md) | Toolchain, lint, gates, run, release, CLT-only builds |
+| [swift_language_features.md](references/swift_language_features.md) | Protocols, generics, errors, availability, version timeline |
+| [swiftui_components.md](references/swiftui_components.md) | Views, navigation, state |
+| [ios_macos_frameworks.md](references/ios_macos_frameworks.md) | SwiftData/Core Data, CloudKit, StoreKit 2, URLSession |
+| [swift_package_manager.md](references/swift_package_manager.md) | Package.swift, resources, plugins |
+| [design_patterns.md](references/design_patterns.md) | MVVM, DI, repository |
+| [combine_framework.md](references/combine_framework.md) | Legacy Combine code |
+| [server_side_frameworks.md](references/server_side_frameworks.md) | Vapor, Fluent, NIO |
+| [objc_to_swift6_migration.md](references/objc_to_swift6_migration.md) · [objc_interop.md](references/objc_interop.md) | Objective-C migration and bridging (`scripts/migration_analyzer.py`) |
+
+## Official sources
+
+Fetch these rather than trusting memory for anything released after 2025: [Swift blog](https://www.swift.org/blog/) · [Swift Evolution](https://www.swift.org/swift-evolution/) · [Apple documentation](https://developer.apple.com/documentation/) · [Xcode release notes](https://developer.apple.com/documentation/xcode-release-notes).

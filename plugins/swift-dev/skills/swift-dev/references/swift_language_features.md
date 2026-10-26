@@ -865,6 +865,12 @@ Understanding Swift version capabilities is crucial for choosing appropriate pat
 | **Swift 5.8** | Mar 2023 | Result builder inference, more improvements |
 | **Swift 5.9** | Sep 2023 | Macros, parameter packs, @Observable macro |
 | **Swift 6.0** | Sep 2024 | Complete concurrency checking, typed throws |
+| **Swift 6.1** | Mar 2025 | `nonisolated` on types and extensions, trailing commas in more lists, package traits |
+| **Swift 6.2** | Sep 2025 (Xcode 26) | Approachable concurrency (default main-actor isolation, `@concurrent`, `nonisolated(nonsending)`, isolated conformances), `InlineArray` (`[40 of T]`), `Span`, opt-in strict memory safety, `Observations`, raw identifiers, `treatWarning` settings, Swift Testing exit tests and attachments |
+| **Swift 6.3** | Mar 2026 (Xcode 26.4) | `@c` and `@implementation` for C interop, module selectors for name clashes, `@specialize` / `@inline(always)`, Swift Build in SwiftPM (preview), official Android SDK |
+| **Swift 6.4** | Sep 2026 (Xcode 27) | `anyAppleOS` availability, `@diagnose` per-declaration warning control, `await` in `defer`, `for-in` over noncopyable types (`Span`, `InlineArray`), warning for unhandled `Task` errors, Swift Testing ↔ XCTest interop |
+
+For anything newer than this table, fetch the [Swift blog](https://www.swift.org/blog/) — don't extrapolate. See [approachable_concurrency.md](approachable_concurrency.md) for the 6.2 concurrency model.
 
 ### Feature Availability by Version
 
@@ -889,6 +895,13 @@ class ViewModel {
 func operation() throws(CustomError) {
     // Implementation
 }
+
+// Swift 6.2+: Fixed-size inline storage
+var samples: [64 of Float] = .init(repeating: 0)
+
+// Swift 6.4+: One availability token for every Apple platform at the same version
+@available(anyAppleOS 27, *)
+func usesNewSDK() { }
 ```
 
 ---

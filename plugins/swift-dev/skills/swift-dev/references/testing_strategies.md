@@ -1,6 +1,6 @@
 # Swift Testing Strategies Reference
 
-Comprehensive guide to testing Swift applications using XCTest, test doubles, and modern testing practices.
+XCTest, test doubles, UI and performance testing. **New unit tests use Swift Testing** — see [swift_testing.md](swift_testing.md); use this file for XCUITest, `measure`, and existing XCTest suites.
 
 ## XCTest Basics
 
