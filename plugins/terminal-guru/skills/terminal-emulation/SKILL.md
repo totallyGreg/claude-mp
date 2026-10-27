@@ -1,8 +1,8 @@
 ---
 name: terminal-emulation
-description: This skill should be used when the user asks to "fix terminal colors", "configure $TERM", "debug terminfo", "set up truecolor", "test 256 color support", "fix unicode rendering", "fix garbled characters", "fix broken box drawing", "fix emoji rendering", "configure locale", "fix SSH terminal", "check $COLORTERM", "apply ANSI escape codes", "set up base16 theme", "record terminal session", "asciinema to gif", "create demo gif for readme", or needs help with the Unix terminal substrate — `$TERM`, terminfo database, ANSI escape codes, color tiers (16/256/truecolor), `$COLORTERM`, Unicode/UTF-8 rendering, locale configuration, SSH terminal setup, and terminal session recording (asciinema → GIF). Do NOT use for tmux automation (sessions, options, plugins, send-keys) — use tmux-dev. Do NOT use for TUI app theming (lazygit/k9s themes) — use tui-experience. Do NOT use for shell config — use zsh-dev.
+description: This skill should be used when the user asks to "fix terminal colors", "configure $TERM", "debug terminfo", "set up truecolor", "test 256 color support", "fix unicode rendering", "fix garbled characters", "fix broken box drawing", "fix emoji rendering", "configure locale", "fix SSH terminal", "check $COLORTERM", "apply ANSI escape codes", "set up base16 theme", "record terminal session", "asciinema to gif", "create demo gif for readme", "configure ghostty", "run tmux in ghostty", or needs help with the Unix terminal substrate — `$TERM`, terminfo database, ANSI escape codes, color tiers (16/256/truecolor), `$COLORTERM`, Unicode/UTF-8 rendering, locale configuration, SSH terminal setup, Ghostty (incl. under tmux), and terminal session recording (asciinema → GIF). Do NOT use for tmux automation (sessions, options, plugins, send-keys) — use tmux-dev. Do NOT use for TUI app theming (lazygit/k9s themes) — use tui-experience. Do NOT use for shell config — use zsh-dev.
 metadata:
-  version: "4.1.1"
+  version: "4.2.0"
 license: MIT
 compatibility: claude-code
 ---
@@ -84,15 +84,8 @@ tic -o ~/.terminfo custom.ti
 The terminal emulator implements the ANSI color protocol — 16 named colors, the 256-color palette, and 24-bit truecolor. Color tier support is independent of `$TERM`; `$COLORTERM=truecolor` signals 24-bit capability.
 
 ```bash
-# Tier checks
-echo $TERM                                    # terminfo entry (xterm-256color, tmux-256color, ...)
-echo $COLORTERM                               # "truecolor" or "24bit" → 16M colors supported
-tput colors                                   # numeric: 8, 16, 256, etc.
-
-# Visual tests
-printf '\e[31mRED\e[0m\n'                                          # 16-color: red text
-printf '\e[38;5;208mORANGE\e[0m\n'                                 # 256-color: palette index 208
-printf '\e[38;2;255;128;0mORANGE-truecolor\e[0m\n'                 # 24-bit: R=255 G=128 B=0
+echo $TERM $COLORTERM; tput colors            # terminfo entry, "truecolor"/"24bit", palette size
+printf '\e[38;2;255;128;0mORANGE-truecolor\e[0m\n'  # 24-bit test
 ```
 
 See `references/ansi_colors.md` for the full ANSI escape sequence reference, palette tiers, `$COLORTERM` detection, color-test tools (pastel, colortest), and terminal palette setup (base16, pywal).
@@ -130,13 +123,17 @@ export NCURSES_NO_UTF8_ACS=0
 sed -i '1s/^\xEF\xBB\xBF//' file.txt
 ```
 
-### 4. Terminal Recording (asciinema → GIF)
+### 5. Terminal Recording (asciinema → GIF)
 
 Capture terminal sessions as animated GIFs for GitHub/GitLab READMEs — the asciinema JS player is blocked in README renderers; rendered GIFs work everywhere.
 
 Load `references/terminal_recording.md` for the full pattern: headless deterministic recording via a pacing library (`say`/`run` helpers), tuned `agg` rendering defaults, post-recording credential safety gate (grep for `Bearer`/JWT/UUID tokens — discard and re-record on any hit), and the `record.sh` scaffolder that materializes a self-contained recording setup into any target repo (target stays plugin-free after scaffolding).
 
 Prerequisites: `brew install asciinema agg`
+
+### 6. Ghostty
+
+Load `references/ghostty.md` for Ghostty config, which Ghostty features reach through tmux and which tmux hides, the 1.4 upgrade checklist (security fixes, `copy-on-select`/`cmd+arrow` changes, `ghostty +ssh`), and the libghostty/multiplexer landscape. Start with `ghostty --version` and `ghostty +explain-config <option>` (1.4+).
 
 ## Diagnostic Workflow
 
@@ -198,22 +195,15 @@ fi
 ### Tmux/Screen Terminal Setup
 
 ```bash
-# For tmux - add to ~/.tmux.conf
+# For tmux - add to ~/.tmux.conf (outer terminal's features; Ghostty: see references/ghostty.md)
 set -g default-terminal "tmux-256color"
-set -ga terminal-overrides ",*256col*:Tc"
+set -as terminal-features ",xterm-256color:RGB"
 
 # For screen - add to ~/.screenrc
 term screen-256color
 ```
 
-Then in shell config:
-```bash
-if [[ -n "$TMUX" ]]; then
-    export TERM=tmux-256color
-elif [[ -n "$STY" ]]; then
-    export TERM=screen-256color
-fi
-```
+Let tmux/screen set `TERM` inside panes. Don't override it in shell config.
 
 ## Common Use Cases
 
@@ -249,6 +239,7 @@ fi
 - **`terminfo_guide.md`** — Terminfo database, `$TERM` selection, infocmp/tic/tput, terminal capabilities
 - **`ansi_colors.md`** — ANSI escape codes, 16/256/truecolor tiers, `$COLORTERM`, palette setup (base16), color-test tools
 - **`unicode_troubleshooting.md`** — Unicode/UTF-8 character rendering and encoding issues
+- **`ghostty.md`** — Ghostty under tmux (feature passthrough matrix), 1.4 upgrade checklist, `+ssh`, libghostty landscape
 - **`terminal_recording.md`** — asciinema→GIF pipeline: headless recording, pacing library, agg defaults, credential safety gate, `record.sh` scaffolder
 
 ### Related skills
