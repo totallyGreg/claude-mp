@@ -26,6 +26,7 @@ The Unix terminal substrate (`$TERM`, terminfo, ANSI/256/truecolor, Unicode, loc
 - Unicode/UTF-8 troubleshooting
 - Locale and encoding configuration
 - SSH terminal setup
+- Ghostty: features under tmux, 1.4 upgrade checklist, libghostty landscape
 - TUI application display (substrate-level)
 
 ### Skill: tmux-dev (NEW in 5.5.0)
@@ -220,7 +221,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 ### Current Metrics
 
-**Score: 98/100** (Excellent) — 2026-08-06
+**Score: 98/100** (Excellent) — 2026-10-27
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -230,6 +231,7 @@ mise (jdx/mise) configuration, task automation, and environment management:
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 4.2.0 | 2026-10-27 | - | New `references/ghostty.md` (provenance-tracked, Ghostty 1.4.0): matrix of Ghostty features that reach through tmux vs. ones tmux hides (`-CC` not wired to GUI, OSC 5522/2033 not forwarded, `GHOSTTY_SURFACE_ID` stale in panes); 1.4 upgrade checklist (control-mode crash GHSAs, `copy-on-select` macOS default `none`, `cmd+arrow` → `jump_to_prompt`, `scrollback-limit-bytes`, `+ssh`); libghostty/multiplexer landscape + decision framing. SKILL.md: Ghostty capability + triggers, fixed duplicate §4 numbering, tmux snippet `Tc` → `terminal-features`, removed shell-side `TERM` override anti-pattern. | 100 | 90 | 100 | 100 | 100 | 98 |
 | 4.1.0 | 2026-08-06 | - | New capability: **terminal recording (asciinema → GIF)**. Added `references/terminal_recording.md`: headless recording with the **single-script self-replay trick** (`record.sh --play <name>` so pacing helpers are in scope without a separate lib file), `say`/`run`/`end` helpers, prereq guards that "fail with the fix", credential safety gate (Bearer/JWT only — bare UUIDs not flagged), tuned `agg` defaults, and `record.sh` scaffolder (target stays plugin-free). Canonical reference implementation: `examples/casts/record.sh` in airs-tasks. Added `license` + `compatibility` frontmatter (spec compliance 80→100). +v4.1.1 (corrected safety gate — removed UUID pattern; aligned with canonical). | 100 | 90 | 100 | 100 | 100 | 98 |
 **Metric Legend:** Concs=Conciseness, Complx=Complexity, Spec=Spec Compliance, Progr=Progressive Disclosure, Descr=Description Quality (0-100 scale)
 
