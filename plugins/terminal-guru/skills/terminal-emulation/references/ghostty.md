@@ -31,8 +31,8 @@ tmux is a terminal emulator in its own right. Ghostty draws tmux's screen; progr
 |---|---|---|
 | Rendering, fonts, ligatures, themes (`theme = dark:…,light:…`) | Works | Nothing — outside the VT stream |
 | Truecolor, styled/coloured underlines | Works | `terminal-features ",xterm-ghostty:RGB:usstyle"` |
-| Overline (1.4: `Smol`/`Rmol` in terminfo) | Works once declared | Add `overline` to the `xterm-ghostty` features |
-| OSC 8 hyperlinks (`link-osc8`, default on) | Works once declared | Add `hyperlinks` to the features |
+| Overline (1.4: `Smol`/`Rmol` in terminfo) | Works | Auto-detected by tmux 3.8 with Ghostty 1.4 terminfo |
+| OSC 8 hyperlinks (`link-osc8`, default on) | Works | Auto-detected by tmux 3.8 |
 | Clipboard via OSC 52 | Works | `set-clipboard on`/`external` + `clipboard` feature |
 | Extended keys (Shift+Enter, CSI u) | Works | `extended-keys on` + `extkeys` feature |
 | Notifications, progress, Kitty graphics | Works only through passthrough | `allow-passthrough on`; the program must wrap its sequences in tmux DCS passthrough |
@@ -42,13 +42,25 @@ tmux is a terminal emulator in its own right. Ghostty draws tmux's screen; progr
 | Quick terminal (`toggle_quick_terminal`) | Complementary | Attach a dedicated tmux session in it |
 | `tmux -CC` control mode | **Not wired to the GUI** (1.4 still) | No iTerm2-style native tmux windows yet |
 
-Example `xterm-ghostty` line for tmux 3.8 (feature names from `man tmux` → `terminal-features`):
+**Check before declaring.** tmux 3.8 identifies Ghostty on attach and reads its terminfo. With Ghostty 1.4 it detects `RGB`, `usstyle`, `clipboard`, `extkeys`, `overline`, `hyperlinks`, `sync`, `osc7` and more without any config (verified):
 
-```tmux
-set -as terminal-features ",xterm-ghostty:RGB:mouse:usstyle:clipboard:title:extkeys:overline:hyperlinks"
+```bash
+tmux display -p '#{client_termname} | #{client_termfeatures}'
 ```
 
-Check what tmux detected: `tmux display -p '#{client_termfeatures}'`.
+Add a feature to `set -as terminal-features ",xterm-ghostty:…"` only if it is missing from that list, e.g. on older tmux or a stale `xterm-ghostty` terminfo. Feature names are in `man tmux` → `terminal-features`.
+
+### Don't disable the outer alternate screen
+
+A common snippet is `set -g terminal-overrides 'xterm*:smcup@:rmcup@'`. It matches `xterm-ghostty` and makes tmux draw on Ghostty's main screen. People add it hoping "scrollback persists across full-screen apps". It does not do that. Apps in a pane (vim, less) use **tmux's** alternate screen, controlled by the `alternate-screen` window option.
+
+What it does do:
+
+- Leaves tmux's last frame in the Ghostty window after detach.
+- Pushes lines into Ghostty's own scrollback only when tmux scrolls a region that starts at the top row. With `status-position top` that is never; otherwise you get fragments of redraws from mixed panes and windows.
+- With `mouse on`, the wheel goes to tmux copy mode anyway. Ghostty's `jump_to_prompt` finds no prompt marks, because tmux 3.8 consumes OSC 133.
+
+Recommendation: remove it and use tmux copy mode for history. To keep app output in a pane's history, use `set -g alternate-screen off` instead. The cost is that full-screen app frames get dumped into history.
 
 ### Environment inside tmux
 
