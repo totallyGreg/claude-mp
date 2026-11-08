@@ -1,7 +1,7 @@
 # devloop: a development loop for any git repository agents work in
 
 Status: built, 2026-11-08, on `feature/devloop` (devloop 0.1.0); not merged.
-Issue: not filed. The draft is below, for the user to file.
+Issue: [#235](https://github.com/totallyGreg/claude-mp/issues/235); the draft it was filed from is below.
 
 Exploration and evidence: the vault brainstorm "AI-native SDLC vs
 AudiobookOCD loop" (`800 Generated/820 Brainstorms/`). This plan is the

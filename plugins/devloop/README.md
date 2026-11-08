@@ -77,4 +77,4 @@ Then add the checks to the repository's gate:
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
-| 0.1.0 | 2026-11-08 | - | New skill: the loop, its documents and grammars, loop.toml, the software profile; issue not yet filed | 100 | 90 | 100 | 100 | 100 | 98 |
+| 0.1.0 | 2026-11-08 | [#235](https://github.com/totallyGreg/claude-mp/issues/235) | New skill: the loop, its documents and grammars, loop.toml, the software profile | 100 | 90 | 100 | 100 | 100 | 98 |
