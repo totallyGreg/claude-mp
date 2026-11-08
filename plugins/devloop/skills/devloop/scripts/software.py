@@ -203,7 +203,8 @@ def review_reasons(cfg: Config, base: str, tip: str) -> list[str]:
         if path.startswith(tuple(sw["review_risk_paths"])) and sw["review_risk_paths"]:
             found.append(f"{path} is on a risky path (software.review_risk_paths)")
             continue
-        if risk_content:
+        scanned = sw["review_content_globs"] or sw["review_code"]
+        if risk_content and any(fnmatch.fnmatch(path, g) for g in scanned):
             text = git(cfg, "show", f"{tip}:{path}", check=False)
             if risk_content.search(text):
                 found.append(f"{path} matches a risky pattern (software.review_risk_content)")
@@ -243,6 +244,21 @@ REVIEW_TOOLS = ["Read", "Grep", "Glob", "Agent", "Skill", "Bash(git diff:*)", "B
                 "Bash(git show:*)", "Bash(git merge-base:*)", "Bash(git rev-parse:*)", "Bash(git blame:*)"]
 
 
+def allowed(cfg: Config, tools: list[str]) -> list[str]:
+    """`--allowedTools` with each Bash pattern also in its rewritten form.
+
+    A PreToolUse hook that rewrites commands (rtk turns `git status` into
+    `rtk git status`) runs before the permission check, so under dontAsk a
+    plain `Bash(git status:*)` refuses the call — the first smoke eval's
+    agent could neither commit nor test. Prefixes: `software.command_prefixes`."""
+    out = list(tools)
+    for tool in tools:
+        m = re.fullmatch(r"Bash\((.+)\)", tool)
+        if m:
+            out += [f"Bash({prefix} {m.group(1)})" for prefix in cfg["software"]["command_prefixes"]]
+    return list(dict.fromkeys(out))
+
+
 def review(cfg: Config, base: str | None, tip: str | None) -> int:
     """An independent review: /code-review in a fresh headless session that
     can only read, saved under the tip's SHA where commit-msg looks."""
@@ -272,7 +288,7 @@ def review(cfg: Config, base: str | None, tip: str | None) -> int:
          "--append-system-prompt", f"You are reviewing a branch you did not write, before it merges into "
                                    f"{cfg['main']}. Read {cfg.docname('agents')} first: its conventions are the bar, "
                                    "along with any stage file or backlog line the commits name. Do not edit anything.",
-         "--allowedTools", *REVIEW_TOOLS, "--permission-mode", "dontAsk", "--no-session-persistence",
+         "--allowedTools", *allowed(cfg, REVIEW_TOOLS), "--permission-mode", "dontAsk", "--no-session-persistence",
          "--output-format", "text"],
         cwd=cfg.root, capture_output=True, text=True,
     )

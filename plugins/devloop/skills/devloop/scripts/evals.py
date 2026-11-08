@@ -119,10 +119,11 @@ def grade(cfg: Config, case: dict, merge: str, base: str, text: str, tests: list
     started = time.time()
     prompt = PROMPT.format(backlog=cfg.docname("backlog"), agents=cfg.docname("agents"),
                            task=text, branch=branch, gate=cfg["gate"] or "the gate")
+    tools = list(sw["evals_allowed_tools"] or DEFAULT_TOOLS) + ([f"Bash({cfg['gate']}:*)"] if cfg["gate"] else [])
     try:
         session = subprocess.run(
             ["claude", "-p", prompt, "--output-format", "json", "--permission-mode", "acceptEdits",
-             "--no-session-persistence", "--allowedTools", *(sw["evals_allowed_tools"] or DEFAULT_TOOLS)],
+             "--no-session-persistence", "--allowedTools", *software.allowed(cfg, tools)],
             cwd=tree, capture_output=True, text=True, timeout=CASE_TIMEOUT,
         )
         try:

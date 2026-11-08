@@ -67,12 +67,14 @@ DEFAULTS: dict = {
         "review_code": [],
         "review_risk_paths": [],
         "review_risk_content": [],
+        "review_content_globs": [],
         "evals_cases": "evals/cases.json",
         "evals_overlay": [],
         "evals_prose": [],
         "evals_threshold": 60,
         "evals_allowed_tools": [],
         "evals_skip_arg": "",
+        "command_prefixes": ["rtk"],
     },
 }
 

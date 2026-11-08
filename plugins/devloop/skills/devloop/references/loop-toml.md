@@ -62,12 +62,14 @@ against a repository they must not write to.
 | `review_code` | `[]` | Globs counted as code (tests never count) |
 | `review_risk_paths` | `[]` | Path prefixes that always need review |
 | `review_risk_content` | `[]` | Regexes; a changed code file matching one needs review |
+| `review_content_globs` | `[]` | Which code files `review_risk_content` scans (empty: all of `review_code`) — keeps a script that names the patterns from matching them |
 | `evals_cases` | `"evals/cases.json"` | The case file |
 | `evals_overlay` | `[]` | Configuration laid over old code (loop.toml always) |
 | `evals_prose` | `[]` | Agent-facing prose whose change makes evals due |
 | `evals_threshold` | `60` | Changed prose lines that make evals due |
 | `evals_allowed_tools` | built-in list | The eval agent's `--allowedTools` |
 | `evals_skip_arg` | `""` | How a case's `skip.pattern` reaches the test command |
+| `command_prefixes` | `["rtk"]` | A hook that rewrites Bash commands defeats `--allowedTools` under dontAsk; each `Bash(x:*)` the review and eval agents get is also allowed as `Bash(<prefix> x:*)`. The eval agent may also run `gate` |
 
 ## Where state lives
 
