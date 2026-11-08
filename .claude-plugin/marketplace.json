@@ -79,6 +79,11 @@
       "name": "local-inference",
       "source": "./plugins/local-inference",
       "category": "development"
+    },
+    {
+      "name": "devloop",
+      "source": "./plugins/devloop",
+      "category": "development"
     }
   ]
 }

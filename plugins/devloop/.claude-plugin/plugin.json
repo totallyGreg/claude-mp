@@ -1,0 +1,11 @@
+{
+  "name": "devloop",
+  "version": "0.1.0",
+  "description": "A capture-to-ship development loop for any git repository agents work in: loop documents, one config file, and checks and hooks that enforce the rules.",
+  "author": {
+    "name": "J. Greg Williams",
+    "email": "283704+totallyGreg@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "keywords": ["development-loop", "backlog", "inbox", "gate", "hooks", "agents"]
+}
