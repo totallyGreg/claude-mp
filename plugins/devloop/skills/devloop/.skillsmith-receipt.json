@@ -1,0 +1,14 @@
+{
+  "skill_name": "devloop",
+  "content_hash": "cb13f865ba5ba779d5626d2457095786c3bb995d9a3e0e6c0f2119ca8ee2bf2c",
+  "score": 98,
+  "metrics": {
+    "conciseness": 100,
+    "complexity": 90,
+    "spec_compliance": 100,
+    "progressive_disclosure": 100,
+    "description_quality": 100
+  },
+  "tool_version": "6.13.0",
+  "date": "2026-11-08"
+}
