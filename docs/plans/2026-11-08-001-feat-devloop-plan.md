@@ -1,7 +1,7 @@
 # devloop: a development loop for any git repository agents work in
 
-Status: specified, 2026-11-08. Not yet built. Issue: not filed. The draft is
-below, for the user to file.
+Status: built, 2026-11-08, on `feature/devloop` (devloop 0.1.0); not merged.
+Issue: not filed. The draft is below, for the user to file.
 
 Exploration and evidence: the vault brainstorm "AI-native SDLC vs
 AudiobookOCD loop" (`800 Generated/820 Brainstorms/`). This plan is the
@@ -22,7 +22,7 @@ commit bodies 282ab4e..fee218e say why each piece exists and what broke).
 - [ ] `software` profile (red-first, backlog-closed, review gate, evals)
 - [ ] Adopted in two real repositories: one software, one not
 
-## Scope (decided 2026-11-08, confirm before building)
+## Scope (decided 2026-11-08; confirmed by the user before the build)
 
 **For:** any git repository where agents do the work: code,
 infrastructure, documentation.

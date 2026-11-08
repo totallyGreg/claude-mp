@@ -1,0 +1,23 @@
+
+[software]
+bugfix_prefix = "bugfix/"
+tests = [{{tests}}]
+test = "{{test}}"
+# The test command runs in a worktree at the red commit. Placeholders:
+#   {files}  the red commit's test files    {target}  run once per target_pattern match
+#   {scratch}  a build directory outside the repository
+# Examples:
+#   test = "uv run pytest {files}"
+#   test = "npm test -- {files}"
+#   build = "swift build --build-tests --scratch-path {scratch}"
+#   test = "swift test --skip-build --scratch-path {scratch} --filter '{target}\\.'"
+#   target_pattern = "^Tests/([^/]+)/"
+review_lines = 150
+review_code = ["*.py", "*.sh", "*.ts", "*.js", "*.go", "*.rs", "*.swift"]
+# review_risk_paths = ["migrations/", "scripts/release.sh"]
+# review_risk_content = ["shutil\\.rmtree", "os\\.remove"]
+evals_cases = "evals/cases.json"
+evals_overlay = ["AGENTS.md", "LOOP.md", ".claude/commands", ".claude/settings.json"]
+evals_prose = ["AGENTS.md", "LOOP.md", ".claude/commands"]
+evals_threshold = 60
+# evals_skip_arg = "--deselect {pattern}"

@@ -1,0 +1,28 @@
+{
+  "description": "devloop: block blanket git staging; at session start, point git at this plugin and say when a backlog review or config evals are due",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/no_blanket_add.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/skills/devloop/scripts/devloop.py --root \"${CLAUDE_PROJECT_DIR:-.}\" nudge 2>/dev/null || true",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+# devloop configuration — the one copy of every name, cap and list the
+# checks read. Reference: the devloop skill's references/loop-toml.md.
+schema = 1
+kind = "{{kind}}"        # "software" adds red-first, backlog-closed, review gate, evals; "none" is the core
+tier = {{tier}}              # 0: AGENTS + INBOX · 1: + BACKLOG, PLAN, DECISIONS, LOOP · 2: + review gate, evals
+main = "{{main}}"
+gate = "{{gate}}"
+
+# What a change is about: every backlog item and stage names one or more.
+areas = [{{areas}}]
+
+[docs]
+cap_bytes = 20000
+# exclude = ["vendor/*", "CHANGELOG.md"]   # markdown the index check skips
+# caps = { "BACKLOG.md" = 30000, "PLAN.md" = 24000, "DECISIONS.md" = 40000 }
+
+[loop]
+max_now = 3
+max_blocked_age_days = 14
+# placement = true      # a stage in Now must say where its code goes (**Placement:**)
+
+[review_due]
+max_age_days = 7
+max_inbox = 5
+release_tags = "v[0-9]*"
+{{software}}
