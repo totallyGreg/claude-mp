@@ -11,7 +11,7 @@ ObjC.import('Foundation');
 
 // Load taskQuery library
 const libraryPath = $.NSString.alloc.initWithUTF8String(
-    '${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-manager/libraries/jxa/taskQuery.js'
+    '${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-core/scripts/libraries/jxa/taskQuery.js'
 );
 
 const taskQuery = eval($.NSString.alloc.initWithContentsOfFileEncodingError(

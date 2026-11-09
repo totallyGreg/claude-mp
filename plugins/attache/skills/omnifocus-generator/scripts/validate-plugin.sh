@@ -377,12 +377,12 @@ echo "✓ Running TypeScript type-check against OmniFocus API..."
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# TypeScript definitions are in ../typescript/ relative to this script (sibling to scripts/)
-TYPESCRIPT_DIR="$(cd "$SCRIPT_DIR/../typescript" 2>/dev/null && pwd)"
+# TypeScript definitions live in the sibling omnifocus-core skill
+TYPESCRIPT_DIR="$(cd "$SCRIPT_DIR/../../omnifocus-core/typescript" 2>/dev/null && pwd)"
 
 if [ -z "$TYPESCRIPT_DIR" ] || [ ! -d "$TYPESCRIPT_DIR" ]; then
     echo -e "${YELLOW}  ⚠️  TypeScript definitions not found at expected location${NC}"
-    echo -e "  ℹ️  Expected: $SCRIPT_DIR/../typescript/"
+    echo -e "  ℹ️  Expected: $SCRIPT_DIR/../../omnifocus-core/typescript/"
     echo -e "  ℹ️  Skipping TypeScript validation"
 else
     # Determine how to run tsc (global, npx, or skip)

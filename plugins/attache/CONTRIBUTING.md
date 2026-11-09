@@ -106,13 +106,20 @@ CLI polls pasteboard, outputs JSON to stdout
 ## Build Commands
 
 ```bash
-cd plugins/omnifocus-core/skills/omnifocus-core/scripts/
+cd plugins/attache/skills/omnifocus-core/scripts/
 
 npm run build          # Build plugin + CLI
 npm run build:plugin   # Build plugin bundle only
 npm run build:cli      # Build CLI only
 npm run deploy         # Open plugin in OmniFocus
-npm run build:generator # Build the plugin generator (generate_plugin.ts)
+```
+
+The plugin generator builds on its own: `generate_plugin.js` is compiled from `generate_plugin.ts` and committed, so rebuild after every `.ts` change. Edit the `.ts`, never the `.js`: the two drifted for months when bundle support was added to the `.js` alone.
+
+```bash
+cd plugins/attache/skills/omnifocus-generator/scripts/
+npm install            # once: typescript (the generator imports it to validate code)
+npm run build          # tsc → generate_plugin.js
 ```
 
 ## First-Run Setup

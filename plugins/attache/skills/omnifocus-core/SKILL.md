@@ -6,7 +6,7 @@ description: |
   Do NOT trigger for: "create OmniFocus plugin" (use omnifocus-generator skill), "analyze my system" or "discover my patterns" (use attache-analyst skill), pure GTD methodology questions (use gtd-coach skill).
 license: MIT
 metadata:
-  version: 11.2.0
+  version: 11.2.1
   author: totally-tools
 compatibility:
   platforms: [macos]
