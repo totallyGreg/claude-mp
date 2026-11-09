@@ -1,0 +1,13 @@
+{
+  "names": {
+    "omnifocus-manager": "attache plugin (#167)",
+    "omnifocus-agent": "attache agent (#167)",
+    "pkm-manager": "archivist"
+  },
+  "exempt": [
+    "docs/lessons/",
+    "docs/solutions/",
+    "docs/plans/"
+  ],
+  "baseline": 15
+}

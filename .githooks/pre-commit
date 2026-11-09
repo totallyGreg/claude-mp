@@ -14,3 +14,18 @@ if [ -f ".claude-plugin/marketplace.json" ]; then
     python3 plugins/foundry/skills/marketplace-manager/scripts/repo/validate.py \
         .claude-plugin/marketplace.json --staged
 fi
+
+# Stale names: renamed plugins/agents listed in .stale-names.json may not gain
+# live mentions. The baseline there only falls (lower it with --update-baseline).
+STALE=plugins/archivist/skills/vault-curator/scripts/check_stale_names.py
+if [ -f ".stale-names.json" ] && [ -f "$STALE" ]; then
+    if command -v uv >/dev/null 2>&1; then
+        if ! out=$(uv run -q "$STALE" --registry .stale-names.json --all); then
+            echo "$out"
+            echo "pre-commit: new mentions of a renamed thing (see .stale-names.json). Use the new name, or exempt the path if it is history." >&2
+            exit 1
+        fi
+    else
+        echo "pre-commit: uv not found, skipping stale-names check" >&2
+    fi
+fi

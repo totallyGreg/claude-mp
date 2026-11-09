@@ -51,6 +51,7 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_stale_names.py \
 - **Registry:** every `formerly:` value in vault frontmatter, mapped to the note that declares it. Put the same names in `aliases` so old links and searches resolve. Never list a name that is still valid for something else; every legitimate use would count.
 - **History, not counted:** files named with a leading `YYYY-MM-DD`, folders whose name contains "archive", version-history table rows (`| 1.2.0 | …`), notes with `historical: true` (records kept as written), the canonical note's own frontmatter, and `--exempt` prefixes.
 - **Ratchet:** the baseline lives in `$XDG_STATE_HOME/archivist/stale-names.json` (never in the vault). `--update-baseline` lowers it when the count falls and never raises it.
+- **Repo mode:** `--registry <repo>/.stale-names.json` needs no vault (a pre-commit hook, CI). The file holds `names` (old → new), `exempt` prefixes and `baseline`; it scans git-tracked files under its own directory and `--update-baseline` lowers `baseline` in place. The vault scan stays a full walk, since new notes are often uncommitted.
 - **Status:** `no-registry`, `first-run`, `ok`, `improved` (exit 0); `regressed` (exit 1).
 - **Fixing hits:** propose one replacement per mention; confirm before editing user-written notes; work a few files per session, largest name first.
 
