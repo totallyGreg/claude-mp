@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.19.0"
+  version: "1.20.0"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -326,3 +326,7 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_collection_healt
 Output fields: `has_folder_note`, `folder_note_embeds_bases`, `has_bases_file`, `dominant_fileclass`, `schema_drift_issues`, `health` — see `references/collection-health-criteria.md` for field definitions, health thresholds, and fix priority order.
 
 **After report, offer fixes in order:** missing folder note or Bases file → scaffold via vault-architect; folder note missing Bases embed → add with confirmation; schema drift → run `detect_schema_drift.py --scope <folder>`.
+
+### Stale Names
+
+When something is renamed, add `formerly: [old-name]` (and the same in `aliases`) to its current note, then run `check_stale_names.py ${VAULT_PATH} --update-baseline`. The count of live mentions may only fall; exit 1 means new ones appeared. Confirm each fix to a user-written note. **See:** `references/available-scripts.md` § check_stale_names.py.
