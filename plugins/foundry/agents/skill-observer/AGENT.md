@@ -14,8 +14,8 @@ description: |
 
   <example>
   Context: User wants to improve a skill based on real usage
-  user: "Check the last session where omnifocus-manager was used and see what it missed"
-  assistant: "I'll use the skill-observer agent to analyze the transcript for omnifocus-manager gaps."
+  user: "Check the last session where gtd-coach was used and see what it missed"
+  assistant: "I'll use the skill-observer agent to analyze the transcript for gtd-coach gaps."
   <commentary>
   Skill improvement workflow — agent finds the most recent session with that skill, extracts its gap pattern, and returns improvement suggestions for the source skill.
   </commentary>

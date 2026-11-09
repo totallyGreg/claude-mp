@@ -1,6 +1,6 @@
 {
   "skill_name": "agentsmith",
-  "content_hash": "eae89c12210e1222759179bd5d256bdf0fd35289997fb34a2241d94d02ebda7b",
+  "content_hash": "39ee0eab4fd3fb09e3df672b438d003d8dcae485ed4250bbe27960b0ad051359",
   "score": 98,
   "metrics": {
     "conciseness": 100,
@@ -9,6 +9,6 @@
     "progressive_disclosure": 100,
     "description_quality": 100
   },
-  "tool_version": "6.13.0",
-  "date": "2026-10-18"
+  "tool_version": "6.13.1",
+  "date": "2026-11-09"
 }

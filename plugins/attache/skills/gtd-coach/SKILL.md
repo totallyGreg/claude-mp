@@ -3,7 +3,7 @@ name: gtd-coach
 description: |
   This skill should be used when users need GTD methodology coaching on productivity, workflow, or task management systems. Triggers when user asks "create a next action", "check my GTD system", "analyze my projects", "improve my workflow", "weekly review", "inbox zero", "someday maybe", or "GTD coaching". For OmniFocus-specific automation, use the omnifocus-core skill instead.
 metadata:
-  version: 1.4.0
+  version: 1.4.1
   author: totally-tools
 license: MIT
 compatibility:
@@ -231,9 +231,9 @@ A healthy GTD system shows these signs:
 - No regular review cadence
 - Vague task names throughout
 
-### System Context (when provided by omnifocus-agent)
+### System Context (when provided by the attache agent)
 
-When the omnifocus-agent provides a `**System Map context:**` block, use the user's actual tag and folder names — do not fall back to generic GTD examples.
+When the attache agent provides a `**System Map context:**` block, use the user's actual tag and folder names — do not fall back to generic GTD examples.
 
 - Replace generic context examples with the user's actual context tags from `tags.categories.contexts`
 - Name their specific waiting tag, someday folder, and area folders by their real names
