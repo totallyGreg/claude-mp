@@ -61,7 +61,7 @@ ObjC.import('Foundation');
 
 /**
  * Load a JXA library by path relative to the skill root (current working directory).
- * Run from the skills/omnifocus-manager/ root so paths resolve correctly.
+ * Run from the skills/omnifocus-core/ root so paths resolve correctly.
  * Libraries use IIFE pattern and return their namespace object via eval().
  */
 function loadLibrary(relativePath) {

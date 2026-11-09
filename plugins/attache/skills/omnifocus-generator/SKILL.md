@@ -8,7 +8,7 @@ description: |
   WORKFLOW: 1) CLASSIFY query vs plugin 2) SELECT format (solitary/solitary-fm/bundle/solitary-library) 3) COMPOSE from libraries 4) GENERATE via `node scripts/generate_plugin.js` - NEVER Write/Edit tools 5) VALIDATE via `bash scripts/validate-plugin.sh` 6) TEST in OmniFocus.
 license: MIT
 metadata:
-  version: 1.0.0
+  version: 1.0.1
   author: totally-tools
 compatibility:
   platforms: [macos]
@@ -45,7 +45,8 @@ Keywords in request → Classification:
 
 ### STEP 3: GENERATE (TypeScript validation automatic)
 ```bash
-node scripts/generate_plugin.js --format <FORMAT> --name "<NAME>"
+[ -d scripts/node_modules/typescript ] || npm install --prefix scripts   # once: the generator imports typescript
+node scripts/generate_plugin.js --format <FORMAT> --name "<NAME>" [--template <name>] [--requires ofoCore,systemMap] [--output <dir>]
 ```
 **RED FLAG:** If about to use Write or Edit tool for .js/.omnijs files → STOP, use generator instead
 **RED FLAG:** If about to write an inline Omni Automation script → STOP. Check if omnifocus-core ofo CLI covers it first. Structured project with action groups needed? → defer to omnifocus-core `manage_omnifocus.js bulk-create`.
