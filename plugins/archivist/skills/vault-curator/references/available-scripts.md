@@ -21,6 +21,7 @@ All scripts use PEP 723 inline metadata for `uv run` compatibility. Run via:
 | `generate_canvas.py` | Generate JSON Canvas maps of note relationships |
 | `check_collection_health.py` | Audit Collection Folder Pattern health (folder note, Bases file, schema drift) |
 | `check_stale_names.py` | Count live mentions of renamed things (`formerly:` registry); baseline only falls |
+| `noise_counts.py` | Orphans, broken Week links, stale names; baselines in the profile's `## Noise`, only fall |
 
 ## find_related.py — Relatedness Signals
 
@@ -50,10 +51,22 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_stale_names.py \
 
 - **Registry:** every `formerly:` value in vault frontmatter, mapped to the note that declares it. Put the same names in `aliases` so old links and searches resolve. Never list a name that is still valid for something else; every legitimate use would count.
 - **History, not counted:** files named with a leading `YYYY-MM-DD`, folders whose name contains "archive", version-history table rows (`| 1.2.0 | …`), notes with `historical: true` (records kept as written), the canonical note's own frontmatter, and `--exempt` prefixes.
-- **Ratchet:** the baseline lives in `$XDG_STATE_HOME/archivist/stale-names.json` (never in the vault). `--update-baseline` lowers it when the count falls and never raises it.
+- **Ratchet:** for the vault, the baseline is the `stale_names` row of the profile's `## Noise` section (see noise_counts.py). The older `--update-baseline` file, `$XDG_STATE_HOME/archivist/stale-names.json`, still works but `/health` no longer uses it.
 - **Repo mode:** `--registry <repo>/.stale-names.json` needs no vault (a pre-commit hook, CI). The file holds `names` (old → new), `exempt` prefixes and `baseline`; it scans git-tracked files under its own directory and `--update-baseline` lowers `baseline` in place. The vault scan stays a full walk, since new notes are often uncommitted.
 - **Status:** `no-registry`, `first-run`, `ok`, `improved` (exit 0); `regressed` (exit 1).
 - **Fixing hits:** propose one replacement per mention; confirm before editing user-written notes; work a few files per session, largest name first.
+
+## noise_counts.py — Noise Ratchet
+
+```bash
+obsidian vault="<vault_name>" orphans | uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/noise_counts.py \
+  ${VAULT_PATH} --orphans - [--exclude <folder>]... [--days <folder>]
+```
+
+- **Counts:** `orphans` (.md only, minus excluded folders and daily notes), `broken_week_links` (daily notes `YYYY-MM-DD.md` whose `Week` link names no note), `stale_names` (same rules as check_stale_names.py).
+- **The profile is the record:** `## Noise` in `_vault-profile.md` holds `Orphans exclude:` and `Daily notes:` (folders in backticks) and a table with each count's baseline, last value and definition. `--exclude` and `--days` replace those settings, for the first run.
+- **Ratchet:** a lower count becomes the baseline; a higher one is `regressed` (exit 1) and the baseline stays.
+- **Read-only:** it prints `section`; write it with `vault-write apply _vault-profile.md --base <hash> --section "## Noise"`.
 
 ## generate_canvas.py — Layout & Naming
 

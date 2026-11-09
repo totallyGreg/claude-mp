@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.20.0"
+  version: "1.21.0"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -329,4 +329,8 @@ Output fields: `has_folder_note`, `folder_note_embeds_bases`, `has_bases_file`, 
 
 ### Stale Names
 
-When something is renamed, add `formerly: [old-name]` (and the same in `aliases`) to its current note, then run `check_stale_names.py ${VAULT_PATH} --update-baseline`. The count of live mentions may only fall; exit 1 means new ones appeared. Confirm each fix to a user-written note. **See:** `references/available-scripts.md` § check_stale_names.py.
+When something is renamed, add `formerly: [old-name]` (and the same in `aliases`) to its current note. `check_stale_names.py ${VAULT_PATH}` lists live mentions. Confirm each fix to a user-written note. **See:** `references/available-scripts.md` § check_stale_names.py.
+
+### Noise Counts
+
+`noise_counts.py` counts orphans, broken Week links and stale names. The baselines live in the profile's `## Noise` section, and each may only fall; `/health` writes the updated section back. **See:** `references/available-scripts.md` § noise_counts.py.
