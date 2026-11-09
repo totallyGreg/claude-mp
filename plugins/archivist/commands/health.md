@@ -11,5 +11,6 @@ The agent should:
    - Orphan count: `obsidian vault="<vault_name>" orphans | wc -l` (`vault_name` from `vault-write config`)
    - Collection health: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_collection_health.py ${VAULT_PATH}`
    - Vault analysis: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-architect/scripts/analyze_vault.py ${VAULT_PATH}`
+   - Stale names: `bash uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_stale_names.py ${VAULT_PATH} --update-baseline`. Exit 1 (`status: regressed`) means new mentions of a renamed thing appeared since the last check: list them first. `no-registry` means no note declares `formerly:` yet; say so once, it's not an issue
 3. Summarize findings as a prioritized list of issues. Sample a few orphans before calling them a repair queue: links in code blocks don't count and some alias links read as unresolved (see `cli-patterns.md`)
 4. Offer to fix the top issues or dive deeper into any area

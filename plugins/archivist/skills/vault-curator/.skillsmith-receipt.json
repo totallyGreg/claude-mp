@@ -1,14 +1,14 @@
 {
   "skill_name": "vault-curator",
-  "content_hash": "da16eab29098b3e91f727e782538bf4cd4b86e25db5449aafd4b54bb19479801",
-  "score": 96,
+  "content_hash": "87c2b36bd7ae494b36665e2f10727b571d0f7ec3259a178bf76da2142e67b899",
+  "score": 95,
   "metrics": {
-    "conciseness": 78,
+    "conciseness": 77,
     "complexity": 100,
     "spec_compliance": 100,
     "progressive_disclosure": 100,
     "description_quality": 100
   },
   "tool_version": "6.13.0",
-  "date": "2026-10-18"
+  "date": "2026-11-08"
 }
