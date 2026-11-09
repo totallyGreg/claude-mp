@@ -63,7 +63,7 @@ Claude Code updates an installed plugin only when its `plugin.json` `version` ch
 - `version` in a marketplace entry,
 - errors from Anthropic's `claude plugin validate` (strict for the marketplace; errors only for changed plugins).
 
-It also blocks a commit that adds live mentions of a renamed plugin or agent: `.stale-names.json` lists old → new names, history paths (`exempt`) and a `baseline` count of tracked files that may only fall. When you rename something, add the old name there in the same commit. After fixing mentions, lower the baseline with `uv run plugins/archivist/skills/vault-curator/scripts/check_stale_names.py --registry .stale-names.json --update-baseline` (#237).
+It also blocks a commit that adds live mentions of a renamed plugin or agent: `.stale-names.json` lists old → new names, history paths (`exempt`) and a `baseline` count of tracked files that may only fall. When you rename a plugin, skill or agent, the hook fails until the old name is there; `python3 plugins/foundry/skills/marketplace-manager/scripts/repo/validate.py --check-versions --fix` adds it. After fixing mentions, lower the baseline with `uv run plugins/archivist/skills/vault-curator/scripts/check_stale_names.py --registry .stale-names.json --update-baseline` (#237).
 
 It never edits or stages files. Preview any time with `/mp-status`. Bypass in an emergency with `git commit --no-verify`.
 

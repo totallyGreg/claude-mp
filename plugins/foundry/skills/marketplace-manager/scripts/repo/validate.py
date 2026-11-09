@@ -18,6 +18,10 @@ Checks:
 4. Reverse scan -- plugins on disk missing from marketplace.json (--fix adds them)
 5. Structure (--check-structure) -- anti-patterns such as shared source paths
 6. Commands -- warn when commands/*.md uses $ARGUMENTS/$N without argument-hint
+7. Renames (with --check-versions / --staged, only if .stale-names.json exists)
+   -- a plugin, skill or agent name present at the base but gone now must be
+   listed in .stale-names.json `names`, so old mentions get counted. --fix
+   adds it, pairing it with the new name when the match is unambiguous
 
 The base is `git merge-base HEAD <ref>`, where <ref> defaults to the remote's
 default branch (origin/HEAD, falling back to origin/main).
@@ -43,6 +47,15 @@ SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)")
 
 # plugin-dev plugin-structure guidance: "Keep under 200 characters for marketplace display"
 MAX_DESCRIPTION = 200
+
+# Rename registry read by check_stale_names.py (archivist) and the pre-commit hook
+STALE_NAMES = ".stale-names.json"
+
+# Component names that can be renamed: skills/<s>/SKILL.md, agents/<a>.md, agents/<a>/AGENT.md
+NAMED_PATHS = [
+    ("skill", re.compile(r"(?:^|/)skills/([^/]+)/SKILL\.md$")),
+    ("agent", re.compile(r"(?:^|/)agents/(?:([^/]+)\.md|([^/]+)/AGENT\.md)$")),
+]
 
 
 # -- YAML frontmatter parsing -----------------------------------------------
@@ -174,6 +187,15 @@ class Snapshot:
     def at_base(self, rel: str) -> str | None:
         return git(self.repo_root, "show", f"{self.base}:{rel}")
 
+    def files(self) -> list[str]:
+        if self.staged:
+            return (git(self.repo_root, "ls-files") or "").splitlines()
+        out = git(self.repo_root, "ls-files", "--cached", "--others", "--exclude-standard") or ""
+        return [p for p in out.splitlines() if (self.repo_root / p).is_file()]
+
+    def base_files(self) -> list[str]:
+        return (git(self.repo_root, "ls-tree", "-r", "--name-only", self.base) or "").splitlines()
+
 
 # -- Checks ------------------------------------------------------------------
 
@@ -275,6 +297,57 @@ def check_versions(config: dict, snap: Snapshot) -> tuple[list[str], list[str]]:
                 errors.append(err)
 
     return errors, changed_dirs
+
+
+def component_names(config: dict, paths: list[str]) -> dict[str, str]:
+    """Map each plugin, skill and agent name to its kind."""
+    names = {p.get("name"): "plugin" for p in config.get("plugins", []) if p.get("name")}
+    for path in paths:
+        for kind, pattern in NAMED_PATHS:
+            m = pattern.search(path)
+            if m:
+                names.setdefault(next(g for g in m.groups() if g), kind)
+    return names
+
+
+def check_renames(config: dict, base_config: dict, snap: Snapshot) -> tuple[list[str], dict]:
+    """Names gone since the base must be in the rename registry.
+
+    Returns (errors, entries to add). Skipped when the repo has no registry.
+    """
+    registry = snap.current(STALE_NAMES)
+    if registry is None:
+        return [], {}
+    try:
+        known = set(json.loads(registry).get("names", {}))
+    except json.JSONDecodeError:
+        return [f"{STALE_NAMES}: invalid JSON"], {}
+
+    before = component_names(base_config, snap.base_files())
+    after = component_names(config, snap.files())
+    gone = {n: k for n, k in before.items() if n not in after and n not in known}
+    new = {n: k for n, k in after.items() if n not in before}
+
+    errors, additions = [], {}
+    for old, kind in sorted(gone.items()):
+        same_kind_gone = [n for n, k in gone.items() if k == kind]
+        candidates = [n for n, k in new.items() if k == kind]
+        renamed_to = candidates[0] if len(candidates) == 1 == len(same_kind_gone) else None
+        additions[old] = f"{renamed_to} {kind}" if renamed_to else f"removed {kind}"
+        hint = f" (renamed to '{renamed_to}'?)" if renamed_to else ""
+        errors.append(
+            f"{kind.capitalize()} '{old}' is gone since base{hint} -- add it to "
+            f"{STALE_NAMES} names so old mentions are counted (--fix adds it)"
+        )
+    return errors, additions
+
+
+def fix_stale_names(repo_root: Path, additions: dict) -> None:
+    """Add old names to the rename registry in the working tree."""
+    path = repo_root / STALE_NAMES
+    registry = json.loads(path.read_text(encoding="utf-8"))
+    registry.setdefault("names", {}).update(additions)
+    path.write_text(json.dumps(registry, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def run_official(target: Path, strict: bool) -> tuple[list[str], list[str]]:
@@ -411,7 +484,8 @@ def main() -> None:
                         help="Compare against merge-base of HEAD and REF "
                              "(default: origin/HEAD, then origin/main)")
     parser.add_argument("--fix", action="store_true",
-                        help="Add plugins found on disk but missing from the manifest")
+                        help="Add plugins found on disk but missing from the manifest, "
+                             "and old names to .stale-names.json")
     parser.add_argument("--check-structure", action="store_true",
                         help="Detect structural anti-patterns")
     parser.add_argument("--format", choices=["text", "json"], default="text")
@@ -446,6 +520,14 @@ def main() -> None:
             version_errors, plugin_dirs = check_versions(
                 config, Snapshot(repo_root, base, staged=args.staged))
             errors += version_errors
+            snap = Snapshot(repo_root, base, staged=args.staged)
+            mp_rel = mp_path.resolve().relative_to(repo_root).as_posix()
+            rename_errors, renames = check_renames(config, load_manifest(snap.at_base(mp_rel)), snap)
+            if args.fix and renames:
+                fix_stale_names(repo_root, renames)
+                warnings += [f"Added '{n}' to {STALE_NAMES} -- stage it" for n in renames]
+            else:
+                errors += rename_errors
 
     official_errors, official_warnings = validate_official(repo_root, plugin_dirs)
     errors += official_errors

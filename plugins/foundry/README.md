@@ -91,6 +91,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 | Version | Changes |
 |---------|---------|
+| 2.2.0 | [#237](https://github.com/totallyGreg/claude-mp/issues/237): marketplace-manager 5.2.0 — the pre-commit hook fails when a plugin, skill or agent is renamed or removed without listing the old name in `.stale-names.json`; `validate.py --check-versions --fix` adds it. Score 100 |
 | 2.1.1 | [#237](https://github.com/totallyGreg/claude-mp/issues/237): old names removed from live docs. skillsmith 6.13.1 (`attache:gtd-coach` example), agentsmith 1.2.1 (calibration row labelled `attache (pre-#167)`), skill-observer examples use gtd-coach. Scores unchanged: skillsmith 95, agentsmith 98 |
 | 2.1.0 | [#219](https://github.com/totallyGreg/claude-mp/issues/219): align with current Anthropic skill guidance. skillsmith 6.13.0 (description scoring: third person, `when_to_use`, 1,536-char cap, broader trigger-phrase detection; PEP 723 only for entry points; Claude Code extensions reference), agentsmith 1.2.0 (ignored plugin-agent fields), marketplace-manager 5.1.0 (command `argument-hint` check, command wrapper scaffold). `/ss-validate --strict` also runs `claude plugin validate` |
 | 2.0.1 | marketplace-manager 5.0.1: `validate.py`, `setup.py` and `scaffold.py` add `from __future__ import annotations`, so the `X \| None` type hints no longer crash under macOS's system Python 3.9. The pre-commit hook calls bare `python3`, which is 3.9 in a plain `/bin/sh` environment. |
@@ -133,7 +134,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 ### Current Metrics
 
-**Score: 100/100** (Excellent) — 2026-10-18
+**Score: 100/100** (Excellent) — 2026-11-09
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -143,6 +144,7 @@ File friction from anywhere with `/ss-wtf`; the improve loops read it back autom
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 5.2.0 | 2026-11-09 | [#237](https://github.com/totallyGreg/claude-mp/issues/237) | Rename check: in a repo with `.stale-names.json`, a plugin, skill or agent name gone since the base must be listed there; `--check-versions --fix` adds it | 100 | 100 | 100 | 100 | 100 | 100 |
 | 5.1.0 | 2026-10-18 | [#219](https://github.com/totallyGreg/claude-mp/issues/219) | `validate.py` warns when a command uses `$ARGUMENTS`/`$N` without `argument-hint`; `scaffold.py --with-commands` writes a thin command wrapper | 100 | 100 | 100 | 100 | 100 | 100 |
 | 5.0.0 | 2026-10-09 | [#193](https://github.com/totallyGreg/claude-mp/issues/193) | **BREAKING**: plugin.json is the single source of truth; `sync.py` and `/mp-sync` removed. validate.py now enforces version bumps (plugin + skill) against the merge-base with origin/main, rejects `version` in marketplace entries, limits changed plugin descriptions to 200 chars, and delegates schema checks to `claude plugin validate`. Checks-only pre-commit hook +v5.0.1 | 100 | 100 | 100 | 100 | 100 | 100 |
 | 4.0.0 | 2026-03-26 | [#145](https://github.com/totallyGreg/claude-mp/issues/145) | Official schema alignment, self-sufficient repo model, 12 scripts replaced by 4, reverse scan + auto-fix | 100 | 100 | 100 | 100 | 100 | 100 |
