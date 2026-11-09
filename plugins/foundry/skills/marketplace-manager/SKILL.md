@@ -20,7 +20,7 @@ metadata:
   progressive: 100
   overall: 100
   last_evaluated: 2026-03-26
-  version: "5.1.0"
+  version: "5.2.0"
   author: J. Greg Williams
 compatibility: Requires git repository with .claude-plugin/marketplace.json
 
@@ -47,6 +47,10 @@ Claude Code updates an installed plugin only when its computed version changes, 
 
 Bump in the first commit that touches a plugin; later commits on the branch pass. Merging main into the branch moves the base, so parallel releases force a fresh bump instead of colliding silently.
 
+### Renames
+
+When the repo has a `.stale-names.json`, a plugin, skill or agent name that exists at the base but is gone now must be listed in its `names`, so the stale-names check counts leftover mentions. `--fix` adds the entry (`"old": "new <kind>"` when one new name of that kind appeared, otherwise `"removed <kind>"`); check the value and stage the file. For an agent with a vault note, also ask the archivist to add `formerly:` there.
+
 ## Architecture
 
 - `scripts/repo/validate.py` -- the checks above; copied into marketplace repos by `setup.py` so they need nothing from this skill at runtime
@@ -68,7 +72,7 @@ python3 scripts/setup.py install-hook       # Pre-commit: validate.py --staged
 python3 scripts/repo/validate.py                    # claude plugin validate + manifest checks
 python3 scripts/repo/validate.py --check-versions   # pending bumps in the working tree
 python3 scripts/repo/validate.py --staged           # same against the index (pre-commit)
-python3 scripts/repo/validate.py --fix              # register unlisted plugins as {name, source}
+python3 scripts/repo/validate.py --fix              # register unlisted plugins; with --check-versions, add renamed names to .stale-names.json
 python3 scripts/repo/validate.py --check-structure  # shared-source anti-pattern
 ```
 

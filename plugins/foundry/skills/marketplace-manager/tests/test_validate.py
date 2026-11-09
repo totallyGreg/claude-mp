@@ -26,7 +26,9 @@ from validate import (  # noqa: E402
     _parse_frontmatter_stdlib,
     check_commands,
     check_duplicate_metadata,
+    check_renames,
     check_versions,
+    fix_stale_names,
     resolve_base,
     skill_version,
 )
@@ -252,3 +254,76 @@ def test_command_using_arguments_needs_argument_hint(tmp_path):
     (cmds / "noargs.md").write_text("---\ndescription: x\n---\nJust run it.\n")
     warnings = check_commands(tmp_path, ["plugins/demo"])
     assert len(warnings) == 1 and "bare.md" in warnings[0]
+
+
+# -- Rename registry ---------------------------------------------------------
+
+def renames(repo: Path, staged: bool = False) -> tuple[list[str], dict]:
+    base = resolve_base(repo, "main")
+    snap = Snapshot(repo, base, staged=staged)
+    base_config = json.loads(snap.at_base(".claude-plugin/marketplace.json"))
+    return check_renames(config(repo), base_config, snap)
+
+
+def add_registry(repo: Path, names: dict | None = None) -> None:
+    write(repo, ".stale-names.json", json.dumps({"names": names or {}, "baseline": 0}))
+
+
+def rename_skill(repo: Path) -> None:
+    (repo / "plugins/demo/skills/alpha").rename(repo / "plugins/demo/skills/beta")
+
+
+def test_rename_without_registry_is_not_checked(repo):
+    rename_skill(repo)
+    assert renames(repo) == ([], {})
+
+
+def test_renamed_skill_must_be_registered(repo):
+    add_registry(repo)
+    rename_skill(repo)
+    errs, additions = renames(repo)
+    assert len(errs) == 1 and "'alpha'" in errs[0] and "'beta'" in errs[0]
+    assert additions == {"alpha": "beta skill"}
+
+
+def test_registered_rename_passes(repo):
+    add_registry(repo, {"alpha": "beta skill"})
+    rename_skill(repo)
+    assert renames(repo) == ([], {})
+
+
+def test_fix_writes_the_registry(repo):
+    add_registry(repo)
+    rename_skill(repo)
+    _, additions = renames(repo)
+    fix_stale_names(repo, additions)
+    assert renames(repo) == ([], {})
+    assert json.loads((repo / ".stale-names.json").read_text())["baseline"] == 0
+
+
+def test_removed_agent_without_replacement(repo):
+    write(repo, "plugins/demo/agents/helper.md", "---\nname: helper\n---\n")
+    commit_all(repo)
+    git(repo, "branch", "-f", "main")
+    add_registry(repo)
+    (repo / "plugins/demo/agents/helper.md").unlink()
+    errs, additions = renames(repo)
+    assert additions == {"helper": "removed agent"} and len(errs) == 1
+
+
+def test_renamed_plugin_in_marketplace(repo):
+    add_registry(repo)
+    mp = config(repo)
+    mp["plugins"][0]["name"] = "demo2"
+    write(repo, ".claude-plugin/marketplace.json", json.dumps(mp))
+    _, additions = renames(repo)
+    assert additions == {"demo": "demo2 plugin"}
+
+
+def test_staged_mode_reads_registry_from_index(repo):
+    add_registry(repo)
+    rename_skill(repo)
+    git(repo, "add", "-A")
+    add_registry(repo, {"alpha": "beta skill"})  # not staged
+    errs, _ = renames(repo, staged=True)
+    assert len(errs) == 1
