@@ -20,6 +20,7 @@ All scripts use PEP 723 inline metadata for `uv run` compatibility. Run via:
 | `redirect_links.py` | Vault-wide wikilink replacement after merge |
 | `generate_canvas.py` | Generate JSON Canvas maps of note relationships |
 | `check_collection_health.py` | Audit Collection Folder Pattern health (folder note, Bases file, schema drift) |
+| `check_stale_names.py` | Count live mentions of renamed things (`formerly:` registry); baseline only falls |
 
 ## find_related.py — Relatedness Signals
 
@@ -39,6 +40,20 @@ Results are ranked by signal strength:
 | `dominant_fileclass` | Most common `fileClass` among members |
 | `schema_drift_issues` | Count of drift issues (from drift analysis) |
 | `health` | `healthy` \| `partial` \| `missing_infrastructure` |
+
+## check_stale_names.py — Rename Ratchet
+
+```bash
+uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_stale_names.py \
+  ${VAULT_PATH} [--update-baseline] [--repo <path>] [--exempt <prefix>] [--all]
+```
+
+- **Registry:** every `formerly:` value in vault frontmatter, mapped to the note that declares it. Put the same names in `aliases` so old links and searches resolve. Never list a name that is still valid for something else; every legitimate use would count.
+- **History, not counted:** files named with a leading `YYYY-MM-DD`, folders whose name contains "archive", version-history table rows (`| 1.2.0 | …`), notes with `historical: true` (records kept as written), the canonical note's own frontmatter, and `--exempt` prefixes.
+- **Ratchet:** the baseline lives in `$XDG_STATE_HOME/archivist/stale-names.json` (never in the vault). `--update-baseline` lowers it when the count falls and never raises it.
+- **Repo mode:** `--registry <repo>/.stale-names.json` needs no vault (a pre-commit hook, CI). The file holds `names` (old → new), `exempt` prefixes and `baseline`; it scans git-tracked files under its own directory and `--update-baseline` lowers `baseline` in place. The vault scan stays a full walk, since new notes are often uncommitted.
+- **Status:** `no-registry`, `first-run`, `ok`, `improved` (exit 0); `regressed` (exit 1).
+- **Fixing hits:** propose one replacement per mention; confirm before editing user-written notes; work a few files per session, largest name first.
 
 ## generate_canvas.py — Layout & Naming
 

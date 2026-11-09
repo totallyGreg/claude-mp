@@ -23,6 +23,7 @@ interface PluginOptions {
     author?: string;
     description?: string;
     outputDir?: string;
+    requires?: Array<'ofoCore' | 'systemMap'>;
 }
 interface GenerateResult {
     success: boolean;
@@ -38,6 +39,23 @@ declare class PluginGenerator {
      * Generate plugin from options
      */
     generate(options: PluginOptions): Promise<GenerateResult>;
+    /**
+     * Substitute variables, inject D8.5 runtime skeletons, and validate one action's code.
+     * Returns the code, or the validation error messages (already printed).
+     */
+    private prepareAction;
+    /**
+     * Generate a single-file plugin (.omnijs)
+     */
+    private generateSolitary;
+    /**
+     * Generate a bundle plugin: <Name>.omnifocusjs/ with manifest.json and Resources/
+     */
+    private generateBundle;
+    /**
+     * Load manifest template for bundle
+     */
+    private loadManifestTemplate;
     /**
      * Load template based on format
      */

@@ -253,8 +253,10 @@ class PluginGenerator {
     }
 
     this.skillRoot = root;
-    this.dtsPath = path.join(root, 'typescript', 'omnifocus.d.ts');
-    this.dtsExtensionsPath = path.join(root, 'typescript', 'omnifocus-extensions.d.ts');
+    // The OmniFocus API types live in the sibling omnifocus-core skill.
+    const typesDir = path.join(root, '..', 'omnifocus-core', 'typescript');
+    this.dtsPath = path.join(typesDir, 'omnifocus.d.ts');
+    this.dtsExtensionsPath = path.join(typesDir, 'omnifocus-extensions.d.ts');
   }
 
   /**
@@ -266,44 +268,15 @@ class PluginGenerator {
       console.log(`   Plugin: ${options.name}`);
       console.log(`   Format: ${FORMATS[options.format]}\n`);
 
-      // 1. Load template
-      const template = await this.loadTemplate(options);
-
-      // 2. Prepare variables and substitute
       const variables = prepareVariables(options);
-      let code = substituteVariables(template, variables);
 
-      // 2.5. D8.5 — inject runtime contract skeletons if requires declared
-      if (options.requires && options.requires.length > 0) {
-        const injected = injectRuntimeSkeletons(code, options.requires);
-        if (injected.warning) {
-          console.log(`⚠️  ${injected.warning}\n`);
-        } else {
-          console.log(`✅ D8.5 — Injected runtime skeletons: ${options.requires.join(', ')}\n`);
-        }
-        code = injected.code;
+      const result = options.format === 'bundle'
+        ? await this.generateBundle(options, variables)
+        : await this.generateSolitary(options, variables);
+      if ('errors' in result) {
+        return { success: false, errors: result.errors };
       }
-
-      // 3. CRITICAL: Validate with TypeScript compiler
-      console.log('🔍 Validating TypeScript...');
-      const validation = await this.validateTypeScript(code, variables.ACTION_ID);
-
-      if (!validation.success) {
-        console.log('\n❌ TypeScript validation failed:');
-        validation.errors.forEach((err, i) => {
-          const location = err.line !== undefined ? `Line ${err.line + 1}${err.column !== undefined ? `:${err.column + 1}` : ''}` : '';
-          console.log(`   ${i + 1}. ${location ? location + ' - ' : ''}${err.message}`);
-        });
-        return { success: false, errors: validation.errors.map(e => e.message) };
-      }
-
-      console.log('   ✅ TypeScript validation passed\n');
-
-      // 4. Write .ts file
-      const tsFilePath = await this.writeTsFile(code, options);
-
-      // 5. Auto-rename to .omnijs/.omnifocusjs
-      const deployPath = await this.renameForDeployment(tsFilePath, options.format);
+      const deployPath = result.path;
 
       console.log('🎉 Plugin generated successfully!\n');
       console.log('📦 Installation:');
@@ -326,37 +299,142 @@ class PluginGenerator {
   }
 
   /**
+   * Substitute variables, inject D8.5 runtime skeletons, and validate one action's code.
+   * Returns the code, or the validation error messages (already printed).
+   */
+  private async prepareAction(
+    template: string,
+    variables: TemplateVariables,
+    options: PluginOptions,
+    label: string
+  ): Promise<{ code: string } | { errors: string[] }> {
+    let code = substituteVariables(template, variables);
+
+    // D8.5 — inject runtime contract skeletons if requires declared
+    if (options.requires && options.requires.length > 0) {
+      const injected = injectRuntimeSkeletons(code, options.requires);
+      if (injected.warning) {
+        console.log(`⚠️  ${label}: ${injected.warning}\n`);
+      } else {
+        console.log(`✅ D8.5 — Injected runtime skeletons into ${label}: ${options.requires.join(', ')}\n`);
+      }
+      code = injected.code;
+    }
+
+    // CRITICAL: Validate with TypeScript compiler
+    console.log(`🔍 Validating ${label}...`);
+    const validation = await this.validateTypeScript(code, label);
+    if (!validation.success) {
+      console.log(`\n❌ TypeScript validation failed for ${label}:`);
+      validation.errors.forEach((err, i) => {
+        const location = err.line !== undefined ? `Line ${err.line + 1}${err.column !== undefined ? `:${err.column + 1}` : ''}` : '';
+        console.log(`   ${i + 1}. ${location ? location + ' - ' : ''}${err.message}`);
+      });
+      return { errors: validation.errors.map(e => e.message) };
+    }
+    console.log('   ✅ TypeScript validation passed\n');
+    return { code };
+  }
+
+  /**
+   * Generate a single-file plugin (.omnijs)
+   */
+  private async generateSolitary(
+    options: PluginOptions,
+    variables: TemplateVariables
+  ): Promise<{ path: string } | { errors: string[] }> {
+    const template = await this.loadTemplate(options);
+    const prepared = await this.prepareAction(template, variables, options, variables.ACTION_ID);
+    if ('errors' in prepared) return prepared;
+
+    const tsFilePath = await this.writeTsFile(prepared.code, options);
+    return { path: await this.renameForDeployment(tsFilePath, options.format) };
+  }
+
+  /**
+   * Generate a bundle plugin: <Name>.omnifocusjs/ with manifest.json and Resources/
+   */
+  private async generateBundle(
+    options: PluginOptions,
+    variables: TemplateVariables
+  ): Promise<{ path: string } | { errors: string[] }> {
+    if (!options.template) {
+      throw new Error('Bundle format requires --template option');
+    }
+
+    const outputDir = options.outputDir || path.join(this.skillRoot, 'assets');
+    const bundlePath = path.join(outputDir, `${options.name.replace(/\s+/g, '')}.omnifocusjs`);
+    const resourcesPath = path.join(bundlePath, 'Resources');
+    const templateDir = path.join(this.skillRoot, 'assets', 'plugin-templates', options.template);
+    const templateResourcesDir = path.join(templateDir, 'Resources');
+
+    // Validate every action before writing anything, so a failure leaves no partial bundle.
+    const actions: Array<{ file: string; code: string }> = [];
+    const copies: string[] = [];
+    for (const file of await fs.readdir(templateResourcesDir)) {
+      const filePath = path.join(templateResourcesDir, file);
+      const stat = await fs.stat(filePath);
+      if (stat.isFile() && file.endsWith('.js')) {
+        const prepared = await this.prepareAction(await fs.readFile(filePath, 'utf-8'), variables, options, file);
+        if ('errors' in prepared) return prepared;
+        actions.push({ file, code: prepared.code });
+      } else if (stat.isDirectory()) {
+        copies.push(file); // e.g. en.lproj localization
+      }
+    }
+
+    console.log('📁 Creating bundle structure...');
+    await fs.mkdir(resourcesPath, { recursive: true });
+
+    const manifest = substituteVariables(await this.loadManifestTemplate(options.template), variables);
+    await fs.writeFile(path.join(bundlePath, 'manifest.json'), manifest, 'utf-8');
+    console.log(`   ✅ Created ${bundlePath}/manifest.json`);
+
+    for (const { file, code } of actions) {
+      await fs.writeFile(path.join(resourcesPath, file), code, 'utf-8');
+      console.log(`   ✅ Created ${bundlePath}/Resources/${file}`);
+    }
+    for (const dir of copies) {
+      await fs.cp(path.join(templateResourcesDir, dir), path.join(resourcesPath, dir), { recursive: true });
+      console.log(`   ✅ Copied ${bundlePath}/Resources/${dir}/`);
+    }
+
+    const readmePath = path.join(templateDir, 'README.md');
+    if (fsSync.existsSync(readmePath)) {
+      const readme = substituteVariables(await fs.readFile(readmePath, 'utf-8'), variables);
+      await fs.writeFile(path.join(bundlePath, 'README.md'), readme, 'utf-8');
+      console.log(`   ✅ Created ${bundlePath}/README.md`);
+    }
+    console.log('');
+
+    return { path: bundlePath };
+  }
+
+  /**
+   * Load manifest template for bundle
+   */
+  private async loadManifestTemplate(templateName: BundleTemplate): Promise<string> {
+    const manifestPath = path.join(this.skillRoot, 'assets', 'plugin-templates', templateName, 'manifest.json');
+    try {
+      return await fs.readFile(manifestPath, 'utf-8');
+    } catch {
+      throw new Error(`Manifest template not found: ${manifestPath}`);
+    }
+  }
+
+  /**
    * Load template based on format
    */
   private async loadTemplate(options: PluginOptions): Promise<string> {
-    let templatePath: string;
-
     if (options.format === 'bundle') {
-      if (!options.template) {
-        throw new Error('Bundle format requires --template option');
-      }
-      templatePath = path.join(
-        this.skillRoot,
-        'assets',
-        'plugin-templates',
-        options.template,
-        'Resources',
-        'action.js'
-      );
-    } else {
-      const formatMap: Record<Exclude<PluginFormat, 'bundle'>, string> = {
-        'solitary': 'solitary-action/action.ts.template',
-        'solitary-fm': 'solitary-action-fm/action.ts.template',
-        'solitary-library': 'solitary-library/library.ts.template',
-      };
-
-      templatePath = path.join(
-        this.skillRoot,
-        'assets',
-        'plugin-templates',
-        formatMap[options.format]
-      );
+      throw new Error('Bundle templates are loaded per action by generateBundle');
     }
+    const formatMap: Record<Exclude<PluginFormat, 'bundle'>, string> = {
+      'solitary': 'solitary-action/action.ts.template',
+      'solitary-fm': 'solitary-action-fm/action.ts.template',
+      'solitary-library': 'solitary-library/library.ts.template',
+    };
+    const templatePath = path.join(this.skillRoot, 'assets', 'plugin-templates', formatMap[options.format]);
 
     try {
       return await fs.readFile(templatePath, 'utf-8');

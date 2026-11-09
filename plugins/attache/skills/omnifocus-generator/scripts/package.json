@@ -1,0 +1,17 @@
+{
+  "name": "omnifocus-generator-scripts",
+  "private": true,
+  "description": "Builds generate_plugin.js from generate_plugin.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

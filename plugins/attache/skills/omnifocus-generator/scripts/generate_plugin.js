@@ -5,45 +5,12 @@
  * Generates OmniFocus plugins from TypeScript templates with integrated LSP validation.
  * Replaces the Python-based generator with TypeScript Compiler API validation.
  *
- * DECISION TREE: Two Independent Choices
- *
- * Question 1: Plugin Structure
- *   SOLITARY (single file) when:
- *     - Single action only
- *     - No shared libraries between actions
- *     - Simple, focused task
- *     - Quick prototyping
- *
- *   BUNDLE (folder) when:
- *     - Multiple related actions (e.g., "Export Markdown", "Export JSON")
- *     - Shared libraries between actions
- *     - Localization support needed (en.lproj/)
- *     - Complex plugin with resources
- *     - Organized contextual automation tools
- *
- * Question 2: Application Scope (File Extension)
- *   .omnijs when:
- *     - Works across ALL Omni apps (OmniFocus, OmniGraffle, OmniOutliner, OmniPlan)
- *     - Uses only cross-app compatible APIs
- *     - Rare until skill expands beyond OmniFocus
- *
- *   .omnifocusjs when:
- *     - OmniFocus-specific functionality (default for this skill)
- *     - Uses OmniFocus-specific objects (Task, Project, Folder, Tag, etc.)
- *     - Most plugins fall into this category
- *
- * Valid Combinations:
- *   - Solitary .omnijs (single action, cross-app)
- *   - Solitary .omnifocusjs (single action, OF-only) ← Most common
- *   - Bundle .omnijs (multi-action, cross-app)
- *   - Bundle .omnifocusjs (multi-action, OF-only) ← Complex plugins
- *
  * Usage:
  *   node generate_plugin.js --format solitary --name "My Plugin"
  *   node generate_plugin.js --format solitary-fm --name "AI Analyzer"
  *   node generate_plugin.js --format bundle --template query-simple --name "Tasks"
  *
- * @version 4.1.0
+ * @version 4.0.0
  * @author OmniFocus Manager Skill
  */
 import * as ts from 'typescript';
@@ -70,13 +37,13 @@ const BUNDLE_TEMPLATES = {
 // Utility Functions
 // ============================================================================
 /**
- * Find omnifocus-manager skill root directory
+ * Find omnifocus-generator skill root directory
  */
 function findSkillRoot() {
     let current = path.resolve(__dirname);
     while (current !== path.dirname(current)) {
         const skillFile = path.join(current, 'SKILL.md');
-        if (fsSync.existsSync(skillFile) && path.basename(current) === 'omnifocus-manager') {
+        if (fsSync.existsSync(skillFile) && path.basename(current) === 'omnifocus-generator') {
             return current;
         }
         current = path.dirname(current);
@@ -102,6 +69,80 @@ function substituteVariables(content, variables) {
         result = result.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
     }
     return result;
+}
+/**
+ * D8.5 — Runtime contract skeletons (injected at top of action body when
+ * spec declares `requires: [...]`).
+ *
+ * Per references/library_consumer_pattern.md (D3) and
+ * references/system_map_dependency.md (D7.7), generated plugins that depend
+ * on Attache's ofoCore library or the System Map MUST guard for those
+ * dependencies at startup with explicit error UX rather than crashing on
+ * first method call.
+ *
+ * Injection strategy: prepend skeletons BEFORE the first `try {` line in
+ * the action body. This relies on the template convention of wrapping
+ * action logic in a try/catch. If no try block is found, the skeleton
+ * isn't injected and the generator emits a warning.
+ */
+const ATTACHE_PLUGIN_ID = 'com.totallytools.omnifocus.attache';
+const EXPECTED_SYSTEM_MAP_SCHEMA_VERSION = 1;
+function ofoCoreSkeleton() {
+    return `        // D8.5 — Runtime contract: Attache + ofoCore presence (per references/library_consumer_pattern.md)
+        const attache = PlugIn.find(${JSON.stringify(ATTACHE_PLUGIN_ID)});
+        if (!attache) {
+            new Alert("Attache Required", "This plugin requires the Attache plugin (v1.5+). Install from <repo URL>.").show();
+            return;
+        }
+        const ofoCore = attache.library("ofoCore");
+        if (!ofoCore || typeof ofoCore.getTask !== "function") {
+            new Alert("Attache Out of Date", "Attache 'ofoCore' library is missing required functions. Please update Attache.").show();
+            return;
+        }
+`;
+}
+function systemMapSkeleton() {
+    return `        // D8.5 — Runtime contract: Attache System Map currency (per references/system_map_dependency.md)
+        const EXPECTED_SYSTEM_MAP_SCHEMA_VERSION = ${EXPECTED_SYSTEM_MAP_SCHEMA_VERSION};
+        const _smCandidates = flattenedTasks.filter(t => t.name === "Attache System Map");
+        if (_smCandidates.length === 0) {
+            new Alert("System Map Missing", "Run: ofo system-map --refresh").show();
+            return;
+        }
+        let sm;
+        try { sm = JSON.parse(_smCandidates[0].note || "{}"); }
+        catch (_) { new Alert("System Map Corrupt", "Run: ofo system-map --refresh").show(); return; }
+        if (typeof sm.schemaVersion !== "number" || sm.schemaVersion < EXPECTED_SYSTEM_MAP_SCHEMA_VERSION) {
+            new Alert("System Map Schema Stale", "Cached map predates schema v" + EXPECTED_SYSTEM_MAP_SCHEMA_VERSION + ". Run: ofo system-map --refresh").show();
+            return;
+        }
+        if (sm.schemaVersion > EXPECTED_SYSTEM_MAP_SCHEMA_VERSION) {
+            console.log("System Map schema v" + sm.schemaVersion + " newer than expected; proceeding.");
+        }
+`;
+}
+function injectRuntimeSkeletons(code, requires) {
+    if (!requires || requires.length === 0)
+        return { code };
+    // Anchor: the first `try {` after `new PlugIn.Action(`. This is the
+    // template convention. If absent, we can't safely inject.
+    const anchorRegex = /(new\s+PlugIn\.Action\s*\([^)]*\)\s*\{[\s\S]*?try\s*\{\s*\n)/;
+    const match = code.match(anchorRegex);
+    if (!match) {
+        return {
+            code,
+            warning: 'D8.5 skeleton injection requested but no `try {` anchor found in action body. ' +
+                'Skeletons NOT injected. Add a try/catch wrapper to the action body, or ' +
+                'inject skeletons manually per references/library_consumer_pattern.md and ' +
+                'references/system_map_dependency.md.',
+        };
+    }
+    let skeletons = '';
+    if (requires.indexOf('ofoCore') !== -1)
+        skeletons += ofoCoreSkeleton();
+    if (requires.indexOf('systemMap') !== -1)
+        skeletons += systemMapSkeleton();
+    return { code: code.replace(anchorRegex, '$1' + skeletons) };
 }
 /**
  * Prepare template variables from options
@@ -137,11 +178,13 @@ class PluginGenerator {
     constructor() {
         const root = findSkillRoot();
         if (!root) {
-            throw new Error('Could not find omnifocus-manager skill root directory');
+            throw new Error('Could not find omnifocus-generator skill root directory');
         }
         this.skillRoot = root;
-        this.dtsPath = path.join(root, 'typescript', 'omnifocus.d.ts');
-        this.dtsExtensionsPath = path.join(root, 'typescript', 'omnifocus-extensions.d.ts');
+        // The OmniFocus API types live in the sibling omnifocus-core skill.
+        const typesDir = path.join(root, '..', 'omnifocus-core', 'typescript');
+        this.dtsPath = path.join(typesDir, 'omnifocus.d.ts');
+        this.dtsExtensionsPath = path.join(typesDir, 'omnifocus-extensions.d.ts');
     }
     /**
      * Generate plugin from options
@@ -151,20 +194,14 @@ class PluginGenerator {
             console.log(`\n🔨 Generating ${options.format} plugin...`);
             console.log(`   Plugin: ${options.name}`);
             console.log(`   Format: ${FORMATS[options.format]}\n`);
-
-            // Prepare variables
             const variables = prepareVariables(options);
-
-            let deployPath;
-
-            if (options.format === 'bundle') {
-                // Generate bundle folder structure
-                deployPath = await this.generateBundle(options, variables);
-            } else {
-                // Generate single-file plugin
-                deployPath = await this.generateSolitary(options, variables);
+            const result = options.format === 'bundle'
+                ? await this.generateBundle(options, variables)
+                : await this.generateSolitary(options, variables);
+            if ('errors' in result) {
+                return { success: false, errors: result.errors };
             }
-
+            const deployPath = result.path;
             console.log('🎉 Plugin generated successfully!\n');
             console.log('📦 Installation:');
             if (options.format === 'bundle') {
@@ -185,149 +222,107 @@ class PluginGenerator {
             return { success: false, errors: [message] };
         }
     }
-
     /**
-     * Generate solitary (single-file) plugin
+     * Substitute variables, inject D8.5 runtime skeletons, and validate one action's code.
+     * Returns the code, or the validation error messages (already printed).
      */
-    async generateSolitary(options, variables) {
-        // 1. Load template
-        const template = await this.loadTemplate(options);
-        // 2. Substitute variables
-        const code = substituteVariables(template, variables);
-        // 3. CRITICAL: Validate with TypeScript compiler
-        console.log('🔍 Validating TypeScript...');
-        const validation = await this.validateTypeScript(code, variables.ACTION_ID);
+    async prepareAction(template, variables, options, label) {
+        let code = substituteVariables(template, variables);
+        // D8.5 — inject runtime contract skeletons if requires declared
+        if (options.requires && options.requires.length > 0) {
+            const injected = injectRuntimeSkeletons(code, options.requires);
+            if (injected.warning) {
+                console.log(`⚠️  ${label}: ${injected.warning}\n`);
+            }
+            else {
+                console.log(`✅ D8.5 — Injected runtime skeletons into ${label}: ${options.requires.join(', ')}\n`);
+            }
+            code = injected.code;
+        }
+        // CRITICAL: Validate with TypeScript compiler
+        console.log(`🔍 Validating ${label}...`);
+        const validation = await this.validateTypeScript(code, label);
         if (!validation.success) {
-            console.log('\n❌ TypeScript validation failed:');
+            console.log(`\n❌ TypeScript validation failed for ${label}:`);
             validation.errors.forEach((err, i) => {
                 const location = err.line !== undefined ? `Line ${err.line + 1}${err.column !== undefined ? `:${err.column + 1}` : ''}` : '';
                 console.log(`   ${i + 1}. ${location ? location + ' - ' : ''}${err.message}`);
             });
-            throw new Error('TypeScript validation failed');
+            return { errors: validation.errors.map(e => e.message) };
         }
         console.log('   ✅ TypeScript validation passed\n');
-        // 4. Write .ts file
-        const tsFilePath = await this.writeTsFile(code, options);
-        // 5. Auto-rename to .omnijs
-        const deployPath = await this.renameForDeployment(tsFilePath, options.format);
-        return deployPath;
+        return { code };
     }
-
     /**
-     * Generate bundle plugin with folder structure
+     * Generate a single-file plugin (.omnijs)
+     */
+    async generateSolitary(options, variables) {
+        const template = await this.loadTemplate(options);
+        const prepared = await this.prepareAction(template, variables, options, variables.ACTION_ID);
+        if ('errors' in prepared)
+            return prepared;
+        const tsFilePath = await this.writeTsFile(prepared.code, options);
+        return { path: await this.renameForDeployment(tsFilePath, options.format) };
+    }
+    /**
+     * Generate a bundle plugin: <Name>.omnifocusjs/ with manifest.json and Resources/
      */
     async generateBundle(options, variables) {
         if (!options.template) {
             throw new Error('Bundle format requires --template option');
         }
-
         const outputDir = options.outputDir || path.join(this.skillRoot, 'assets');
-        const bundleName = `${options.name.replace(/\s+/g, '')}`;
-        const bundlePath = path.join(outputDir, `${bundleName}.omnifocusjs`);
+        const bundlePath = path.join(outputDir, `${options.name.replace(/\s+/g, '')}.omnifocusjs`);
         const resourcesPath = path.join(bundlePath, 'Resources');
-
-        console.log('📁 Creating bundle structure...');
-
-        // 1. Create bundle directory structure
-        await fs.mkdir(bundlePath, { recursive: true });
-        await fs.mkdir(resourcesPath, { recursive: true });
-        console.log(`   ✅ Created ${bundlePath}/`);
-        console.log(`   ✅ Created ${bundlePath}/Resources/`);
-
-        // 2. Generate manifest.json
-        const manifestTemplate = await this.loadManifestTemplate(options.template);
-        const manifestContent = substituteVariables(manifestTemplate, variables);
-        const manifestPath = path.join(bundlePath, 'manifest.json');
-        await fs.writeFile(manifestPath, manifestContent, 'utf-8');
-        console.log(`   ✅ Created ${bundlePath}/manifest.json\n`);
-
-        // 3. Copy/generate action files from template
         const templateDir = path.join(this.skillRoot, 'assets', 'plugin-templates', options.template);
         const templateResourcesDir = path.join(templateDir, 'Resources');
-
-        // Copy action files
-        const resourceFiles = await fs.readdir(templateResourcesDir);
-        for (const file of resourceFiles) {
+        // Validate every action before writing anything, so a failure leaves no partial bundle.
+        const actions = [];
+        const copies = [];
+        for (const file of await fs.readdir(templateResourcesDir)) {
             const filePath = path.join(templateResourcesDir, file);
             const stat = await fs.stat(filePath);
-
             if (stat.isFile() && file.endsWith('.js')) {
-                // Load, substitute variables, validate, and copy
-                const actionTemplate = await fs.readFile(filePath, 'utf-8');
-                const actionCode = substituteVariables(actionTemplate, variables);
-
-                // Validate action code
-                console.log(`🔍 Validating ${file}...`);
-                const validation = await this.validateTypeScript(actionCode, file.replace('.js', ''));
-                if (!validation.success) {
-                    console.log(`\n❌ TypeScript validation failed for ${file}:`);
-                    validation.errors.forEach((err, i) => {
-                        const location = err.line !== undefined ? `Line ${err.line + 1}${err.column !== undefined ? `:${err.column + 1}` : ''}` : '';
-                        console.log(`   ${i + 1}. ${location ? location + ' - ' : ''}${err.message}`);
-                    });
-                    throw new Error(`TypeScript validation failed for ${file}`);
-                }
-                console.log(`   ✅ Validation passed\n`);
-
-                // Write to bundle
-                const destPath = path.join(resourcesPath, file);
-                await fs.writeFile(destPath, actionCode, 'utf-8');
-                console.log(`   ✅ Created ${bundlePath}/Resources/${file}`);
-            } else if (stat.isDirectory()) {
-                // Copy directories (like en.lproj for localization)
-                const destDir = path.join(resourcesPath, file);
-                await this.copyDirectory(filePath, destDir);
-                console.log(`   ✅ Copied ${bundlePath}/Resources/${file}/`);
+                const prepared = await this.prepareAction(await fs.readFile(filePath, 'utf-8'), variables, options, file);
+                if ('errors' in prepared)
+                    return prepared;
+                actions.push({ file, code: prepared.code });
+            }
+            else if (stat.isDirectory()) {
+                copies.push(file); // e.g. en.lproj localization
             }
         }
-
-        // 4. Copy README if exists
+        console.log('📁 Creating bundle structure...');
+        await fs.mkdir(resourcesPath, { recursive: true });
+        const manifest = substituteVariables(await this.loadManifestTemplate(options.template), variables);
+        await fs.writeFile(path.join(bundlePath, 'manifest.json'), manifest, 'utf-8');
+        console.log(`   ✅ Created ${bundlePath}/manifest.json`);
+        for (const { file, code } of actions) {
+            await fs.writeFile(path.join(resourcesPath, file), code, 'utf-8');
+            console.log(`   ✅ Created ${bundlePath}/Resources/${file}`);
+        }
+        for (const dir of copies) {
+            await fs.cp(path.join(templateResourcesDir, dir), path.join(resourcesPath, dir), { recursive: true });
+            console.log(`   ✅ Copied ${bundlePath}/Resources/${dir}/`);
+        }
         const readmePath = path.join(templateDir, 'README.md');
         if (fsSync.existsSync(readmePath)) {
-            const readmeContent = await fs.readFile(readmePath, 'utf-8');
-            const readmeSubstituted = substituteVariables(readmeContent, variables);
-            await fs.writeFile(path.join(bundlePath, 'README.md'), readmeSubstituted, 'utf-8');
+            const readme = substituteVariables(await fs.readFile(readmePath, 'utf-8'), variables);
+            await fs.writeFile(path.join(bundlePath, 'README.md'), readme, 'utf-8');
             console.log(`   ✅ Created ${bundlePath}/README.md`);
         }
-
-        return bundlePath;
+        console.log('');
+        return { path: bundlePath };
     }
-
-    /**
-     * Copy directory recursively
-     */
-    async copyDirectory(src, dest) {
-        await fs.mkdir(dest, { recursive: true });
-        const entries = await fs.readdir(src);
-
-        for (const entry of entries) {
-            const srcPath = path.join(src, entry);
-            const destPath = path.join(dest, entry);
-            const stat = await fs.stat(srcPath);
-
-            if (stat.isDirectory()) {
-                await this.copyDirectory(srcPath, destPath);
-            } else {
-                await fs.copyFile(srcPath, destPath);
-            }
-        }
-    }
-
     /**
      * Load manifest template for bundle
      */
     async loadManifestTemplate(templateName) {
-        const manifestPath = path.join(
-            this.skillRoot,
-            'assets',
-            'plugin-templates',
-            templateName,
-            'manifest.json'
-        );
-
+        const manifestPath = path.join(this.skillRoot, 'assets', 'plugin-templates', templateName, 'manifest.json');
         try {
             return await fs.readFile(manifestPath, 'utf-8');
-        } catch (error) {
+        }
+        catch {
             throw new Error(`Manifest template not found: ${manifestPath}`);
         }
     }
@@ -335,21 +330,15 @@ class PluginGenerator {
      * Load template based on format
      */
     async loadTemplate(options) {
-        let templatePath;
         if (options.format === 'bundle') {
-            if (!options.template) {
-                throw new Error('Bundle format requires --template option');
-            }
-            templatePath = path.join(this.skillRoot, 'assets', 'plugin-templates', options.template, 'Resources', 'action.js');
+            throw new Error('Bundle templates are loaded per action by generateBundle');
         }
-        else {
-            const formatMap = {
-                'solitary': 'solitary-action/action.ts.template',
-                'solitary-fm': 'solitary-action-fm/action.ts.template',
-                'solitary-library': 'solitary-library/library.ts.template',
-            };
-            templatePath = path.join(this.skillRoot, 'assets', 'plugin-templates', formatMap[options.format]);
-        }
+        const formatMap = {
+            'solitary': 'solitary-action/action.ts.template',
+            'solitary-fm': 'solitary-action-fm/action.ts.template',
+            'solitary-library': 'solitary-library/library.ts.template',
+        };
+        const templatePath = path.join(this.skillRoot, 'assets', 'plugin-templates', formatMap[options.format]);
         try {
             return await fs.readFile(templatePath, 'utf-8');
         }
@@ -494,6 +483,19 @@ function parseArgs(args) {
                     i++;
                 }
                 break;
+            case '--requires':
+                // D8.5 — comma-separated: --requires ofoCore,systemMap (or single value)
+                if (next) {
+                    const tokens = next.split(',').map(s => s.trim()).filter(Boolean);
+                    const valid = tokens.filter((t) => t === 'ofoCore' || t === 'systemMap');
+                    if (valid.length !== tokens.length) {
+                        console.error('❌ Error: --requires accepts only "ofoCore" and/or "systemMap"\n');
+                        return null;
+                    }
+                    options.requires = valid;
+                    i++;
+                }
+                break;
             case '--help':
             case '-h':
                 printUsage();
@@ -522,34 +524,6 @@ function printUsage() {
     console.log(`
 OmniFocus Plugin Generator (TypeScript)
 
-📋 DECISION TREE: Two Independent Choices
-
-  Question 1: Plugin Structure
-    SOLITARY (single file) when:
-      ✓ Single action only
-      ✓ No shared libraries
-      ✓ Simple, focused task
-      ✓ Quick prototyping
-
-    BUNDLE (folder) when:
-      ✓ Multiple related actions
-      ✓ Shared libraries between actions
-      ✓ Localization support needed (en.lproj/)
-      ✓ Complex plugin with resources
-
-  Question 2: Application Scope (File Extension)
-    .omnijs when:
-      • Cross-app compatible (OmniFocus, OmniGraffle, OmniOutliner, OmniPlan)
-      • Rare until skill expands beyond OmniFocus
-
-    .omnifocusjs when:
-      • OmniFocus-specific (default for this skill)
-      • Uses OmniFocus objects (Task, Project, Folder, Tag)
-
-  Valid Combinations:
-    • Solitary .omnijs, Solitary .omnifocusjs ← Most common
-    • Bundle .omnijs, Bundle .omnifocusjs ← Complex plugins
-
 Usage:
   node generate_plugin.js [options]
 
@@ -563,20 +537,27 @@ Optional Options:
   --author, -a <author>         Plugin author (default: "OmniFocus User")
   --description, -d <desc>      Plugin description (default: auto-generated)
   --output, -o <dir>            Output directory (default: assets/)
+  --requires <list>             D8.5 — auto-emit runtime contract skeletons.
+                                Comma-separated: ofoCore, systemMap (or both).
+                                ofoCore   → checks Attache plugin + ofoCore library
+                                            presence at action start (per
+                                            references/library_consumer_pattern.md).
+                                systemMap → checks "Attache System Map" task exists,
+                                            valid JSON, schemaVersion >= expected
+                                            (per references/system_map_dependency.md).
+                                Requires the template to wrap action body in try { } —
+                                injection anchors on the first try after PlugIn.Action(...).
   --help, -h                    Show this help message
 
 Examples:
-  # Simple solitary plugin (single action)
-  node generate_plugin.js --format solitary --name "Quick Capture"
+  # Simple solitary plugin
+  node generate_plugin.js --format solitary --name "My Quick Action"
 
-  # Solitary plugin with Foundation Models (AI features)
+  # Solitary plugin with Foundation Models
   node generate_plugin.js --format solitary-fm --name "AI Task Analyzer"
 
-  # Bundle plugin with multiple actions
-  node generate_plugin.js --format bundle --template query-simple --name "Task Explorer"
-
-  # Library for reuse across plugins
-  node generate_plugin.js --format solitary-library --name "MyUtilities"
+  # Bundle plugin
+  node generate_plugin.js --format bundle --template query-simple --name "My Tasks"
 
 Available Formats:
 ${Object.entries(FORMATS).map(([name, desc]) => `  ${name.padEnd(20)} ${desc}`).join('\n')}

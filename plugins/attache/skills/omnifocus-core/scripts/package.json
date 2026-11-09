@@ -2,17 +2,13 @@
   "name": "omnifocus-plugin-generator",
   "version": "4.0.0",
   "description": "TypeScript-based OmniFocus plugin generator with LSP validation",
-  "main": "generate_plugin.js",
   "type": "module",
   "scripts": {
     "clean": "rm -rf build/Attache.omnifocusjs build/ofo-cli.js build/ofo-types.js build/ofo-stub.js build/intermediate",
     "build": "npm run build:plugin && npm run build:cli",
-    "build:generator": "tsc",
     "build:plugin": "bash ../../attache-analyst/scripts/build-attache.sh",
     "build:cli": "tsc --project src/tsconfig.cli.json && cp src/ofo-stub.js build/ofo-stub.js",
-    "deploy": "open ../../attache-analyst/scripts/build/Attache.omnifocusjs",
-    "watch": "tsc --watch",
-    "generate": "node generate_plugin.js"
+    "deploy": "open ../../attache-analyst/scripts/build/Attache.omnifocusjs"
   },
   "keywords": [
     "omnifocus",
