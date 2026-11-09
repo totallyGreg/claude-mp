@@ -104,7 +104,7 @@ These describe **runtime behavior** — how the skill orchestrates tools and ste
 **Example trigger:** "do my weekly GTD review" or "map the risk surface of this LLM pipeline"
 
 **Real-skill examples in this repo:**
-- `omnifocus-manager:gtd-coach` — encodes GTD methodology (capture, clarify, organize, reflect, engage)
+- `attache:gtd-coach` — encodes GTD methodology (capture, clarify, organize, reflect, engage)
 - `ai-risk-mapper` — encodes CoSAI framework for AI security risk assessment
 - `obsidian:obsidian-markdown` — encodes Obsidian Flavored Markdown conventions (wikilinks, callouts, properties)
 

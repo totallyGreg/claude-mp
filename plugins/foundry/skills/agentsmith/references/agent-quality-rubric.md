@@ -48,7 +48,7 @@ Evaluated all 5 agents in the repo. Ordinal ranking matches human judgment:
 | Agent | Pattern | Trigger | Prompt | Coherence | Overall |
 |-------|---------|---------|--------|-----------|---------|
 | archivist | flat | 93 | 83 | 93 | **89** |
-| omnifocus-agent | flat | 85 | 78 | 70 | **78** |
+| attache (pre-#167) | flat | 85 | 78 | 70 | **78** |
 | terminal-guru | flat | 85 | 76 | 72 | **77** |
 | gateway-manager | flat | 70 | 82 | 65 | **72** |
 | skill-observer | directory | 60 | 79 | 48 | **63** |
