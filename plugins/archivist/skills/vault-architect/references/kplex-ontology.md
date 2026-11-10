@@ -28,7 +28,7 @@ K-Plex (by zsviczian, the successor to ExcaliBrain) draws the notes around the c
 Which property names map to which role is a setting, not a fixed list. Before designing fields, read the vault's actual lists:
 
 - **Read** `.obsidian/plugins/k-plex/data.json` (read-only). In 0.4.3 the role lists are the keys `parents`, `children`, `friends`, `leftFriends`, `rightFriends`, `previous` and `next`.
-- **Exact names:** the lists hold `Parent` and `Parents` as separate entries. Treat names as exact: a note using `parent` is only read as a parent if `parent` is in the list.
+- **Names are normalized:** K-Plex matches a note's field to the lists by normalized name, so `Parent Name` and `parent-name` are one field (case, spaces and hyphens don't matter). A lowercase `parent` in a note is read through the `Parent` entry. Manage ontology refuses to add a spelling that normalizes to a field already listed; changing that entry's spelling is a rename of the same field.
 - **Unassigned fields:** Settings → K-Plex → Ontology → Manage ontology → **Unassigned** shows properties found in notes that have no role.
 - **Changes are the user's:** K-Plex's own agent guidance forbids editing `data.json`. Propose the change and let the user make it in Manage ontology.
 - **The agent API is blocked:** K-Plex documents a read API (`window.kplexApi.v1` through `obsidian eval`), but the archivist guard denies `obsidian eval`. Use `data.json` for reads.
@@ -69,4 +69,4 @@ Dragging a note into a relationship area writes the property into the note direc
 
 - **Import:** Settings → K-Plex → Compatibility → **Import ExcaliBrain settings** (also offered automatically while ExcaliBrain runs). It brings the ontology and the node and link styling.
 - **Both can run** during the move.
-- **After importing,** check that every field the notes use is assigned. Lowercase variants (`parent`, `child`) are the usual gaps.
+- **After importing,** check Manage ontology → **Unassigned** for fields the notes use that have no role. Case variants of an assigned field aren't gaps.
