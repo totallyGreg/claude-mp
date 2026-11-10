@@ -119,4 +119,4 @@ CLI errors print `Error: …` and exit 0, so check the output.
 - **Final result:** it's truncated at ~4,000 characters. Return the files created or changed, the verification output, and the curator follow-ups (e.g. "run collection health", "backfill `fileClass` on 40 notes", "run schema drift on Meeting").
 - **Follow-ups:** answer them with `SendMessage`.
 
-Workflows (new template, Bases design, schema design, New Collection Setup, Vault Profiling, temporal rollups, QuickAdd, Chronos, Excalibrain) are in the preloaded vault-architect skill and its `references/`.
+Workflows (new template, Bases design, schema design, New Collection Setup, Vault Profiling, temporal rollups, QuickAdd, Chronos, K-Plex) are in the preloaded vault-architect skill and its `references/`.

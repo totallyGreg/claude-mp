@@ -4,7 +4,7 @@ description: >
   This skill should be used when users ask to "create Obsidian templates", "create a template",
   "create a .base file", "design Bases queries", "set up vault structure",
   "configure Templater workflows", "set up daily weekly monthly rollup",
-  "analyze vault organization", "configure Excalibrain", "build temporal rollup system",
+  "analyze vault organization", "configure K-Plex", "build temporal rollup system",
   "update frontmatter schema", "fix vault organization", or "add metadata to templates".
   Architects new PKM structures and provides guidance for Templater, Bases, Chronos,
   and QuickAdd patterns. Particularly useful for creating automatic note organization systems,
@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.16.0"
+  version: "1.17.0"
   plugin: "archivist"
   stage: "3"
 ---
@@ -99,20 +99,20 @@ Use templates from `assets/base-templates/` as starting points (related-files, t
 
 ### 4. Frontmatter Schema Design
 
-Design frontmatter with essential fields (title, aliases, tags, dates), relationship fields for Bases queries (customer, project, Week/Month/Quarter/Year links), and semantic fields for Excalibrain (parent, child, left-friend, right-friend).
+Design frontmatter with essential fields (title, aliases, tags, dates), relationship fields for Bases queries (customer, project, Week/Month/Quarter/Year links), and relationship fields K-Plex reads (parent, child, friend, challenger, previous, next). Field names are set per vault: read K-Plex's lists before choosing one.
 
 Validate schemas with `scripts/validate_frontmatter.py`. Document conventions in the vault's System Guide.
 
 **References:**
-- `references/excalibrain-metadata.md` - Complete semantic field documentation
+- `references/kplex-ontology.md` - Relationship roles, reading the vault's field lists, ExcaliBrain migration
 - `references/frontmatter-schema-reference.md` - Fields checked by validate_frontmatter.py, severity levels, canonical field names, common violations
 
 ### 5. Timeline Visualization with Chronos
 
-Visualize events, meetings, and projects on timelines using the Chronos plugin integrated with Bases. Events require `start` datetime; periods require `start` and `end`. Use `color` and `type` properties for visual/categorical grouping.
+Visualize events, meetings, and projects on timelines with Chronos, in `chronos` code blocks or a Bases view. Bases items need `start`; `end` makes a range. `type` sets the item shape (event, point, period, marker), not a category: group with a `group` property or Bases Group by.
 
 **References:**
-- `references/chronos-syntax.md` - Event types, frontmatter integration, timeline patterns
+- `references/chronos-syntax.md` - Block syntax, flags, Bases view properties and date formats
 
 ### 6. Quick Capture and Automation with QuickAdd
 

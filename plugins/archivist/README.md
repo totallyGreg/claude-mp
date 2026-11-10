@@ -171,6 +171,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary |
 |---------|------|-------|---------|
+| 2.4.0 | 2026-11-09 | - | vault-architect 1.17.0: K-Plex ontology reference replaces ExcaliBrain's; Chronos reference rewritten for 5.1.3. archivist-architect lists K-Plex in its workflows. Score 86 |
 | 2.3.0 | 2026-11-09 | [#237](https://github.com/totallyGreg/claude-mp/issues/237) | Noise ratchet: `/health` runs `noise_counts.py` (orphans, broken Week links, stale names). Baselines live in the profile's `## Noise` section, so every agent sees them; a count may only fall. vault-curator 1.21.0 (score 95) |
 | 2.2.0 | 2026-11-08 | [#237](https://github.com/totallyGreg/claude-mp/issues/237) | `/health` counts stale names: `check_stale_names.py` reads `formerly:` from vault frontmatter and counts live mentions of old names (dated notes, archive folders, version rows and `historical: true` notes exempt); the baseline in `$XDG_STATE_HOME/archivist/stale-names.json` only falls, and a rise exits 1. Repo mode (`--registry .stale-names.json`) runs without a vault on git-tracked files; claude-mp's pre-commit hook uses it. |
 | 2.1.0 | 2026-10-18 | [#179](https://github.com/totallyGreg/claude-mp/issues/179) | `vault-write config` reports `profile_drift`: top-level folders and enabled plugins (by id or manifest name) not mentioned in `_vault-profile.md`, unmentioned templates (informational) and the profile's age (`stale` after 30 days). Name matching ignores emoji and punctuation. File reads only, ~60 ms, no app needed. The curator mentions drift and offers an architect re-profile of just those sections; session learning leaves `last_updated` alone. Agent eval 87 (no change). |
@@ -229,16 +230,17 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 ### Current Metrics
 
-**Score: 83/100** (Good) — 2026-10-18
+**Score: 86/100** (Good) — 2026-11-09
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
-| 75 | 90 | 100 | 100 | 100 |
+| 74 | 90 | 100 | 100 | 100 |
 
 ### Version History
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.17.0 | 2026-11-09 | - | K-Plex replaces ExcaliBrain: new `kplex-ontology.md` (roles, reading the vault's field lists read-only, ExcaliBrain import), `excalibrain-metadata.md` removed. `chronos-syntax.md` rewritten from the Chronos 5.1.3 README (the old one was an unverified TODO stub with the wrong syntax); Bases Chronos section fixed (`type` is item shape, colors without `#`, Item Property Sources) | 74 | 90 | 100 | 100 | 100 | 86 |
 | 1.16.0 | 2026-10-18 | [#179](https://github.com/totallyGreg/claude-mp/issues/179) | Re-profiling starts from `profile_drift` and updates only the affected sections, then sets `last_updated`. Score 84→83 (Concs 77→75 from added text). | 75 | 90 | 100 | 100 | 100 | 83 |
 | 1.15.0 | 2026-10-18 | [#175](https://github.com/totallyGreg/claude-mp/issues/175), [#224](https://github.com/totallyGreg/claude-mp/issues/224) | Runs inside `archivist-architect`. Write Boundaries now allow structural files inside content zones (folder notes, fileClass notes), matching the file guard; Vault Profiling is handed off by the curator. Score 84 (no change). Examples start every CLI call with `vault=`. | 77 | 90 | 100 | 100 | 100 | 84 |
 | 1.14.0 | 2026-10-18 | [#222](https://github.com/totallyGreg/claude-mp/issues/222) | `tags all counts` → `tags counts` (vault-wide is now the default in Obsidian 1.14). Score 84 (no change). | 77 | 90 | 100 | 100 | 100 | 84 |
