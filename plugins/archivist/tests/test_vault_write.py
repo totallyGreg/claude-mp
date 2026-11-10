@@ -289,3 +289,42 @@ def test_profile_drift(vault):
     assert drift["new_plugins"] == ["waypoint"]  # Dataview matched by manifest name
     assert drift["new_templates"] == ["Book"]
     assert drift["drifted"] is True
+
+
+@pytest.mark.parametrize("front,needle", [
+    ('implemented by: "[[Obsidian]]", "[[Claude Code]]"', "text after a quoted value"),
+    ('related:\n  - "[[A]]", "[[B]]"', "text after a quoted value"),
+    ("title: Plan: phase two", "contains ': '"),
+    ("tags:\n\t- x", "tab"),
+])
+def test_invalid_frontmatter_blocks(vault, tmp_path, front, needle):
+    code, out = run("apply", "Notes/fm.md", "--from", staged(tmp_path, f"---\n{front}\n---\nbody\n"))
+    assert code == 3 and needle in out["errors"][0], out
+
+
+def test_unclosed_frontmatter_blocks(vault, tmp_path):
+    code, out = run("apply", "Notes/fm.md", "--from", staged(tmp_path, "---\ntitle: x\nbody\n"))
+    assert code == 3 and "no closing ---" in out["errors"][0]
+
+
+@pytest.mark.parametrize("front", [
+    'implemented by:\n  - "[[Obsidian]]"\n  - "[[Claude Code]]"',
+    'implemented by: ["[[Obsidian]]", "[[Claude Code]]"]',
+    'url: https://example.com/a:b',
+    'time: "10:30"\nstarted: 10:30',
+    "quote: 'it''s fine' # comment",
+    'Week: "[[<% tp.date.now("YYYY-[W]WW") %>]]"',  # Templater: valid only after rendering
+    "summary: >\n  Long text: with a colon",
+    'dates:\n  - "{ date }": "[[2026-11-09]]"',  # quoted mapping key in a list (weekly notes)
+    '"quoted key": value',
+])
+def test_valid_frontmatter_passes(vault, tmp_path, front):
+    code, out = run("apply", "Notes/fm.md", "--from", staged(tmp_path, f"---\n{front}\n---\nbody\n"))
+    assert code == 0, out
+
+
+def test_preexisting_frontmatter_error_does_not_block(vault, tmp_path):
+    (vault / "Notes" / "old.md").write_text('---\nx: "a", "b"\n---\nbody\n')
+    base = run("stat", "Notes/old.md")[1]["hash"]
+    code, out = run("apply", "Notes/old.md", "--from", staged(tmp_path, '---\nx: "a", "b"\n---\nbody edited\n'), "--base", base)
+    assert code == 0, out

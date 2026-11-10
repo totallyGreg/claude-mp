@@ -171,6 +171,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary |
 |---------|------|-------|---------|
+| 2.6.1 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `vault-write apply` refuses writes that introduce broken frontmatter: text after a quoted value (`a: "x", "y"`), an unquoted value with `: `, tab indentation, no closing `---`. Stdlib only; Templater templates skipped; pre-existing errors don't block |
 | 2.6.0 | 2026-11-10 | - | vault-curator: Relationship Fields rule (frontmatter only, vocabulary labels K-Plex gives a role, one end, never invent a field); `noise_counts.py` adds `unmapped_link_fields` with a `Link fields exempt:` profile setting. vault-curator 1.23.0 (95), vault-architect 1.18.2 (86) |
 | 2.5.1 | 2026-11-10 | - | Guard fixes for K-Plex eval: shell redirects (`2>&1`, `> out.json`) no longer cause a false deny; `$` and backticks in `code=` are denied, closing a gap where the shell could expand `$(…)` into JavaScript after the check. vault-architect 1.18.1 (86) |
 | 2.5.0 | 2026-11-09 | [#246](https://github.com/totallyGreg/claude-mp/issues/246) | The obsidian guard allows single K-Plex API calls of the documented shape (`JSON.stringify(window.kplexApi.v1.<method>({...}))` or the async form) with a plain-data argument: reads and previews go to the normal permission flow, `applyOntologyConfiguration` asks, every other `eval` is still denied. vault-architect 1.18.0 (86), vault-curator 1.22.0 (95) |
