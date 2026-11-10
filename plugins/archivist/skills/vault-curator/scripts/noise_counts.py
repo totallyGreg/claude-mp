@@ -12,6 +12,7 @@ allowed. It holds two settings lines and a table:
 
     Orphans exclude: `900 Templates`, `799 Archived Notes`
     Daily notes: `500 Cycles/520 Days`
+    Link fields exempt: `processed`
 
     | Count | Baseline | Last | Updated | Definition |
 
@@ -20,6 +21,10 @@ Counts:
   excluded folders and the daily notes folder
 - broken_week_links: daily notes (YYYY-MM-DD.md) whose `Week` link names no note in the vault
 - stale_names: live mentions of a `formerly:` name (same rules as check_stale_names.py)
+- unmapped_link_fields: (note, field) pairs where a frontmatter field holds a [[link]] but K-Plex
+  gives the field no role, outside the excluded folders and minus `Link fields exempt:`. Field
+  names match the way K-Plex matches them (case, spaces and hyphens ignored). The roles come from
+  `.obsidian/plugins/k-plex/data.json` (read-only); without it the count is skipped.
 
 A count above its baseline is a regression (exit 1). A lower count becomes the new baseline.
 This script never writes the vault: it prints the new section as `section`, and the agent
@@ -51,7 +56,10 @@ DEFINITIONS = {
     "orphans": "notes nothing links to, outside the excluded folders and daily notes",
     "broken_week_links": "daily notes whose Week link names no note or is unrendered Templater",
     "stale_names": "live mentions of a `formerly:` name (check_stale_names.py lists them)",
+    "unmapped_link_fields": "frontmatter fields holding a [[link]] that K-Plex gives no role (per note and field)",
 }
+KPLEX = Path(".obsidian/plugins/k-plex/data.json")
+KPLEX_LISTS = ("parents", "children", "friends", "leftFriends", "rightFriends", "previous", "next", "hidden")
 
 
 def read_section(profile: Path) -> str:
@@ -71,18 +79,20 @@ def read_section(profile: Path) -> str:
     return "\n".join(out)
 
 
-def parse_section(body: str) -> tuple[list[str], str | None, dict[str, int]]:
-    """(orphan excludes, daily notes folder, baselines) from the section body."""
-    excludes, days, baselines = [], None, {}
+def parse_section(body: str) -> tuple[list[str], str | None, list[str], dict[str, int]]:
+    """(orphan excludes, daily notes folder, exempt link fields, baselines) from the section body."""
+    excludes, days, exempt, baselines = [], None, [], {}
     for line in body.splitlines():
         if line.startswith("Orphans exclude:"):
             excludes = TICKS.findall(line)
+        elif line.startswith("Link fields exempt:"):
+            exempt = TICKS.findall(line)
         elif line.startswith("Daily notes:"):
             found = TICKS.findall(line)
             days = found[0] if found else None
         elif m := ROW.match(line):
             baselines[m.group(1)] = int(m.group(2))
-    return excludes, days, baselines
+    return excludes, days, exempt, baselines
 
 
 def under(path: str, folders: list[str]) -> bool:
@@ -133,6 +143,65 @@ def count_broken_week_links(vault: Path, days: str | None) -> int:
     return broken
 
 
+def field_key(name: str) -> str:
+    """K-Plex's matching: `Parent Name`, `parent-name` and `parent name` are one field."""
+    return re.sub(r"[\s-]+", "-", name.strip().casefold())
+
+
+def kplex_fields(vault: Path) -> set[str] | None:
+    """Normalized names of every field K-Plex has a role for; None if K-Plex isn't installed."""
+    try:
+        hierarchy = json.loads((vault / KPLEX).read_text(encoding="utf-8")).get("hierarchy") or {}
+    except (OSError, ValueError):
+        return None
+    return {field_key(f) for lst in KPLEX_LISTS for f in hierarchy.get(lst) or [] if isinstance(f, str) and f.strip()}
+
+
+TOP_KEY = re.compile(r"^([^\s#'\"-][^:]*):(.*)$")
+
+
+def link_fields(text: str) -> set[str]:
+    """Top-level frontmatter keys whose value (inline or in an indented list) holds a [[link]]."""
+    fm = FRONT.match(text)
+    found, key = set(), None
+    for line in (fm.group(1).splitlines() if fm else []):
+        m = TOP_KEY.match(line)
+        if m:
+            key, value = m.group(1).strip(), m.group(2)
+        elif key and line[:1] in (" ", "\t", "-"):
+            value = line
+        else:
+            key, value = None, ""
+        if key and "[[" in value:
+            found.add(key)
+    return found
+
+
+def count_unmapped_link_fields(vault: Path, skip: list[str], exempt: list[str]) -> tuple[int, list] | None:
+    """(count, top fields) of link-holding frontmatter fields K-Plex gives no role; None without K-Plex."""
+    known = kplex_fields(vault)
+    if known is None:
+        return None
+    known |= {field_key(e) for e in exempt}
+    tally: dict[str, int] = {}
+    shown: dict[str, str] = {}  # normalized key -> first spelling seen, so `Owner`/`owner` list once
+    for f in walk(vault, {".md"}):
+        rel = f.relative_to(vault).as_posix()
+        if under(rel, skip):
+            continue
+        try:
+            fields = link_fields(f.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError):
+            continue
+        for name in fields:
+            key = field_key(name)
+            if key not in known:
+                tally[key] = tally.get(key, 0) + 1
+                shown.setdefault(key, name)
+    top = sorted(((shown[k], n) for k, n in tally.items()), key=lambda kv: (-kv[1], kv[0]))[:10]
+    return sum(tally.values()), top
+
+
 def count_stale_names(vault: Path) -> int:
     names = registry(vault)
     if not names:
@@ -141,13 +210,14 @@ def count_stale_names(vault: Path) -> int:
     return sum(len(h) for h in hits.values())
 
 
-def render(excludes: list[str], days: str | None, rows: dict[str, dict], today: str) -> str:
+def render(excludes: list[str], days: str | None, exempt: list[str], rows: dict[str, dict], today: str) -> str:
     lines = [
         "Counts that may only fall (#237). `/health` updates this section with `noise_counts.py`;",
         "a rise is a regression to fix, never a new baseline.",
         "",
         "Orphans exclude: " + ", ".join(f"`{e}`" for e in excludes),
         f"Daily notes: `{days}`" if days else "Daily notes:",
+        "Link fields exempt: " + ", ".join(f"`{e}`" for e in exempt),
         "",
         "| Count | Baseline | Last | Updated | Definition |",
         "|---|---|---|---|---|",
@@ -163,6 +233,7 @@ def main() -> int:
     ap.add_argument("--orphans", help="file with `obsidian orphans` output; - for stdin")
     ap.add_argument("--exclude", action="append", help="folder left out of orphans (replaces the profile's list)")
     ap.add_argument("--days", help="daily notes folder (replaces the profile's)")
+    ap.add_argument("--link-exempt", action="append", help="link field K-Plex need not map (replaces the profile's list)")
     ap.add_argument("--today", default=datetime.date.today().isoformat(), help=argparse.SUPPRESS)
     args = ap.parse_args()
 
@@ -170,14 +241,19 @@ def main() -> int:
     if not vault.is_dir():
         print(json.dumps({"error": f"not a directory: {vault}"}))
         return 2
-    excludes, days, baselines = parse_section(read_section(vault / PROFILE))
+    excludes, days, exempt, baselines = parse_section(read_section(vault / PROFILE))
     excludes = args.exclude if args.exclude is not None else excludes
+    exempt = args.link_exempt if args.link_exempt is not None else exempt
     days = (args.days or days or "").rstrip("/") or None
 
     counts = {
         "broken_week_links": count_broken_week_links(vault, days),
         "stale_names": count_stale_names(vault),
     }
+    details = {}
+    unmapped = count_unmapped_link_fields(vault, excludes, exempt)
+    if unmapped is not None:
+        counts["unmapped_link_fields"], details["unmapped_link_fields_top"] = unmapped
     if args.orphans:
         text = sys.stdin.read() if args.orphans == "-" else Path(args.orphans).read_text(encoding="utf-8")
         counts = {"orphans": count_orphans(text.splitlines(), excludes, days), **counts}
@@ -198,8 +274,9 @@ def main() -> int:
         "status": "regressed" if regressed else "ok",
         "regressed": regressed,
         "counts": rows,
+        **details,
         "section_heading": SECTION,
-        "section": render(excludes, days, rows, args.today),
+        "section": render(excludes, days, exempt, rows, args.today),
     }, indent=1, ensure_ascii=False))
     return 1 if regressed else 0
 

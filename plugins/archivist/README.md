@@ -171,6 +171,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary |
 |---------|------|-------|---------|
+| 2.6.0 | 2026-11-10 | - | vault-curator: Relationship Fields rule (frontmatter only, vocabulary labels K-Plex gives a role, one end, never invent a field); `noise_counts.py` adds `unmapped_link_fields` with a `Link fields exempt:` profile setting. vault-curator 1.23.0 (95) |
 | 2.5.1 | 2026-11-10 | - | Guard fixes for K-Plex eval: shell redirects (`2>&1`, `> out.json`) no longer cause a false deny; `$` and backticks in `code=` are denied, closing a gap where the shell could expand `$(…)` into JavaScript after the check. vault-architect 1.18.1 (86) |
 | 2.5.0 | 2026-11-09 | [#246](https://github.com/totallyGreg/claude-mp/issues/246) | The obsidian guard allows single K-Plex API calls of the documented shape (`JSON.stringify(window.kplexApi.v1.<method>({...}))` or the async form) with a plain-data argument: reads and previews go to the normal permission flow, `applyOntologyConfiguration` asks, every other `eval` is still denied. vault-architect 1.18.0 (86), vault-curator 1.22.0 (95) |
 | 2.4.0 | 2026-11-09 | - | vault-architect 1.17.0: K-Plex ontology reference replaces ExcaliBrain's; Chronos reference rewritten for 5.1.3. archivist-architect lists K-Plex in its workflows. Score 86 |
@@ -280,6 +281,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.23.0 | 2026-11-10 | - | Relationship Fields rule; `unmapped_link_fields` noise count (K-Plex-normalized names, top-10 list, `--link-exempt`) | 74 | 100 | 100 | 100 | 100 | 95 |
 | 1.22.0 | 2026-11-09 | [#246](https://github.com/totallyGreg/claude-mp/issues/246) | `cli-patterns.md`: `eval` stays denied except single K-Plex API calls of the documented shape | 76 | 100 | 100 | 100 | 100 | 95 |
 | 1.21.0 | 2026-11-09 | [#237](https://github.com/totallyGreg/claude-mp/issues/237) | Noise Counts: `noise_counts.py` counts orphans (minus excluded folders and daily notes), daily notes with a broken or unrendered `Week` link, and stale names; reads settings and baselines from `_vault-profile.md` `## Noise` and returns the updated section for `vault-write` | 76 | 100 | 100 | 100 | 100 | 95 |
 | 1.20.0 | 2026-11-08 | [#237](https://github.com/totallyGreg/claude-mp/issues/237) | Stale Names: `check_stale_names.py` (rename ratchet) — `formerly:` registry, history exemptions (incl. `historical: true`), baseline that only falls; repo mode via a committed `--registry` file; documented in `available-scripts.md`. Score 95 (−1, concision). | 77 | 100 | 100 | 100 | 100 | 95 |

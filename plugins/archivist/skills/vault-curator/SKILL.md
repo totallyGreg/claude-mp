@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.22.0"
+  version: "1.23.0"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -154,6 +154,17 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/suggest_properties.py 
 ```
 
 Returns JSON with suggestions and confidence scores.
+
+### Relationship Fields
+
+Any write that links one note to another through metadata follows the vault's relationship vocabulary, so K-Plex can draw it:
+
+1. **Label:** use a field from the vocabulary note the profile names (e.g. Edge Vocabulary) that K-Plex gives a role. Prefer the canonical field over a legacy one. Check roles with K-Plex `ontology()` (vault-architect `references/kplex-ontology.md` § Agent API).
+2. **Place:** frontmatter, never an inline `field::` or body text. Lowercase name, quoted wikilinks, a list for several targets.
+3. **One end:** declare the relationship on one note only. K-Plex shows it from both; never add the reciprocal.
+4. **No label fits:** propose one (name, meaning, K-Plex role) for the user to add to the vocabulary and Manage ontology. Never invent a field.
+
+The `unmapped_link_fields` noise count tracks fields that break rule 1.
 
 ### Schema Drift Detection
 
@@ -333,4 +344,4 @@ When something is renamed, add `formerly: [old-name]` (and the same in `aliases`
 
 ### Noise Counts
 
-`noise_counts.py` counts orphans, broken Week links and stale names. The baselines live in the profile's `## Noise` section, and each may only fall; `/health` writes the updated section back. **See:** `references/available-scripts.md` § noise_counts.py.
+`noise_counts.py` counts orphans, broken Week links, stale names and link fields K-Plex gives no role. The baselines live in the profile's `## Noise` section, and each may only fall; `/health` writes the updated section back. **See:** `references/available-scripts.md` § noise_counts.py.

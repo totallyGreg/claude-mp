@@ -21,7 +21,7 @@ All scripts use PEP 723 inline metadata for `uv run` compatibility. Run via:
 | `generate_canvas.py` | Generate JSON Canvas maps of note relationships |
 | `check_collection_health.py` | Audit Collection Folder Pattern health (folder note, Bases file, schema drift) |
 | `check_stale_names.py` | Count live mentions of renamed things (`formerly:` registry); baseline only falls |
-| `noise_counts.py` | Orphans, broken Week links, stale names; baselines in the profile's `## Noise`, only fall |
+| `noise_counts.py` | Orphans, broken Week links, stale names, unmapped link fields; baselines in the profile's `## Noise`, only fall |
 
 ## find_related.py — Relatedness Signals
 
@@ -60,11 +60,11 @@ uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_stale_names.py \
 
 ```bash
 obsidian vault="<vault_name>" orphans | uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/noise_counts.py \
-  ${VAULT_PATH} --orphans - [--exclude <folder>]... [--days <folder>]
+  ${VAULT_PATH} --orphans - [--exclude <folder>]... [--days <folder>] [--link-exempt <field>]...
 ```
 
-- **Counts:** `orphans` (.md only, minus excluded folders and daily notes), `broken_week_links` (daily notes `YYYY-MM-DD.md` whose `Week` link names no note), `stale_names` (same rules as check_stale_names.py).
-- **The profile is the record:** `## Noise` in `_vault-profile.md` holds `Orphans exclude:` and `Daily notes:` (folders in backticks) and a table with each count's baseline, last value and definition. `--exclude` and `--days` replace those settings, for the first run.
+- **Counts:** `orphans` (.md only, minus excluded folders and daily notes), `broken_week_links` (daily notes `YYYY-MM-DD.md` whose `Week` link names no note), `stale_names` (same rules as check_stale_names.py), `unmapped_link_fields` ((note, field) pairs where a frontmatter field holds a `[[link]]` but K-Plex gives the field no role; names match as K-Plex matches them; skipped when `.obsidian/plugins/k-plex/data.json` is absent). The output's `unmapped_link_fields_top` lists the ten commonest such fields, the place to start.
+- **The profile is the record:** `## Noise` in `_vault-profile.md` holds `Orphans exclude:`, `Daily notes:` and `Link fields exempt:` (backticked folders or fields; exempt fields are links K-Plex is not meant to draw, such as a Bases-only link) and a table with each count's baseline, last value and definition. `--exclude`, `--days` and `--link-exempt` replace those settings, for the first run.
 - **Ratchet:** a lower count becomes the baseline; a higher one is `regressed` (exit 1) and the baseline stays.
 - **Read-only:** it prints `section`; write it with `vault-write apply _vault-profile.md --base <hash> --section "## Noise"`.
 
