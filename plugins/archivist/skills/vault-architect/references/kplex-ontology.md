@@ -59,7 +59,7 @@ obsidian vault="<vault_name>" eval 'code=(async()=>JSON.stringify(await window.k
 - **Single-quote the `code=` argument.** The guard denies `$` and backticks anywhere in it, since the shell would expand them after the check. Redirects (`2>&1`, `> out.json`) are fine.
 - **The CLI can print `Error:` with exit code 0,** and may prefix the JSON with `=>`.
 - **`assign` needs `partner`:** pass `partner:null` for an unpaired field, or the preview fails with "Invalid inverse field name".
-- **Previews expire after 5 minutes,** including time spent waiting at the apply prompt. A stale apply returns `STALE_REVISION` and saves nothing: preview again, and never replay an apply whose result you didn't see; read `ontology()` back instead.
+- **Previews expire after 5 minutes,** including time spent waiting at the apply prompt. Any vault write between preview and apply (another agent's `vault-write`, a note edit) also invalidates the preview, so run nothing else in that window. A stale apply returns `STALE_REVISION` and saves nothing: preview again, and never replay an apply whose result you didn't see; read `ontology()` back instead.
 - **K-Plex writes no notes.** Note edits go through `vault-write`; the API only changes K-Plex's own settings, by preview then apply, after the user approves the preview.
 
 ## Declaring relationships
