@@ -148,13 +148,34 @@ def field_key(name: str) -> str:
     return re.sub(r"[\s-]+", "-", name.strip().casefold())
 
 
+def kplex_names(entry: str) -> list[str]:
+    """Field names in one role-list entry. A paired entry is `field/partner` (`implemented by/implements`);
+    a slash or backslash inside a name is escaped as `\\/` or `\\\\` (`📓\\/☀️`)."""
+    names, cur, i = [], [], 0
+    while i < len(entry):
+        ch = entry[i]
+        if ch == "\\" and i + 1 < len(entry):
+            cur.append(entry[i + 1])
+            i += 2
+            continue
+        if ch == "/":
+            names.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+        i += 1
+    names.append("".join(cur))
+    return [n for n in (x.strip() for x in names) if n]
+
+
 def kplex_fields(vault: Path) -> set[str] | None:
-    """Normalized names of every field K-Plex has a role for; None if K-Plex isn't installed."""
+    """Normalized names of every field K-Plex has a role for, partners included; None if K-Plex isn't installed."""
     try:
         hierarchy = json.loads((vault / KPLEX).read_text(encoding="utf-8")).get("hierarchy") or {}
     except (OSError, ValueError):
         return None
-    return {field_key(f) for lst in KPLEX_LISTS for f in hierarchy.get(lst) or [] if isinstance(f, str) and f.strip()}
+    return {field_key(n) for lst in KPLEX_LISTS for e in hierarchy.get(lst) or [] if isinstance(e, str)
+            for n in kplex_names(e)}
 
 
 TOP_KEY = re.compile(r"^([^\s#'\"-][^:]*):(.*)$")
