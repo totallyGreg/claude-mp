@@ -189,9 +189,32 @@ def plain_data(arg: str) -> bool:
     return depth == 0 and (not tokens or tokens[0] == "{")
 
 
+REDIRECT = re.compile(r"[<>&]*[<>][<>&]*")  # >, >>, <, >&, &>, 2> once split by shlex
+
+
+def strip_redirects(args: list[str]) -> list[str]:
+    """Drop shell redirections (`2>&1`, `> out.json`): they change where output goes, not the call."""
+    out, i = [], 0
+    while i < len(args):
+        if REDIRECT.fullmatch(args[i]):
+            if out and out[-1].isdigit():  # the fd number of `2>&1`
+                out.pop()
+            i += 2  # the operator and its target
+            continue
+        out.append(args[i])
+        i += 1
+    return out
+
+
 def check_kplex(args: list[str], vault: str | None, cfg) -> tuple[str, str] | None:
     """`obsidian eval` is denied unless it is one K-Plex API call of an exact shape."""
+    args = strip_redirects(args)
     code = args[0][len("code="):] if len(args) == 1 and args[0].startswith("code=") else None
+    if code and ("$" in code or "`" in code):
+        # The guard sees the text before the shell expands it: `$(…)`, `${…}` or backticks inside a
+        # double-quoted code= would be replaced by arbitrary text that then runs as JavaScript.
+        return "deny", ("Archivist policy: K-Plex eval code must not contain $ or backticks; the shell "
+                        "would expand them after this check. Single-quote the code= argument.")
     m = code and (KPLEX_SYNC.fullmatch(code) or KPLEX_ASYNC.fullmatch(code))
     method = m.group(1) if m else None
     if not m or not plain_data(m.group(2)) or (method not in KPLEX_READS and method not in KPLEX_ASK):
