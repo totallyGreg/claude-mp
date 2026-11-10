@@ -3,6 +3,7 @@
 # requires-python = ">=3.10"
 # dependencies = [
 #   "pyyaml>=6.0",
+#   "ruamel.yaml>=0.18",
 # ]
 # ///
 """Count vault noise and ratchet each count down; the baselines live in `_vault-profile.md`.
@@ -22,8 +23,9 @@ Counts:
 - broken_week_links: daily notes (YYYY-MM-DD.md) whose `Week` link names no note in the vault
 - stale_names: live mentions of a `formerly:` name (same rules as check_stale_names.py)
 - broken_frontmatter: .md notes outside the excluded folders whose frontmatter Obsidian can't read
-  (YAML that doesn't parse to a mapping, or a vault-write frontmatter rule fails), so every view
-  and K-Plex sees none of their properties
+  (a vault-write frontmatter rule fails, or YAML 1.2 doesn't parse it to a mapping), so every view
+  and K-Plex sees none of their properties. YAML 1.2 (ruamel, round-trip) because Obsidian's parser
+  is 1.2: PyYAML (1.1) rejects `[https://a?b=c]` and `{{x}}: y`, which Obsidian reads.
 - unmapped_link_fields: (note, field) pairs where a frontmatter field holds a [[link]] but K-Plex
   gives the field no role, outside the excluded folders and minus `Link fields exempt:`. Field
   names match the way K-Plex matches them (case, spaces and hyphens ignored). The roles come from
@@ -243,9 +245,10 @@ def vault_write():
 
 def count_broken_frontmatter(vault: Path, skip: list[str]) -> list[str]:
     """Sorted paths of notes whose frontmatter Obsidian can't read."""
-    import yaml
+    from ruamel.yaml import YAML, YAMLError
 
     rules = vault_write().frontmatter_errors
+    parser = YAML(typ="rt", pure=True)
     broken = []
     for f in walk(vault, {".md"}):
         rel = f.relative_to(vault).as_posix()
@@ -259,14 +262,14 @@ def count_broken_frontmatter(vault: Path, skip: list[str]) -> list[str]:
         if not lines or lines[0].rstrip() != "---":
             continue
         fm = FRONT.match(text)
-        if fm and "<%" in fm.group(1):
-            continue  # Templater: valid only after rendering
+        # No Templater skip: templates sit in excluded folders, so `<% %>` here was never rendered
+        # (e.g. daily notes with `Week: "[[<% tp.date.now("YYYY-[W]WW", …) %>]]"`, nested quotes)
         bad = bool(rules(lines))  # includes "no closing ---"
         if not bad and fm:  # an empty block (`---` twice) has no group to parse
             try:
-                data = yaml.safe_load(fm.group(1))
+                data = parser.load(fm.group(1))
                 bad = data is not None and not isinstance(data, dict)
-            except yaml.YAMLError:
+            except (YAMLError, ValueError, TypeError):
                 bad = True
         if bad:
             broken.append(rel)

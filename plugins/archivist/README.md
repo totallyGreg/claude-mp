@@ -171,7 +171,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary |
 |---------|------|-------|---------|
-| 2.6.5 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | vault-write blocks a raw `<placeholder>` in a note body (Obsidian renders it as an HTML tag; real HTML elements, code, autolinks and Templater pass). `noise_counts.py --list` prints every `broken_frontmatter` path. Profile instructions: names in backticks. vault-architect 1.18.3 (86), vault-curator 1.23.4 (95) |
+| 2.6.5 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | vault-write blocks a raw `<placeholder>` in a note body (Obsidian renders it as an HTML tag; real HTML elements, code, autolinks and Templater pass). `noise_counts.py --list` prints every `broken_frontmatter` path. `broken_frontmatter` now matches Obsidian: YAML 1.2 (ruamel) instead of PyYAML 1.1, unrendered Templater outside templates counts; the gate accepts `----` closing and `{{x}}: y` keys. Profile instructions: names in backticks. vault-architect 1.18.3 (86), vault-curator 1.23.4 (95) |
 | 2.6.4 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | vault-write blocks frontmatter Obsidian can't read: a quoted value not closed on its line, a value starting with `%`/`@`/backtick, a list item on the key's line, text after a closing bracket (Markdown link). Vault audit: 0 false positives over 5,300 notes. New `broken_frontmatter` noise count, using the same rules plus a YAML parse. vault-curator 1.23.3 (95) |
 | 2.6.3 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | cli-patterns: `base:query` index lag after `.base` edits; silent 0-row filters. vault-curator fixes its kplex-ontology reference path (spec compliance FAIL → PASS). vault-curator 1.23.2 (95) |
 | 2.6.2 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `noise_counts.py` reads K-Plex paired entries (`implemented by/implements`) and escaped slashes (`📓\/☀️`), so paired fields no longer count as unmapped. vault-curator 1.23.1 (95) |
@@ -288,7 +288,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
-| 1.23.4 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `noise_counts.py --list`: every `broken_frontmatter` path | 73 | 100 | 100 | 100 | 100 | 95 |
+| 1.23.4 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `noise_counts.py --list`: every `broken_frontmatter` path; YAML 1.2 to match Obsidian | 73 | 100 | 100 | 100 | 100 | 95 |
 | 1.23.3 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `broken_frontmatter` noise count; definitions avoid a literal wikilink | 74 | 100 | 100 | 100 | 100 | 95 |
 | 1.23.2 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | cli-patterns: `base:query` index lag; silent 0-row filters; kplex-ontology path fixed (spec PASS) | 74 | 100 | 100 | 100 | 100 | 95 |
 | 1.23.1 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `unmapped_link_fields` reads K-Plex paired and escaped role-list entries | 74 | 100 | 100 | 100 | 100 | 95 |

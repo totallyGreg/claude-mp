@@ -352,6 +352,8 @@ def test_unclosed_frontmatter_blocks(vault, tmp_path):
     'map: {a: 1, b: "[x]"}',
     'hexcolor: "%%logo%%"',
     'note: 50% done',
+    'history:\n  - {{tp_date}}: assess',  # mapping key; Obsidian reads it
+    'cover: [https://x.com/a.png?market=us&angle=5]',
 ])
 def test_valid_frontmatter_passes(vault, tmp_path, front):
     code, out = run("apply", "Notes/fm.md", "--from", staged(tmp_path, f"---\n{front}\n---\nbody\n"))
