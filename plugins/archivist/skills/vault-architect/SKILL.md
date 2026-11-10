@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.17.0"
+  version: "1.18.0"
   plugin: "archivist"
   stage: "3"
 ---

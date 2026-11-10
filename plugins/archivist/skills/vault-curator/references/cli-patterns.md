@@ -73,7 +73,7 @@ Rules for the archivist:
 - **`create` with `template=` may ignore `path=`.** The file lands in the template's configured folder. Verify with `obsidian vault=… files folder=…` afterwards.
 - **`template:insert` writes into the open note.** The guard asks first.
 - **`base:create` writes a new note where the base decides,** outside the zone check. The guard asks first.
-- **`eval` and `dev:cdp` are denied.** They run arbitrary code and bypass every write rule.
+- **`eval` and `dev:cdp` are denied.** They run arbitrary code and bypass every write rule. The one exception is single K-Plex API calls of the documented shape (see the architect's `kplex-ontology.md` § Agent API).
 - **A note open with unsaved edits** can conflict with an external write. Write notes the user isn't editing, or ask them to save first.
 
 ## Daily Notes

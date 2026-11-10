@@ -104,3 +104,59 @@ def test_cli_writes_are_zone_checked(vault, command, expected):
 def test_cli_write_without_config_asks(tmp_path, monkeypatch):
     monkeypatch.setenv("ARCHIVIST_LOCAL_MD", str(tmp_path / "missing.md"))
     assert decide('obsidian append path="Notes/a.md" content="x"') == "ask"
+
+
+# -- K-Plex API through obsidian eval (#246) ---------------------------------
+
+def kplex(code, vault_arg="vault=vault"):
+    return f"obsidian {vault_arg} eval 'code={code}'"
+
+
+@pytest.mark.parametrize("code", [
+    "JSON.stringify(window.kplexApi.v1.capabilities())",
+    "JSON.stringify(window.kplexApi.v1.ontology())",
+    'JSON.stringify(window.kplexApi.v1.ontologyGuide({format:"markdown"}))',
+    'JSON.stringify(window.kplexApi.v1.search({query:"Agentic Coding",limit:10}))',
+    'JSON.stringify(window.kplexApi.v1.neighbors({id:"note:a/b.md",role:"parent",limit:20}))',
+    '(async()=>JSON.stringify(await window.kplexApi.v1.ontologyDocuments({field:"Parent",limit:20})))()',
+    '(async()=>JSON.stringify(await window.kplexApi.v1.inspectOntologyOccurrences({path:"Notes/x.md",fields:["Parent","parent"]})))()',
+    'JSON.stringify(window.kplexApi.v1.previewOntologyConfiguration({edits:[{kind:"assign",field:"parent",role:"parent",partner:null}]}))',
+    'JSON.stringify(window.kplexApi.v1.search({query:"a ) ; fetch(\\"x\\")",limit:1}))',
+])
+def test_kplex_reads_defer(vault, code):
+    assert decide(kplex(code)) is None
+
+
+def test_kplex_apply_asks(vault):
+    code = '(async()=>JSON.stringify(await window.kplexApi.v1.applyOntologyConfiguration({previewId:"p1",confirm:true})))()'
+    assert decide(kplex(code)) == "ask"
+
+
+@pytest.mark.parametrize("code", [
+    "app.vault.adapter.remove(\"x.md\")",                                              # not K-Plex
+    "JSON.stringify(window.kplexApi.v1.ontology());app.vault.adapter.remove(\"x\")",  # extra statement
+    "JSON.stringify(window.kplexApi.v1.ontology({a:fetch(\"http://x\")}))",            # call in argument
+    "JSON.stringify(window.kplexApi.v1.ontology({a:b}))",                              # identifier value
+    "JSON.stringify(window.kplexApi.v1.ontology({a:`x${1}`}))",                        # template string
+    "JSON.stringify(window.kplexApi.v1.ontology({a:'x'}))",                            # single quotes
+    "JSON.stringify(window.kplexApi.v1.ontology({get a(){return 1}}))",                # getter
+    "JSON.stringify(window.kplexApi.v1.ontology({a:1})+app.vault.getName())",           # concatenation
+    "JSON.stringify(window.kplexApi.v1.ontology.call(null))",                          # property chain
+    "JSON.stringify(window.kplexApi.v1.configuration.apply({previewId:\"p\",confirm:true}))",  # unlisted
+    "JSON.stringify(window.kplexApi.v1.navigate({canvasId:\"c\",path:\"x.md\"}))",     # canvas action
+    "JSON.stringify(window.kplexApi.v1.ontology({a:1}}))",                             # unbalanced
+    "JSON.stringify(window.kplexApi.v1.ontology([1]))",                                # not an object
+])
+def test_kplex_other_eval_denied(vault, code):
+    assert decide(kplex(code)) == "deny"
+
+
+def test_kplex_needs_config_vault_first(vault):
+    code = "JSON.stringify(window.kplexApi.v1.ontology())"
+    assert decide(kplex(code, vault_arg="")) == "deny"
+    assert decide(kplex(code, vault_arg="vault=Other")) == "deny"
+    assert decide(f"obsidian eval vault=vault 'code={code}'") == "deny"
+
+
+def test_kplex_extra_eval_args_denied(vault):
+    assert decide("obsidian vault=vault eval 'code=JSON.stringify(window.kplexApi.v1.ontology())' extra=1") == "deny"
