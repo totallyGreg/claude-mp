@@ -105,6 +105,8 @@ These read-only commands answer from Obsidian's index in one call. Prefer them f
 | Rendered template output | `template:read name="…" resolve title="…"` |
 | Errors Obsidian captured (e.g. a template that throws) | `dev:errors` (`clear` first) |
 
+**`base:query` after editing a `.base`:** the index lags 20–30 seconds. A query right after a write returns the *previous* version's rows, and a new `.base` returns `[]` until indexed. Wait 30 seconds (or query a freshly named copy) before trusting a count, and test a filter expression as a formula column first: a filter that is always true or false, or calls a function this Bases build lacks (`.last()` on a list), returns 0 rows without an error.
+
 ## Shell Usage
 
 - **Loops: redirect stdin.** The CLI reads stdin, so inside `while read …; do obsidian …; done` it swallows the rest of the input and the loop stops after one pass. Use `obsidian … </dev/null`.
