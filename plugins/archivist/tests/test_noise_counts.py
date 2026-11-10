@@ -88,3 +88,35 @@ def test_tracked_orphans_need_input(vault):
     write_profile(vault, first["section"])
     p = subprocess.run(["uv", "run", "-q", str(SCRIPT), str(vault)], capture_output=True, text=True)
     assert p.returncode == 2 and "--orphans" in json.loads(p.stdout)["error"]
+
+
+def add_kplex(vault, **lists):
+    d = vault / ".obsidian" / "plugins" / "k-plex"
+    d.mkdir(parents=True)
+    (d / "data.json").write_text(json.dumps({"hierarchy": lists}))
+
+
+def test_unmapped_link_fields(vault):
+    add_kplex(vault, parents=["Parent", "Week", "based on"], previous=["Yesterday"], hidden=[""])
+    (vault / "Notes" / "a.md").write_text(
+        '---\nparent: "[[Top]]"\nBased-On: "[[Src]]"\nreplies to: "[[Other]]"\nprocessed: "[[Log]]"\n'
+        'related:\n  - "[[X]]"\n  - "[[Y]]"\ntitle: plain text\n---\nbody has weird:: [[Z]]\n'
+    )
+    (vault / "Notes" / "b.md").write_text('---\nrelated: ["[[X]]"]\n---\n')
+    (vault / "Notes" / "c.md").write_text('---\nOwner: "[[P]]"\n---\n')
+    (vault / "Notes" / "d.md").write_text('---\nowner: "[[Q]]"\n---\n')
+    (vault / "Templates" / "t.md").write_text('---\nunknown: "[[<% tp.file.title %>]]"\n---\n')
+    code, out = run(vault, "--exclude", "Templates", "--days", "Days", "--link-exempt", "processed")
+    assert code == 0
+    # a.md: replies to, related; b.md: related. parent/Based-On normalize to K-Plex fields;
+    # processed is exempt; the template folder is excluded; inline fields don't count.
+    assert out["counts"]["unmapped_link_fields"]["count"] == 5
+    # Owner and owner are one field to K-Plex, so they list once with the combined count
+    assert sorted(out["unmapped_link_fields_top"]) == [["Owner", 2], ["related", 2], ["replies to", 1]] or \
+        sorted(out["unmapped_link_fields_top"]) == [["owner", 2], ["related", 2], ["replies to", 1]]
+    assert "Link fields exempt: `processed`" in out["section"]
+
+
+def test_unmapped_link_fields_skipped_without_kplex(vault):
+    _, out = run(vault, "--exclude", "Templates", "--days", "Days")
+    assert "unmapped_link_fields" not in out["counts"]
