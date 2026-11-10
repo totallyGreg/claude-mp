@@ -21,6 +21,9 @@ Counts:
   excluded folders and the daily notes folder
 - broken_week_links: daily notes (YYYY-MM-DD.md) whose `Week` link names no note in the vault
 - stale_names: live mentions of a `formerly:` name (same rules as check_stale_names.py)
+- broken_frontmatter: .md notes outside the excluded folders whose frontmatter Obsidian can't read
+  (YAML that doesn't parse to a mapping, or a vault-write frontmatter rule fails), so every view
+  and K-Plex sees none of their properties
 - unmapped_link_fields: (note, field) pairs where a frontmatter field holds a [[link]] but K-Plex
   gives the field no role, outside the excluded folders and minus `Link fields exempt:`. Field
   names match the way K-Plex matches them (case, spaces and hyphens ignored). The roles come from
@@ -56,7 +59,8 @@ DEFINITIONS = {
     "orphans": "notes nothing links to, outside the excluded folders and daily notes",
     "broken_week_links": "daily notes whose Week link names no note or is unrendered Templater",
     "stale_names": "live mentions of a `formerly:` name (check_stale_names.py lists them)",
-    "unmapped_link_fields": "frontmatter fields holding a [[link]] that K-Plex gives no role (per note and field)",
+    "broken_frontmatter": "notes whose frontmatter Obsidian can't read, so their properties are invisible",
+    "unmapped_link_fields": "frontmatter fields holding a wikilink that K-Plex gives no role (per note and field)",
 }
 KPLEX = Path(".obsidian/plugins/k-plex/data.json")
 KPLEX_LISTS = ("parents", "children", "friends", "leftFriends", "rightFriends", "previous", "next", "hidden")
@@ -223,6 +227,52 @@ def count_unmapped_link_fields(vault: Path, skip: list[str], exempt: list[str]) 
     return sum(tally.values()), top
 
 
+def vault_write():
+    """The vault-write module, so this count uses the same frontmatter rules as the write gate."""
+    import importlib.util
+    from importlib.machinery import SourceFileLoader
+
+    path = str(Path(__file__).resolve().parents[3] / "bin" / "vault-write")
+    loader = SourceFileLoader("vault_write", path)
+    spec = importlib.util.spec_from_loader("vault_write", loader)
+    mod = importlib.util.module_from_spec(spec)
+    loader.exec_module(mod)
+    return mod
+
+
+def count_broken_frontmatter(vault: Path, skip: list[str]) -> tuple[int, list[str]]:
+    """(count, first 10 paths) of notes whose frontmatter Obsidian can't read."""
+    import yaml
+
+    rules = vault_write().frontmatter_errors
+    broken = []
+    for f in walk(vault, {".md"}):
+        rel = f.relative_to(vault).as_posix()
+        if under(rel, skip):
+            continue
+        try:
+            text = f.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        lines = text.splitlines()
+        if not lines or lines[0].rstrip() != "---":
+            continue
+        fm = FRONT.match(text)
+        if fm and "<%" in fm.group(1):
+            continue  # Templater: valid only after rendering
+        bad = bool(rules(lines))  # includes "no closing ---"
+        if not bad and fm:  # an empty block (`---` twice) has no group to parse
+            try:
+                data = yaml.safe_load(fm.group(1))
+                bad = data is not None and not isinstance(data, dict)
+            except yaml.YAMLError:
+                bad = True
+        if bad:
+            broken.append(rel)
+    broken.sort()
+    return len(broken), broken[:10]
+
+
 def count_stale_names(vault: Path) -> int:
     names = registry(vault)
     if not names:
@@ -272,6 +322,7 @@ def main() -> int:
         "stale_names": count_stale_names(vault),
     }
     details = {}
+    counts["broken_frontmatter"], details["broken_frontmatter_first"] = count_broken_frontmatter(vault, excludes)
     unmapped = count_unmapped_link_fields(vault, excludes, exempt)
     if unmapped is not None:
         counts["unmapped_link_fields"], details["unmapped_link_fields_top"] = unmapped

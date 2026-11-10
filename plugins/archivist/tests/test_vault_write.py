@@ -296,6 +296,13 @@ def test_profile_drift(vault):
     ('related:\n  - "[[A]]", "[[B]]"', "text after a quoted value"),
     ("title: Plan: phase two", "contains ': '"),
     ("tags:\n\t- x", "tab"),
+    ('pillars: "[[Solo.io]]\ntitle: x', "not closed on its line"),  # unclosed quote
+    ('client: "\n"', "not closed on its line"),  # quoted value continued on the next line
+    ("related:\n  - '[[A]]", "not closed on its line"),
+    ("slack: [Slack](https://example.com)", "closing bracket"),
+    ("hexcolor: %%logo primary color%%", "can't start with %"),
+    ("handle: @someone", "can't start with @"),
+    ("attendees: - Event Attendees", "list item on the key's line"),
 ])
 def test_invalid_frontmatter_blocks(vault, tmp_path, front, needle):
     code, out = run("apply", "Notes/fm.md", "--from", staged(tmp_path, f"---\n{front}\n---\nbody\n"))
@@ -317,6 +324,11 @@ def test_unclosed_frontmatter_blocks(vault, tmp_path):
     "summary: >\n  Long text: with a colon",
     'dates:\n  - "{ date }": "[[2026-11-09]]"',  # quoted mapping key in a list (weekly notes)
     '"quoted key": value',
+    'up: [[Parent]]',  # unquoted wikilink: a nested list to YAML, but it parses
+    'tags: [a, "b c"] # comment',
+    'map: {a: 1, b: "[x]"}',
+    'hexcolor: "%%logo%%"',
+    'note: 50% done',
 ])
 def test_valid_frontmatter_passes(vault, tmp_path, front):
     code, out = run("apply", "Notes/fm.md", "--from", staged(tmp_path, f"---\n{front}\n---\nbody\n"))

@@ -171,6 +171,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary |
 |---------|------|-------|---------|
+| 2.6.4 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | vault-write blocks frontmatter Obsidian can't read: a quoted value not closed on its line, a value starting with `%`/`@`/backtick, a list item on the key's line, text after a closing bracket (Markdown link). Vault audit: 0 false positives over 5,300 notes. New `broken_frontmatter` noise count, using the same rules plus a YAML parse. vault-curator 1.23.3 (95) |
 | 2.6.3 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | cli-patterns: `base:query` index lag after `.base` edits; silent 0-row filters. vault-curator fixes its kplex-ontology reference path (spec compliance FAIL → PASS). vault-curator 1.23.2 (95) |
 | 2.6.2 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `noise_counts.py` reads K-Plex paired entries (`implemented by/implements`) and escaped slashes (`📓\/☀️`), so paired fields no longer count as unmapped. vault-curator 1.23.1 (95) |
 | 2.6.1 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `vault-write apply` refuses writes that introduce broken frontmatter: text after a quoted value (`a: "x", "y"`), an unquoted value with `: `, tab indentation, no closing `---`. Stdlib only; Templater templates skipped; pre-existing errors don't block |
@@ -285,6 +286,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.23.3 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `broken_frontmatter` noise count; definitions avoid a literal wikilink | 74 | 100 | 100 | 100 | 100 | 95 |
 | 1.23.2 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | cli-patterns: `base:query` index lag; silent 0-row filters; kplex-ontology path fixed (spec PASS) | 74 | 100 | 100 | 100 | 100 | 95 |
 | 1.23.1 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `unmapped_link_fields` reads K-Plex paired and escaped role-list entries | 74 | 100 | 100 | 100 | 100 | 95 |
 | 1.23.0 | 2026-11-10 | - | Relationship Fields rule; `unmapped_link_fields` noise count (K-Plex-normalized names, top-10 list, `--link-exempt`) | 74 | 100 | 100 | 100 | 100 | 95 |

@@ -406,6 +406,23 @@ FM_KEY_RE = re.compile(r"^([^\s#\-][^:]*):(?:[ \t]+(.*))?$")
 FM_ITEM_RE = re.compile(r"^\s*-[ \t]+(.*)$")
 
 
+def bracket_tail(value: str) -> str:
+    """Text after the bracket that closes `value`'s opening `[`/`{` (quotes respected); '' if none."""
+    depth, quote = 0, None
+    for i, ch in enumerate(value):
+        if quote:
+            quote = None if ch == quote else quote
+        elif ch in "\"'":
+            quote = ch
+        elif ch in "[{":
+            depth += 1
+        elif ch in "]}":
+            depth -= 1
+            if depth == 0:
+                return value[i + 1:].strip()
+    return ""
+
+
 def frontmatter_errors(lines: list[str]) -> list[str]:
     """YAML mistakes that make Obsidian drop a note's properties. Stdlib only: this file also
     runs under the guard's plain python3. Templater templates (`<%`) are skipped, since their
@@ -429,9 +446,25 @@ def frontmatter_errors(lines: list[str]) -> list[str]:
         value = ((key.group(2) if key else item.group(1) if item else None) or "").strip()
         if not value:
             continue
+        if value[0] in "%@`":
+            errors.append(f"line {i + 1}: a value can't start with {value[0]}; quote it: {line.strip()[:60]}")
+            continue
+        if key and (value == "-" or value.startswith("- ")):
+            errors.append(f"line {i + 1}: list item on the key's line; put each item on its own line: {line.strip()[:60]}")
+            continue
+        if value[0] in "[{":
+            tail = bracket_tail(value)
+            if tail and not tail.startswith("#"):
+                errors.append(f"line {i + 1}: text after a closing bracket (a Markdown link?); quote it: {line.strip()[:60]}")
+            continue
         if value[0] in "\"'":
             m = QUOTED_RE.match(value)
-            rest = value[m.end():].strip() if m else ""
+            if not m:
+                # an unclosed quote swallows the rest of the block; Obsidian also rejects a quoted
+                # value continued on the next line, so both read as "not closed on its line"
+                errors.append(f"line {i + 1}: quoted value not closed on its line: {line.strip()[:60]}")
+                continue
+            rest = value[m.end():].strip()
             # a quoted mapping key (`- "{ date }": x`, `"a b": c`) is fine; anything else is stray text
             if m and rest and not rest.startswith("#") and not re.match(r":(\s|$)", rest):
                 errors.append(f"line {i + 1}: text after a quoted value; use a list for several values: {line.strip()[:60]}")
