@@ -146,3 +146,12 @@ def test_broken_frontmatter(vault):
     _, out = run(vault, "--exclude", "Templates", "--days", "Days")
     assert out["counts"]["broken_frontmatter"]["count"] == 3
     assert out["broken_frontmatter_first"] == ["Notes/scalar.md", "Notes/split.md", "Notes/unclosed.md"]
+
+
+def test_list_shows_every_broken_note(vault):
+    for i in range(12):
+        (vault / "Notes" / f"b{i:02}.md").write_text('---\nx: "open\n---\n')
+    _, out = run(vault, "--exclude", "Templates", "--days", "Days")
+    assert len(out["broken_frontmatter_first"]) == 10 and "broken_frontmatter_all" not in out
+    _, out = run(vault, "--exclude", "Templates", "--days", "Days", "--list")
+    assert len(out["broken_frontmatter_all"]) == 12

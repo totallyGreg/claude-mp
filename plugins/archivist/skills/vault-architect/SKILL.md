@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.18.2"
+  version: "1.18.3"
   plugin: "archivist"
   stage: "3"
 ---
@@ -290,7 +290,7 @@ Create or regenerate `_vault-profile.md` in the vault root. This profile provide
    <!-- Key active Linter rules affecting note formatting -->
    ```
 
-   Each section heading is agent-managed. User-added sections (headings not in this list) are preserved during updates.
+   Each section heading is agent-managed. User-added sections (headings not in this list) are preserved during updates. Write file, template and folder names in backticks: a name like `Assessment - <company>` otherwise renders as an HTML tag and disappears (`vault-write` blocks it).
 
 **On subsequent runs:**
 - The curator's Session Learning updates the workflow tables.

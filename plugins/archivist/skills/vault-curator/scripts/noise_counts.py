@@ -35,6 +35,7 @@ writes it with `vault-write apply _vault-profile.md --section "## Noise"`.
 
 Usage:
     obsidian vault=<name> orphans | noise_counts.py <vault> --orphans -
+    obsidian vault=<name> orphans | noise_counts.py <vault> --orphans - --list   # every broken_frontmatter path
     noise_counts.py <vault> --orphans - --exclude "900 Templates" --days "500 Cycles/520 Days"
 """
 
@@ -240,8 +241,8 @@ def vault_write():
     return mod
 
 
-def count_broken_frontmatter(vault: Path, skip: list[str]) -> tuple[int, list[str]]:
-    """(count, first 10 paths) of notes whose frontmatter Obsidian can't read."""
+def count_broken_frontmatter(vault: Path, skip: list[str]) -> list[str]:
+    """Sorted paths of notes whose frontmatter Obsidian can't read."""
     import yaml
 
     rules = vault_write().frontmatter_errors
@@ -269,8 +270,7 @@ def count_broken_frontmatter(vault: Path, skip: list[str]) -> tuple[int, list[st
                 bad = True
         if bad:
             broken.append(rel)
-    broken.sort()
-    return len(broken), broken[:10]
+    return sorted(broken)
 
 
 def count_stale_names(vault: Path) -> int:
@@ -305,6 +305,8 @@ def main() -> int:
     ap.add_argument("--exclude", action="append", help="folder left out of orphans (replaces the profile's list)")
     ap.add_argument("--days", help="daily notes folder (replaces the profile's)")
     ap.add_argument("--link-exempt", action="append", help="link field K-Plex need not map (replaces the profile's list)")
+    ap.add_argument("--list", action="store_true",
+                    help="list every broken_frontmatter path (broken_frontmatter_all), not just the first ten")
     ap.add_argument("--today", default=datetime.date.today().isoformat(), help=argparse.SUPPRESS)
     args = ap.parse_args()
 
@@ -322,7 +324,10 @@ def main() -> int:
         "stale_names": count_stale_names(vault),
     }
     details = {}
-    counts["broken_frontmatter"], details["broken_frontmatter_first"] = count_broken_frontmatter(vault, excludes)
+    broken = count_broken_frontmatter(vault, excludes)
+    counts["broken_frontmatter"], details["broken_frontmatter_first"] = len(broken), broken[:10]
+    if args.list:
+        details["broken_frontmatter_all"] = broken
     unmapped = count_unmapped_link_fields(vault, excludes, exempt)
     if unmapped is not None:
         counts["unmapped_link_fields"], details["unmapped_link_fields_top"] = unmapped

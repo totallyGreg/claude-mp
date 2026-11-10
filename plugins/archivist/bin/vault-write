@@ -45,6 +45,14 @@ DEFAULT_IGNORE_KEYS = ("date modified",)
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 HEADING_RE = re.compile(r"^(#{1,6})\s")
 INLINE_CODE_RE = re.compile(r"(`+)(.+?)\1")
+# `<company>`-style placeholders: Obsidian renders an unknown `<name>` as an HTML tag and hides it
+# (and can swallow the text after it). Real HTML elements are left alone.
+RAW_TAG_RE = re.compile(r"</?([A-Za-z][\w-]*)(?:\s[^<>]*)?/?>")
+HTML_TAGS = set("""a abbr address article aside audio b bdi bdo blockquote br button canvas caption cite code col
+colgroup data dd del details dfn dialog div dl dt em embed fieldset figcaption figure font footer form h1 h2 h3 h4
+h5 h6 header hr i iframe img input ins kbd label legend li main map mark meter nav object ol optgroup option output
+p picture pre progress q rp rt ruby s samp script section select small source span strike strong style sub summary
+sup svg table tbody td template textarea tfoot th thead time tr track u ul var video wbr center""".split())
 WIKILINK_RE = re.compile(r"!?\[\[([^\]\|#\^]*)")
 SKIP_DIRS = {".git", ".obsidian", ".trash"}
 
@@ -489,7 +497,14 @@ def lint(text: str, names: set[str] | None = None, self_name: str | None = None)
         errors.append(f"unclosed code fence (opened by one of lines {[i + 1 for i in fence_lines][-3:]})")
     if names is not None and self_name:
         names = names | {nfc(self_name).lower()}
+    fm_end = -1  # index of the closing `---`; frontmatter values aren't rendered as HTML
+    if lines and lines[0].rstrip() == "---":
+        fm_end = next((i for i in range(1, len(lines)) if lines[i].rstrip() == "---"), -1)
     for i, line in outside_fences(lines):
+        if i > fm_end and not line.startswith(("    ", "\t")):
+            for m in RAW_TAG_RE.finditer(INLINE_CODE_RE.sub("", line)):
+                if m.group(1).lower() not in HTML_TAGS:
+                    errors.append(f"line {i + 1}: {m.group(0)} renders as an HTML tag and disappears; wrap it in backticks")
         for m in INLINE_CODE_RE.finditer(line):
             body = m.group(2).strip()
             if body.startswith("=") or body.startswith("$="):
