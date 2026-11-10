@@ -160,3 +160,29 @@ def test_kplex_needs_config_vault_first(vault):
 
 def test_kplex_extra_eval_args_denied(vault):
     assert decide("obsidian vault=vault eval 'code=JSON.stringify(window.kplexApi.v1.ontology())' extra=1") == "deny"
+
+
+# -- shell expansion and redirection around K-Plex eval ---------------------
+
+@pytest.mark.parametrize("command", [
+    "obsidian vault=vault eval 'code=JSON.stringify(window.kplexApi.v1.status())' 2>&1",
+    "obsidian vault=vault eval 'code=JSON.stringify(window.kplexApi.v1.ontology())' > /tmp/out.json",
+    "obsidian vault=vault eval 'code=JSON.stringify(window.kplexApi.v1.ontology())' >> out.json 2> err.log",
+    "obsidian vault=vault eval 'code=JSON.stringify(window.kplexApi.v1.ontology())' &>/dev/null",
+])
+def test_kplex_redirects_defer(vault, command):
+    assert decide(command) is None
+
+
+@pytest.mark.parametrize("command", [
+    'obsidian vault=vault eval "code=JSON.stringify(window.kplexApi.v1.search({query:\\"$(cat payload)\\"}))"',
+    'obsidian vault=vault eval "code=JSON.stringify(window.kplexApi.v1.search({query:\\"${X}\\"}))"',
+    'obsidian vault=vault eval "code=JSON.stringify(window.kplexApi.v1.search({query:\\"`cat payload`\\"}))"',
+    "obsidian vault=vault eval 'code=JSON.stringify(window.kplexApi.v1.search({query:\"$HOME\"}))'",
+])
+def test_kplex_shell_expansion_denied(vault, command):
+    assert decide(command) == "deny"
+
+
+def test_redirect_does_not_hide_extra_args(vault):
+    assert decide("obsidian vault=vault eval 'code=JSON.stringify(window.kplexApi.v1.ontology())' extra=1 2>&1") == "deny"
