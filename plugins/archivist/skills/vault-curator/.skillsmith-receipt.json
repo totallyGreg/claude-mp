@@ -1,9 +1,9 @@
 {
   "skill_name": "vault-curator",
-  "content_hash": "d8b1cd6ae7633448d9244d4f8d4b95f4c4bc6a794ed2913b199d9405b6dd5463",
+  "content_hash": "927842a88594fbcc2e509c9edf81bef23f9cf357b9837e6078d1e2ca44086308",
   "score": 95,
   "metrics": {
-    "conciseness": 74,
+    "conciseness": 73,
     "complexity": 100,
     "spec_compliance": 100,
     "progressive_disclosure": 100,

@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.23.2"
+  version: "1.23.3"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -344,4 +344,4 @@ When something is renamed, add `formerly: [old-name]` (and the same in `aliases`
 
 ### Noise Counts
 
-`noise_counts.py` counts orphans, broken Week links, stale names and link fields K-Plex gives no role. The baselines live in the profile's `## Noise` section, and each may only fall; `/health` writes the updated section back. **See:** `references/available-scripts.md` § noise_counts.py.
+`noise_counts.py` counts orphans, broken Week links, stale names, notes whose frontmatter Obsidian can't read, and link fields K-Plex gives no role. The baselines live in the profile's `## Noise` section, and each may only fall; `/health` writes the updated section back. **See:** `references/available-scripts.md` § noise_counts.py.

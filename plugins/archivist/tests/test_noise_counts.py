@@ -51,7 +51,7 @@ def test_first_run_counts_and_renders(vault):
     code, out = run(vault, "--exclude", "Templates", "--days", "Days")
     assert code == 0
     counts = {k: v["count"] for k, v in out["counts"].items()}
-    assert counts == {"orphans": 2, "broken_week_links": 2, "stale_names": 1}
+    assert counts == {"orphans": 2, "broken_week_links": 2, "stale_names": 1, "broken_frontmatter": 0}
     assert all(v["status"] == "first-run" for v in out["counts"].values())
     assert "Orphans exclude: `Templates`" in out["section"]
     assert "| orphans | 2 | 2 | 2026-11-09 |" in out["section"]
@@ -133,3 +133,16 @@ def test_paired_and_escaped_kplex_entries(vault):
     _, out = run(vault, "--exclude", "Templates", "--days", "Days")
     # only `unknown` is unmapped (Week covers the fixture's daily notes)
     assert out["unmapped_link_fields_top"] == [["unknown", 1]]
+
+
+def test_broken_frontmatter(vault):
+    notes = vault / "Notes"
+    (notes / "unclosed.md").write_text('---\npillars: "[[Solo.io]]\nfileClass: Meeting\n---\n')
+    (notes / "split.md").write_text('---\nclient: "\n"\n---\n')
+    (notes / "scalar.md").write_text("---\njust text\n---\n")
+    (notes / "empty.md").write_text("---\n---\nbody\n")
+    (notes / "ok.md").write_text('---\nfileClass: Meeting\nrelated: ["[[A]]"]\n---\n')
+    (vault / "Templates" / "t.md").write_text('---\nx: "<% tp.file.title %>\n---\n')
+    _, out = run(vault, "--exclude", "Templates", "--days", "Days")
+    assert out["counts"]["broken_frontmatter"]["count"] == 3
+    assert out["broken_frontmatter_first"] == ["Notes/scalar.md", "Notes/split.md", "Notes/unclosed.md"]
