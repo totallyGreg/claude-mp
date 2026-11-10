@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.23.1"
+  version: "1.23.2"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -159,7 +159,7 @@ Returns JSON with suggestions and confidence scores.
 
 Any write that links one note to another through metadata follows the vault's relationship vocabulary, so K-Plex can draw it:
 
-1. **Label:** use a field from the vocabulary note the profile names (e.g. Edge Vocabulary) that K-Plex gives a role. Prefer the canonical field over a legacy one. Check roles with K-Plex `ontology()` (vault-architect `references/kplex-ontology.md` § Agent API).
+1. **Label:** use a field from the vocabulary note the profile names (e.g. Edge Vocabulary) that K-Plex gives a role. Prefer the canonical field over a legacy one. Check roles with K-Plex `ontology()` (`../vault-architect/references/kplex-ontology.md` § Agent API).
 2. **Place:** frontmatter, never an inline `field::` or body text. Lowercase name, quoted wikilinks, a list for several targets.
 3. **One end:** declare the relationship on one note only. K-Plex shows it from both; never add the reciprocal.
 4. **No label fits:** propose one (name, meaning, K-Plex role) for the user to add to the vocabulary and Manage ontology. Never invent a field.
