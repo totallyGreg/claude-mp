@@ -31,9 +31,33 @@ Which property names map to which role is a setting, not a fixed list. Before de
 - **Names are normalized:** K-Plex matches a note's field to the lists by normalized name, so `Parent Name` and `parent-name` are one field (case, spaces and hyphens don't matter). A lowercase `parent` in a note is read through the `Parent` entry. Manage ontology refuses to add a spelling that normalizes to a field already listed; changing that entry's spelling is a rename of the same field.
 - **Unassigned fields:** Settings → K-Plex → Ontology → Manage ontology → **Unassigned** shows properties found in notes that have no role.
 - **Changes are the user's:** K-Plex's own agent guidance forbids editing `data.json`. Propose the change and let the user make it in Manage ontology.
-- **The agent API is blocked:** K-Plex documents a read API (`window.kplexApi.v1` through `obsidian eval`), but the archivist guard denies `obsidian eval`. Use `data.json` for reads.
+- **Prefer the agent API** (below) for reads; `data.json` is the fallback when K-Plex isn't running.
 
 Fresh installs pair Parent/Child, Parents/Children, up/down, u/d, North/South, Previous/Next, West/East, w/e and Before/After. An ExcaliBrain import keeps ExcaliBrain's assignments instead.
+
+## Agent API
+
+K-Plex exposes `window.kplexApi.v1` through `obsidian eval`. The archivist guard denies every other `eval`, so a call must have exactly one of these two shapes, with the vault first and a plain-data argument (keys, double-quoted strings, numbers, `true`/`false`/`null`, arrays and objects; no variables, calls or template strings):
+
+```sh
+obsidian vault="<vault_name>" eval 'code=JSON.stringify(window.kplexApi.v1.ontology())'
+obsidian vault="<vault_name>" eval 'code=(async()=>JSON.stringify(await window.kplexApi.v1.ontologyDocuments({field:"parent",limit:40})))()'
+```
+
+| Method | Use | Guard |
+|---|---|---|
+| `capabilities`, `status`, `coverage` | what this K-Plex supports; indexing state | normal permissions |
+| `ontology`, `ontologyGuide` | exact fields, roles, pairs, descriptions | normal permissions |
+| `search`, `node`, `neighbors` | find a note; its parents, children, friends (`role: parent\|child\|left\|right\|previous\|next`) | normal permissions |
+| `evidence` | why two notes are connected (property, inline field, link, folder, tag) | normal permissions |
+| `ontologyDocuments` (async) | notes that use a field, paged with `cursor` | normal permissions |
+| `inspectOntologyOccurrences` (async) | exact positions of fields in one saved note, YAML and inline | normal permissions |
+| `previewOntologyConfiguration` | plan an ontology change; saves nothing | normal permissions |
+| `applyOntologyConfiguration` (async) | save a previewed change | asks the user |
+
+- **Check the envelope:** `ok`, then `coverage` and `truncated`. Results come from K-Plex's index and may be partial: an empty or short result never proves a field is unused. Use the archivist's full scans for completeness.
+- **The CLI can print `Error:` with exit code 0,** and may prefix the JSON with `=>`.
+- **K-Plex writes no notes.** Note edits go through `vault-write`; the API only changes K-Plex's own settings, by preview then apply, after the user approves the preview.
 
 ## Declaring relationships
 

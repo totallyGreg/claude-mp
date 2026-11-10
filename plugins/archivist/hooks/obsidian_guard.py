@@ -7,7 +7,11 @@
 PreToolUse guard for Bash: stops destructive vault operations that permission rules can't
 match reliably (a `*` in the middle of a rule spans one token, so argument order defeats it).
 
-- obsidian delete, eval, dev:cdp           -> deny
+- obsidian delete, eval, dev:cdp           -> deny, except K-Plex API calls of an exact shape:
+    obsidian vault=<config vault> eval code=JSON.stringify(window.kplexApi.v1.<read>({...}))
+    or the documented async form (async()=>JSON.stringify(await window.kplexApi.v1.<m>({...})))().
+    The argument must be plain data (keys, JSON strings, numbers, true/false/null, [], {}).
+    Reads and previews defer to the normal permission flow; applyOntologyConfiguration asks.
 - obsidian create ... overwrite            -> deny (use `vault-write apply`)
 - obsidian create/append/prepend/property:set/property:remove/task <update>
     without an explicit path=              -> deny (a missing or mistyped target acts on
@@ -59,6 +63,18 @@ ASK = {
     "theme:install": "Installing an Obsidian theme changes vault config; confirm.",
     "theme:uninstall": "Uninstalling an Obsidian theme changes vault config; confirm.",
 }
+KPLEX_READS = {
+    "capabilities", "status", "coverage", "ontology", "ontologyGuide", "search", "node", "neighbors",
+    "evidence", "ontologyDocuments", "inspectOntologyOccurrences", "previewOntologyConfiguration",
+}
+KPLEX_ASK = {"applyOntologyConfiguration": "K-Plex applyOntologyConfiguration saves a previewed ontology "
+             "change to K-Plex's settings; confirm the reviewed preview."}
+_CALL = r"window\.kplexApi\.v1\.([A-Za-z]+)\((.*)\)"
+KPLEX_SYNC = re.compile(rf"JSON\.stringify\({_CALL}\)", re.S)
+KPLEX_ASYNC = re.compile(rf"\(async\(\)=>JSON\.stringify\(await {_CALL}\)\)\(\)", re.S)
+# Plain data only: JSON strings, numbers, literals, punctuation, and bare keys (checked below)
+DATA_TOKEN = re.compile(r'\s+|"(?:[^"\\\x00-\x1f]|\\["\\/bfnrt]|\\u[0-9a-fA-F]{4})*"'
+                        r"|-?\d+(?:\.\d+)?|true|false|null|[{}\[\],:]|[A-Za-z_][A-Za-z0-9_]*")
 WRITES = {"create", "append", "prepend", "property:set", "property:remove"}
 TASK_UPDATES = {"toggle", "done", "todo"}
 DAILY_WRITES = {"daily:append", "daily:prepend"}
@@ -148,9 +164,51 @@ def check_write(sub: str, args: list[str], vault: str | None, vw, cfg) -> tuple[
     return None
 
 
+def plain_data(arg: str) -> bool:
+    """True when `arg` is empty or a JS literal of plain data: no calls, no identifiers as values."""
+    tokens, pos = [], 0
+    while pos < len(arg):
+        m = DATA_TOKEN.match(arg, pos)
+        if not m:
+            return False
+        if not m.group().isspace():
+            tokens.append(m.group())
+        pos = m.end()
+    depth = 0
+    for i, t in enumerate(tokens):
+        if t in "{[":
+            depth += 1
+        elif t in "}]":
+            depth -= 1
+            if depth < 0:
+                return False
+        elif re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", t) and t not in ("true", "false", "null"):
+            # a bare identifier is only allowed as an object key: `{key:` or `,key:`
+            if not (0 < i < len(tokens) - 1 and tokens[i - 1] in "{," and tokens[i + 1] == ":"):
+                return False
+    return depth == 0 and (not tokens or tokens[0] == "{")
+
+
+def check_kplex(args: list[str], vault: str | None, cfg) -> tuple[str, str] | None:
+    """`obsidian eval` is denied unless it is one K-Plex API call of an exact shape."""
+    code = args[0][len("code="):] if len(args) == 1 and args[0].startswith("code=") else None
+    m = code and (KPLEX_SYNC.fullmatch(code) or KPLEX_ASYNC.fullmatch(code))
+    method = m.group(1) if m else None
+    if not m or not plain_data(m.group(2)) or (method not in KPLEX_READS and method not in KPLEX_ASK):
+        return "deny", DENY["eval"] + " Only single K-Plex API calls of the documented shape are allowed (see kplex-ontology.md)."
+    if cfg and _vault_key(vault or "") != _vault_key(cfg["root"].name):
+        return "deny", (f"Archivist policy: start K-Plex calls with obsidian vault=\"{cfg['root'].name}\" eval …, "
+                        "so they reach the configured vault.")
+    if method in KPLEX_ASK:
+        return "ask", KPLEX_ASK[method]
+    return None
+
+
 def check_obsidian(rest: list[str], vw, cfg) -> tuple[str, str] | None:
     i = next((k for k, t in enumerate(rest) if "=" not in t), None)  # skip vault=… style options
     sub, args = (rest[i], rest[i + 1:]) if i is not None else ("", [])
+    if sub == "eval":
+        return check_kplex(args, kv(rest[:i]).get("vault"), cfg)
     if sub in DENY:
         return "deny", DENY[sub]
     if sub == "create" and "overwrite" in args:
