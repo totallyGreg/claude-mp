@@ -120,6 +120,29 @@ def test_unclosed_fence_blocks(vault, tmp_path):
     assert code == 3 and "unclosed" in out["errors"][0]
 
 
+@pytest.mark.parametrize("body", [
+    "- Reports: Assessment - <company> - <date>\n",
+    "</date> closes nothing\n",
+])
+def test_raw_placeholder_tag_blocks(vault, tmp_path, body):
+    code, out = run("apply", "Notes/n.md", "--from", staged(tmp_path, body))
+    assert code == 3 and "renders as an HTML tag" in out["errors"][0], out
+
+
+@pytest.mark.parametrize("body", [
+    "- Reports: `Assessment - <company> - <date>`\n",  # inline code
+    "```\n<company>\n```\n",  # fence
+    "    <company> in an indented code block\n",
+    'line<br>break, <span class="x">styled</span>, <!-- comment -->\n',
+    "<https://example.com> and <a@b.com> and <% tp.file.title %>\n",
+    "a < b and c > d\n",
+    '---\ntitle: "<company> report"\n---\nbody\n',  # frontmatter isn't rendered as HTML
+])
+def test_html_and_code_pass(vault, tmp_path, body):
+    code, out = run("apply", "Notes/n.md", "--from", staged(tmp_path, body))
+    assert code == 0, out
+
+
 def test_preexisting_lint_errors_do_not_block(vault, tmp_path):
     (vault / NOTE).write_text(ORIGINAL + "\nlegacy `=bad`\n")
     code, out = run("apply", NOTE, "--from", staged(tmp_path, "## One\nfixed one\n"), "--base", base_of(), "--section", "## One")
@@ -329,6 +352,8 @@ def test_unclosed_frontmatter_blocks(vault, tmp_path):
     'map: {a: 1, b: "[x]"}',
     'hexcolor: "%%logo%%"',
     'note: 50% done',
+    'history:\n  - {{tp_date}}: assess',  # mapping key; Obsidian reads it
+    'cover: [https://x.com/a.png?market=us&angle=5]',
 ])
 def test_valid_frontmatter_passes(vault, tmp_path, front):
     code, out = run("apply", "Notes/fm.md", "--from", staged(tmp_path, f"---\n{front}\n---\nbody\n"))

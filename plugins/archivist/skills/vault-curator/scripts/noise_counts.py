@@ -3,6 +3,7 @@
 # requires-python = ">=3.10"
 # dependencies = [
 #   "pyyaml>=6.0",
+#   "ruamel.yaml>=0.18",
 # ]
 # ///
 """Count vault noise and ratchet each count down; the baselines live in `_vault-profile.md`.
@@ -22,8 +23,9 @@ Counts:
 - broken_week_links: daily notes (YYYY-MM-DD.md) whose `Week` link names no note in the vault
 - stale_names: live mentions of a `formerly:` name (same rules as check_stale_names.py)
 - broken_frontmatter: .md notes outside the excluded folders whose frontmatter Obsidian can't read
-  (YAML that doesn't parse to a mapping, or a vault-write frontmatter rule fails), so every view
-  and K-Plex sees none of their properties
+  (a vault-write frontmatter rule fails, or YAML 1.2 doesn't parse it to a mapping), so every view
+  and K-Plex sees none of their properties. YAML 1.2 (ruamel, round-trip) because Obsidian's parser
+  is 1.2: PyYAML (1.1) rejects `[https://a?b=c]` and `{{x}}: y`, which Obsidian reads.
 - unmapped_link_fields: (note, field) pairs where a frontmatter field holds a [[link]] but K-Plex
   gives the field no role, outside the excluded folders and minus `Link fields exempt:`. Field
   names match the way K-Plex matches them (case, spaces and hyphens ignored). The roles come from
@@ -35,6 +37,7 @@ writes it with `vault-write apply _vault-profile.md --section "## Noise"`.
 
 Usage:
     obsidian vault=<name> orphans | noise_counts.py <vault> --orphans -
+    obsidian vault=<name> orphans | noise_counts.py <vault> --orphans - --list   # every broken_frontmatter path
     noise_counts.py <vault> --orphans - --exclude "900 Templates" --days "500 Cycles/520 Days"
 """
 
@@ -240,11 +243,12 @@ def vault_write():
     return mod
 
 
-def count_broken_frontmatter(vault: Path, skip: list[str]) -> tuple[int, list[str]]:
-    """(count, first 10 paths) of notes whose frontmatter Obsidian can't read."""
-    import yaml
+def count_broken_frontmatter(vault: Path, skip: list[str]) -> list[str]:
+    """Sorted paths of notes whose frontmatter Obsidian can't read."""
+    from ruamel.yaml import YAML, YAMLError
 
     rules = vault_write().frontmatter_errors
+    parser = YAML(typ="rt", pure=True)
     broken = []
     for f in walk(vault, {".md"}):
         rel = f.relative_to(vault).as_posix()
@@ -258,19 +262,18 @@ def count_broken_frontmatter(vault: Path, skip: list[str]) -> tuple[int, list[st
         if not lines or lines[0].rstrip() != "---":
             continue
         fm = FRONT.match(text)
-        if fm and "<%" in fm.group(1):
-            continue  # Templater: valid only after rendering
+        # No Templater skip: templates sit in excluded folders, so `<% %>` here was never rendered
+        # (e.g. daily notes with `Week: "[[<% tp.date.now("YYYY-[W]WW", …) %>]]"`, nested quotes)
         bad = bool(rules(lines))  # includes "no closing ---"
         if not bad and fm:  # an empty block (`---` twice) has no group to parse
             try:
-                data = yaml.safe_load(fm.group(1))
+                data = parser.load(fm.group(1))
                 bad = data is not None and not isinstance(data, dict)
-            except yaml.YAMLError:
+            except (YAMLError, ValueError, TypeError):
                 bad = True
         if bad:
             broken.append(rel)
-    broken.sort()
-    return len(broken), broken[:10]
+    return sorted(broken)
 
 
 def count_stale_names(vault: Path) -> int:
@@ -305,6 +308,8 @@ def main() -> int:
     ap.add_argument("--exclude", action="append", help="folder left out of orphans (replaces the profile's list)")
     ap.add_argument("--days", help="daily notes folder (replaces the profile's)")
     ap.add_argument("--link-exempt", action="append", help="link field K-Plex need not map (replaces the profile's list)")
+    ap.add_argument("--list", action="store_true",
+                    help="list every broken_frontmatter path (broken_frontmatter_all), not just the first ten")
     ap.add_argument("--today", default=datetime.date.today().isoformat(), help=argparse.SUPPRESS)
     args = ap.parse_args()
 
@@ -322,7 +327,10 @@ def main() -> int:
         "stale_names": count_stale_names(vault),
     }
     details = {}
-    counts["broken_frontmatter"], details["broken_frontmatter_first"] = count_broken_frontmatter(vault, excludes)
+    broken = count_broken_frontmatter(vault, excludes)
+    counts["broken_frontmatter"], details["broken_frontmatter_first"] = len(broken), broken[:10]
+    if args.list:
+        details["broken_frontmatter_all"] = broken
     unmapped = count_unmapped_link_fields(vault, excludes, exempt)
     if unmapped is not None:
         counts["unmapped_link_fields"], details["unmapped_link_fields_top"] = unmapped

@@ -51,7 +51,7 @@ def test_first_run_counts_and_renders(vault):
     code, out = run(vault, "--exclude", "Templates", "--days", "Days")
     assert code == 0
     counts = {k: v["count"] for k, v in out["counts"].items()}
-    assert counts == {"orphans": 2, "broken_week_links": 2, "stale_names": 1, "broken_frontmatter": 0}
+    assert counts == {"orphans": 2, "broken_week_links": 2, "stale_names": 1, "broken_frontmatter": 1}  # 2026-01-04: unrendered Templater
     assert all(v["status"] == "first-run" for v in out["counts"].values())
     assert "Orphans exclude: `Templates`" in out["section"]
     assert "| orphans | 2 | 2 | 2026-11-09 |" in out["section"]
@@ -142,7 +142,23 @@ def test_broken_frontmatter(vault):
     (notes / "scalar.md").write_text("---\njust text\n---\n")
     (notes / "empty.md").write_text("---\n---\nbody\n")
     (notes / "ok.md").write_text('---\nfileClass: Meeting\nrelated: ["[[A]]"]\n---\n')
-    (vault / "Templates" / "t.md").write_text('---\nx: "<% tp.file.title %>\n---\n')
+    # Obsidian reads these; PyYAML (YAML 1.1) wrongly rejects them
+    (notes / "url.md").write_text("---\ncover: [https://x.com/a.png?market=us&angle=5]\n---\n")
+    (notes / "key.md").write_text("---\nhistory:\n  - {{tp_date}}: assess\n---\n")
+    (notes / "dashes.md").write_text("---\nfileClass: tool\n----\nbody\n")
+    (vault / "Templates" / "t.md").write_text('---\nx: "<% tp.file.title %>\n---\n')  # excluded folder
+    (notes / "rendered-ok.md").write_text('---\ntitle: "<% tp.file.title %>"\n---\n')  # quoted: parses
     _, out = run(vault, "--exclude", "Templates", "--days", "Days")
-    assert out["counts"]["broken_frontmatter"]["count"] == 3
-    assert out["broken_frontmatter_first"] == ["Notes/scalar.md", "Notes/split.md", "Notes/unclosed.md"]
+    # Days/2026-01-04 (fixture): unrendered Templater with nested quotes in `Week: "[[<% …("…") %>]]"`
+    assert out["counts"]["broken_frontmatter"]["count"] == 4, out["broken_frontmatter_first"]
+    assert out["broken_frontmatter_first"] == [
+        "Days/2026/2026-01-04.md", "Notes/scalar.md", "Notes/split.md", "Notes/unclosed.md"]
+
+
+def test_list_shows_every_broken_note(vault):
+    for i in range(12):
+        (vault / "Notes" / f"b{i:02}.md").write_text('---\nx: "open\n---\n')
+    _, out = run(vault, "--exclude", "Templates", "--days", "Days")
+    assert len(out["broken_frontmatter_first"]) == 10 and "broken_frontmatter_all" not in out
+    _, out = run(vault, "--exclude", "Templates", "--days", "Days", "--list")
+    assert len(out["broken_frontmatter_all"]) == 13  # 12 + the fixture's unrendered daily note
