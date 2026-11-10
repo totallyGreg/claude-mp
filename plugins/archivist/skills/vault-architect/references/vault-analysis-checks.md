@@ -73,7 +73,7 @@ load_when: Running /health command, interpreting analyze_vault.py output, explai
 
 **Interpretation:** Temporal links connect daily notes to week/month rollup notes, enabling Chronos timeline views and period-based Bases filtering. Missing links break temporal navigation.
 
-**Remediation:** Use the Chronos workflow to generate rollup notes and backfill missing links.
+**Remediation:** Use the temporal rollup workflow to generate rollup notes and backfill missing links.
 
 ---
 

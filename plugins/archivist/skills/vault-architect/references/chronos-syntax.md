@@ -1,368 +1,104 @@
 ---
-last_verified: 2026-04-29
+last_verified: 2026-11-09
 sources:
   - type: github
     repo: "clairefro/obsidian-plugin-chronos"
-    paths: ["src/"]
-    description: "Chronos Timeline plugin source — event syntax, rendering"
+    paths: ["README.md"]
+    description: "Chronos Timeline 5.1.3: chronos block syntax, flags, Bases view"
 ---
 
-# Chronos Timeline Syntax Reference
+# Chronos Timeline Syntax
 
-> **📝 TODO:** This reference needs to be completed with content from official Chronos Timeline documentation.
->
-> **Official Documentation:** https://github.com/clairefro/obsidian-plugin-chronos
->
-> **What to add:**
-> - Complete event type syntax (events `-`, periods `@`, points `*`, markers `=`)
-> - Frontmatter integration patterns
-> - Color and grouping syntax
-> - Date formats and ranges
-> - Bases integration for chronos-timeline-view
-> - Examples of meeting timelines
-> - Common patterns and troubleshooting
+Chronos Timeline (5.x, needs Obsidian 1.13+) draws timelines from `chronos` code blocks and from Bases views.
 
-## Table of Contents
+## `chronos` blocks
 
-1. [Core Concepts](#core-concepts)
-2. [Event Types](#event-types)
-3. [Frontmatter Integration](#frontmatter-integration)
-4. [Color and Grouping](#color-and-grouping)
-5. [Date Formats](#date-formats)
-6. [Bases Integration](#bases-integration)
-7. [Common Patterns](#common-patterns)
-8. [Troubleshooting](#troubleshooting)
+The first character of each line sets the item type:
 
-## Core Concepts
+| Line | Item | Notes |
+|---|---|---|
+| `- [Date] Name \| Description` | Event | single date or range |
+| `@ [Date~Date] Name` | Period | must be a range; shaded background |
+| `* [Date] Name \| Description` | Point | single moment |
+| `= [Date] Name` | Marker | must be a single date; vertical line |
+| `# text` | Comment | ignored |
+| `> FLAG` | Flag | one per line, case-insensitive |
 
-Chronos Timeline is an Obsidian plugin that visualizes events, periods, and points on interactive timelines.
-
-### Timeline Types
-
-- **Events** (`-`) - Single point in time
-- **Periods** (`@`) - Duration with start and end
-- **Points** (`*`) - Milestone markers
-- **Markers** (`=`) - Reference lines
-
-## Event Types
-
-### Events (-)
-
-Single-point events on timeline.
-
-```markdown
-- 2026-02-10: Meeting with customer
-- 2026-02-10 14:30: Customer sync call
+```chronos
+> NOTODAY
+@ [2026-01~2026-03] #blue {Project} Q1 build
+- [2026-01-15] {Project} Kickoff | [[Kickoff meeting]]
+- [2026-02-01~2026-02-14] #green {Team} Sprint 1
+* [2026-03-31] Launch
+= [2026-03-01] Code freeze
 ```
 
-### Periods (@)
+### Dates
 
-Durations with start and end dates.
+- **Format:** `YYYY-MM-DDThh:mm:ss`. Only the year is required: `[2026]`, `[2026-02]`, `[2026-02-28T14:30]`. Hours are 24-hour.
+- **Ranges use a tilde, not a hyphen:** `[2024-02-28~2024-05-11]`. Start must come first.
+- **BCE:** a minus sign, `[-550~-20]`.
+- **Ongoing:** a range with no end, `[2026-11-01~]`, runs to today.
 
-```markdown
-@ 2026-02-01 - 2026-02-28: February Sprint
-@ 2026-01-15 - 2026-03-15: Q1 Project
-```
+### Modifiers (events and periods)
 
-### Points (*)
+`- [Date] #color {Group} Name | Description`: color first, then group, both between the date and the name.
 
-Milestone markers.
+- **Colors:** `#red`, `#orange`, `#yellow`, `#green`, `#blue`, `#purple`, `#pink`, `#cyan`. Without one, the theme color is used.
+- **Groups** `{Name}` make swimlanes. Names are case-sensitive and may contain spaces.
 
-```markdown
-* 2026-02-10: Product Launch
-* 2026-12-31: End of Year
-```
+### Links
 
-### Markers (=)
+A wikilink in the name or the description makes the item clickable. In the name the path is visible; in the description it's hidden. Chronos uses the first link in an item, and `[[note#section]]` works. Links work on events, points and periods.
 
-Reference lines on timeline.
+Renaming a note does not reliably update links inside `chronos` blocks. Link by plain note name rather than an alias.
 
-```markdown
-= 2026-02-10: Today
-= 2026-01-01: Year Start
-```
+### Flags
 
-## Frontmatter Integration
+| Flag | Effect |
+|---|---|
+| `> NOTODAY` | hide the today line |
+| `> HEIGHT 300` | fixed height in px |
+| `> ORDERBY start\|-content` | stack order; fields `start`, `end`, `content`, `color`, `description`; `-` for descending (slow with many items) |
+| `> DEFAULTVIEW 2020\|2026` | initial visible range |
+| `> GAP 10\|30` | horizontal\|vertical gap in px (`> GAP 20`, `> GAP \|30`) |
+| `> AXIS top` | axis at the top (default bottom) |
+| `> ROUNDED` / `> NOROUNDED` | rounded range ends |
+| `> TRANSLUCENT` / `> NOTRANSLUCENT` | borderless, semi-transparent items |
+| `> OVERFLOWTITLES` / `> NOOVERFLOWTITLES` | long range titles run past the box (on by default) |
+| `> UTC` / `> NOUTC` | dates as UTC (default) or local time |
+| `> ALIGN left\|center\|right` | item text alignment |
 
-### Basic Event
+Precedence: plugin defaults < plugin settings < flags. If a flag and its `NO` form both appear, the later line wins.
 
-```yaml
----
-title: "Customer Meeting"
-start: 2026-02-10T14:30:00
-end: 2026-02-10T15:30:00
-color: "#blue"
-type: "customer-meeting"
----
-```
+## Bases view
 
-### Timeline Properties
+Add a view of type **Chronos Timeline** to a `.base`. Any note with a `start` property shows; notes without one are ignored.
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `start` | ISO 8601 | Start datetime |
-| `end` | ISO 8601 | End datetime (optional for events) |
-| `color` | String | Event color (`#blue`, `#red`, `#green`) |
-| `type` | String | Event category for grouping |
+| Property | Required | Values |
+|---|---|---|
+| `start` | yes | a Chronos date (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`, optional `THH:mm[:ss]`) |
+| `end` | no | a Chronos date |
+| `content` | no | item title (defaults to the note name) |
+| `type` | no | `event`, `point`, `period` or `marker`. Defaults to `point`, or `event` when there is an `end` or `start` ends in `~` |
+| `color` | no | a color name above, without `#`, or a hex code |
+| `description` | no | hover text; a YAML list is joined |
+| `group` | no | swimlane, if no Bases "Group by" is set |
 
-## Color and Grouping
+- **`type` is the item shape, not a category.** For categories, use a `group` property or the Bases **Group by** (Sort menu). The "no group" row always sits at the bottom.
+- **Property names are mapped, not fixed:** each view's **Item Property Sources** chooses which note property feeds `start`, `end`, `color` and the rest. New views take the defaults set in the plugin's settings, and Bases formulas can supply any value (e.g. a group from `file.folder`).
+- **Date formats:** the view also reads `2026/10/14`, `2026.10.14`, `2026-10-14 12:00`, ISO with `Z` (the time zone is ignored), `Oct 14, 2026` and `14/10/2026`. Ambiguous dates like `03/04/2026` are not guessed.
+- **Bad values:** notes with an unreadable `start`, or an `end` before the `start`, are skipped. A collapsed warning above the timeline lists them.
 
-### Color Syntax
+## Display settings
 
-```yaml
-# Predefined colors
-color: "#blue"
-color: "#red"
-color: "#green"
-color: "#yellow"
-color: "#purple"
-color: "#orange"
+Plugin settings → **Display**: round range ends (off), overflow range titles (on), axis position (bottom), item gap (20/20), translucent items (off), use UTC (on, recommended), item alignment (left). Each has a matching flag.
 
-# Hex codes
-color: "#3b82f6"
-color: "#ef4444"
-```
-
-### Grouping by Type
-
-```yaml
-# Meeting notes with type
-type: "customer-meeting"
-type: "internal"
-type: "1-on-1"
-```
-
-Timeline groups events by `type` property automatically.
-
-## Date Formats
-
-### ISO 8601 Format
-
-```yaml
-# Date only
-start: 2026-02-10
-
-# Date + time
-start: 2026-02-10T14:30:00
-
-# Date + time + timezone
-start: 2026-02-10T14:30:00-05:00
-```
-
-### Range Syntax
-
-```yaml
-# Period
-start: 2026-02-01
-end: 2026-02-28
-
-# Multi-day event
-start: 2026-02-10T00:00:00
-end: 2026-02-12T23:59:59
-```
-
-## Bases Integration
-
-### Chronos Timeline View in Bases
-
-```yaml
-# Meetings.base
-filters:
-  and:
-    - fileClass == "Meeting"
-
-views:
-  - name: Timeline
-    type: chronos-timeline-view
-    filters:
-      - scope.contains(this.file)
-    order: [file.name, start, end, color, type]
-```
-
-### Required Properties for Timeline View
-
-Files displayed in chronos-timeline-view must have:
-
-1. `start` property (required)
-2. `end` property (optional, for periods)
-3. `color` property (optional, for color coding)
-4. `type` property (optional, for grouping)
-
-### Example - Meeting Timeline
-
-**Meetings.base:**
-```yaml
-filters:
-  and:
-    - fileClass == "Meeting"
-
-views:
-  - name: Meeting Timeline
-    type: chronos-timeline-view
-    filters:
-      - scope.contains(this.file)
-    order: [file.name, start, end, color, type]
-```
-
-**Meeting note frontmatter:**
-```yaml
----
-title: "Q1 Planning"
-fileClass: Meeting
-scope: ["[[Acme Corp]]"]
-start: 2026-02-10T14:00:00
-end: 2026-02-10T15:30:00
-color: "#blue"
-type: "planning-meeting"
----
-```
-
-**Embedded in company note:**
-```markdown
-# Acme Corp
-
-## Meeting Timeline
-![[Meetings.base#Meeting Timeline]]
-```
-
-## Common Patterns
-
-### Pattern 1: Project Timeline
-
-```yaml
----
-title: "Project Alpha"
-fileClass: Project
-start: 2026-01-01
-end: 2026-03-31
-color: "#blue"
-milestones:
-  - 2026-01-15: "Kickoff"
-  - 2026-02-15: "Prototype"
-  - 2026-03-15: "Beta"
-  - 2026-03-31: "Launch"
----
-```
-
-### Pattern 2: Meeting Schedule
-
-```yaml
-# Weekly.base - Show week's meetings on timeline
-filters:
-  and:
-    - fileClass == "Meeting"
-    - start >= "2026-02-03"
-    - start < "2026-02-10"
-
-views:
-  - name: This Week Timeline
-    type: chronos-timeline-view
-    order: [file.name, start, end, color, type]
-```
-
-### Pattern 3: Multi-Type Events
-
-```yaml
-# Events.base - Mixed event types
-filters:
-  and:
-    - or:
-        - fileClass == "Meeting"
-        - fileClass == "Event"
-        - fileClass == "Milestone"
-
-views:
-  - name: All Events
-    type: chronos-timeline-view
-    order: [file.name, start, end, color, type]
-    groupBy: type
-```
+The timeline options button (lower left) exports PNG or SVG, copies a shareable link, or copies the timeline as Markdown.
 
 ## Troubleshooting
 
-### Events not showing on timeline
-
-1. **Check `start` property:**
-   - Must be ISO 8601 format
-   - Must be valid date/time
-
-2. **Check view type:**
-   ```yaml
-   type: chronos-timeline-view  # Required
-   ```
-
-3. **Check required columns:**
-   ```yaml
-   order: [file.name, start, end, color, type]
-   # Must include start, end (for periods), color (for colors)
-   ```
-
-### Colors not appearing
-
-1. **Verify color property:**
-   ```yaml
-   color: "#blue"    # Correct
-   color: "blue"     # May not work (check docs)
-   ```
-
-2. **Include color in view order:**
-   ```yaml
-   order: [file.name, start, end, color]
-   ```
-
-### Grouping not working
-
-1. **Include type in frontmatter:**
-   ```yaml
-   type: "meeting"
-   ```
-
-2. **Use groupBy in view:**
-   ```yaml
-   groupBy: type
-   ```
-
-## Best Practices
-
-### 1. Consistent Date Formats
-
-```yaml
-# ✓ Good - ISO 8601
-start: 2026-02-10T14:30:00
-
-# ✗ Bad - Ambiguous
-start: 2/10/26 2:30 PM
-```
-
-### 2. Meaningful Colors
-
-```yaml
-# ✓ Good - Color by importance/type
-color: "#red"      # Urgent
-color: "#blue"     # Normal
-color: "#green"    # Completed
-
-# ✗ Bad - Random colors
-```
-
-### 3. Descriptive Types
-
-```yaml
-# ✓ Good
-type: "customer-meeting"
-type: "internal-standup"
-type: "project-milestone"
-
-# ✗ Bad
-type: "mtg1"
-type: "event"
-```
-
-## References
-
-- **Official Repository:** https://github.com/clairefro/obsidian-plugin-chronos
-- **ISO 8601 Standard:** https://en.wikipedia.org/wiki/ISO_8601
-
----
-
-**📝 Note:** This reference needs to be expanded with content from the official Chronos Timeline documentation. The patterns above are based on common use cases but should be verified against the official docs.
+- **Range draws as a point or fails:** a hyphen instead of `~` between dates.
+- **Bases item missing:** no `start`, or `start` can't be read. Check the skipped-notes warning.
+- **Items not grouped:** `type` was used for categories. Use `group` or Group by.
+- **A day off for historical dates:** UTC is off. Turn it on or add `> UTC`.

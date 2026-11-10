@@ -627,7 +627,7 @@ views:
 
 ### Chronos Timeline View
 
-Displays events on a timeline (requires Chronos Timeline plugin).
+Displays notes on a timeline (requires the Chronos Timeline plugin). Notes need a `start` property; `end`, `color` (a name without `#`, or hex), `type` (item shape: event, point, period or marker) and `group` are optional. Each view maps note properties to these in **Item Property Sources**. Use Group by for swimlanes.
 
 ```yaml
 views:
@@ -635,23 +635,17 @@ views:
     type: chronos-timeline-view
     filters:
       - scope.contains(this.file)
-    order: [file.name, start, end, color, type]
 ```
 
-**Required properties for timeline:**
-- `start`: Start datetime
-- `end`: End datetime (optional)
-- `color`: Event color (optional)
-
-**Example frontmatter for timeline:**
 ```yaml
 ---
-title: "Customer Sync"
-start: 2026-02-10T14:30:00
-end: 2026-02-10T15:30:00
-color: "#blue"
+start: 2026-02-10T14:30
+end: 2026-02-10T15:30
+color: blue
 ---
 ```
+
+See `chronos-syntax.md` for the full property table and date formats.
 
 ### Gallery View
 
