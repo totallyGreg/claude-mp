@@ -120,3 +120,16 @@ def test_unmapped_link_fields(vault):
 def test_unmapped_link_fields_skipped_without_kplex(vault):
     _, out = run(vault, "--exclude", "Templates", "--days", "Days")
     assert "unmapped_link_fields" not in out["counts"]
+
+
+def test_paired_and_escaped_kplex_entries(vault):
+    # K-Plex stores a pair as one `field/partner` entry; a literal slash in a name is escaped `\/`
+    add_kplex(vault, children=["implemented by/implements"], previous=["supersedes/superseded by"],
+              parents=["📓\\/☀️", "Week"])
+    (vault / "Notes" / "w.md").write_text(
+        '---\nimplemented by: ["[[Tool]]"]\nimplements: "[[Spec]]"\nsuperseded by: "[[New]]"\n'
+        '📓/☀️: "[[Day]]"\nunknown: "[[X]]"\n---\n'
+    )
+    _, out = run(vault, "--exclude", "Templates", "--days", "Days")
+    # only `unknown` is unmapped (Week covers the fixture's daily notes)
+    assert out["unmapped_link_fields_top"] == [["unknown", 1]]
