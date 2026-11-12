@@ -144,6 +144,7 @@ Property 'type' conflict:
 3. Source header: `## Merged from: [[Source Note]]` for provenance
 4. Preserve all headings, links, and formatting from both
 5. Do not deduplicate content — let the user clean up later
+6. When a model writes or restructures the merge (anything other than `merge_notes.py`'s concatenation), run `check_merge_preserved.py --merged <draft> <source> <target>` before writing. Exit 1 lists every line, URL or wikilink the draft dropped or reworded; fix the draft, don't write it. Heading changes are reported but allowed. (In Pi, `vault_write` with `merged_from` runs this check and refuses the write.)
 
 ## Link Redirect Procedure
 

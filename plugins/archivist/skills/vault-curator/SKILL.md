@@ -15,7 +15,7 @@ description: >
   Do NOT use for creating new templates, schemas, Bases queries, or vault structures
   (use vault-architect for those).
 metadata:
-  version: "1.23.5"
+  version: "1.24.0"
   plugin: "archivist"
   stage: "3"
 license: MIT
@@ -229,6 +229,8 @@ Merge source note into target (surviving) note:
    ```
 3. **Review** frontmatter changes (added, conflicts, merged lists) and content append
 4. **Resolve conflicts** — present each to user for decision
+   If you restructure or rewrite the merged content instead of keeping the script's concatenation, check it first:
+   `uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/check_merge_preserved.py --merged <draft> "${SOURCE}" "${TARGET}"` — exit 1 lists dropped or reworded lines; fix the draft before writing.
 5. **Execute merge** (remove `--dry-run`). The script writes the target through `vault-write`. `status: refused` (exit 2) means the target is outside the zones or changed since the script read it, and nothing was written.
 
 ### Redirect Links

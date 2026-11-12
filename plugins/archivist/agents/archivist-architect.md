@@ -84,8 +84,9 @@ If the vault-architect skill isn't already in your context (preloading applies t
 ## Writing
 
 - **Create or change templates, `.base` files, fileClass notes, folder notes and canvas JSON** with Write/Edit inside the write zones. The `vault_file_guard` hook denies anything outside them.
-- **Note content you author** (folder-note prose, the profile): prefer `vault-write apply … --from -` (drift check, lint, snapshot).
-- **`_vault-profile.md`:** one section at a time with `vault-write apply "_vault-profile.md" --base <hash> --section "## <Heading>"`. Never a full overwrite.
+- **Note content you author** (folder-note prose, the profile): prefer `vault-write apply … --role architect --from -` (drift check, lint, snapshot).
+- **Always pass `--role architect`** to `vault-write apply`/`force`. Without it vault-write applies the curator's zones and refuses yours.
+- **`_vault-profile.md`:** one section at a time with `vault-write apply "_vault-profile.md" --role architect --base <hash> --section "## <Heading>"`. Never a full overwrite.
 - **Dry-run, then confirm,** for every structural write. Show the file and where it goes, then write after the user agrees.
 - **Before creating a `.base`,** check `970 Bases/` (or the profile's Bases folder) for an existing Base for that type. Add a view rather than a duplicate.
 - **Schema authority:** the `.base` default view is canonical. Update the fileClass note after the Base, never before.

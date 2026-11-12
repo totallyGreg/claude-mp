@@ -1,0 +1,114 @@
+# Archivist guards its roles itself, in any harness
+
+Status: plan, 2026-11-10; decisions made the same day (§ Decisions); not started. Branch `feature/pi-agents` (uncommitted work, see § What happens to the branch).
+Issue: [#258](https://github.com/totallyGreg/claude-mp/issues/258).
+Builds on: `2026-10-18-001-feat-archivist-role-split-plan.md` (#175), `2026-10-16-001-feat-archivist-vault-write-plan.md`.
+
+## Goal
+
+The archivist's agents run in Pi as well as Claude Code, with exactly the permissions their role needs to do the work, and nothing that can break the vault.
+
+"Breaking the vault" includes edits Obsidian doesn't know about. A file changed behind Obsidian's back (a heredoc, `sed`, a raw file write that renames or moves a note) skips Obsidian's automatic link updates, which leaves dangling links. So **the right tool is part of the permission**:
+
+- Note writes go through `vault-write`.
+- Anything Obsidian must track (rename, move, delete, properties, links) goes through the `obsidian` CLI.
+- Nothing else.
+
+## Problem
+
+The curator/architect split is enforced by Claude Code hooks, not by the archivist:
+
+- `bin/vault-write` doesn't know who calls it. It checks every write against the **union** of all zone keys, so a curator can write `900 📐Templates` through it.
+- The role exists only in `hooks/vault_file_guard.py` and `hooks/obsidian_guard.py` (`agent_type`), and only where Claude Code runs them.
+
+Evidence from running the archivist in Pi on a local model (2026-11-10, sandbox copy of the vault):
+
+| Run | What happened |
+|---|---|
+| Pi + vault-curator skill, file tools only | Merge done in 74 s; edited the canvas the Claude archivist was barred from; silently reworded one line ("AI services" → "LLM services") |
+| Pi archivist subagent + guard extension (`pi/extensions/guard.ts`) | Guard decisions matched Claude's; the merge check refused 5 drafts that dropped text. vault-write needed a `base` hash Pi couldn't get, so the agent worked around it with a new note, then hung on `contact_supervisor` |
+| Same, with `vault_stat` added | After the archivist's writes were refused, the **parent** session delegated to pi-subagents' builtin `worker` (bash, no guard): heredoc over the note, `sed` on the canvas, a typo ("vLLV"), a report claiming success |
+
+## Decisions (2026-11-10)
+
+1. **Curator zones:** the curator writes only to the zones the profile marks as curator zones (`curator_write_zones`, plus `designated_output_zones`). It never writes to architect zones.
+2. **No MCP server.** The `obsidian` CLI stays the agents' tool for vault operations, as decided in #175, with `vault-write` for note content.
+3. **The aim** is the archivist's agents running in a Pi harness with the permissions their work needs, without breaking anything. It is not about guarding the user's own sessions.
+4. **Bash in the vault is blocked**, except the two guarded tools (`obsidian`, `vault-write`). Using the right tool with the right permissions is the point.
+
+## Design
+
+### 1. Role policy, in the archivist's code
+
+| Operation | Tool | curator | architect |
+|---|---|---|---|
+| read, search, backlinks, Bases queries | harness read/grep/find; `obsidian` read commands | yes | yes |
+| hash and zone of a note | `vault-write stat` | yes | yes |
+| write note content | `vault-write apply` | curator zones + output zones | architect zones (folder notes in content zones too, per #175) |
+| properties, rename, move, links | `obsidian` CLI write commands | curator zones | architect zones |
+| merge, redirect links, canvas generation | curator scripts → vault-write | yes, curator zones | — (curator's job) |
+| delete a note | `obsidian` CLI to Obsidian's trash | asks the user | asks the user |
+| any other shell command, or a raw file write in the vault | — | **no** | **no** (architect Edit/Write only inside architect zones) |
+
+The zones stay in `local.md`. The new part is the mapping from role to zone keys, held next to `ZONE_KEYS` in `bin/vault-write`. Both guard hooks import it, so the rules exist once.
+
+### 2. vault-write knows the role
+
+- `--role curator|architect` on `apply` and `force`, defaulting to `ARCHIVIST_ROLE`. With neither set, the curator's rules apply, the narrower of the two.
+- Zone check per role (§ 1). A refusal names the role and its zones.
+- `apply --merged-from <note>...` runs `check_merge_preserved.py` first and refuses a merge that drops or rewords source text.
+- The curator scripts (`merge_notes.py`, `redirect_links.py`, `generate_canvas.py`) pass the role through `_vault_write.py`.
+
+### 3. The guards decide by role, and each harness runs them
+
+The guards are the existing Python files, made role-aware. A harness's job is only to call them and pass the role:
+
+- **`obsidian_guard.py` (shell commands).** In the vault, a command is allowed only if it is an `obsidian` or `vault-write` call.
+  - `obsidian` write commands are checked against the role's zones; delete asks.
+  - `vault-write` gets the role's `--role` added or checked.
+  - Everything else is denied, including pipes and redirections that write files.
+- **`vault_file_guard.py` (Edit/Write):** the architect inside architect zones is allowed; everything else in the vault is denied for archivist roles (use vault-write).
+- **Claude Code:** unchanged wiring (`hooks/hooks.json`). `agent_type` gives the role.
+- **Pi:** one small extension, `archivist/pi/extensions/guard.ts`, which the generated archivist agents load.
+  - On `tool_call` for `bash`, `edit` or `write`, it sends the call to the same two Python guards with the agent's role, and blocks on deny. Pi has no prompts in a subagent, so "ask" blocks too, with the reason.
+  - No zone logic in TypeScript.
+
+### 4. Agents that can't route around the archivist
+
+- The generated Pi agents (`pi_agents.py`) set `allowedAgents` to the archivist's own agents only. A Pi archivist run is started as the `archivist` agent itself (`pi --agent`-style launch, or a parent whose only delegate is `archivist`), never from a general parent that can fall back to the builtin `worker`.
+- `disableBuiltins` (or `agentOverrides.worker.disabled`) in the Pi project settings of the vault removes the builtin `worker`/`scout` there, so nothing in a vault session has unguarded bash.
+- The curator → architect handoff stays: Claude's Agent tool; Pi's nested `subagent` limited to `archivist-architect`.
+
+### 5. Detection: `vault-write audit`
+
+- Every vault-write write appends to a ledger (path, role, hash before and after, time) in `${XDG_STATE_HOME:-~/.local/state}/archivist/ledger.jsonl`. `obsidian` CLI writes are recorded by the guard.
+- `vault-write audit --since <time>` lists vault files changed since then (git working tree and commits) that no ledger entry explains.
+- It runs after every agent run and in the health check. It is how a bypass in any harness gets found, as the `worker` heredoc would have been.
+
+## What happens to the branch (`feature/pi-agents`, uncommitted)
+
+| File | Fate |
+|---|---|
+| `check_merge_preserved.py` + its test | Keep; vault-write calls it (§ 2) |
+| `pi/extensions/guard.ts` (+ role entry files) | Keep and extend: add `bash` → `obsidian_guard.py`; drop `vault_write`/`vault_stat` tools once bash allows the two guarded CLIs |
+| `pi_agents.py` | Keep; Bash maps to Pi `bash` (guarded) instead of being dropped; `allowedAgents` only the plugin's agents |
+| vault-curator docs (protocol rule 6, SKILL merge step, available-scripts) | Keep; point at `vault-write --merged-from` |
+| local-inference SKILL "Plugin agents as Pi subagents" | Keep; reword once the guard lands |
+
+## Tasks
+
+1. Role policy + role-aware `vault-write` (`--role`, per-role zones, `--merged-from`), with tests both ways: curator refused in architect zones, and the reverse.
+2. Role-aware `obsidian_guard.py`: only `obsidian`/`vault-write` in the vault, zone check per role, everything else denied. Tests, including pipes/redirections and `sed -i`.
+3. Pi extension: bash/edit/write → the two guards with the agent's role. `pi_agents.py` maps Bash to guarded `bash`. Vault Pi settings disable builtin agents.
+4. Ledger + `vault-write audit`, with a test that a direct file write shows up and a vault-write write doesn't.
+5. Parity test: the same consolidation on the sandbox vault in Claude Code and in Pi. It passes when:
+   - the merged note passes `check_merge_preserved.py`;
+   - the canvas write (outside curator zones) is refused in both harnesses;
+   - a deliberate `sed`/heredoc bypass is denied in both;
+   - `vault-write audit` is clean after each run.
+
+## Verification
+
+- Unit tests: vault-write roles, the obsidian guard's command allowlist, the audit, the merge check.
+- `claude plugin validate --strict`; agentsmith on both agents; skillsmith on vault-curator, vault-architect and local-inference.
+- The parity test (task 5).

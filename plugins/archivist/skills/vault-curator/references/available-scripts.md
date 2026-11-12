@@ -17,6 +17,7 @@ All scripts use PEP 723 inline metadata for `uv run` compatibility. Run via:
 | `find_related.py` | Find notes related by tags, properties, links, proximity |
 | `find_similar_notes.py` | Detect duplicate/similar notes within scope |
 | `merge_notes.py` | Merge two notes (frontmatter union + content concat) |
+| `check_merge_preserved.py` | Check a model-written merge kept every source line, URL and wikilink (exit 1 = something dropped) |
 | `redirect_links.py` | Vault-wide wikilink replacement after merge |
 | `generate_canvas.py` | Generate JSON Canvas maps of note relationships |
 | `check_collection_health.py` | Audit Collection Folder Pattern health (folder note, Bases file, schema drift) |

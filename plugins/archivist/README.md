@@ -171,6 +171,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary |
 |---------|------|-------|---------|
+| 2.7.0 | 2026-11-12 | [#258](https://github.com/totallyGreg/claude-mp/issues/258) | vault-write knows the writer's role: `--role curator\|architect` (else `$ARCHIVIST_ROLE`, else curator) checks each write against that role's zones only; curator = curator + output zones, architect = all. `stat`/`config` list the roles per path. `--merged-from` refuses a merge that drops or rewords source text (`check_merge_preserved.py`). Writes stamp `date modified` in the vault's Linter format, skipping Linter's ignored folders. Agents pass their role; profile updates go to the architect. vault-architect 1.19.0 (86), vault-curator 1.24.0 (95) |
 | 2.6.5 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | vault-write blocks a raw `<placeholder>` in a note body (Obsidian renders it as an HTML tag; real HTML elements, code, autolinks and Templater pass). `noise_counts.py --list` prints every `broken_frontmatter` path. `broken_frontmatter` now matches Obsidian: YAML 1.2 (ruamel) instead of PyYAML 1.1, unrendered Templater outside templates counts; the gate accepts `----` closing and `{{x}}: y` keys. Profile instructions: names in backticks. vault-architect 1.18.3 (86), vault-curator 1.23.4 (95) |
 | 2.6.4 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | vault-write blocks frontmatter Obsidian can't read: a quoted value not closed on its line, a value starting with `%`/`@`/backtick, a list item on the key's line, text after a closing bracket (Markdown link). Vault audit: 0 false positives over 5,300 notes. New `broken_frontmatter` noise count, using the same rules plus a YAML parse. vault-curator 1.23.3 (95) |
 | 2.6.3 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | cli-patterns: `base:query` index lag after `.base` edits; silent 0-row filters. vault-curator fixes its kplex-ontology reference path (spec compliance FAIL → PASS). vault-curator 1.23.2 (95) |
@@ -248,6 +249,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.19.0 | 2026-11-12 | [#258](https://github.com/totallyGreg/claude-mp/issues/258) | Zone check: always `vault-write apply --role architect`; `stat` lists the roles that may write a path | 74 | 90 | 100 | 100 | 100 | 86 |
 | 1.18.3 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | Vault profile: write names in backticks (a `<company>` placeholder renders as an HTML tag) | 74 | 90 | 100 | 100 | 100 | 86 |
 | 1.18.2 | 2026-11-10 | - | `kplex-ontology.md`: a vault write between preview and apply invalidates the preview | 74 | 90 | 100 | 100 | 100 | 86 |
 | 1.18.1 | 2026-11-10 | - | `kplex-ontology.md`: single-quote `code=`; `assign` needs `partner`; previews expire in 5 minutes, never replay an unseen apply | 74 | 90 | 100 | 100 | 100 | 86 |
@@ -288,6 +290,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 1.24.0 | 2026-11-12 | [#258](https://github.com/totallyGreg/claude-mp/issues/258) | Merges checked with `check_merge_preserved.py` (vault-write `--merged-from`): no dropped or reworded source text | 73 | 100 | 100 | 100 | 100 | 95 |
 | 1.23.4 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `noise_counts.py --list`: every `broken_frontmatter` path; YAML 1.2 to match Obsidian | 73 | 100 | 100 | 100 | 100 | 95 |
 | 1.23.3 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `broken_frontmatter` noise count; definitions avoid a literal wikilink | 74 | 100 | 100 | 100 | 100 | 95 |
 | 1.23.2 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | cli-patterns: `base:query` index lag; silent 0-row filters; kplex-ontology path fixed (spec PASS) | 74 | 100 | 100 | 100 | 100 | 95 |

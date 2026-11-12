@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.18.4"
+  version: "1.19.0"
   plugin: "archivist"
   stage: "3"
 ---
@@ -320,7 +320,7 @@ After architect work, offer curator follow-through to close the loop:
 
 Before writing to any path in the vault, check whether it falls within your allowed zones.
 
-**How to check:** `vault-write stat <path>` reports `in_zone` and `vault-write apply` refuses out-of-zone writes itself. To reason about zones before writing, run `vault-write config` and use its `architect_write_zones` list (vault-relative directory paths; the file is `~/.config/archivist/local.md`). A write is allowed if the target path starts with any listed zone prefix. When multiple zones match, the most-specific (longest) prefix wins.
+**How to check:** `vault-write stat <path>` reports `in_zone` and the `roles` that may write it; `vault-write apply --role architect` refuses out-of-zone writes itself. Always pass `--role architect`: without it vault-write applies the curator's zones. To reason about zones before writing, run `vault-write config` and use its `architect_write_zones` list (vault-relative directory paths; the file is `~/.config/archivist/local.md`). A write is allowed if the target path starts with any listed zone prefix. When multiple zones match, the most-specific (longest) prefix wins.
 
 **Allowed writes:**
 - Template directories, Bases files, script directories, vault infrastructure files (`_vault-profile.md`, system guides), and any path listed in `architect_write_zones`.
