@@ -147,6 +147,7 @@ Run only what the task needs.
    - `obsidian vault=… orphans | wc -l`
    - `check_collection_health.py <vault>` (a full check takes about 0.1s; `--dry-run` only lists candidate folders)
    - Schema drift on the profile's top fileClass: `detect_schema_drift.py <vault> --file-class <class> --summary`. It returns counts and the top issues; `--dry-run` scans nothing.
+   - `vault-write audit --since 1d`: changed files no ledger entry explains (the user's own edits included; ask, don't assume a bypass).
 
    Lead with the highest-impact issue (orphans > 20, unhealthy collections, drift), or say the vault looks healthy.
 

@@ -143,7 +143,11 @@ The guards are the existing Python files, made role-aware. A harness's job is on
    - `pi_agents.py` maps Bash to `bash` only when the agent's extension adds a guarded one; 3 tests. local-inference SKILL: run the archivist outside `pi_sandboxed.sh`; disable builtins in the vault.
    - Checked by loading `guard.ts` through jiti against Pi 1.5.2's `createBashTool`, both roles, real config: same decisions as Claude Code; env present.
    - The vault's `.pi/settings.json` sets `{"subagents": {"disableBuiltins": true}}` (created 2026-11-15, with the user's approval). A live Pi run on the local model is task 5.
-4. Ledger + `vault-write audit`, with a test that a direct file write shows up and a vault-write write doesn't.
+4. **Done (2026-11-15).** Ledger + `vault-write audit`:
+   - `write_note` appends path, role, `hash` and `stable` hash to `${XDG_STATE_HOME:-~/.local/state}/archivist/ledger.jsonl` after the verified write (so the curator scripts are covered too). The guard records the targets of the `obsidian` CLI writes it lets through (`path=`, `file=`, `vars.path`, today's daily note, move/rename destinations), only when the whole command isn't denied.
+   - `vault-write audit --since <1d|2h|30m|ISO>`: files modified since then (mtime walk, dot-folders skipped) that no entry explains, plus uncommitted git deletions. A vault-write entry explains its exact content or its stable hash (a Linter restamp); a CLI entry explains any change to its path. 0.16s on the real vault; 4 unexplained in the last day, all the user's own edits.
+   - Tests: a direct write and a new file show up, a vault-write write doesn't, an edit after vault-write shows up, a Linter restamp doesn't, deletions show up, a CLI write is recorded and explains its change, denied ones aren't recorded. `tests/conftest.py` keeps every test off the real ledger. 271 pass.
+   - `/health` and the curator's Quick Vault Signals run it. **Not done:** running it automatically after every agent run (a `SubagentStart`/`SubagentStop` hook pair, and the Pi equivalent) — not in this task's line; proposed as a follow-up.
 5. Parity test: the same consolidation on the sandbox vault in Claude Code and in Pi. It passes when:
    - the merged note passes `check_merge_preserved.py`;
    - the canvas write (outside curator zones) is refused in both harnesses;

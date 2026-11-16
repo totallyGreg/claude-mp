@@ -15,6 +15,7 @@ Usage:
     vault-write check <file> [--as <note>]
     vault-write apply <note> --from <file|-> [--base HASH] [--section HEADING] [--role ROLE] [--merged-from NOTE...]
     vault-write force <note> --from <file|-> [--base HASH] [--section HEADING] [--role ROLE] [--merged-from NOTE...]
+    vault-write audit [--since 1d|2h|30m|ISO-TIME]
 
 <note> is a vault-relative path ("600 Projects/x/y.md") or an absolute path inside the vault.
 Output is one line of JSON. Exit codes: 0 ok, 1 usage/IO error, 2 refused by policy, 3 lint errors.
@@ -34,6 +35,12 @@ hooks check it matches the agent.
 `date modified`: a write to a note whose frontmatter has the vault's Linter `yaml-timestamp` key is
 stamped with the current time in Linter's format (.obsidian/plugins/obsidian-linter/data.json), skipping
 Linter's ignored folders and files, so it looks like an Obsidian save. No Linter rule, no stamp.
+
+Ledger: every write appends a line (path, role, hashes, time) to
+${XDG_STATE_HOME:-~/.local/state}/archivist/ledger.jsonl; the guard hook adds the targets of the
+`obsidian` CLI writes it lets through. `vault-write audit` lists vault files changed since --since
+that no entry explains (dot-folders skipped), and uncommitted deletions. Your own Obsidian edits
+appear too: the audit says what changed outside the archivist's write paths, not who changed it.
 """
 
 from __future__ import annotations
@@ -709,6 +716,110 @@ def snapshot(root: Path, path: Path) -> tuple[str | None, str | None]:
     return (head.stdout.strip() or None), None
 
 
+# ---------- ledger and audit ----------
+
+def ledger_path() -> Path:
+    base = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
+    return Path(base) / "archivist" / "ledger.jsonl"
+
+
+def record(root: Path, entry: dict) -> str | None:
+    """Append one write to the ledger. Returns a warning rather than raising: the write already happened."""
+    now = datetime.now(timezone.utc)
+    line = {"ts": now.timestamp(), "time": now.isoformat(timespec="seconds"), "vault": str(root), **entry}
+    try:
+        p = ledger_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with p.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(line, ensure_ascii=False) + "\n")
+    except OSError as e:
+        return f"ledger not written ({e}); `vault-write audit` will list this write"
+    return None
+
+
+def parse_since(value: str) -> float:
+    m = re.fullmatch(r"(\d+)([mhd])", value.strip())
+    if m:
+        return datetime.now().timestamp() - int(m.group(1)) * {"m": 60, "h": 3600, "d": 86400}[m.group(2)]
+    try:
+        return datetime.fromisoformat(value).timestamp()  # no offset = local time
+    except ValueError:
+        raise Refused(f"--since {value!r}: use an ISO time (2026-11-15T14:00) or a duration (30m, 2h, 1d)")
+
+
+def ledger_entries(root: Path, since: float) -> dict[str, list[dict]]:
+    """This vault's entries since `since` (with a little slack for clock rounding), by path."""
+    out: dict[str, list[dict]] = {}
+    p = ledger_path()
+    if not p.is_file():
+        return out
+    for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            e = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if e.get("vault") == str(root) and e.get("ts", 0) >= since - 5 and e.get("path"):
+            out.setdefault(nfc(e["path"]), []).append(e)
+    return out
+
+
+def changed_since(root: Path, since: float):
+    """Vault files modified since `since`. Dot-folders (.obsidian, .git, .trash, …) are Obsidian's own state."""
+    for dirpath, dirs, files in os.walk(root):
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
+        for name in files:
+            if name.startswith("."):
+                continue
+            path = Path(dirpath) / name
+            try:
+                mtime = path.stat().st_mtime
+            except OSError:
+                continue
+            if mtime >= since:
+                yield path, mtime
+
+
+def explained(entries: list[dict], data: bytes | None, ignore_keys: list[str]) -> bool:
+    """A CLI write (recorded by the guard) explains any change to its path; a vault-write write explains
+    the content it wrote, or that content after Linter restamped an ignored key."""
+    if any(e.get("via") == "obsidian" for e in entries):
+        return True
+    if data is None:
+        return False
+    h = hashes(data, ignore_keys)
+    return any(e.get("hash") == h["hash"] or e.get("stable") == h["stable"] for e in entries)
+
+
+def cmd_audit(args) -> dict:
+    cfg = load_config()
+    root: Path = cfg["root"]
+    since = parse_since(args.since)
+    entries = ledger_entries(root, since)
+    unexplained, ok = [], 0
+    for path, mtime in changed_since(root, since):
+        rel = nfc(path.relative_to(root).as_posix())
+        try:
+            data = path.read_bytes()
+        except OSError:
+            data = None
+        if explained(entries.get(rel, []), data, cfg["ignore_keys"]):
+            ok += 1
+            continue
+        reason = "changed after vault-write wrote it" if entries.get(rel) else "no ledger entry"
+        unexplained.append({"path": rel, "modified": datetime.fromtimestamp(mtime).isoformat(timespec="seconds"),
+                            "reason": reason})
+    deleted = []
+    status = git(root, "status", "--porcelain", "--no-renames")
+    if status.returncode == 0:
+        for line in status.stdout.splitlines():
+            rel = nfc(line[3:].strip().strip('"'))
+            if "D" in line[:2] and not explained(entries.get(rel, []), None, cfg["ignore_keys"]):
+                deleted.append(rel)
+    return {"ok": True, "action": "audit", "since": datetime.fromtimestamp(since).isoformat(timespec="seconds"),
+            "ledger": str(ledger_path()), "explained": ok, "unexplained": sorted(unexplained, key=lambda u: u["path"]),
+            "deleted_unexplained": sorted(deleted), "clean": not unexplained and not deleted}
+
+
 # ---------- commands ----------
 
 def read_source(src: str) -> str:
@@ -831,6 +942,10 @@ def write_note(cfg: dict, note: str, incoming: str, base: str | None = None, sec
         "snapshot": sha_snap,
         "warnings": warnings,
     }
+    if ledger_warn := record(cfg["root"], {"via": "vault-write", "action": out["action"], "role": role, "path": rel,
+                                           "hash_before": out["hash_before"], "hash": out["hash"],
+                                           "stable": hashes(new_bytes, cfg["ignore_keys"])["stable"]}):
+        warnings.append(ledger_warn)
     if sha_snap and exists:
         out["restore"] = f"git -C {json.dumps(str(cfg['root']))} checkout {sha_snap[:12]} -- {json.dumps(str(path))}"
     return out
@@ -854,6 +969,8 @@ def main(argv=None) -> int:
         w.add_argument("--role", choices=list(ROLE_ZONE_KEYS), help="writer's role (default: $ARCHIVIST_ROLE, else curator)")
         w.add_argument("--merged-from", nargs="+", metavar="NOTE",
                        help="notes merged into this content; refused if it drops or rewords their text")
+    a = sub.add_parser("audit", help="list vault files changed since a time that no ledger entry explains")
+    a.add_argument("--since", default="1d", help="ISO time (local) or a duration: 30m, 2h, 1d (default)")
     args = ap.parse_args(argv)
     try:
         if args.cmd == "config":
@@ -862,6 +979,8 @@ def main(argv=None) -> int:
             out = cmd_stat(args)
         elif args.cmd == "check":
             out = cmd_check(args)
+        elif args.cmd == "audit":
+            out = cmd_audit(args)
         else:
             out = cmd_write(args, forced=args.cmd == "force")
         print(json.dumps(out, ensure_ascii=False))

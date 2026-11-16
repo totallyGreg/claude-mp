@@ -1,6 +1,7 @@
 """Tests for hooks/obsidian_guard.py: decisions for destructive vault commands."""
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -351,3 +352,37 @@ def test_heredocs_that_run_or_write_are_checked(zoned, template):
 
 def test_heredoc_bash_body_checked_without_role(zoned):
     assert decision("bash <<'EOF'\nobsidian delete path=x.md\nEOF")[0] == "deny"
+
+
+# -- ledger: the guard records the CLI writes it lets through ---------------------
+
+VAULT_WRITE = Path(__file__).resolve().parent.parent / "bin" / "vault-write"
+
+
+def ledger_paths():
+    p = Path(os.environ["XDG_STATE_HOME"]) / "archivist" / "ledger.jsonl"
+    return [json.loads(l)["path"] for l in p.read_text().splitlines()] if p.exists() else []
+
+
+@pytest.mark.parametrize("command,recorded", [
+    ("obsidian vault=vault property:set path=Notes/a.md name=x value=y", ["Notes/a.md"]),
+    ("obsidian vault=vault templater:create-from-template template=T.md file=Notes/new.md", ["Notes/new.md"]),
+    ("""obsidian vault=vault quickadd:run choice=Entries vars='{"action":"close","path":"Notes/log.md"}'""", ["Notes/log.md"]),
+    ("obsidian vault=vault move path=Notes/a.md to=Notes/Archive", ["Notes/a.md", "Notes/Archive/a.md"]),
+    ("obsidian vault=vault rename path=Notes/a.md name=b", ["Notes/a.md", "Notes/b.md"]),
+    ("obsidian vault=vault search query=x", []),  # a read
+    ("obsidian vault=vault property:set path=Templates/a.md name=x value=y", []),  # denied for the curator
+    ("obsidian vault=vault property:set path=Notes/a.md name=x value=y; sed -i s/a/b/ {v}/Notes/a.md", []),  # whole command denied
+])
+def test_cli_writes_recorded(zoned, command, recorded):
+    decision(command.replace("{v}", str(zoned)), CURATOR)
+    assert ledger_paths() == recorded
+
+
+def test_recorded_cli_write_explains_the_change(zoned):
+    (zoned / "Notes" / "a.md").write_text("by obsidian\n")
+    (zoned / "Notes" / "b.md").write_text("by a bypass\n")
+    decision("obsidian vault=vault property:set path=Notes/a.md name=x value=y", CURATOR)
+    p = subprocess.run([str(VAULT_WRITE), "audit", "--since", "1h"], capture_output=True, text=True, env=os.environ)
+    out = json.loads(p.stdout)
+    assert [u["path"] for u in out["unexplained"]] == ["Notes/b.md"] and out["explained"] == 1

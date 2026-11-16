@@ -479,3 +479,89 @@ def test_unknown_linter_format_warns_and_keeps_value(linted_vault, tmp_path):
     code, out = run("apply", NOTE, "--from", staged(tmp_path, ORIGINAL.replace("old one", "new one")), "--base", base_of())
     assert code == 0 and any("not updated" in w for w in out["warnings"])
     assert "2026-10-16T20:00Z" in (linted_vault / NOTE).read_text()
+
+
+# -- ledger and audit ------------------------------------------------------------
+
+def backdate(root, days=2):
+    old = __import__("time").time() - days * 86400
+    for p in root.rglob("*"):
+        if p.is_file() and ".git" not in p.parts:
+            os.utime(p, (old, old))
+
+
+def audit(since="1d"):
+    code, out = run("audit", "--since", since)
+    assert code == 0, out
+    return out
+
+
+def ledger_lines():
+    p = Path(os.environ["XDG_STATE_HOME"]) / "archivist" / "ledger.jsonl"
+    return [json.loads(l) for l in p.read_text().splitlines()] if p.exists() else []
+
+
+def test_audit_clean_before_any_change(vault):
+    backdate(vault)
+    out = audit()
+    assert out["clean"] and out["explained"] == 0 and out["unexplained"] == []
+
+
+def test_vault_write_is_recorded_and_explained(vault, tmp_path):
+    backdate(vault)
+    code, w = run("apply", NOTE, "--base", base_of(), "--from", staged(tmp_path, ORIGINAL.replace("old one", "new one")))
+    assert code == 0, w
+    [entry] = ledger_lines()
+    assert entry["via"] == "vault-write" and entry["path"] == NOTE and entry["hash"] == w["hash"]
+    assert entry["role"] == "curator" and entry["vault"] == str(vault.resolve())
+    out = audit()
+    assert out["clean"] and out["explained"] == 1
+
+
+def test_direct_write_shows_up(vault):
+    backdate(vault)
+    (vault / NOTE).write_text(ORIGINAL + "bypass\n")
+    (vault / "Notes" / "new.md").write_text("made by sed or a heredoc\n")
+    out = audit()
+    assert not out["clean"]
+    assert {u["path"]: u["reason"] for u in out["unexplained"]} == {NOTE: "no ledger entry", "Notes/new.md": "no ledger entry"}
+
+
+def test_edit_after_vault_write_shows_up(vault, tmp_path):
+    backdate(vault)
+    assert run("apply", NOTE, "--base", base_of(), "--from", staged(tmp_path, ORIGINAL + "x\n"))[0] == 0
+    (vault / NOTE).write_text(ORIGINAL + "x\nthen a direct edit\n")
+    [u] = audit()["unexplained"]
+    assert u == {**u, "path": NOTE, "reason": "changed after vault-write wrote it"}
+
+
+def test_linter_restamp_after_vault_write_is_explained(vault, tmp_path):
+    backdate(vault)
+    assert run("apply", NOTE, "--base", base_of(), "--from", staged(tmp_path, ORIGINAL + "x\n"))[0] == 0
+    text = (vault / NOTE).read_text()
+    stamped = "\n".join("date modified: 2030-01-01T00:00Z" if l.startswith("date modified:") else l
+                        for l in text.split("\n"))
+    (vault / NOTE).write_text(stamped)
+    assert audit()["clean"]
+
+
+def test_uncommitted_delete_shows_up(vault):
+    backdate(vault)
+    (vault / "Notes" / "Linked.md").unlink()
+    out = audit()
+    assert out["deleted_unexplained"] == ["Notes/Linked.md"] and not out["clean"]
+
+
+def test_dot_folders_and_old_changes_ignored(vault):
+    backdate(vault)
+    (vault / ".obsidian").mkdir()
+    (vault / ".obsidian" / "workspace.json").write_text("{}")
+    assert audit()["clean"]
+    (vault / NOTE).write_text("changed\n")
+    later = __import__("datetime").datetime.now().replace(microsecond=0) + __import__("datetime").timedelta(minutes=1)
+    assert audit(later.isoformat())["clean"]  # the change is before --since
+
+
+def test_audit_rejects_bad_since(vault):
+    code, out = run("audit", "--since", "yesterday-ish")
+    assert code == 2 and "--since" in out["detail"]

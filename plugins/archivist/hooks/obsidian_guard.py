@@ -340,6 +340,42 @@ def check_obsidian(rest: list[str], vw, cfg, role: str | None = None) -> tuple[s
     return None
 
 
+def cli_targets(rest: list[str], vw, cfg) -> list[str]:
+    """Vault paths an allowed `obsidian` call writes, moves or deletes, for the ledger
+    (`vault-write audit`). Paths a QuickAdd choice picks itself aren't known and aren't listed."""
+    i = next((k for k, t in enumerate(rest) if "=" not in t), None)
+    if i is None or not cfg:
+        return []
+    sub, args = rest[i], rest[i + 1:]
+    params = kv(args)
+    path = params.get("path", "").lstrip("/")
+    if sub in DAILY_WRITES or (sub == "task" and "daily" in args):
+        today = (vw.daily_notes(cfg["root"]) or {}).get("today")
+        return [today] if today else []
+    if sub in WRITES or sub == "task" or sub == "delete":
+        return [path or params.get("ref", "").rsplit(":", 1)[0]]
+    if sub == TEMPLATER_CREATE:
+        return [params.get("file", "").lstrip("/")]
+    if sub in ("quickadd:run", "quickadd:run-template"):
+        try:
+            target = json.loads(params.get("vars", "{}")).get("path")
+        except (json.JSONDecodeError, AttributeError):
+            target = None
+        return [target.lstrip("/")] if isinstance(target, str) and target else []
+    if sub == "move" and path and params.get("to"):
+        to = params["to"].strip("/")
+        return [path, to if to.endswith(".md") else f"{to}/{os.path.basename(path)}"]
+    if sub == "rename" and path and params.get("name"):
+        name = params["name"] if os.path.splitext(params["name"])[1] else params["name"] + os.path.splitext(path)[1]
+        return [path, Path(path).with_name(name).as_posix()]
+    return []
+
+
+def record_cli_writes(targets: list[str], vw, cfg) -> None:
+    for rel in dict.fromkeys(t for t in targets if t):
+        vw.record(cfg["root"], {"via": "obsidian", "path": vw.nfc(rel)})
+
+
 def _inside(p: Path, root: Path) -> bool:
     return p == root or root in p.parents
 
@@ -412,7 +448,9 @@ def check_role_shell(toks: list[str], role: str, cwd: Path, root: Path) -> tuple
     return None
 
 
-def check(command: str, vw, cfg, depth: int = 0, role: str | None = None, cwd: Path | None = None) -> tuple[str, str] | None:
+def check(command: str, vw, cfg, depth: int = 0, role: str | None = None, cwd: Path | None = None,
+          writes: list[str] | None = None) -> tuple[str, str] | None:
+    """The decision for `command`; `writes` collects the vault paths its `obsidian` calls write."""
     root = cfg["root"] if cfg else None
     cwd = cwd or Path.cwd()
     command = strip_quoted_heredocs(command)
@@ -431,11 +469,13 @@ def check(command: str, vw, cfg, depth: int = 0, role: str | None = None, cwd: P
             continue
         prog = os.path.basename(toks[0])
         if prog in SHELLS and "-c" in toks[1:-1] and depth < 3:
-            decision = check(toks[toks.index("-c") + 1], vw, cfg, depth + 1, role, cwd)
+            decision = check(toks[toks.index("-c") + 1], vw, cfg, depth + 1, role, cwd, writes)
         elif prog == "eval" and depth < 3:
-            decision = check(" ".join(toks[1:]), vw, cfg, depth + 1, role, cwd)
+            decision = check(" ".join(toks[1:]), vw, cfg, depth + 1, role, cwd, writes)
         elif prog.lower() in OBSIDIAN:
             decision = check_obsidian(toks[1:], vw, cfg, role)
+            if writes is not None and not (decision and decision[0] == "deny"):
+                writes += cli_targets(toks[1:], vw, cfg)
         elif role and root and prog in ("cd", "pushd"):
             target = toks[1] if len(toks) > 1 else "~"
             cwd = (cwd / _expand(target)).resolve()  # later segments run there
@@ -474,7 +514,10 @@ def main() -> int:
         return 0
     vw, cfg = load_vault_write()
     cwd = Path(payload["cwd"]).expanduser().resolve() if payload.get("cwd") else None
-    decision = check(command, vw, cfg, role=role, cwd=cwd)
+    writes: list[str] = []
+    decision = check(command, vw, cfg, role=role, cwd=cwd, writes=writes)
+    if cfg and writes and not (decision and decision[0] == "deny"):
+        record_cli_writes(writes, vw, cfg)  # an "ask" the user declines leaves an entry; the audit errs lenient there
     if decision:
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "PreToolUse",
