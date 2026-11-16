@@ -1,4 +1,4 @@
-// Pi entry for the archivist (curator) role. Tools it adds: vault_stat, vault_write
+// Pi entry for the archivist (curator) role. Tools it adds: bash
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { archivistGuard } from "./guard.ts";
 

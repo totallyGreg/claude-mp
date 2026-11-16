@@ -147,11 +147,13 @@ plugin's `agents/*.md` can run in Pi on a local tier — re-run after the plugin
 ${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/pi_agents.py <plugin-dir> [--model splash/code] [--check]
 ```
 
-It writes `~/.pi/agent/agents/<plugin>/`: same name, prompt and skills; tools
-mapped (Bash, AskUserQuestion, SendMessage dropped); Agent → nested `subagent`
-limited to the plugin's agents; `<plugin>/pi/extensions/<agent>.ts` loaded when
-present. Claude Code hooks don't run in Pi — a plugin that enforces rules with
-hooks needs that extension (archivist: `pi/extensions/guard.ts` calls its hooks).
+It writes `~/.pi/agent/agents/<plugin>/` (same prompt and skills; Agent → `subagent`
+limited to the plugin's agents) and loads `<plugin>/pi/extensions/<agent>.ts`.
+Claude Code hooks don't run in Pi, so that extension calls them. Bash is kept only
+when it adds a guarded `bash` (the archivist's does); otherwise it is dropped.
+Run the archivist outside `pi_sandboxed.sh`, because the sandbox blocks the
+`obsidian` CLI's socket; its guard is the boundary. Set `subagents.disableBuiltins`
+in the vault's `.pi/settings.json` so no unguarded `worker` runs there.
 
 ## Writing the brief
 

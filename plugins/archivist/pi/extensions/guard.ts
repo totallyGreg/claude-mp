@@ -1,42 +1,64 @@
 /**
- * Archivist vault guard for Pi — the Pi side of hooks/vault_file_guard.py.
+ * Archivist guard for Pi: the Pi side of hooks/hooks.json.
  *
- * Claude Code enforces the archivist's write rules with PreToolUse hooks that
- * Pi does not run. This module gives a Pi session the same rules by calling
- * the same code:
+ * Claude Code runs the archivist's PreToolUse hooks; Pi doesn't. This module
+ * sends Pi's tool calls to the same Python guards, with this agent's role as
+ * `agent_type`, so both harnesses decide the same way:
  *
- * - `edit` / `write` calls are passed to hooks/vault_file_guard.py in Claude's
- *   hook payload shape, with this session's archivist role as `agent_type`.
- *   "deny" and "ask" both block (a Pi subagent has nobody to answer a prompt);
- *   the reason goes back to the model.
- * - A `vault_write` tool runs `bin/vault-write apply` — the plugin's one
- *   guarded write path (zones, compare-and-swap, lint, git snapshot).
+ * - `bash` → hooks/obsidian_guard.py. In the vault only `obsidian`,
+ *   `vault-write` and the archivist's scripts run, inside the role's zones.
+ *   This module replaces Pi's bash tool so the check sees exactly the command
+ *   that runs, and so commands get what Claude Code gives a plugin's Bash:
+ *   CLAUDE_PLUGIN_ROOT, the plugin's bin/ on PATH (vault-write), and
+ *   ARCHIVIST_ROLE for this role.
+ * - `edit` / `write` → hooks/vault_file_guard.py.
  *
- * The zone rules live only in the Python files; nothing is duplicated here.
+ * "deny" and "ask" both block: a Pi subagent has nobody to answer a prompt.
+ * The reason goes back to the model. No zone logic lives here.
  * Entry files (archivist.ts, archivist-architect.ts) pick the role.
  */
 
 import { execFile } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { homedir } from "node:os";
+import { delimiter, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
+import { createBashTool, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const PLUGIN = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const GUARD = resolve(PLUGIN, "hooks/vault_file_guard.py");
-const VAULT_WRITE = resolve(PLUGIN, "bin/vault-write");
-const CHECK_MERGE = resolve(PLUGIN, "skills/vault-curator/scripts/check_merge_preserved.py");
+const FILE_GUARD = resolve(PLUGIN, "hooks/vault_file_guard.py");
+const SHELL_GUARD = resolve(PLUGIN, "hooks/obsidian_guard.py");
+const ROLES: Record<string, string> = {
+	"archivist:archivist": "curator",
+	"archivist:archivist-architect": "architect",
+};
 
-function run(cmd: string, args: string[], input: string, signal?: AbortSignal) {
-	return new Promise<{ code: number; stdout: string; stderr: string }>((done) => {
-		const child = execFile(cmd, args, { signal, maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
+type Decision = { permissionDecision?: string; permissionDecisionReason?: string };
+
+function run(cmd: string, args: string[], input: string) {
+	return new Promise<{ code: number; stdout: string }>((done) => {
+		const child = execFile(cmd, args, { maxBuffer: 16 * 1024 * 1024 }, (err, stdout) => {
 			const code = err ? (typeof (err as any).code === "number" ? (err as any).code : 1) : 0;
-			done({ code, stdout: String(stdout), stderr: String(stderr) });
+			done({ code, stdout: String(stdout) });
 		});
 		child.stdin?.end(input);
 	});
+}
+
+/** Ask a Claude-style PreToolUse hook; returns the reason to block, or undefined to allow. */
+export async function decide(guard: string, payload: object): Promise<string | undefined> {
+	const { code, stdout } = await run("python3", [guard], JSON.stringify(payload));
+	let decision: Decision | undefined;
+	try {
+		decision = stdout.trim() ? JSON.parse(stdout).hookSpecificOutput : undefined;
+	} catch {
+		return "The archivist guard returned unreadable output; not running this.";
+	}
+	if (code !== 0 && !decision) return `The archivist guard failed (exit ${code}); not running this.`;
+	if (!decision?.permissionDecision || decision.permissionDecision === "allow") return undefined;
+	const why = decision.permissionDecisionReason ?? "Blocked by the archivist guard.";
+	return decision.permissionDecision === "ask"
+		? `${why} (This needs the user's confirmation, which a Pi subagent can't get: stop and report it.)`
+		: why;
 }
 
 function absolute(raw: string, cwd: string): string {
@@ -44,100 +66,42 @@ function absolute(raw: string, cwd: string): string {
 	return resolve(cwd, expanded);
 }
 
-/** The configured vault's root (vault-write config), else the session directory. */
-async function vaultRoot(cwd: string): Promise<string> {
-	const { stdout } = await run(VAULT_WRITE, ["config"], "");
-	try {
-		return JSON.parse(stdout).vault ?? cwd;
-	} catch {
-		return cwd;
-	}
-}
-
 export function archivistGuard(pi: ExtensionAPI, agentType: string) {
+	const role = ROLES[agentType];
+
 	pi.on("tool_call", async (event, ctx) => {
 		if (event.toolName !== "edit" && event.toolName !== "write") return undefined;
-		const filePath = absolute(String(event.input.path ?? ""), ctx.cwd);
-		const payload = {
+		const reason = await decide(FILE_GUARD, {
 			tool_name: event.toolName === "edit" ? "Edit" : "Write",
-			tool_input: { file_path: filePath },
+			tool_input: { file_path: absolute(String(event.input.path ?? ""), ctx.cwd) },
 			agent_type: agentType,
-		};
-		const { stdout } = await run("python3", [GUARD], JSON.stringify(payload));
-		let decision: { permissionDecision?: string; permissionDecisionReason?: string } | undefined;
-		try {
-			decision = stdout.trim() ? JSON.parse(stdout).hookSpecificOutput : undefined;
-		} catch {
-			return { block: true, reason: `archivist guard returned unreadable output for ${filePath}; not writing.` };
-		}
-		if (!decision?.permissionDecision || decision.permissionDecision === "allow") return undefined;
-		const hint = decision.permissionDecision === "ask" ? " Use the vault_write tool instead." : "";
-		return { block: true, reason: `${decision.permissionDecisionReason ?? "Blocked by the archivist guard."}${hint}` };
+		});
+		return reason ? { block: true, reason } : undefined;
 	});
 
-	pi.registerTool({
-		name: "vault_stat",
-		label: "Vault stat",
-		description:
-			"Hash, line count and zone of a vault note (vault-write stat). Call it when you read a note you will " +
-			"overwrite, and pass the hash as vault_write's `base`: overwriting an existing note needs it.",
-		parameters: Type.Object({
-			note: Type.String({ description: "Vault-relative path of the note" }),
-		}),
-		async execute(_id, params, signal) {
-			const { code, stdout, stderr } = await run(VAULT_WRITE, ["stat", params.note], "", signal);
-			return {
-				content: [{ type: "text", text: (stdout || stderr).trim() || `vault-write exited ${code}` }],
-				details: { exitCode: code },
-			};
+	const spawnHook = ({ command, cwd, env }: { command: string; cwd: string; env: NodeJS.ProcessEnv }) => ({
+		command,
+		cwd,
+		env: {
+			...env,
+			CLAUDE_PLUGIN_ROOT: PLUGIN,
+			ARCHIVIST_ROLE: role ?? "",
+			PATH: [resolve(PLUGIN, "bin"), env.PATH].filter(Boolean).join(delimiter),
 		},
 	});
+	const template = createBashTool(process.cwd(), { spawnHook });
 
 	pi.registerTool({
-		name: "vault_write",
-		label: "Vault write",
-		description:
-			"Write a vault note through the archivist's guarded write path (zone check, drift check, lint, git snapshot). " +
-			"Replaces the whole note, or one heading's section with `section`. Overwriting an existing note needs `base`: " +
-			"the hash vault_stat gave when you read it (the write is refused if the note changed since). Returns " +
-			"vault-write's JSON result; `refused` means nothing was written.",
-		parameters: Type.Object({
-			note: Type.String({ description: "Vault-relative path of the note, e.g. '700 Notes/Tools/X.md'" }),
-			content: Type.String({ description: "Full new content of the note (or of the section)" }),
-			section: Type.Optional(Type.String({ description: "Replace only this heading's section, e.g. '## Summary'" })),
-			base: Type.Optional(Type.String({ description: "Expected current hash; the write is refused if the note differs" })),
-			merged_from: Type.Optional(
-				Type.Array(Type.String(), {
-					description:
-						"For a merge: vault-relative paths of every note merged into this content. The write is refused " +
-						"unless all their lines, URLs and wikilinks are still in it (check_merge_preserved.py).",
-				}),
-			),
-		}),
-		async execute(_id, params, signal, _onUpdate, ctx) {
-			if (params.merged_from?.length) {
-				const dir = mkdtempSync(join(tmpdir(), "archivist-merge-"));
-				const merged = join(dir, "merged.md");
-				writeFileSync(merged, params.content);
-				const root = await vaultRoot(ctx.cwd);
-				const sources = params.merged_from.map((p) => resolve(root, p));
-				const check = await run("python3", [CHECK_MERGE, "--merged", merged, ...sources], "", signal);
-				rmSync(dir, { recursive: true, force: true });
-				if (check.code !== 0) {
-					return {
-						content: [{ type: "text", text: `Refused: the merge drops source text; nothing was written.\n${check.stdout || check.stderr}` }],
-						details: { exitCode: check.code },
-					};
-				}
-			}
-			const args = ["apply", params.note, "--from", "-"];
-			if (params.section) args.push("--section", params.section);
-			if (params.base) args.push("--base", params.base);
-			const { code, stdout, stderr } = await run(VAULT_WRITE, args, params.content, signal);
-			return {
-				content: [{ type: "text", text: (stdout || stderr).trim() || `vault-write exited ${code}` }],
-				details: { exitCode: code },
-			};
+		...template,
+		async execute(id, params, signal, onUpdate, ctx) {
+			const reason = await decide(SHELL_GUARD, {
+				tool_name: "Bash",
+				tool_input: { command: params.command },
+				agent_type: agentType,
+				cwd: ctx.cwd,
+			});
+			if (reason) throw new Error(reason);
+			return createBashTool(ctx.cwd, { spawnHook }).execute(id, params, signal, onUpdate);
 		},
 	});
 }

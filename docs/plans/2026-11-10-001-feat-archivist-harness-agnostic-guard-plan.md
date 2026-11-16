@@ -131,13 +131,18 @@ The guards are the existing Python files, made role-aware. A harness's job is on
 
 ## Tasks
 
-1. **Done (77f0e93).** Role policy + role-aware `vault-write` (`--role`, per-role zones, `--merged-from`), with tests both ways: curator refused in architect zones, and the reverse.
+1. **Done (b336c16).** Role policy + role-aware `vault-write` (`--role`, per-role zones, `--merged-from`), with tests both ways: curator refused in architect zones, and the reverse.
 2. **Done (2026-11-15).** Role-aware `obsidian_guard.py`:
    - **Archivist roles:** only `obsidian`, `vault-write` and the archivist's own scripts in the vault (decisions 5–7); zones from `vault-write`'s `role_zones()`; `--role` or `ARCHIVIST_ROLE=` naming another role denied (checked, not added: vault-write's default is the narrower curator); `$(…)`/backticks and unexpandable variables denied; delete asks, `permanent` denied.
    - **Every caller:** `templater:create-from-template file=` and QuickAdd `vars.path` zone-checked, other QuickAdd runs ask; `move`/`rename` warn when `alwaysUpdateLinks` is off; quoted heredoc bodies are text, not commands, unless fed to a shell or interpreter.
    - **Known limit:** code that builds a vault path at run time (`python3 -c` with `os.path.join`) isn't seen; task 4's audit catches it.
    - Tests both ways (60 new; 254 pass), plus every documented archivist command checked against the real config. vault-architect's setup steps moved from `cat`/`ls`/`grep` on the vault to the read tools and `plugins:enabled`; the curator's delete step from `rm` to `obsidian delete`.
-3. Pi extension: bash/edit/write → the two guards with the agent's role; drop the `vault_write`/`vault_stat` tools. `pi_agents.py` maps Bash to guarded `bash`. The Pi archivist runs outside `pi_sandboxed.sh` (it needs the CLI's socket). Vault Pi settings disable builtin agents.
+3. **Done (2026-11-15).** Pi extension:
+   - `guard.ts` replaces Pi's `bash` with one that sends each command to `obsidian_guard.py` (role as `agent_type`, Pi's `cwd`) inside `execute`, so the checked command is the one that runs. Its `spawnHook` gives commands what Claude Code gives a plugin's Bash: `CLAUDE_PLUGIN_ROOT`, `bin/` on PATH, and `ARCHIVIST_ROLE`. `edit`/`write` still go to `vault_file_guard.py`. Ask blocks, with a "stop and report" reason.
+   - `vault_write`/`vault_stat` dropped. (The old `vault_write` never passed `--role`, so the Pi architect wrote as the curator.)
+   - `pi_agents.py` maps Bash to `bash` only when the agent's extension adds a guarded one; 3 tests. local-inference SKILL: run the archivist outside `pi_sandboxed.sh`; disable builtins in the vault.
+   - Checked by loading `guard.ts` through jiti against Pi 1.5.2's `createBashTool`, both roles, real config: same decisions as Claude Code; env present.
+   - The vault's `.pi/settings.json` sets `{"subagents": {"disableBuiltins": true}}` (created 2026-11-15, with the user's approval). A live Pi run on the local model is task 5.
 4. Ledger + `vault-write audit`, with a test that a direct file write shows up and a vault-write write doesn't.
 5. Parity test: the same consolidation on the sandbox vault in Claude Code and in Pi. It passes when:
    - the merged note passes `check_merge_preserved.py`;

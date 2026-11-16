@@ -17,8 +17,10 @@ Translation:
 - description — its first paragraph (the <example> blocks are for Claude's router).
 - tools — Read→read, Grep→grep, Glob→find,ls, Edit→edit, Write→write.
   Agent → nested `subagent` runs, limited to this plugin's other agents.
-  Bash, AskUserQuestion, SendMessage — no Pi equivalent here; dropped and named
-  in the note. (Bash for Pi goes through pi_sandboxed.sh, never a plain tool.)
+  Bash → bash only when the agent's extension adds a guarded `bash` (the
+  archivist's runs every command through its guard); otherwise dropped, because
+  Bash for Pi goes through pi_sandboxed.sh, never a plain tool.
+  AskUserQuestion, SendMessage — no Pi equivalent here; dropped and named in the note.
 - skills — "plugin:skill" → `skills: skill` + `skillPath: <plugin>/skills`.
 - model — --model (a tier, default splash/code), not the Claude model.
 - extensions — <plugin>/pi/extensions/<agent>.ts when it exists. A first line
@@ -56,8 +58,12 @@ def translate(plugin: Path, src: Path, model: str, siblings: list[str]) -> str:
     fm, body = split(src.read_text())
     name = fm["name"]
     claude_tools = fm.get("tools") or []
+    ext = plugin / "pi" / "extensions" / f"{name}.ts"
+    ext_tools = extension_tools(ext) if ext.exists() else []
     tools, dropped = [], []
     for t in claude_tools:
+        if t == "Bash" and "bash" in ext_tools:
+            continue  # the extension's guarded bash replaces it (added below)
         if t in TOOLS:
             tools += [x for x in TOOLS[t] if x not in tools]
         elif t != "Agent":
@@ -66,8 +72,6 @@ def translate(plugin: Path, src: Path, model: str, siblings: list[str]) -> str:
     if unknown:
         print(f"warning: {src.name}: no Pi mapping for {', '.join(unknown)}; dropped", file=sys.stderr)
 
-    ext = plugin / "pi" / "extensions" / f"{name}.ts"
-    ext_tools = extension_tools(ext) if ext.exists() else []
     tools += [t for t in ext_tools if t not in tools]
 
     skills = [s.split(":", 1)[-1] for s in fm.get("skills") or []]
@@ -100,8 +104,12 @@ def translate(plugin: Path, src: Path, model: str, siblings: list[str]) -> str:
                     "if a step needs the user's decision, stop and report the options instead of guessing.")
     if "Bash" in dropped:
         note.append("- No shell: the skill's scripts and CLIs can't run. Read and search files directly.")
-    if ext_tools:
-        note.append(f"- Extension tools: {', '.join(ext_tools)}. Use them for the writes the instructions do through the CLI.")
+    if "bash" in ext_tools:
+        note.append("- bash runs through the plugin's guard, as in Claude Code: `vault-write` and `${CLAUDE_PLUGIN_ROOT}` work. "
+                    "A command the guard would ask the user about is blocked here: stop and report it.")
+    other_ext = [t for t in ext_tools if t != "bash"]
+    if other_ext:
+        note.append(f"- Extension tools: {', '.join(other_ext)}. Use them for the writes the instructions do through the CLI.")
     if "Agent" in claude_tools:
         note.append(f"- To hand work to another agent, use the subagent tool with one of: {', '.join(others)}.")
     note.append("- A blocked tool call is a policy decision, not an error to work around: report it.")
