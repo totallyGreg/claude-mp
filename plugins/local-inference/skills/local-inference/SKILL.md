@@ -2,7 +2,7 @@
 name: local-inference
 description: This skill should be used when the user says "use pi", "use the local model", "local inference", "run it on the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", "use fm", "extract this receipt", "OCR this image", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON, also from an image) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, exact-spec edits) can run on a local model — via Pi or via Claude Code launched on the local server — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
 metadata:
-  version: "2.4.1"
+  version: "2.5.0"
 compatibility: macOS on Apple silicon; oMLX server on 127.0.0.1:8000; macOS 27+ for `fm`; pi; tmux 3.5+ for pane teammates; uv for the Python scripts
 license: MIT
 ---
@@ -137,6 +137,21 @@ Install into Pi's agent dir, and after a plugin update `--check`, install, then
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/install_pi_extensions.sh [--check]
 ```
+
+## Plugin agents as Pi subagents
+
+With [pi-subagents](https://pi.dev/packages/pi-subagents) installed, a Claude Code
+plugin's `agents/*.md` can run in Pi on a local tier — re-run after the plugin changes:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/pi_agents.py <plugin-dir> [--model splash/code] [--check]
+```
+
+It writes `~/.pi/agent/agents/<plugin>/`: same name, prompt and skills; tools
+mapped (Bash, AskUserQuestion, SendMessage dropped); Agent → nested `subagent`
+limited to the plugin's agents; `<plugin>/pi/extensions/<agent>.ts` loaded when
+present. Claude Code hooks don't run in Pi — a plugin that enforces rules with
+hooks needs that extension (archivist: `pi/extensions/guard.ts` calls its hooks).
 
 ## Writing the brief
 

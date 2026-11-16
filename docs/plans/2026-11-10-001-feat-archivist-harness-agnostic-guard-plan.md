@@ -1,6 +1,6 @@
 # Archivist guards its roles itself, in any harness
 
-Status: plan, 2026-11-10; decisions made the same day (§ Decisions); not started. Branch `feature/pi-agents` (uncommitted work, see § What happens to the branch).
+Status: in progress. Decisions made 2026-11-10 (§ Decisions). Task 1 done in b92b40a (2026-11-11); tasks 2–5 open. Branch `feature/pi-agents` (uncommitted work, see § What happens to the branch).
 Issue: [#258](https://github.com/totallyGreg/claude-mp/issues/258).
 Builds on: `2026-10-18-001-feat-archivist-role-split-plan.md` (#175), `2026-10-16-001-feat-archivist-vault-write-plan.md`.
 
@@ -13,6 +13,24 @@ The archivist's agents run in Pi as well as Claude Code, with exactly the permis
 - Note writes go through `vault-write`.
 - Anything Obsidian must track (rename, move, delete, properties, links) goes through the `obsidian` CLI.
 - Nothing else.
+
+## Design constraint: one archivist, thin harness adapters
+
+The archivist is the vault's arbiter in every harness. Claude Code and Pi must understand it the same way, by reading the same files, not by keeping their own copies.
+
+| Layer | Lives in | Written once? |
+|---|---|---|
+| **Teaches:** agents, skills, references, vault profile | `agents/*.md`, `skills/`, `_vault-profile.md`, `local.md` | Yes. Pi agents are *generated* from `agents/*.md` (`pi_agents.py`) and load the same skills |
+| **Decides:** zones, roles, merge preservation, audit | `bin/vault-write`, `hooks/*.py`, `check_merge_preserved.py` | Yes. Both harnesses call this code |
+| **Translates:** a harness's tool call → the code above, with the role set | Claude Code: `hooks/hooks.json`. Pi: `pi/extensions/*.ts` | One adapter per harness, no logic in it |
+
+**Rule:** anything that decides or teaches lives once in the archivist. An adapter may only translate a tool call and set the role. Vault knowledge or a policy check written in `pi/`, in `pi_agents.py` or in TypeScript belongs in the archivist instead.
+
+What this means for this plan:
+- Tasks 2 and 4 are archivist work, not Pi work. Claude's archivist agents get the same shell policy and audit.
+- Only task 3 is Pi-specific, and it makes the Pi adapter *smaller*. It removes the `vault_write`/`vault_stat` extension tools, which give `vault-write` a second interface that the skills don't teach, and the "No shell" / "extension tools" lines of the generated "Running in Pi" note.
+- `pi_agents.py` stays in local-inference: it converts any plugin's agents and holds no archivist logic.
+- The "Running in Pi" note may only list what Pi lacks. It never restates archivist instructions.
 
 ## Problem
 
@@ -97,7 +115,7 @@ The guards are the existing Python files, made role-aware. A harness's job is on
 
 ## Tasks
 
-1. Role policy + role-aware `vault-write` (`--role`, per-role zones, `--merged-from`), with tests both ways: curator refused in architect zones, and the reverse.
+1. **Done (b92b40a).** Role policy + role-aware `vault-write` (`--role`, per-role zones, `--merged-from`), with tests both ways: curator refused in architect zones, and the reverse.
 2. Role-aware `obsidian_guard.py`: only `obsidian`/`vault-write` in the vault, zone check per role, everything else denied. Tests, including pipes/redirections and `sed -i`.
 3. Pi extension: bash/edit/write → the two guards with the agent's role. `pi_agents.py` maps Bash to guarded `bash`. Vault Pi settings disable builtin agents.
 4. Ledger + `vault-write audit`, with a test that a direct file write shows up and a vault-write write doesn't.

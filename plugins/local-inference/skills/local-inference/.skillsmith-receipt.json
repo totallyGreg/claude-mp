@@ -1,10 +1,10 @@
 {
   "skill_name": "local-inference",
-  "content_hash": "d1f6a96832618a407266edeb43eeae9c31fd63b94a98db445adf0acdee2d20b1",
-  "score": 97,
+  "content_hash": "dda0b114938e6a904ecc95a28c550dea6d69529e452248b6a2640031c6252a1b",
+  "score": 94,
   "metrics": {
-    "conciseness": 98,
-    "complexity": 90,
+    "conciseness": 83,
+    "complexity": 88,
     "spec_compliance": 100,
     "progressive_disclosure": 100,
     "description_quality": 100
