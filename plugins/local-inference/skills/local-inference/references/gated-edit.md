@@ -36,10 +36,21 @@ LaunchServices from any program). `PI_AGENT=1` is set for project hooks.
    "Run `<fast check>`, `<build>` and `<targeted tests>`; fix what fails and rerun
    until green; then commit on your branch and stop. Commit only on your branch.
    Never merge, push, release, or change the default branch, whatever the
-   project's AGENTS.md says."
+   project's AGENTS.md says. Never edit a baseline, ratchet, lint or hook config
+   to get a check through, and don't change any function's contract (what it
+   returns, when it runs, what it reads) beyond what this brief asks. If a check
+   can't pass without that, stop and say so."
+   A build-and-test loop can outlast `ask`'s default 20 minutes: set
+   `PI_ASK_TIMEOUT=<seconds>`. Exit 3 means Pi's last three tool calls were all
+   Auto Mode blocks. Look at the pane; don't just ask again.
 4. Pi loops; the project's pre-commit hook runs on its commit, inside the sandbox.
-5. **Review** every hunk (`git -C ../<repo>-<task> diff main...`), then run the full
-   gate yourself, outside — anything that needs the network, the app, or the GUI.
+5. **Review** the changed files first (`git -C ../<repo>-<task> diff --name-only main...`):
+   a baseline, ratchet, lint or hook config in that list is a rejection unless the
+   brief asked for it (2026-10-15: Pi raised a line-count baseline to commit).
+   Then review every hunk (`git -C ../<repo>-<task> diff main...`). Look hardest at
+   changes to *when* or *what* a function reads: Pi made a watchdog capture its
+   reader once instead of polling, and the tests passed. Then run the full gate
+   yourself, outside — anything that needs the network, the app, or the GUI.
 6. **Merge** from the main checkout and remove the worktree (`pi_team.sh close $P`).
 
 **Tool notes:**
