@@ -1,6 +1,6 @@
 # Archivist guards its roles itself, in any harness
 
-Status: in progress. Decisions made 2026-11-10 (§ Decisions). Task 1 done in b92b40a (2026-11-11); tasks 2–5 open. Branch `feature/pi-agents` (uncommitted work, see § What happens to the branch).
+Status: in progress. Decisions made 2026-11-10 and 2026-11-15 (§ Decisions); upstream review 2026-11-15 (§ Upstream alignment). Task 1 done (2026-11-11); tasks 2–5 open. Branch `feature/pi-agents` (uncommitted work, see § What happens to the branch).
 Issue: [#258](https://github.com/totallyGreg/claude-mp/issues/258).
 Builds on: `2026-10-18-001-feat-archivist-role-split-plan.md` (#175), `2026-10-16-001-feat-archivist-vault-write-plan.md`.
 
@@ -53,6 +53,22 @@ Evidence from running the archivist in Pi on a local model (2026-11-10, sandbox 
 2. **No MCP server.** The `obsidian` CLI stays the agents' tool for vault operations, as decided in #175, with `vault-write` for note content.
 3. **The aim** is the archivist's agents running in a Pi harness with the permissions their work needs, without breaking anything. It is not about guarding the user's own sessions.
 4. **Bash in the vault is blocked**, except the two guarded tools (`obsidian`, `vault-write`). Using the right tool with the right permissions is the point.
+
+## Decisions (2026-11-15), for task 2
+
+5. **"In the vault"** means the working directory is inside the vault, or any argument or redirection target resolves inside it. The working directory matters for Pi, which may be launched from the vault.
+6. **The archivist's own scripts are allowed** alongside `obsidian` and `vault-write`: a command that runs a script under the archivist plugin dir (e.g. `merge_notes.py`, `redirect_links.py`, `generate_canvas.py`). Those scripts already write only through `vault-write` (`test_scripts_write_path.py`), and the guard passes the role to them.
+7. **Read-only shell commands in the vault are denied** too (`cat`, `grep`, `ls` on vault paths): reads go through the harness's own read/grep/find tools, or `obsidian` read commands, as § 1 says. Stricter, but one rule with no list of "safe" commands to maintain.
+8. **Delete asks** (§ 1), instead of today's deny. In Pi it still blocks, because a subagent has nobody to answer.
+
+## Upstream alignment (obsidian-skills 1.2.0, Obsidian CLI 1.15.1; reviewed 2026-11-15)
+
+The pattern is upstream's own. The `obsidian-cli` skill says to use `rename`/`move`, not `mv` or `eval`, so Obsidian updates links. It also says `content=` corrupts backslashes and shouldn't carry more than ~4 KB, so a note body should be written to the file directly. That split is § 1: the CLI for what Obsidian tracks, `vault-write` (the guarded direct write, which upstream has no equivalent of) for bodies. The references were refreshed to match (`cli-patterns.md`, `bases-query-reference.md`; branch `bugfix/archivist-cli-refresh`). What it adds to this plan:
+
+- **Plugin-registered write commands bypass the zone check today**, in Claude Code too. `obsidian_guard.py` zone-checks only `create`/`append`/`prepend`/`property:*`/task updates. `templater:create-from-template file=…` and `quickadd:run-template path=…` need only `vault=` first. Task 2 checks their target against the role's zones. `quickadd:run` (a choice decides its own path) asks.
+- **The sandbox blocks the CLI.** The `obsidian` CLI talks to the app over a unix socket, and `agent_sandbox.sh` allows none. A Pi archivist under `pi_sandboxed.sh` can't run `obsidian`. Task 3 runs the Pi archivist **outside** the sandbox, with the guard as its boundary (it never needs the sandbox's build/test freedom), unless the parity test shows a reason to open the socket instead.
+- **`move`/`rename` can block on a dialog** when Settings → Files and links → *Automatically update internal links* is off (`alwaysUpdateLinks` missing or false in `.obsidian/app.json`). An agent, or a Pi subagent, hangs. The guard asks (Claude) or denies with that reason (Pi) when the setting is off.
+- **Rule for choosing the tool**, already in `cli-patterns.md`: CLI for properties, move/rename/delete, Templater/QuickAdd creation and short appends without backslashes; `vault-write` for any body, section, merge, or content with backslashes or over ~4 KB. `vault-write` must not grow CLI features.
 
 ## Design
 
@@ -115,9 +131,9 @@ The guards are the existing Python files, made role-aware. A harness's job is on
 
 ## Tasks
 
-1. **Done (b92b40a).** Role policy + role-aware `vault-write` (`--role`, per-role zones, `--merged-from`), with tests both ways: curator refused in architect zones, and the reverse.
-2. Role-aware `obsidian_guard.py`: only `obsidian`/`vault-write` in the vault, zone check per role, everything else denied. Tests, including pipes/redirections and `sed -i`.
-3. Pi extension: bash/edit/write → the two guards with the agent's role. `pi_agents.py` maps Bash to guarded `bash`. Vault Pi settings disable builtin agents.
+1. **Done (77f0e93).** Role policy + role-aware `vault-write` (`--role`, per-role zones, `--merged-from`), with tests both ways: curator refused in architect zones, and the reverse.
+2. Role-aware `obsidian_guard.py`, archivist roles only (no role = today's behaviour): only `obsidian`, `vault-write` and the archivist's own scripts in the vault (decisions 5–7); zone check per role from `vault-write`'s `role_zones()`, now also on `templater:create-from-template` and `quickadd:run-template` targets (`quickadd:run` asks); `--role` added to or checked on `vault-write` calls; delete asks; `move`/`rename` ask or deny when `alwaysUpdateLinks` is off. Tests both ways, including pipes, redirections, heredocs and `sed -i`, and that a session without a role behaves as before.
+3. Pi extension: bash/edit/write → the two guards with the agent's role; drop the `vault_write`/`vault_stat` tools. `pi_agents.py` maps Bash to guarded `bash`. The Pi archivist runs outside `pi_sandboxed.sh` (it needs the CLI's socket). Vault Pi settings disable builtin agents.
 4. Ledger + `vault-write audit`, with a test that a direct file write shows up and a vault-write write doesn't.
 5. Parity test: the same consolidation on the sandbox vault in Claude Code and in Pi. It passes when:
    - the merged note passes `check_merge_preserved.py`;
