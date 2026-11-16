@@ -4,6 +4,8 @@
 #   pi_team.sh spawn [tier] [dir] [name]   split a pane beside this one running `pi --model omlx/<tier>`
 #                                           (default tier code, dir $PWD, name pi-<tier>); prints the pane id
 #   pi_team.sh ask <pane> <task...>        type the task into that pane, wait, print Pi's final answer
+#                                           (exit 1: no answer in PI_ASK_TIMEOUT s, default 1200;
+#                                            exit 3: Pi's last 3 tool calls were all Auto Mode blocks)
 #   pi_team.sh close <pane>                kill the pane and delete its session files
 #
 # Answers are read from Pi's session JSONL (complete and structured), not scraped
@@ -49,9 +51,10 @@ ask)
   tmux send-keys -t "$pane" -l -- "$task"
   sleep 1
   tmux send-keys -t "$pane" Enter
-  for i in {1..400}; do
+  timeout=${PI_ASK_TIMEOUT:-1200}
+  for i in {1..$(( (timeout + 2) / 3 ))}; do
     sleep 3
-    python3 - "$sd" "$before" <<'PY' && exit 0
+    python3 - "$sd" "$before" <<'PY'
 import glob, json, sys
 rows = [json.loads(l) for f in glob.glob(sys.argv[1] + "/**/*.jsonl", recursive=True) for l in open(f)]
 msgs = [r["message"] for r in rows if r.get("type") == "message"]
@@ -61,14 +64,24 @@ if len(users) <= int(sys.argv[2]):
 tail = msgs[users[-1] + 1:]
 done = [m for m in tail if m["role"] == "assistant" and m.get("stopReason") in ("stop", "length", "error", "aborted")]
 if not done:
+    # A blocked call reads "[auto-mode <tag> block] BLOCKED — …" (pi-verdict). Three
+    # in a row with no answer is a stall, not progress (2026-10-16: ~2 h of this).
+    results = [m for m in tail if m["role"] == "toolResult"][-3:]
+    text = lambda m: "".join(b.get("text", "") for b in m.get("content", []) if b.get("type") == "text")
+    if len(results) == 3 and all(text(m).startswith("[auto-mode ") and "] BLOCKED" in text(m)[:40] for m in results):
+        print("pi_team: Pi's last 3 tool calls were blocked by Auto Mode — check the pane:", file=sys.stderr)
+        for m in results:
+            print(f"  {m.get('toolName')}: {text(m)[:200]}", file=sys.stderr)
+        sys.exit(3)
     sys.exit(1)
 tools = [m["toolName"] for m in tail if m["role"] == "toolResult"]
 m = done[-1]
 print(f"[{m.get('model')} · tools: {', '.join(tools) or 'none'} · stop: {m['stopReason']}]")
 print("".join(b.get("text", "") for b in m["content"] if b.get("type") == "text").strip())
 PY
+    rc=$?; (( rc == 1 )) || exit $rc
   done
-  echo "pi_team: no answer after 20 minutes — check the pane" >&2; exit 1
+  echo "pi_team: no answer after $timeout s (PI_ASK_TIMEOUT) — check the pane" >&2; exit 1
   ;;
 close)
   pane=$1
@@ -77,6 +90,6 @@ close)
   [[ -n $sd && $sd == */pi-team.* ]] && rm -r -- "$sd"
   ;;
 *)
-  sed -n '2,12p' "$0"; exit 2
+  sed -n '2,14p' "$0"; exit 2
   ;;
 esac

@@ -2,7 +2,7 @@
 name: local-inference
 description: This skill should be used when the user says "use pi", "use the local model", "local inference", "run it on the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", "use fm", "extract this receipt", "OCR this image", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON, also from an image) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, exact-spec edits) can run on a local model — via Pi or via Claude Code launched on the local server — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
 metadata:
-  version: "2.4.0"
+  version: "2.4.1"
 compatibility: macOS on Apple silicon; oMLX server on 127.0.0.1:8000; macOS 27+ for `fm`; pi; tmux 3.5+ for pane teammates; uv for the Python scripts
 license: MIT
 ---
@@ -175,5 +175,6 @@ Rerun `pi_sandboxed.sh self-test` (`--live`: the real Pi) when it, macOS or Pi
 change. The recipe: **prepare** the worktree outside (deps,
 warm build) → **spawn** with `--write <build dir>` → **brief** with the exact
 check/build/test commands and "commit only on your branch; never merge, push or
-release" → **review** every hunk and run the full gate yourself → **merge**.
+release; never edit baselines or change contracts" → **review** every hunk and
+run the full gate yourself → **merge**.
 App builds go through `sandbox_build_broker.sh`, outside. Details: [references/gated-edit.md](references/gated-edit.md).

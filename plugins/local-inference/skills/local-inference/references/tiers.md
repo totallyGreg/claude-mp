@@ -74,6 +74,13 @@ Machine: Apple M5 Pro, 64 GB unified memory.
    27B: 16 × 2 × 4 × 256 × 2 = 64 KB/token → 8 GB at 128K.
    Rule: model weights + KV at the tier's context for **every tier model loaded
    together** should stay under ~75% of RAM (oMLX's soft memory threshold is 0.85).
+   That rule is a budget, not the macOS limit. On macOS 26+ the GPU gets about
+   51.84 GiB (~81%) of a 64 GB Mac by default; the "two-thirds / 75%" figures
+   in older guides are from earlier releases
+   ([2026-11 measurements](https://pub.towardsai.net/best-local-llms-for-coding-on-your-mac-in-november-2026-16gb-to-128gb-picks-68625d99becd);
+   `iogpu.wired_limit_mb` is 0 = default here). The limit that binds first here
+   is oMLX 0.7's memory guard, about 38/40 GB soft/hard: see derivation 8's
+   "Memory ceiling".
 3. **Thinking by task.** Mechanical work gains nothing from thinking and pays
    latency → off. Agentic loops need some reasoning per step but many steps →
    bounded budget. One-off hard questions → large budget.
@@ -122,7 +129,7 @@ Machine: Apple M5 Pro, 64 GB unified memory.
    53.5, Terminal Bench 2.1 73.0 vs 63.4, IFBench 79.5 vs 69.1). Cost: dense
    27B decodes ~5–6× slower than the A3B MoE (~18 vs ~103 tok/s without MTP),
    and a second model is resident (17 GB + 8 GB KV at 128K; with the 35B that
-   is ~47.5 GB, at the 75% ceiling). `Qwen3.8-Flash-Next` is a 180B MoE
+   is ~47.5 GB, at the 75% budget in derivation 2). `Qwen3.8-Flash-Next` is a 180B MoE
    (106 GB at oQ4e) — does not fit 64 GB. The earlier Qwen3.8-27B-8bit's
    ~3 tok/s was 8-bit dense without MTP, not a property of 3.8.
    → The dense 3.8-27B is the better brain for `deep` (and arguably `code`);
@@ -591,9 +598,15 @@ add an explicit verification step and tell the user what you checked.
      side-car), not a model to serve.
 2. **Measure** against the incumbent, with other models unloaded
    (`POST /admin/api/models/<m>/unload`): `scripts/bench_decode.py <real file> <old> <new>`
-   for decode speed (prefill excluded, median of 3), `scripts/eval_decide.py`
-   for decide. Enable MTP on the new model and bench again. Record both in
-   "How the choices were derived".
+   for prefill and decode speed (medians of 3; decode excludes prefill),
+   `scripts/eval_decide.py` for decide. Enable MTP on the new model and bench
+   again. Record both in "How the choices were derived". Use a real file of
+   ~30K tokens for `fast`/`code`: an agent's prompt is long and is re-read on
+   every cache miss, so **prefill, not decode, decides those tiers**. A dense
+   27B took 35.6 s to its first token at 32K, against 6.6 s for a 3B-active
+   MoE on the same Mac
+   ([oMLX board, 2026-11-07](https://pub.towardsai.net/best-local-llms-for-coding-on-your-mac-in-november-2026-16gb-to-128gb-picks-68625d99becd)).
+   A higher coding score doesn't make up for that wait.
 3. **Check memory** with the KV formula above for the tier's context.
 4. **Log in to the admin API** (the main API key grants admin; sub-keys don't):
    ```bash
@@ -614,13 +627,34 @@ add an explicit verification step and tell the user what you checked.
    `<NewModel>:<tier>` and the model part of its `name` (keep the `<tier> — `
    prefix); set `contextWindow`/`maxTokens` to the profile's values and
    `reasoning` to the profile's `enable_thinking`.
-7. **Verify** — both must pass:
+7. **Verify tool calls are parsed** (fast/code/deep): oMLX picks a tool-call
+   parser per model family. A wrong one returns the call as plain text or an
+   empty reply, and that looks like a weak model, not a server problem
+   ([same article](https://pub.towardsai.net/best-local-llms-for-coding-on-your-mac-in-november-2026-16gb-to-128gb-picks-68625d99becd):
+   one setup scored 88% with a parser shim on and 65% with it off). PONG
+   doesn't exercise the parser. Run this 10 times, with `$KEY` from step 4:
+   ```bash
+   M=<NewModel>:<tier>; pass=0
+   for i in {1..10}; do
+     curl -s -m 180 http://127.0.0.1:8000/v1/chat/completions -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' -d '{
+       "model": "'$M'", "stream": false,
+       "messages": [{"role": "user", "content": "What is the weather in Paris? Use the tool."}],
+       "tools": [{"type": "function", "function": {"name": "get_weather", "description": "Get the current weather for a city",
+         "parameters": {"type": "object", "properties": {"city": {"type": "string"}}, "required": ["city"]}}}]}' \
+     | jq -e '.choices[0].finish_reason == "tool_calls" and (.choices[0].message.tool_calls[0].function.arguments | fromjson | .city | type == "string")' >/dev/null && pass=$((pass+1))
+   done; echo "$M: $pass/10"
+   ```
+   Anything under 10/10 blocks the swap: check `server.log` for parse errors
+   before blaming the model. 2026-11-15: `Qwen3.6-35B-A3B-oQ4e-mtp` passed
+   10/10 on `:fast` (14 s) and on `:code` (17 s). A pass is a smoke test only,
+   because real agents send dozens of tools over many turns.
+8. **Verify** — both must pass:
    ```bash
    pi --offline --list-models omlx
    pi -p --no-session -nc -ns --model omlx/<tier> --tools read "Reply with exactly: PONG" </dev/null
    grep 'Chat completion' ~/.omlx/logs/server.log | tail -1   # model= and max_tokens= match the tier
    ```
-8. **Retire** the old profile (`DELETE $B/api/models/<OldModel>/profiles/<tier>`)
+9. **Retire** the old profile (`DELETE $B/api/models/<OldModel>/profiles/<tier>`)
    — for decide, immediately: `decide.py` fails while two `:decide` IDs exist.
    Repoint oMLX's `omlx launch` defaults (see Current mapping). Once nothing
    names the old model (`grep -rl <OldModel> ~/.omlx/*.json ~/.pi/agent`),
