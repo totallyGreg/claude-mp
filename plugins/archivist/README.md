@@ -238,7 +238,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 ### Current Metrics
 
-**Score: 86/100** (Good) — 2026-11-09
+**Score: 88/100** (Good) — 2026-11-15
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -251,7 +251,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 | 1.18.3 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | Vault profile: write names in backticks (a `<company>` placeholder renders as an HTML tag) | 74 | 90 | 100 | 100 | 100 | 86 |
 | 1.18.2 | 2026-11-10 | - | `kplex-ontology.md`: a vault write between preview and apply invalidates the preview | 74 | 90 | 100 | 100 | 100 | 86 |
 | 1.18.1 | 2026-11-10 | - | `kplex-ontology.md`: single-quote `code=`; `assign` needs `partner`; previews expire in 5 minutes, never replay an unseen apply | 74 | 90 | 100 | 100 | 100 | 86 |
-| 1.18.0 | 2026-11-09 | [#246](https://github.com/totallyGreg/claude-mp/issues/246) | `kplex-ontology.md` § Agent API: the allowed K-Plex calls, their guard decisions, and how to read the envelope (coverage, truncation, partial results) | 74 | 90 | 100 | 100 | 100 | 86 |
+| 1.18.0 | 2026-11-15 | [#246](https://github.com/totallyGreg/claude-mp/issues/246) | `kplex-ontology.md` § Agent API: the allowed K-Plex calls, their guard decisions, and how to read the envelope (coverage, truncation, partial results) +v1.18.4 (bases-query-reference.md refreshed from obsidian-skills 1.2.0 and the official help source: `file.inlinks`/`file.outlinks` corrected to `file.links`/`file.backlinks`/`file.hasLink()` (the old names are Dataview fields), kanban view + `groupOrder`, `note.` prefix for `displayName`; sources repointed to obsidianmd). | 74 | 90 | 100 | 100 | 100 | 88 |
 | 1.17.0 | 2026-11-09 | - | K-Plex replaces ExcaliBrain: new `kplex-ontology.md` (roles, reading the vault's field lists read-only, ExcaliBrain import), `excalibrain-metadata.md` removed. `chronos-syntax.md` rewritten from the Chronos 5.1.3 README (the old one was an unverified TODO stub with the wrong syntax); Bases Chronos section fixed (`type` is item shape, colors without `#`, Item Property Sources) | 74 | 90 | 100 | 100 | 100 | 86 |
 | 1.16.0 | 2026-10-18 | [#179](https://github.com/totallyGreg/claude-mp/issues/179) | Re-profiling starts from `profile_drift` and updates only the affected sections, then sets `last_updated`. Score 84→83 (Concs 77→75 from added text). | 75 | 90 | 100 | 100 | 100 | 83 |
 | 1.15.0 | 2026-10-18 | [#175](https://github.com/totallyGreg/claude-mp/issues/175), [#224](https://github.com/totallyGreg/claude-mp/issues/224) | Runs inside `archivist-architect`. Write Boundaries now allow structural files inside content zones (folder notes, fileClass notes), matching the file guard; Vault Profiling is handed off by the curator. Score 84 (no change). Examples start every CLI call with `vault=`. | 77 | 90 | 100 | 100 | 100 | 84 |
@@ -292,7 +292,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 | 1.23.3 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `broken_frontmatter` noise count; definitions avoid a literal wikilink | 74 | 100 | 100 | 100 | 100 | 95 |
 | 1.23.2 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | cli-patterns: `base:query` index lag; silent 0-row filters; kplex-ontology path fixed (spec PASS) | 74 | 100 | 100 | 100 | 100 | 95 |
 | 1.23.1 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | `unmapped_link_fields` reads K-Plex paired and escaped role-list entries | 74 | 100 | 100 | 100 | 100 | 95 |
-| 1.23.0 | 2026-11-10 | - | Relationship Fields rule; `unmapped_link_fields` noise count (K-Plex-normalized names, top-10 list, `--link-exempt`) | 74 | 100 | 100 | 100 | 100 | 95 |
+| 1.23.0 | 2026-11-15 | - | Relationship Fields rule; `unmapped_link_fields` noise count (K-Plex-normalized names, top-10 list, `--link-exempt`) +v1.23.5 (cli-patterns.md refreshed for Obsidian 1.15.1 and obsidian-skills 1.2.0: CLI-or-vault-write rule, `templater:create-from-template` and `quickadd:run verify`, `content=` backslash and ~4 KB limits, dots in names, the `move`/`rename` link dialog (`alwaysUpdateLinks`), sandbox socket; sources repointed to obsidianmd). | 73 | 100 | 100 | 100 | 100 | 95 |
 | 1.22.0 | 2026-11-09 | [#246](https://github.com/totallyGreg/claude-mp/issues/246) | `cli-patterns.md`: `eval` stays denied except single K-Plex API calls of the documented shape | 76 | 100 | 100 | 100 | 100 | 95 |
 | 1.21.0 | 2026-11-09 | [#237](https://github.com/totallyGreg/claude-mp/issues/237) | Noise Counts: `noise_counts.py` counts orphans (minus excluded folders and daily notes), daily notes with a broken or unrendered `Week` link, and stale names; reads settings and baselines from `_vault-profile.md` `## Noise` and returns the updated section for `vault-write` | 76 | 100 | 100 | 100 | 100 | 95 |
 | 1.20.0 | 2026-11-08 | [#237](https://github.com/totallyGreg/claude-mp/issues/237) | Stale Names: `check_stale_names.py` (rename ratchet) — `formerly:` registry, history exemptions (incl. `historical: true`), baseline that only falls; repo mode via a committed `--registry` file; documented in `available-scripts.md`. Score 95 (−1, concision). | 77 | 100 | 100 | 100 | 100 | 95 |

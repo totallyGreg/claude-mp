@@ -1,7 +1,7 @@
 {
   "skill_name": "vault-architect",
-  "content_hash": "853b321195fa44ce128ccbec4a86d0b83031a14a4cc03ab433238fc552dbbeff",
-  "score": 86,
+  "content_hash": "5ed134f1671a088fa1926c765b8bfed59387197f39f94e324f04c47339de8176",
+  "score": 88,
   "metrics": {
     "conciseness": 74,
     "complexity": 90,
@@ -10,5 +10,5 @@
     "description_quality": 100
   },
   "tool_version": "6.13.1",
-  "date": "2026-11-10"
+  "date": "2026-11-15"
 }

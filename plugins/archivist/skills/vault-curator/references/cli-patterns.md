@@ -1,10 +1,10 @@
 ---
-last_verified: 2026-10-18
+last_verified: 2026-11-15
 sources:
   - type: github
-    repo: "kepano/obsidian-skills"
-    paths: ["skills/obsidian-cli/", "skills/obsidian-markdown/", "skills/obsidian-bases/", "skills/json-canvas/", "skills/defuddle/"]
-    description: "All 5 obsidian-skills the archivist delegates to — track for new capabilities"
+    repo: "obsidianmd/obsidian-skills"
+    paths: ["plugins/obsidian/skills/obsidian-cli/", "plugins/obsidian/skills/obsidian-markdown/", "plugins/obsidian/skills/obsidian-bases/", "plugins/obsidian/skills/json-canvas/", "plugins/obsidian/skills/defuddle/"]
+    description: "The 5 obsidian-skills the archivist delegates to (plugin obsidian@obsidian-skills 1.2.0; moved from kepano/obsidian-skills skills/ in 1.1.0). Not delegated: obsidian-headless (Sync/Publish only, no note edits) and knap (overlaps Templater)"
   - type: web
     url: "https://obsidian.md/help/cli"
     description: "Official Obsidian CLI reference"
@@ -16,7 +16,7 @@ sources:
 
 # CLI Gotchas for Vault Curator
 
-Checked against `obsidian help` on Obsidian 1.14.4 (macOS). For the full command list run `obsidian help` or `obsidian help <command>`. The [obsidian-skills](https://github.com/kepano/obsidian-skills) `obsidian-cli` skill also covers it. This file lists vault-specific caveats and decision rules.
+Checked against `obsidian help` on Obsidian 1.15.1 (macOS; measurements below say which version they were taken on). For the full command list run `obsidian help` or `obsidian help <command>`. The [obsidian-skills](https://github.com/obsidianmd/obsidian-skills) `obsidian-cli` skill also covers it. This file lists vault-specific caveats and decision rules.
 
 ## CLI vs File Tools
 
@@ -46,7 +46,7 @@ Rules for the archivist:
   - `Vault not found.` → stop: the config and Obsidian disagree.
   - `Command "…" not found` → the vault was just opened (and focused); retry once.
 - The guard hook denies CLI writes whose `vault=` is missing, misplaced (after the subcommand) or names another vault.
-- Plugin-registered commands (`quickadd:run`, `templater:…`) follow the same rules. The guard can't list them, so their callers must pass `vault=` first.
+- Plugin-registered commands (`quickadd:run`, `templater:…`) follow the same rules. The guard can't list them, so their callers must pass `vault=` first. Their output path is **not yet zone-checked** by the guard ([#258](https://github.com/totallyGreg/claude-mp/issues/258)): give them a target inside your zones.
 - Two known vaults with the same folder name are ambiguous by name. Rename one in Obsidian.
 
 ## Read the Output, Not the Exit Status
@@ -66,8 +66,14 @@ Rules for the archivist:
 | A list property | add `type=list` (otherwise the value is stored as text); commas can't be escaped inside a list value |
 | Append a line to today's daily note | `obsidian vault=… append path="<daily_notes.today>" content="…"` (path from `vault-write config`) |
 | Move or rename a note | `obsidian vault=… move path="…" to="…"` / `… rename path="…" name=…`. The guard asks first |
+| A new note from a Templater template (runs the template's code, like Obsidian does) | `obsidian vault=… templater:create-from-template template="<template path>" file="<new note path>"` |
+| Run a QuickAdd choice | `obsidian vault=… quickadd:run choice="…" verify`: `verify` reports the file and its `effect` (created/changed/unchanged/unknown). Without it, `ok:true` only means the choice didn't abort |
+
+**CLI or `vault-write`:** use the CLI for what Obsidian must track or render (properties, move, rename, Templater/QuickAdd creation) and for short appends. Use `vault-write` for any note body: whole note, a section, a merge, and anything with a backslash or over ~4 KB (below).
 
 - **`create … overwrite` is denied** by the guard. Use `vault-write apply` (whole note or `--section`). Outside the archivist, `content=` turns `\n` into newlines and empty shell output wipes the note.
+- **`content=` converts every `\n` and `\t`, with no escape** (per the upstream skill). Text with a backslash — LaTeX `\theta`, a path `C:\notes`, a regex — is corrupted, on `append` and `prepend` too. Upstream's advice for that, and for content over ~4 KB, is to write the file directly: here that means `vault-write`.
+- **A dot in a note name reads as an extension** (per the upstream skill). Include `.md` when a name has a dot: `name="Meeting 2026.11.06.md"`, `to="Archive 2026.10/Note.md"`.
 - **`create` opens nothing by default.** `open`/`newtab` are opt-in. The old `silent` flag is gone, and an unknown flag is silently ignored.
 - **`create` has no `folder=`.** Pass the full `path=` instead. Parent folders may need to exist first.
 - **`create` with `template=` may ignore `path=`.** The file lands in the template's configured folder. Verify with `obsidian vault=… files folder=…` afterwards.
@@ -136,11 +142,13 @@ filters:
 obsidian vault="Notes" move path="Inbox/Note Title.md" to="New/Folder"
 ```
 
+**`move` / `rename` can wait on a dialog** (per the upstream skill). When other notes link to the file and Settings → Files and links → *Automatically update internal links* is off, Obsidian asks in a dialog and the command blocks until someone answers. An agent with no one watching, or a Pi subagent, hangs. Check the setting is on (`"alwaysUpdateLinks": true` in the vault's `.obsidian/app.json`; Obsidian leaves the key out until it's switched on, so a missing key means off) before a batch of moves.
+
 ## Error Handling
 
 | Symptom | Likely cause | Action |
 |---------|-------------|--------|
-| `The CLI is unable to find Obsidian` | Obsidian app not running | Ask the user to open it, or fall back to file tools for reads |
+| `The CLI is unable to find Obsidian` | Obsidian app not running — or, in a sandboxed shell, the sandbox blocked the CLI's local socket (e.g. local-inference's `agent_sandbox.sh` allows no unix sockets) | Ask the user to open it; in a sandbox, run the CLI outside it. Reads can fall back to file tools |
 | Output starts with `Error:` (exit 0) | Bad path, unknown command, missing plugin | Treat as failure; check the path with `obsidian files` |
 | `Command "x" not found` | Typo, CLI too old, or plugin not loaded yet | `obsidian help`; retry once after a warm-up call |
 | Result is about the wrong note | Missing/mistyped `path=` fell back to the open note | Re-run with an exact `path=` |

@@ -1,13 +1,17 @@
 ---
-last_verified: 2026-04-28
+last_verified: 2026-11-15
 sources:
   - type: web
     url: "https://help.obsidian.md/bases/syntax"
     description: "Official Obsidian Bases query syntax documentation"
   - type: github
-    repo: "kepano/obsidian-skills"
-    paths: ["skills/obsidian-bases/"]
-    description: "obsidian-bases skill — Bases query patterns and capabilities"
+    repo: "obsidianmd/obsidian-help"
+    paths: ["en/Bases/"]
+    description: "Source of the official Bases help pages (the web page renders with JavaScript; read these instead)"
+  - type: github
+    repo: "obsidianmd/obsidian-skills"
+    paths: ["plugins/obsidian/skills/obsidian-bases/"]
+    description: "obsidian-bases skill — Bases query patterns and capabilities (moved from kepano/obsidian-skills skills/ in 1.1.0)"
 ---
 
 # Bases Query Reference
@@ -334,8 +338,13 @@ file.ctime      # Creation time (ISO 8601)
 file.mtime      # Modified time (ISO 8601)
 
 # Links
-file.inlinks    # Array of files linking to this file
-file.outlinks   # Array of files this file links to
+file.links      # Internal links in this file, frontmatter included
+file.backlinks  # Files linking to this file. Slow in large vaults and doesn't
+                # refresh when the vault changes: prefer reversing the lookup
+                # with file.links / file.hasLink()
+file.embeds     # Embeds in the note
+file.properties # All frontmatter properties (doesn't refresh when the vault changes)
+# (file.inlinks / file.outlinks are Dataview fields, not Bases properties)
 
 # Tags
 file.tags       # Array of all tags in file
@@ -356,9 +365,9 @@ filters:
 filters:
   - file.folder.contains("Projects")
 
-# Files with inlinks (referenced by others)
+# Files referenced by others (file.backlinks is slow on large vaults)
 filters:
-  - file.inlinks
+  - file.backlinks.length > 0
 
 # Large files
 filters:
@@ -391,13 +400,13 @@ filters:
 
 3. **Bi-directional linking:**
 ```yaml
-# Notes that link to current file
+# Notes that link to current file (the official backlinks-pane recipe)
 filters:
-  - file.outlinks.contains(this.file)
+  - file.hasLink(this.file)
 
 # Notes linked from current file
 filters:
-  - this.file.outlinks.contains(file)
+  - this.file.hasLink(file)
 ```
 
 **Example - Meetings.base embedded in Company note:**
@@ -646,6 +655,34 @@ color: blue
 ```
 
 See `chronos-syntax.md` for the full property table and date formats.
+
+### Kanban View
+
+Obsidian 1.14+. Cards go into columns by the `groupBy` property, which a kanban
+view requires. `groupOrder` picks which columns show and in what order (`null` =
+notes with no value); without it every value gets a column. Dragging a card
+**writes that property into the note**, so a kanban view is a write surface,
+not just a query. Only Markdown notes can move, except when grouping by
+`file.folder`, where a drag **moves the file to that folder**. Grouped by a
+formula, or by a file property other than `file.folder`, cards and columns can't
+move.
+
+```yaml
+views:
+  - type: kanban
+    name: "Projects"
+    groupBy:
+      property: note.status
+      direction: ASC
+    groupOrder:
+      - Planned
+      - In progress
+      - Done
+      - null
+    order:
+      - file.name
+      - due_date
+```
 
 ### Gallery View
 
@@ -929,6 +966,28 @@ order: [file.name, due, status]
 
 # Fix: Add due property to all filtered files
 ```
+
+### Column header shows the raw property name
+
+In the top-level `properties:` section, note properties need the `note.`
+prefix, or the setting (e.g. `displayName`) is silently ignored. Elsewhere
+(`order`, `filters`, `groupBy`, `sort`) bare `status` and `note.status` both work.
+An empty `displayName: ""` doesn't hide a header: it falls back to the name.
+
+```yaml
+# WRONG - header shows "status"
+properties:
+  status:
+    displayName: Status
+
+# CORRECT
+properties:
+  note.status:
+    displayName: Status
+```
+
+A `.base` that doesn't open as a base at all: check Bases is on in
+Settings → Core plugins.
 
 ## Best Practices
 
