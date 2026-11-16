@@ -20,7 +20,7 @@ def make(tmp_path, ext_line=None):
     if ext_line:
         (plugin / "pi" / "extensions").mkdir(parents=True)
         (plugin / "pi" / "extensions" / "one.ts").write_text(ext_line + "\nexport default () => {};\n")
-    text = pa.translate(plugin, plugin / "agents" / "one.md", "splash/code", ["one", "two"])
+    text = pa.translate(plugin, plugin / "agents" / "one.md", "omlx/code", ["one", "two"])
     fm = yaml.safe_load(text.split("---\n")[1])
     return fm, text
 

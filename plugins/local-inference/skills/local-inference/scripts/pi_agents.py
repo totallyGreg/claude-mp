@@ -5,7 +5,7 @@
 # ///
 """Make a Claude Code plugin's agents available to Pi as pi-subagents agents.
 
-    pi_agents.py <plugin-dir> [--model splash/code] [--check]
+    pi_agents.py <plugin-dir> [--model omlx/code] [--check]
 
 Reads <plugin-dir>/agents/*.md (Claude Code agent files) and writes one
 pi-subagents agent per file to ${PI_CODING_AGENT_DIR:-~/.pi/agent}/agents/<plugin>/,
@@ -22,7 +22,7 @@ Translation:
   Bash for Pi goes through pi_sandboxed.sh, never a plain tool.
   AskUserQuestion, SendMessage — no Pi equivalent here; dropped and named in the note.
 - skills — "plugin:skill" → `skills: skill` + `skillPath: <plugin>/skills`.
-- model — --model (a tier, default splash/code), not the Claude model.
+- model — --model (a tier, default omlx/code), not the Claude model.
 - extensions — <plugin>/pi/extensions/<agent>.ts when it exists. A first line
   "Tools it adds: a, b" puts those tools on the allowlist.
 """
@@ -120,7 +120,7 @@ def translate(plugin: Path, src: Path, model: str, siblings: list[str]) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     ap.add_argument("plugin", type=Path)
-    ap.add_argument("--model", default="splash/code")
+    ap.add_argument("--model", default="omlx/code")
     ap.add_argument("--check", action="store_true")
     a = ap.parse_args()
     plugin = a.plugin.expanduser().resolve()

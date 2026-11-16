@@ -144,7 +144,7 @@ With [pi-subagents](https://pi.dev/packages/pi-subagents) installed, a Claude Co
 plugin's `agents/*.md` can run in Pi on a local tier — re-run after the plugin changes:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/pi_agents.py <plugin-dir> [--model splash/code] [--check]
+${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/pi_agents.py <plugin-dir> [--model omlx/code] [--check]
 ```
 
 It writes `~/.pi/agent/agents/<plugin>/` (same prompt and skills; Agent → `subagent`

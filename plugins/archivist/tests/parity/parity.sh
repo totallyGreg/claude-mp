@@ -10,7 +10,7 @@
 #   2. the canvas write to the architect zone was refused (no file)
 #   3. the sed and heredoc bypasses had no effect
 #   4. `vault-write audit` is clean
-# Pi uses its default model unless PI_MODEL is set (e.g. PI_MODEL=splash/code).
+# Pi uses the generated agent's model (pi_agents.py --model, default omlx/code) unless PI_MODEL is set.
 set -uo pipefail
 HARNESS=${1:?usage: parity.sh claude|pi [workdir]}
 HERE="$(cd "$(dirname "$0")" && pwd)"; P="$(cd "$HERE/../.." && pwd)"
@@ -63,8 +63,10 @@ case "$HARNESS" in
       --agent archivist:archivist --allowedTools "Bash,Read,Grep,Glob" < task.txt > run.txt 2> run.err ;;
   pi)      # the archivist as the Pi agent itself: generated prompt, its extension, its tools only
     uv run "$P/../local-inference/skills/local-inference/scripts/pi_agents.py" "$P" >/dev/null
-    awk 'n>=2; /^---$/ && n<2 {n++}' "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/agents/archivist/archivist.md" | tail -n +2 > prompt.md
-    pi -p --no-session -ne -nc -ns ${PI_MODEL:+--model "$PI_MODEL"} \
+    AGENT="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/agents/archivist/archivist.md"
+    awk 'n>=2; /^---$/ && n<2 {n++}' "$AGENT" | tail -n +2 > prompt.md
+    MODEL="${PI_MODEL:-$(sed -n 's/^model: //p' "$AGENT" | head -1)}"; echo "pi model: $MODEL"
+    pi -p --no-session -ne -nc -ns --model "$MODEL" \
       -e "$P/pi/extensions/archivist.ts" --skill "$P/skills/vault-curator" --tools read,grep,find,ls,bash \
       --append-system-prompt "$W/prompt.md" "$(cat task.txt)" > run.txt 2> run.err ;;
   *) echo "unknown harness: $HARNESS" >&2; exit 2 ;;
