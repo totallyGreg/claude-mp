@@ -20,9 +20,22 @@ match reliably (a `*` in the middle of a rule spans one token, so argument order
       before the subcommand                   silently ignores a vault= after it and acts on the
                                               cwd's vault or the focused one (daily:* too)
     with path= outside the write zones     -> deny
+- templater:create-from-template file=…   -> the same vault= rule, and file= zone-checked
+- quickadd:run / quickadd:run-template     -> vars.path zone-checked when given, else ask
 - obsidian move/rename/command/template:insert/history:restore/sync:restore,
-  base:create, plugin and theme installs   -> ask
+  base:create, plugin and theme installs   -> ask (move/rename warn when Obsidian won't
+                                              update links on its own: it would wait on a dialog)
 - rm / mv on a path inside the vault       -> ask
+
+Archivist agents (agent_type archivist:archivist = curator, archivist:archivist-architect =
+architect) get their role's zones (vault-write's role_zones) and a closed list in the vault:
+- allowed: obsidian, vault-write, and scripts inside this plugin (run directly, by python or uv run)
+- anything else is denied if it runs from a working directory in the vault (the payload's cwd,
+  then any `cd` in the command) or names a path into it, including redirection targets
+- denied outright: $(…) and backticks, an ARCHIVIST_ROLE= or --role naming another role, and a
+  shell variable the guard can't expand in a non-archivist command
+- obsidian delete asks (to the trash); delete permanent is denied
+Other callers (the user's own session) keep the rules above unchanged.
 
 Wrappers (timeout, env, nice, nohup, command, exec, sudo, xargs, time) and `sh|bash|zsh -c`
 are unwrapped before matching. Prints a hookSpecificOutput decision, or nothing to defer to
@@ -76,6 +89,13 @@ KPLEX_ASYNC = re.compile(rf"\(async\(\)=>JSON\.stringify\(await {_CALL}\)\)\(\)"
 DATA_TOKEN = re.compile(r'\s+|"(?:[^"\\\x00-\x1f]|\\["\\/bfnrt]|\\u[0-9a-fA-F]{4})*"'
                         r"|-?\d+(?:\.\d+)?|true|false|null|[{}\[\],:]|[A-Za-z_][A-Za-z0-9_]*")
 WRITES = {"create", "append", "prepend", "property:set", "property:remove"}
+TEMPLATER_CREATE = "templater:create-from-template"
+PLUGIN_WRITES = {TEMPLATER_CREATE, "quickadd:run", "quickadd:run-template"}
+# The archivist's agents, by hook agent_type (Pi's guard.ts sends the same names).
+ROLES = {"archivist:archivist": "curator", "archivist:archivist-architect": "architect"}
+PLUGIN = Path(__file__).resolve().parent.parent
+UV_VALUE_OPTS = {"--with", "--with-requirements", "--with-editable", "--python", "-p", "--project",
+                 "--directory", "--from", "--index", "--extra", "--group", "--env-file"}
 TASK_UPDATES = {"toggle", "done", "todo"}
 DAILY_WRITES = {"daily:append", "daily:prepend"}
 
@@ -110,6 +130,31 @@ def segments(command: str) -> list[list[str]]:
     return [c for c in out if c]
 
 
+HEREDOC = re.compile(r"<<-?\s*(['\"])(\w+)\1")
+# A heredoc fed to one of these is code, not text: keep its body so it is checked.
+CODE_RUNNERS = re.compile(r"(ba|z)?sh|python3?(\.\d+)?|node|perl|ruby|osascript|uv|uvx|deno|bun")
+
+
+def strip_quoted_heredocs(command: str) -> str:
+    """Drop the bodies of quoted heredocs (<<'EOF'): the shell neither expands nor runs them, so
+    note text with backticks or `rm` in it isn't mistaken for commands. A body fed to a shell or
+    interpreter stays, because there it is code."""
+    lines, out, i = command.split("\n"), [], 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        i += 1
+        for m in HEREDOC.finditer(line):
+            head = re.split(r"[;&|(]", line[: m.start()])[-1].split()
+            head = unwrap(head)
+            if head and CODE_RUNNERS.fullmatch(os.path.basename(head[0])):
+                continue
+            while i < len(lines) and lines[i].lstrip("\t") != m.group(2):
+                i += 1
+            i += 1  # the terminator line
+    return "\n".join(out)
+
+
 def unwrap(toks: list[str]) -> list[str]:
     """Strip leading VAR=value assignments and wrapper commands with their options."""
     while toks:
@@ -136,15 +181,37 @@ def _vault_key(name: str) -> str:
     return unicodedata.normalize("NFC", name).casefold()
 
 
-def check_write(sub: str, args: list[str], vault: str | None, vw, cfg) -> tuple[str, str] | None:
+def vault_first(sub: str, vault: str | None, cfg) -> tuple[str, str] | None:
     """`vault` is the vault= given before the subcommand (the only place the CLI reads it)."""
-    params = kv(args)
-    if sub == "task" and not (TASK_UPDATES & set(args) or "status" in params):
-        return None  # a read
     if cfg and _vault_key(vault or "") != _vault_key(cfg["root"].name):
         return "deny", (f"Archivist policy: start the command with obsidian vault=\"{cfg['root'].name}\" {sub} …. "
                         "Without it, or with vault= after the subcommand (which the CLI silently ignores), "
                         "it writes to the working directory's vault or whichever vault is focused in Obsidian.")
+    return None
+
+
+def zone_check(sub: str, target: str, vw, cfg, role: str | None) -> tuple[str, str] | None:
+    """Is vault path `target` inside the caller's zones? A role gets its own zones (vault-write's
+    role_zones); without a role, the union of all zones."""
+    if vw is None:
+        return "ask", f"obsidian {sub} writes to {target}, but no archivist config was found to check write zones; confirm."
+    try:
+        _, rel = vw.resolve_note(cfg, target)
+    except Exception as e:
+        return "deny", f"Archivist policy: {e}"
+    zones = vw.role_zones(cfg, role) if role else cfg["zones"]
+    if not vw.in_zone(rel, zones):
+        whose = f"the {role}'s write zones" if role else "the configured write zones"
+        return "deny", f"Archivist policy: {rel} is outside {whose} ({', '.join(zones) or 'none'})."
+    return None
+
+
+def check_write(sub: str, args: list[str], vault: str | None, vw, cfg, role: str | None = None) -> tuple[str, str] | None:
+    params = kv(args)
+    if sub == "task" and not (TASK_UPDATES & set(args) or "status" in params):
+        return None  # a read
+    if d := vault_first(sub, vault, cfg):
+        return d
     if sub in DAILY_WRITES or (sub == "task" and "daily" in args):
         return None  # the daily note: Obsidian resolves the path
     target = params.get("path", "")
@@ -153,15 +220,35 @@ def check_write(sub: str, args: list[str], vault: str | None, vw, cfg) -> tuple[
     if not target:
         return "deny", (f"Archivist policy: obsidian {sub} needs an explicit path= (exact vault path). "
                         "Without it, or with a mistyped parameter, the CLI writes to whatever note is open in Obsidian.")
-    if vw is None:
-        return "ask", f"obsidian {sub} writes to {target}, but no archivist config was found to check write zones; confirm."
+    return zone_check(sub, target, vw, cfg, role)
+
+
+def check_plugin_write(sub: str, args: list[str], vault: str | None, vw, cfg, role: str | None) -> tuple[str, str] | None:
+    """Writes registered by Templater and QuickAdd: zone-check the target when the command names it."""
+    if d := vault_first(sub, vault, cfg):
+        return d
+    params = kv(args)
+    if sub == TEMPLATER_CREATE:
+        if not params.get("file"):
+            return "deny", f"Archivist policy: obsidian {sub} needs file= (the new note's vault path)."
+        return zone_check(sub, params["file"], vw, cfg, role)
+    try:  # QuickAdd: a choice like logEntries is told its target in vars.path
+        target = json.loads(params.get("vars", "{}")).get("path")
+    except (json.JSONDecodeError, AttributeError):
+        target = None
+    if isinstance(target, str) and target:
+        return zone_check(sub, target, vw, cfg, role)
+    return "ask", (f"obsidian {sub} writes wherever the QuickAdd choice or template decides, which the guard "
+                   "can't zone-check; confirm. (Pass the target as vars.path to have it checked.)")
+
+
+def links_auto_update(cfg) -> bool:
+    """Settings → Files and links → Automatically update internal links. Obsidian leaves the key
+    out of app.json until it's switched on, so a missing key means off."""
     try:
-        _, rel = vw.resolve_note(cfg, target)
-    except Exception as e:
-        return "deny", f"Archivist policy: {e}"
-    if not vw.in_zone(rel, cfg["zones"]):
-        return "deny", f"Archivist policy: {rel} is outside the configured write zones ({', '.join(cfg['zones']) or 'none'})."
-    return None
+        return json.loads((cfg["root"] / ".obsidian" / "app.json").read_text()).get("alwaysUpdateLinks") is True
+    except (OSError, ValueError, TypeError, KeyError):
+        return False
 
 
 def plain_data(arg: str) -> bool:
@@ -227,35 +314,136 @@ def check_kplex(args: list[str], vault: str | None, cfg) -> tuple[str, str] | No
     return None
 
 
-def check_obsidian(rest: list[str], vw, cfg) -> tuple[str, str] | None:
+def check_obsidian(rest: list[str], vw, cfg, role: str | None = None) -> tuple[str, str] | None:
     i = next((k for k, t in enumerate(rest) if "=" not in t), None)  # skip vault=… style options
     sub, args = (rest[i], rest[i + 1:]) if i is not None else ("", [])
+    vault = kv(rest[:i] if i is not None else rest).get("vault")
     if sub == "eval":
         return check_kplex(args, kv(rest[:i]).get("vault"), cfg)
+    if sub == "delete" and role:
+        if "permanent" in args:
+            return "deny", "Archivist policy: obsidian delete permanent skips Obsidian's trash; delete to the trash instead."
+        return "ask", "obsidian delete moves a note to Obsidian's trash; confirm the delete."
     if sub in DENY:
         return "deny", DENY[sub]
     if sub == "create" and "overwrite" in args:
         return "deny", "obsidian create … overwrite is blocked by the archivist guard; use `vault-write apply --base <hash>`."
+    if sub in ("move", "rename") and cfg and not links_auto_update(cfg):
+        return "ask", (ASK[sub] + " Settings → Files and links → Automatically update internal links is off, so "
+                       "Obsidian will ask about link updates in a dialog and the command waits until someone answers.")
     if sub in ASK:
         return "ask", ASK[sub]
     if sub in WRITES or sub in DAILY_WRITES or sub == "task":
-        return check_write(sub, args, kv(rest[:i] if i is not None else rest).get("vault"), vw, cfg)
+        return check_write(sub, args, vault, vw, cfg, role)
+    if sub in PLUGIN_WRITES:
+        return check_plugin_write(sub, args, vault, vw, cfg, role)
     return None
 
 
-def check(command: str, vw, cfg, depth: int = 0) -> tuple[str, str] | None:
+def _inside(p: Path, root: Path) -> bool:
+    return p == root or root in p.parents
+
+
+def _expand(tok: str) -> str:
+    """The plugin root is known even when the hook's environment doesn't carry it."""
+    for var in ("${CLAUDE_PLUGIN_ROOT}", "$CLAUDE_PLUGIN_ROOT"):
+        tok = tok.replace(var, str(PLUGIN))
+    return os.path.expanduser(os.path.expandvars(tok))
+
+
+def plugin_program(toks: list[str], cwd: Path) -> str | None:
+    """The archivist program this segment runs: `vault-write` (on PATH or the plugin's bin/), or a
+    script inside the plugin run directly, by python, or by `uv run`. None for anything else."""
+    args, prog = toks, os.path.basename(toks[0])
+    if prog in ("uv", "uvx"):
+        args = args[1:]
+        if args[:1] == ["run"]:
+            args = args[1:]
+        while args and args[0].startswith("-"):
+            args = args[2:] if args[0] in UV_VALUE_OPTS else args[1:]
+    elif re.fullmatch(r"python3?(\.\d+)?", prog):
+        args = args[1:]
+        while args and args[0].startswith("-"):
+            if args[0] in ("-c", "-m"):
+                return None  # code given on the command line, not a plugin file
+            args = args[1:]
+    if not args:
+        return None
+    if args is toks and args[0] == "vault-write":
+        return "vault-write"
+    p = (cwd / _expand(args[0])).resolve()
+    return str(p) if p.is_file() and _inside(p, PLUGIN) else None
+
+
+def check_role_flag(toks: list[str], role: str) -> tuple[str, str] | None:
+    """A role can't run vault-write as another role."""
+    for i, t in enumerate(toks):
+        val = toks[i + 1] if t == "--role" and i + 1 < len(toks) else t[len("--role="):] if t.startswith("--role=") else None
+        if val is not None and val != role:
+            return "deny", f"Archivist policy: the {role} can't run vault-write as --role {val}."
+    return None
+
+
+def check_role_shell(toks: list[str], role: str, cwd: Path, root: Path) -> tuple[str, str] | None:
+    """For an archivist role, a command that isn't obsidian, vault-write or an archivist script
+    may not touch the vault: not from a working directory inside it, not with a path into it."""
+    deny = ("deny", f"Archivist policy: the {role} works on the vault only through `obsidian` and `vault-write` "
+            "(and the archivist's scripts), so Obsidian can track every change. Read notes with your read/grep/find "
+            "tools; write with `vault-write`; move, rename and set properties with `obsidian`.")
+    if _inside(cwd, root):
+        return deny
+    # The vault's path inside a longer argument (code for -c, a --flag=… value). A path the code builds
+    # at run time can't be seen here; vault-write audit (task 4) is what catches that.
+    if any(str(root) in t for t in toks):
+        return deny
+    for tok in toks:  # the program too: a script inside the vault is a path into it
+        for part in (tok, tok.split("=", 1)[1] if "=" in tok else None):
+            if not part or REDIRECT.fullmatch(part):
+                continue
+            expanded = _expand(part)
+            if "$" in expanded:
+                return "deny", (f"Archivist policy: the {role} can't run `{toks[0]}` with a shell variable the guard "
+                                f"can't expand ({part}); it might point into the vault. Use the literal path.")
+            try:
+                if _inside((cwd / expanded).resolve(), root):
+                    return deny
+            except (OSError, RuntimeError, ValueError):
+                continue
+    return None
+
+
+def check(command: str, vw, cfg, depth: int = 0, role: str | None = None, cwd: Path | None = None) -> tuple[str, str] | None:
     root = cfg["root"] if cfg else None
-    for toks in segments(command):
-        toks = unwrap(toks)
+    cwd = cwd or Path.cwd()
+    command = strip_quoted_heredocs(command)
+    # Command substitution runs a command the guard can't see whole. Checked on the text, because
+    # shlex splits an unquoted `$(` into separate tokens.
+    if role and root and ("$(" in command or "`" in command):
+        return "deny", (f"Archivist policy: the {role} can't use $(…) or backticks; the guard can't check "
+                        "the command they run. Run it as its own command (note text in a quoted <<'EOF' heredoc is fine).")
+    for raw in segments(command):
+        toks = unwrap(raw)
+        if role and root:
+            for t in raw:  # an inline or exported ARCHIVIST_ROLE would change vault-write's role
+                if t.startswith("ARCHIVIST_ROLE=") and t.split("=", 1)[1] not in ("", role):
+                    return "deny", f"Archivist policy: the {role} can't set {t}."
         if not toks:
             continue
         prog = os.path.basename(toks[0])
         if prog in SHELLS and "-c" in toks[1:-1] and depth < 3:
-            decision = check(toks[toks.index("-c") + 1], vw, cfg, depth + 1)
+            decision = check(toks[toks.index("-c") + 1], vw, cfg, depth + 1, role, cwd)
         elif prog == "eval" and depth < 3:
-            decision = check(" ".join(toks[1:]), vw, cfg, depth + 1)
+            decision = check(" ".join(toks[1:]), vw, cfg, depth + 1, role, cwd)
         elif prog.lower() in OBSIDIAN:
-            decision = check_obsidian(toks[1:], vw, cfg)
+            decision = check_obsidian(toks[1:], vw, cfg, role)
+        elif role and root and prog in ("cd", "pushd"):
+            target = toks[1] if len(toks) > 1 else "~"
+            cwd = (cwd / _expand(target)).resolve()  # later segments run there
+            decision = None
+        elif role and root and plugin_program(toks, cwd):
+            decision = check_role_flag(toks, role)
+        elif role and root:
+            decision = check_role_shell(toks, role, cwd, root)
         elif prog in ("rm", "mv") and root:
             decision = None
             for t in toks[1:]:
@@ -281,10 +469,12 @@ def main() -> int:
     except json.JSONDecodeError:
         return 0
     command = (payload.get("tool_input") or {}).get("command") or ""
-    if "obsidian" not in command and not any(w in command for w in ("rm", "mv")):
+    role = ROLES.get(payload.get("agent_type") or "")
+    if not role and "obsidian" not in command and not any(w in command for w in ("rm", "mv")):
         return 0
     vw, cfg = load_vault_write()
-    decision = check(command, vw, cfg)
+    cwd = Path(payload["cwd"]).expanduser().resolve() if payload.get("cwd") else None
+    decision = check(command, vw, cfg, role=role, cwd=cwd)
     if decision:
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "PreToolUse",

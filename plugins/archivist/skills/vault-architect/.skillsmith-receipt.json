@@ -1,9 +1,9 @@
 {
   "skill_name": "vault-architect",
-  "content_hash": "2f4882d45b65bd6610a9074855c436f0d86c03ac40c734737bd735f7134b84f7",
+  "content_hash": "f582863545db59d0ed09a45586a4ca45e52b1f60a4d44766857f3bc813d89faa",
   "score": 88,
   "metrics": {
-    "conciseness": 74,
+    "conciseness": 73,
     "complexity": 90,
     "spec_compliance": 100,
     "progressive_disclosure": 100,

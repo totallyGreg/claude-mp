@@ -40,10 +40,7 @@ uv run scripts/analyze_vault.py ${VAULT_PATH}   # full health check
 
 **Linter plugin config:** Read `.obsidian/plugins/obsidian-linter/data.json` at the vault root to discover active formatting rules before writing any note content or templates. Linter auto-reformats on save — notes written in violation will silently change, causing spurious git diffs and user confusion.
 
-```bash
-# Read active Linter rules
-cat "${VAULT_PATH}/.obsidian/plugins/obsidian-linter/data.json"
-```
+Read it with the Read tool (`${VAULT_PATH}/.obsidian/plugins/obsidian-linter/data.json`). Shell commands on vault paths are denied for the archivist's agents; reads go through the read tools.
 
 Key rules to check and apply when writing vault content:
 - `yaml-title-alias` — whether title aliases are auto-managed
@@ -220,21 +217,16 @@ Create or regenerate `_vault-profile.md` in the vault root. This profile provide
    ```
    If `obsidian` CLI fails (app not running), fall back to Glob/Grep/Read on vault files.
 
-2. **Discover installed plugins:**
+2. **Discover enabled plugins:**
    ```bash
-   ls "${VAULT_PATH}/.obsidian/plugins/"
+   obsidian vault="<vault_name>" plugins:enabled format=json versions
    ```
 
-3. **Sample fileClass distribution:**
-   ```bash
-   grep -r "^fileClass:" "${VAULT_PATH}" --include="*.md" | sed 's/.*fileClass: *//' | sort | uniq -c | sort -rn
-   ```
-   Fall back to Grep tool if bash grep is unavailable.
+3. **Sample fileClass distribution:** `obsidian vault="<vault_name>" properties name=fileClass counts format=json`
+   for the total; for the values, the Grep tool with pattern `^fileClass:` on `${VAULT_PATH}`, glob `*.md`.
 
-4. **Read Linter config** (if installed):
-   ```bash
-   cat "${VAULT_PATH}/.obsidian/plugins/obsidian-linter/data.json"
-   ```
+4. **Read Linter config** (if installed): the Read tool on
+   `${VAULT_PATH}/.obsidian/plugins/obsidian-linter/data.json`.
 
 5. **Analyze folder philosophy** — interpret top-level folder naming convention:
    - Numbered prefixes (e.g., `100`, `200`) → hierarchical organization

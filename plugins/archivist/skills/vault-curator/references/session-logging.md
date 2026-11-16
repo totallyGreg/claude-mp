@@ -12,10 +12,12 @@ Defined in `[[Insert Log]]` (`900 📐Templates/910 File Templates/918 Snippet T
 
 ## Entry Operations
 
-All entry operations dispatch through QuickAdd → `logEntries.js`:
+All entry operations dispatch through QuickAdd's `Entries` choice (under `Log`) → `900 📐Templates/Scripts/logEntries.js`:
 ```bash
-obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"ACTION", "path":"$SESSION_LOG", ...}'
+obsidian vault="$VAULT_NAME" quickadd:run choice="Entries" vars='{"action":"ACTION", "path":"$SESSION_LOG", ...}'
 ```
+
+`$VAULT_NAME` and `$SESSION_LOG` are placeholders: write the literal vault name and note path into each command. The guard reads the command before the shell expands it, zone-checks `vars.path`, and asks when there is no `path` (the script then acts on the active note).
 
 | Action | What it does |
 |--------|-------------|
@@ -32,7 +34,7 @@ obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"A
 2. Store that path as `SESSION_LOG`; report it to the user.
 3. Create a session-start entry:
    ```bash
-   obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"Session started"}'
+   obsidian vault="$VAULT_NAME" quickadd:run choice="Entries" vars='{"action":"create","path":"$SESSION_LOG","subject":"Session started"}'
    ```
 
 **With project mentioned:** Create a dedicated session note.
@@ -63,14 +65,14 @@ Reconnects a new Claude Code conversation to an existing in-progress session not
 5. **Brief the user** — last entry, current Findings/Next Steps, `summary:` value, open entry count.
 6. **Create a resume entry:**
    ```bash
-   obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"Session resumed"}'
+   obsidian vault="$VAULT_NAME" quickadd:run choice="Entries" vars='{"action":"create","path":"$SESSION_LOG","subject":"Session resumed"}'
    ```
 
 ## Checkpoint Entries (during session)
 
 Write at major decisions and workflow boundaries — **not** after every tool call:
 ```bash
-obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"{group} phase — DESCRIPTION"}'
+obsidian vault="$VAULT_NAME" quickadd:run choice="Entries" vars='{"action":"create","path":"$SESSION_LOG","subject":"{group} phase — DESCRIPTION"}'
 ```
 
 Entry types: `decision`, `file-operation`, `workflow-execution`, `discovery`, `resolution`.
@@ -82,7 +84,7 @@ Entry types: `decision`, `file-operation`, `workflow-execution`, `discovery`, `r
 1. Read the most recent `/recap` output from conversation context.
 2. Format as bullets and insert under the open entry:
    ```bash
-   obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"update","path":"$SESSION_LOG","selector":"open","content":"- BULLET_1\n- BULLET_2"}'
+   obsidian vault="$VAULT_NAME" quickadd:run choice="Entries" vars='{"action":"update","path":"$SESSION_LOG","selector":"open","content":"- BULLET_1\n- BULLET_2"}'
    ```
 3. Show the appended bullets to the user and offer to edit before finalizing.
 
@@ -102,32 +104,28 @@ Rolls up work-so-far for cold re-engagement. Session stays `In Progress`.
 
 Full session close — synthesize everything and finalize.
 
-**Close Log mechanics:** "Close Log" is a QuickAdd Macro wrapping a single UserScript (`900 📐Templates/Scripts/closeLog.js`). It scans the **active file** for the last open `log::` entry (one with `⏱HH:mm` but no `~HH:mm`) and appends the current time. The active-file requirement is why step 1 is mandatory.
+**Closing entries:** the `close` action finds the last open `log::` entry in `path` (one with `⏱HH:mm` but no `~HH:mm`) and stamps the current time. It works on `path`, so the note doesn't need to be focused. (The old `Close Log` choice and `closeLog.js` are gone.)
 
-1. Bring session note to front:
+1. Close the last open entry; repeat until none remain:
     ```bash
-   obsidian vault="$VAULT_NAME" open path="$SESSION_LOG"
+   obsidian vault="$VAULT_NAME" quickadd:run choice="Entries" vars='{"action":"close","path":"$SESSION_LOG"}'
     ```
-2. Close the last open entry:
-    ```bash
-   obsidian vault="$VAULT_NAME" quickadd:run choice="Close Log"
-    ```
-3. If session note (fileClass:session), update frontmatter:
+2. If session note (fileClass:session), update frontmatter:
     ```bash
    obsidian vault="$VAULT_NAME" property:set name="status" value="Done" path="$SESSION_LOG"
    obsidian vault="$VAULT_NAME" property:set name="end" value="YYYY-MM-DDTHH:mm:00" path="$SESSION_LOG"
    obsidian vault="$VAULT_NAME" property:set name="summary" value="<final one-line summary>" path="$SESSION_LOG"
     ```
    Skip frontmatter updates for daily notes (fileClass:journal).
-4. **Synthesize** — write definitive Goal, Findings, Outcome, Next Steps (replaces pause rough notes).
-5. **Create** a session-end entry: `"subject":"resolution — Session end — <summary>"`.
-6. Report the closed session path, then clear `SESSION_LOG`.
+3. **Synthesize** — write definitive Goal, Findings, Outcome, Next Steps (replaces pause rough notes).
+4. **Create** a session-end entry: `"subject":"resolution — Session end — <summary>"`.
+5. Report the closed session path, then clear `SESSION_LOG`.
 
 ## Abnormal Termination (SubagentStop hook)
 
 If archivist exits without `/session-log end` and `SESSION_LOG` is set:
 ```bash
-obsidian vault="$VAULT_NAME" quickadd:run choice="logEntries" vars='{"action":"create","path":"$SESSION_LOG","subject":"abnormal-termination — session ended unexpectedly"}'
+obsidian vault="$VAULT_NAME" quickadd:run choice="Entries" vars='{"action":"create","path":"$SESSION_LOG","subject":"abnormal-termination — session ended unexpectedly"}'
 ```
 If session note (fileClass:session), also set:
 ```bash

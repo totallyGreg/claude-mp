@@ -181,7 +181,7 @@ For a merge you wrote or restructured yourself, add `--merged-from <every source
 On a refusal (exit 2: drift, outside zones, missing `--base`, no git), stop and report; re-read and rebuild on drift. On lint errors (exit 3), fix the content. `vault-write force` skips base and zone checks; use it only after the user approved that specific write.
 
 - **Single frontmatter values:** `obsidian vault="<vault_name>" property:set path="<path>" name=… value=…` (add `type=list` for lists). Always pass `path=`.
-- **Move or rename:** ask the user, then use `obsidian move` / `rename` (link-safe; the guard asks too). Deleting is the user's job, or a confirmed `rm` after a dependency check.
+- **Move or rename:** ask the user, then use `obsidian move` / `rename` (link-safe; the guard asks too). Deleting is the user's job, or `obsidian vault="<vault_name>" delete path="…"` (to Obsidian's trash; the guard asks) after a dependency check. Never `rm`: shell commands on vault paths are denied (`references/cli-patterns.md` → Shell Usage).
 - **Scripts that write** (`merge_notes.py`, `redirect_links.py`, `generate_canvas.py`) go through `vault-write` themselves. Run `--dry-run` first. A refusal comes back as `status: refused` or a `skipped` list; nothing outside the zones is written.
 - **One file, one write.** Editing a note should not cascade into other notes; Bases and links handle the relationships.
 

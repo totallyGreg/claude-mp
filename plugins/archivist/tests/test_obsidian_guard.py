@@ -186,3 +186,168 @@ def test_kplex_shell_expansion_denied(vault, command):
 
 def test_redirect_does_not_hide_extra_args(vault):
     assert decide("obsidian vault=vault eval 'code=JSON.stringify(window.kplexApi.v1.ontology())' extra=1 2>&1") == "deny"
+
+
+# -- archivist roles (#258 task 2) -------------------------------------------
+
+CURATOR, ARCHITECT = "archivist:archivist", "archivist:archivist-architect"
+
+
+@pytest.fixture
+def zoned(tmp_path, monkeypatch):
+    """A vault with a curator zone (Notes) and an architect zone (Templates)."""
+    root = tmp_path / "vault"
+    (root / "Notes").mkdir(parents=True)
+    (root / "Templates").mkdir()
+    cfg = tmp_path / "local.md"
+    cfg.write_text(f"vault_path: {root}\ncurator_write_zones: Notes\narchitect_write_zones: Templates\n")
+    monkeypatch.setenv("ARCHIVIST_LOCAL_MD", str(cfg))
+    return root
+
+
+def decision(command, agent_type=None, cwd=None):
+    payload = {"tool_name": "Bash", "tool_input": {"command": command}}
+    if agent_type:
+        payload["agent_type"] = agent_type
+    if cwd:
+        payload["cwd"] = str(cwd)
+    p = subprocess.run(["python3", str(GUARD)], input=json.dumps(payload), capture_output=True, text=True)
+    assert p.returncode == 0, p.stderr
+    out = json.loads(p.stdout)["hookSpecificOutput"] if p.stdout.strip() else {}
+    return out.get("permissionDecision"), out.get("permissionDecisionReason", "")
+
+
+@pytest.mark.parametrize("command,agent,expected", [
+    ('obsidian vault=vault append path="Notes/a.md" content="x"', CURATOR, None),
+    ('obsidian vault=vault append path="Templates/t.md" content="x"', CURATOR, "deny"),
+    ('obsidian vault=vault append path="Templates/t.md" content="x"', ARCHITECT, None),
+    ('obsidian vault=vault property:set path="Templates/t.md" name=a value=b', CURATOR, "deny"),
+    # no role: the union of zones, as before
+    ('obsidian vault=vault append path="Templates/t.md" content="x"', None, None),
+])
+def test_cli_writes_use_the_roles_zones(zoned, command, agent, expected):
+    assert decision(command, agent)[0] == expected
+
+
+def test_role_refusal_names_the_role(zoned):
+    d, reason = decision('obsidian vault=vault append path="Templates/t.md" content="x"', CURATOR)
+    assert d == "deny" and "curator" in reason
+
+
+@pytest.mark.parametrize("command,agent,expected", [
+    ('obsidian vault=vault templater:create-from-template template="Templates/t.md" file="Notes/new.md"', None, None),
+    ('obsidian vault=vault templater:create-from-template template="Templates/t.md" file="Elsewhere/new.md"', None, "deny"),
+    ('obsidian vault=vault templater:create-from-template template="Templates/t.md" file="Templates/new.md"', CURATOR, "deny"),
+    ('obsidian vault=vault templater:create-from-template template="Templates/t.md" file="Templates/new.md"', ARCHITECT, None),
+    ('obsidian templater:create-from-template template="Templates/t.md" file="Notes/new.md"', None, "deny"),  # no vault=
+    ('obsidian vault=vault templater:create-from-template template="Templates/t.md"', None, "deny"),  # no file=
+    ("""obsidian vault=vault quickadd:run choice=logEntries vars='{"action":"create","path":"Notes/log.md"}'""", CURATOR, None),
+    ("""obsidian vault=vault quickadd:run choice=logEntries vars='{"action":"create","path":"Templates/log.md"}'""", CURATOR, "deny"),
+    ('obsidian vault=vault quickadd:run choice="Close Log"', CURATOR, "ask"),
+    ('obsidian vault=vault quickadd:run-template path="Templates/t.md"', None, "ask"),  # path= is the template
+])
+def test_plugin_writes_are_zone_checked(zoned, command, agent, expected):
+    assert decision(command, agent)[0] == expected
+
+
+@pytest.mark.parametrize("template", [
+    "sed -i 's/a/b/' {v}/Notes/a.md",
+    "echo hi > {v}/Notes/a.md",
+    "echo hi >> {v}/Notes/a.md",
+    "cat > {v}/Notes/a.md <<'EOF'\nnew text\nEOF",
+    "cat /tmp/x | tee {v}/Notes/a.md",
+    "cp /tmp/x {v}/Notes/",
+    "rm {v}/Notes/a.md",
+    "mv {v}/Notes/a.md {v}/Notes/b.md",
+    "cd {v} && cat Notes/a.md",
+    "cd {v}/Notes; ls",
+    'bash -c "sed -i s/a/b/ {v}/Notes/a.md"',
+    "python3 -c \"open('{v}/Notes/a.md','w').write('x')\"",
+    "uv run /tmp/not-the-plugin.py {v}",
+    "git -C {v} status",
+    "cat {v}/Notes/a.md",  # reads go through the read tools
+])
+def test_role_shell_into_the_vault_denied(zoned, template):
+    for agent in (CURATOR, ARCHITECT):
+        assert decision(template.replace("{v}", str(zoned)), agent)[0] == "deny", template
+
+
+def test_role_cwd_in_vault_denies_plain_commands(zoned):
+    assert decision("ls", CURATOR, cwd=zoned)[0] == "deny"
+    assert decision("cat a.md", CURATOR, cwd=zoned / "Notes")[0] == "deny"
+    assert decision('obsidian vault=vault read path="Notes/a.md"', CURATOR, cwd=zoned)[0] is None
+
+
+@pytest.mark.parametrize("command", ["git status", "ls /tmp", "jq . /tmp/x.json", "date", "echo $HOME"])
+def test_role_commands_outside_the_vault_defer(zoned, command):
+    assert decision(command, CURATOR)[0] is None
+
+
+@pytest.mark.parametrize("command", [
+    'obsidian vault=vault read path="$(sed -i s/a/b/ x.md)"',
+    "obsidian vault=vault read path=`rm x.md`",
+    'cat "$NO_SUCH_VAR_XYZ/Notes/a.md"',
+])
+def test_role_expansions_denied(zoned, command):
+    assert decision(command, CURATOR)[0] == "deny"
+
+
+def test_expansions_unchanged_without_a_role(zoned):
+    assert decision('obsidian vault=vault read path="$(echo Notes/a.md)"')[0] is None
+
+
+@pytest.mark.parametrize("command,agent,expected", [
+    ("vault-write apply Notes/a.md --from -", CURATOR, None),
+    ("vault-write apply Templates/t.md --from - --role architect", ARCHITECT, None),
+    ("vault-write apply Templates/t.md --from - --role architect", CURATOR, "deny"),
+    ("vault-write apply Templates/t.md --from - --role=architect", CURATOR, "deny"),
+    ("ARCHIVIST_ROLE=architect vault-write apply Templates/t.md --from -", CURATOR, "deny"),
+    ("export ARCHIVIST_ROLE=architect; vault-write apply Templates/t.md --from -", CURATOR, "deny"),
+    ("ARCHIVIST_ROLE=curator vault-write apply Notes/a.md --from -", CURATOR, None),
+    ("uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/merge_notes.py --vault {v} a b", CURATOR, None),
+    ("uv run --with pyyaml ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/merge_notes.py --vault {v}", CURATOR, None),
+    ("ARCHIVIST_ROLE=architect uv run ${CLAUDE_PLUGIN_ROOT}/skills/vault-curator/scripts/merge_notes.py --vault {v}", CURATOR, "deny"),
+    ("python3 ${CLAUDE_PLUGIN_ROOT}/bin/vault-write apply Notes/a.md --from -", CURATOR, None),
+])
+def test_role_archivist_programs(zoned, command, agent, expected):
+    assert decision(command.replace("{v}", str(zoned)), agent)[0] == expected
+
+
+def test_role_delete_asks_permanent_denied(zoned):
+    assert decision('obsidian vault=vault delete path="Notes/a.md"', CURATOR)[0] == "ask"
+    assert decision('obsidian vault=vault delete path="Notes/a.md" permanent', CURATOR)[0] == "deny"
+    assert decision('obsidian vault=vault delete path="Notes/a.md"')[0] == "deny"  # no role: unchanged
+
+
+def test_move_warns_when_links_dont_update(zoned):
+    d, reason = decision('obsidian vault=vault move path="Notes/a.md" to="Notes/b.md"')
+    assert d == "ask" and "dialog" in reason
+    (zoned / ".obsidian").mkdir()
+    (zoned / ".obsidian" / "app.json").write_text('{"alwaysUpdateLinks": true}')
+    d, reason = decision('obsidian vault=vault move path="Notes/a.md" to="Notes/b.md"')
+    assert d == "ask" and "dialog" not in reason
+
+
+# -- heredocs ------------------------------------------------------------------
+
+NOTE_WITH_CODE = "# Title\n\nRun `rm -rf x` or $(date) — just text.\nobsidian delete path=x.md\n"
+
+
+def test_quoted_heredoc_body_is_text(zoned):
+    cmd = f"vault-write apply Notes/a.md --from - <<'EOF'\n{NOTE_WITH_CODE}EOF"
+    assert decision(cmd, CURATOR)[0] is None
+    assert decision(cmd)[0] is None  # and the old guard's false "deny" on the body's text is gone
+
+
+@pytest.mark.parametrize("template", [
+    "bash <<'EOF'\nsed -i s/a/b/ {v}/Notes/a.md\nEOF",
+    "python3 - <<'EOF'\nopen('{v}/Notes/a.md','w').write('x')\nEOF",
+    "cat > {v}/Notes/a.md <<'EOF'\nhello\nEOF",
+    "vault-write apply Notes/a.md --from - <<EOF\n$(rm -rf x)\nEOF",  # unquoted: the shell runs $(…)
+])
+def test_heredocs_that_run_or_write_are_checked(zoned, template):
+    assert decision(template.replace("{v}", str(zoned)), CURATOR)[0] == "deny", template
+
+
+def test_heredoc_bash_body_checked_without_role(zoned):
+    assert decision("bash <<'EOF'\nobsidian delete path=x.md\nEOF")[0] == "deny"
