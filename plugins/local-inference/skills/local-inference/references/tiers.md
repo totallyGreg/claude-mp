@@ -13,8 +13,8 @@ them. Three layers, each owning one thing:
 
 | Tier | Served ID | Model notes |
 |------|-----------|-------------|
-| fast | `Qwen3.6-35B-A3B-oQ4e-mtp:fast` | MoE, 3B active, 20 GB, `Jundot/Qwen3.6-35B-A3B-oQ4e-mtp`. oMLX 0.7.0, 11K prompt: **2,929 tok/s prefill, 107 tok/s decode** with MTP |
-| code | `Qwen3.6-35B-A3B-oQ4e-mtp:code` | Same model; thinking on; MTP engages with the thinking budget |
+| fast | `Qwen3.6-35B-A3B-oQ4e-mtp:fast` | MoE, 3B active, `Jundot/Qwen3.6-35B-A3B-oQ4e-mtp`, served by **Splash** (oMLX external engine, DFlash2 draft) since 2026-11-16, 24 GB loaded. 11K prompt: **3,445 tok/s prefill, 143 tok/s decode** (oMLX MTP: 2,936 / 109) — derivation 18 |
+| code | `Qwen3.6-35B-A3B-oQ4e-mtp:code` | Same model and engine; thinking on (Splash maps the effort; budget per request on Splash ≥ 1.3.2) |
 | deep | `Qwen3.8-27B-oQ4e-mtp:deep` | Dense, 16 GB, `Jundot/Qwen3.8-27B-oQ4e-mtp`, MTP on. oMLX 0.7.0, 11K prompt: ~34 tok/s decode, ~399 tok/s prefill. Qwen3.8 thinking sampling: temperature **1.0**, top_p 0.95, top_k 20 (not 3.6's 0.6). Set 2026-09-29 — derivation 7 |
 | see | `Qwen3.6-35B-A3B-oQ4e-mtp:fast` when oMLX is up, else `/usr/bin/fm` (Apple on-device, macOS 27); codes and `--with-text` always `fm` | Called through `scripts/see.sh` (Pi: the `see` tool), never by tier name. The installed Qwen builds carry vision weights; Pi's entries stay text-only on purpose. `fm`-only from 2026-10-13; split 2026-10-21 — derivation 13 and references/apple-fm.md |
 | decide | `--choices`: `d3-flash-oQ8e` via `/v1/decisions` (2026-10-21, derivation 15; `--chat` or a missing model → the chat model). `--schema`: `Qwen3.8-27B-oQ4e-mtp:decide` | d3-flash: 9B decision model, 8.8 GB loaded on demand, ~0.3 s per question. The chat model is the same model as deep. Moved 2026-09-29: 31/45 type, 42/45 area vs the 35B's 27 and 38, at ~1.1 s median vs 0.33 s — accuracy is the point of decide. Called via `scripts/decide.py`, not Pi. Grammar-constrained, so MTP doesn't engage — irrelevant for 1–3-token answers |
@@ -530,6 +530,39 @@ Machine: Apple M5 Pro, 64 GB unified memory.
       512-token judge call, no retry. A bare `pi -p` on `code`/`deep` doesn't
       get this; run it as `source scripts/pi_env.sh; pi_env; env
       "${reply[@]}" pi …`.
+
+18. **Splash as oMLX's engine for fast/code (2026-11-16, adopted).**
+    oMLX 0.7.3 serves a model through Splash (incoai) as an external engine:
+    the model keeps its oMLX name, profiles and API; oMLX starts and stops
+    `splash serve` itself (no separate app or port). Setup: `brew install
+    incoai/tap/splash` (oMLX finds `/opt/homebrew/bin/splash`); the family's
+    DFlash2 draft (`incoai/Qwen3.6-35B-A3B-DFlash2`) in a model directory or
+    the HF cache; Model Settings → Advanced → **Use external engine: Splash**
+    (`model_settings.json` `external_engine: "splash"`). The admin API's
+    `external_engines[].compatible`/`reason` says what is missing. Restart oMLX
+    after upgrading Splash: it reads the version once. Splash ignores oMLX's
+    MTP/TurboQuant/ANE-prefill model settings; with Performance → *Hot Cache
+    Only* on it also gets no SSD cache (`--max-cache-disk 0`).
+
+    `bench_decode.py` on AudiobookOCD `Scripts/dashboard.py` at 9d4f027
+    (~11.4K prompt tokens), same weights, battery, no thermal warning,
+    Splash 1.6.1, int8 KV:
+
+    | | prefill tok/s | decode tok/s | loaded |
+    |---|---|---|---|
+    | oMLX 0.7.3, MTP | 2,936 | 109.0 | 21.1 GB |
+    | Splash 1.6.1, DFlash2 | **3,445 (+17%)** | **143.4 (+32%)** | 24.1 GB |
+
+    Splash's log (`~/.omlx/logs/splash/`) showed `cached 0`, 3.3 tok/cycle.
+    The archivist parity test (`plugins/archivist/tests/parity/parity.sh
+    pi`, `omlx/code`, 7 tool-calling turns, thinking on) passed 5/5 in
+    30 s vs 45 s on MTP: prefix-cache hits of 92–99% after the first turn,
+    TTFT 0.1–0.4 s, decode 127–215 tok/s at 3.0–5.5 tok/cycle. Not checked:
+    that the `code` template's 4K thinking budget reaches Splash (its log
+    shows `effort medium`, not a budget). Cost: +3 GB resident against the
+    51.8 GB Metal cap. `deep` (Qwen3.8-27B) can move the same way once
+    `incoai/Qwen3.8-27B-DFlash2` is downloaded; not measured. Revert: turn
+    the toggle off; nothing else changes.
 
 ## Gotcha: sampling lives in oMLX profiles, not Pi
 

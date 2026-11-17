@@ -14,7 +14,7 @@ description: >
 license: MIT
 compatibility: Requires python3 and uv for script execution
 metadata:
-  version: "1.18.4"
+  version: "1.19.0"
   plugin: "archivist"
   stage: "3"
 ---
@@ -40,10 +40,7 @@ uv run scripts/analyze_vault.py ${VAULT_PATH}   # full health check
 
 **Linter plugin config:** Read `.obsidian/plugins/obsidian-linter/data.json` at the vault root to discover active formatting rules before writing any note content or templates. Linter auto-reformats on save — notes written in violation will silently change, causing spurious git diffs and user confusion.
 
-```bash
-# Read active Linter rules
-cat "${VAULT_PATH}/.obsidian/plugins/obsidian-linter/data.json"
-```
+Read it with the Read tool (`${VAULT_PATH}/.obsidian/plugins/obsidian-linter/data.json`). Shell commands on vault paths are denied for the archivist's agents; reads go through the read tools.
 
 Key rules to check and apply when writing vault content:
 - `yaml-title-alias` — whether title aliases are auto-managed
@@ -220,21 +217,16 @@ Create or regenerate `_vault-profile.md` in the vault root. This profile provide
    ```
    If `obsidian` CLI fails (app not running), fall back to Glob/Grep/Read on vault files.
 
-2. **Discover installed plugins:**
+2. **Discover enabled plugins:**
    ```bash
-   ls "${VAULT_PATH}/.obsidian/plugins/"
+   obsidian vault="<vault_name>" plugins:enabled format=json versions
    ```
 
-3. **Sample fileClass distribution:**
-   ```bash
-   grep -r "^fileClass:" "${VAULT_PATH}" --include="*.md" | sed 's/.*fileClass: *//' | sort | uniq -c | sort -rn
-   ```
-   Fall back to Grep tool if bash grep is unavailable.
+3. **Sample fileClass distribution:** `obsidian vault="<vault_name>" properties name=fileClass counts format=json`
+   for the total; for the values, the Grep tool with pattern `^fileClass:` on `${VAULT_PATH}`, glob `*.md`.
 
-4. **Read Linter config** (if installed):
-   ```bash
-   cat "${VAULT_PATH}/.obsidian/plugins/obsidian-linter/data.json"
-   ```
+4. **Read Linter config** (if installed): the Read tool on
+   `${VAULT_PATH}/.obsidian/plugins/obsidian-linter/data.json`.
 
 5. **Analyze folder philosophy** — interpret top-level folder naming convention:
    - Numbered prefixes (e.g., `100`, `200`) → hierarchical organization
@@ -320,7 +312,7 @@ After architect work, offer curator follow-through to close the loop:
 
 Before writing to any path in the vault, check whether it falls within your allowed zones.
 
-**How to check:** `vault-write stat <path>` reports `in_zone` and `vault-write apply` refuses out-of-zone writes itself. To reason about zones before writing, run `vault-write config` and use its `architect_write_zones` list (vault-relative directory paths; the file is `~/.config/archivist/local.md`). A write is allowed if the target path starts with any listed zone prefix. When multiple zones match, the most-specific (longest) prefix wins.
+**How to check:** `vault-write stat <path>` reports `in_zone` and the `roles` that may write it; `vault-write apply --role architect` refuses out-of-zone writes itself. Always pass `--role architect`: without it vault-write applies the curator's zones. To reason about zones before writing, run `vault-write config` and use its `architect_write_zones` list (vault-relative directory paths; the file is `~/.config/archivist/local.md`). A write is allowed if the target path starts with any listed zone prefix. When multiple zones match, the most-specific (longest) prefix wins.
 
 **Allowed writes:**
 - Template directories, Bases files, script directories, vault infrastructure files (`_vault-profile.md`, system guides), and any path listed in `architect_write_zones`.

@@ -147,6 +147,7 @@ Run only what the task needs.
    - `obsidian vault=… orphans | wc -l`
    - `check_collection_health.py <vault>` (a full check takes about 0.1s; `--dry-run` only lists candidate folders)
    - Schema drift on the profile's top fileClass: `detect_schema_drift.py <vault> --file-class <class> --summary`. It returns counts and the top issues; `--dry-run` scans nothing.
+   - `vault-write audit --since 1d`: changed files no ledger entry explains (the user's own edits included; ask, don't assume a bypass).
 
    Lead with the highest-impact issue (orphans > 20, unhealthy collections, drift), or say the vault looks healthy.
 
@@ -175,10 +176,13 @@ CLI errors print `Error: …` and exit 0, so check the output, not the exit stat
    New notes need no `--base`. `.canvas` files go the same way and must be valid JSON.
 3. **Report.** Relay `hash`, `lines`, `snapshot`, `warnings`, and the `restore` command.
 
+You write as the curator, vault-write's default role: curator and output zones only (`vault-write stat` lists the `roles` that may write a path). Never pass `--role architect`; a path whose only role is architect goes to the architect.
+For a merge you wrote or restructured yourself, add `--merged-from <every source note>`: vault-write refuses it if text was dropped or reworded.
+
 On a refusal (exit 2: drift, outside zones, missing `--base`, no git), stop and report; re-read and rebuild on drift. On lint errors (exit 3), fix the content. `vault-write force` skips base and zone checks; use it only after the user approved that specific write.
 
 - **Single frontmatter values:** `obsidian vault="<vault_name>" property:set path="<path>" name=… value=…` (add `type=list` for lists). Always pass `path=`.
-- **Move or rename:** ask the user, then use `obsidian move` / `rename` (link-safe; the guard asks too). Deleting is the user's job, or a confirmed `rm` after a dependency check.
+- **Move or rename:** ask the user, then use `obsidian move` / `rename` (link-safe; the guard asks too). Deleting is the user's job, or `obsidian vault="<vault_name>" delete path="…"` (to Obsidian's trash; the guard asks) after a dependency check. Never `rm`: shell commands on vault paths are denied (`references/cli-patterns.md` → Shell Usage).
 - **Scripts that write** (`merge_notes.py`, `redirect_links.py`, `generate_canvas.py`) go through `vault-write` themselves. Run `--dry-run` first. A refusal comes back as `status: refused` or a `skipped` list; nothing outside the zones is written.
 - **One file, one write.** Editing a note should not cascade into other notes; Bases and links handle the relationships.
 
@@ -212,7 +216,7 @@ Brief it with paths, the operation, the vault name and any decisions already mad
 - **Pre-flight:** if no zone covers the target, refuse up front with `Archivist policy:` and name the fix (add a zone, run profiling, or pick a covered path). Don't probe by attempting the write.
 - **Links:** use `[[Target]]` for any vault entity, a `file://` markdown link for documents outside the vault, and backticks only for code, commands and YAML keys. See `references/linking-discipline.md`.
 - **Workflow classification:** compare multi-step requests with the profile's `## Known Workflows`. Note novel ones for `## Workflow Candidates`.
-- **Session learning:** update `_vault-profile.md` one section at a time with `vault-write apply … --section "## <Heading>"`, stable facts only. If 50% or more of the sections change, show the diff first. Leave `last_updated` alone: it marks the last structural re-profile, which is what `profile_drift` measures.
+- **Session learning:** `_vault-profile.md` is an architect zone. Hand stable facts for it to the architect (one section each, stable facts only), and say what changed in your report. If 50% or more of the sections would change, show the diff first. `last_updated` marks the last structural re-profile, which is what `profile_drift` measures.
 
 ## When spawned as a subagent
 

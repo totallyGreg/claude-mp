@@ -93,7 +93,7 @@ def test_linter_noise_is_not_drift(vault, tmp_path):
 
 def test_outside_zone_refused_but_force_allowed(vault, tmp_path):
     code, out = run("apply", "Private/p.md", "--from", staged(tmp_path, "# P\n"))
-    assert code == 2 and "outside the write zones" in out["detail"]
+    assert code == 2 and "outside the curator write zones" in out["detail"]
     code, out = run("force", "Private/p.md", "--from", staged(tmp_path, "# P\n"))
     assert code == 0 and out["created"]
 
@@ -365,3 +365,203 @@ def test_preexisting_frontmatter_error_does_not_block(vault, tmp_path):
     base = run("stat", "Notes/old.md")[1]["hash"]
     code, out = run("apply", "Notes/old.md", "--from", staged(tmp_path, '---\nx: "a", "b"\n---\nbody edited\n'), "--base", base)
     assert code == 0, out
+
+
+# ---------- roles (#258) ----------
+
+@pytest.fixture
+def roles_vault(vault, tmp_path, monkeypatch):
+    """The fixture vault plus an architect zone and an output zone."""
+    (vault / "Templates").mkdir()
+    (vault / "Generated").mkdir()
+    cfg = Path(os.environ["ARCHIVIST_LOCAL_MD"])
+    cfg.write_text(cfg.read_text() + "architect_write_zones: Templates\ndesignated_output_zones: Generated\n")
+    monkeypatch.delenv("ARCHIVIST_ROLE", raising=False)
+    return vault
+
+
+def test_curator_refused_in_architect_zone(roles_vault, tmp_path):
+    code, out = run("apply", "Templates/t.md", "--from", staged(tmp_path, "# T\n"))
+    assert code == 2 and "outside the curator write zones" in out["detail"] and "zone for: architect" in out["detail"]
+    assert not (roles_vault / "Templates" / "t.md").exists()
+
+
+def test_architect_writes_architect_and_content_zones(roles_vault, tmp_path):
+    code, out = run("apply", "Templates/t.md", "--from", staged(tmp_path, "# T\n"), "--role", "architect")
+    assert code == 0 and out["role"] == "architect"
+    code, out = run("apply", "Notes/folder.md", "--from", staged(tmp_path, "# F\n"), "--role", "architect")
+    assert code == 0  # folder notes live in content zones (#175)
+
+
+def test_curator_writes_output_zone(roles_vault, tmp_path):
+    code, out = run("apply", "Generated/g.md", "--from", staged(tmp_path, "# G\n"))
+    assert code == 0 and out["role"] == "curator"
+
+
+def test_role_from_environment(roles_vault, tmp_path, monkeypatch):
+    monkeypatch.setenv("ARCHIVIST_ROLE", "architect")
+    code, out = run("apply", "Templates/t.md", "--from", staged(tmp_path, "# T\n"))
+    assert code == 0 and out["role"] == "architect"
+
+
+def test_unknown_role_refused(roles_vault, tmp_path, monkeypatch):
+    monkeypatch.setenv("ARCHIVIST_ROLE", "admin")
+    code, out = run("apply", "Notes/n.md", "--from", staged(tmp_path, "# N\n"))
+    assert code == 2 and "unknown role" in out["detail"]
+
+
+def test_stat_and_config_report_roles(roles_vault):
+    assert run("stat", "Templates/t.md")[1]["roles"] == ["architect"]
+    assert run("stat", NOTE)[1]["roles"] == ["curator", "architect"]
+    roles = run("config")[1]["roles"]
+    assert "Templates" not in roles["curator"] and "Generated" in roles["curator"]
+    assert "Templates" in roles["architect"]
+
+
+def test_merged_from_refuses_reworded_merge(vault, tmp_path):
+    (vault / "Notes" / "b.md").write_text("# B\n- runs multiple AI services\n")
+    merged = ORIGINAL + "\n## From B\n- runs multiple LLM services\n"
+    code, out = run("apply", NOTE, "--from", staged(tmp_path, merged), "--base", base_of(),
+                    "--merged-from", NOTE, "Notes/b.md")
+    assert code == 2 and "merge drops source text" in out["detail"] and "AI services" in out["detail"]
+    assert (vault / NOTE).read_text() == ORIGINAL
+
+
+def test_merged_from_accepts_faithful_merge(vault, tmp_path):
+    (vault / "Notes" / "b.md").write_text("# B\n- runs multiple AI services\n")
+    merged = ORIGINAL + "\n## From B\n- runs multiple AI services\n"
+    code, out = run("apply", NOTE, "--from", staged(tmp_path, merged), "--base", base_of(),
+                    "--merged-from", NOTE, "Notes/b.md")
+    assert code == 0, out
+
+
+# ---------- date modified follows the vault's Linter rule (#258) ----------
+
+LINTER = {"ruleConfigs": {"yaml-timestamp": {"enabled": True, "date-modified": True, "date-modified-key": "date modified",
+                                              "format": "YYYY-MM-DDTHH:mm[Z]", "convert-to-utc": True}},
+          "foldersToIgnore": ["Notes/Ignored"], "filesToIgnore": []}
+STAMP = r"date modified: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z\n"
+
+
+@pytest.fixture
+def linted_vault(vault):
+    d = vault / ".obsidian" / "plugins" / "obsidian-linter"
+    d.mkdir(parents=True)
+    (d / "data.json").write_text(json.dumps(LINTER))
+    return vault
+
+
+def test_write_stamps_date_modified(linted_vault, tmp_path):
+    import re
+    code, out = run("apply", NOTE, "--from", staged(tmp_path, ORIGINAL.replace("old one", "new one")), "--base", base_of())
+    assert code == 0
+    text = (linted_vault / NOTE).read_text()
+    assert re.search(STAMP, text) and "2026-10-16T20:00Z" not in text and "new one" in text
+
+
+def test_no_stamp_without_key_ignored_folder_or_linter(linted_vault, vault, tmp_path):
+    run("apply", "Notes/plain.md", "--from", staged(tmp_path, "---\ntitle: P\n---\n# P\n"))
+    assert "date modified" not in (vault / "Notes/plain.md").read_text()
+    (vault / "Notes/Ignored").mkdir()
+    run("apply", "Notes/Ignored/i.md", "--from", staged(tmp_path, "---\ndate modified: 2020-01-01T00:00Z\n---\n# I\n"))
+    assert "2020-01-01T00:00Z" in (vault / "Notes/Ignored/i.md").read_text()
+
+
+def test_no_stamp_when_vault_has_no_linter(vault, tmp_path):
+    code, _ = run("apply", NOTE, "--from", staged(tmp_path, ORIGINAL.replace("old one", "new one")), "--base", base_of())
+    assert code == 0 and "2026-10-16T20:00Z" in (vault / NOTE).read_text()
+
+
+def test_unknown_linter_format_warns_and_keeps_value(linted_vault, tmp_path):
+    cfg = json.loads(json.dumps(LINTER))
+    cfg["ruleConfigs"]["yaml-timestamp"]["format"] = "dddd, MMMM Do YYYY"
+    (linted_vault / ".obsidian/plugins/obsidian-linter/data.json").write_text(json.dumps(cfg))
+    code, out = run("apply", NOTE, "--from", staged(tmp_path, ORIGINAL.replace("old one", "new one")), "--base", base_of())
+    assert code == 0 and any("not updated" in w for w in out["warnings"])
+    assert "2026-10-16T20:00Z" in (linted_vault / NOTE).read_text()
+
+
+# -- ledger and audit ------------------------------------------------------------
+
+def backdate(root, days=2):
+    old = __import__("time").time() - days * 86400
+    for p in root.rglob("*"):
+        if p.is_file() and ".git" not in p.parts:
+            os.utime(p, (old, old))
+
+
+def audit(since="1d"):
+    code, out = run("audit", "--since", since)
+    assert code == 0, out
+    return out
+
+
+def ledger_lines():
+    p = Path(os.environ["XDG_STATE_HOME"]) / "archivist" / "ledger.jsonl"
+    return [json.loads(l) for l in p.read_text().splitlines()] if p.exists() else []
+
+
+def test_audit_clean_before_any_change(vault):
+    backdate(vault)
+    out = audit()
+    assert out["clean"] and out["explained"] == 0 and out["unexplained"] == []
+
+
+def test_vault_write_is_recorded_and_explained(vault, tmp_path):
+    backdate(vault)
+    code, w = run("apply", NOTE, "--base", base_of(), "--from", staged(tmp_path, ORIGINAL.replace("old one", "new one")))
+    assert code == 0, w
+    [entry] = ledger_lines()
+    assert entry["via"] == "vault-write" and entry["path"] == NOTE and entry["hash"] == w["hash"]
+    assert entry["role"] == "curator" and entry["vault"] == str(vault.resolve())
+    out = audit()
+    assert out["clean"] and out["explained"] == 1
+
+
+def test_direct_write_shows_up(vault):
+    backdate(vault)
+    (vault / NOTE).write_text(ORIGINAL + "bypass\n")
+    (vault / "Notes" / "new.md").write_text("made by sed or a heredoc\n")
+    out = audit()
+    assert not out["clean"]
+    assert {u["path"]: u["reason"] for u in out["unexplained"]} == {NOTE: "no ledger entry", "Notes/new.md": "no ledger entry"}
+
+
+def test_edit_after_vault_write_shows_up(vault, tmp_path):
+    backdate(vault)
+    assert run("apply", NOTE, "--base", base_of(), "--from", staged(tmp_path, ORIGINAL + "x\n"))[0] == 0
+    (vault / NOTE).write_text(ORIGINAL + "x\nthen a direct edit\n")
+    [u] = audit()["unexplained"]
+    assert u == {**u, "path": NOTE, "reason": "changed after vault-write wrote it"}
+
+
+def test_linter_restamp_after_vault_write_is_explained(vault, tmp_path):
+    backdate(vault)
+    assert run("apply", NOTE, "--base", base_of(), "--from", staged(tmp_path, ORIGINAL + "x\n"))[0] == 0
+    text = (vault / NOTE).read_text()
+    stamped = "\n".join("date modified: 2030-01-01T00:00Z" if l.startswith("date modified:") else l
+                        for l in text.split("\n"))
+    (vault / NOTE).write_text(stamped)
+    assert audit()["clean"]
+
+
+def test_uncommitted_delete_shows_up(vault):
+    backdate(vault)
+    (vault / "Notes" / "Linked.md").unlink()
+    out = audit()
+    assert out["deleted_unexplained"] == ["Notes/Linked.md"] and not out["clean"]
+
+
+def test_dot_folders_and_old_changes_ignored(vault):
+    backdate(vault)
+    (vault / ".obsidian").mkdir()
+    (vault / ".obsidian" / "workspace.json").write_text("{}")
+    assert audit()["clean"]
+    (vault / NOTE).write_text("changed\n")
+    later = __import__("datetime").datetime.now().replace(microsecond=0) + __import__("datetime").timedelta(minutes=1)
+    assert audit(later.isoformat())["clean"]  # the change is before --since
+
+
+def test_audit_rejects_bad_since(vault):
+    code, out = run("audit", "--since", "yesterday-ish")
+    assert code == 2 and "--since" in out["detail"]

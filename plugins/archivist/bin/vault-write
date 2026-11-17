@@ -13,8 +13,9 @@ Usage:
     vault-write config
     vault-write stat  <note>
     vault-write check <file> [--as <note>]
-    vault-write apply <note> --from <file|-> [--base HASH] [--section HEADING]
-    vault-write force <note> --from <file|-> [--base HASH] [--section HEADING]
+    vault-write apply <note> --from <file|-> [--base HASH] [--section HEADING] [--role ROLE] [--merged-from NOTE...]
+    vault-write force <note> --from <file|-> [--base HASH] [--section HEADING] [--role ROLE] [--merged-from NOTE...]
+    vault-write audit [--since 1d|2h|30m|ISO-TIME]
 
 <note> is a vault-relative path ("600 Projects/x/y.md") or an absolute path inside the vault.
 Output is one line of JSON. Exit codes: 0 ok, 1 usage/IO error, 2 refused by policy, 3 lint errors.
@@ -25,6 +26,21 @@ a `.local.md` inside the plugin cache; it says where to move one if it finds it.
     ignore_drift_keys (default: date modified)
 It lives outside the plugin cache so updates keep it, and outside the vault so a vault write
 can't widen its own zones. `vault-write config` shows what was loaded and what the vault says.
+
+Roles: each write is checked against its role's zones (ROLE_ZONE_KEYS). --role, else $ARCHIVIST_ROLE,
+else curator, the narrower role. curator: curator_write_zones + designated_output_zones. architect:
+every write zone (folder notes live in content zones). The role is declared by the caller; the guard
+hooks check it matches the agent.
+
+`date modified`: a write to a note whose frontmatter has the vault's Linter `yaml-timestamp` key is
+stamped with the current time in Linter's format (.obsidian/plugins/obsidian-linter/data.json), skipping
+Linter's ignored folders and files, so it looks like an Obsidian save. No Linter rule, no stamp.
+
+Ledger: every write appends a line (path, role, hashes, time) to
+${XDG_STATE_HOME:-~/.local/state}/archivist/ledger.jsonl; the guard hook adds the targets of the
+`obsidian` CLI writes it lets through. `vault-write audit` lists vault files changed since --since
+that no entry explains (dot-folders skipped), and uncommitted deletions. Your own Obsidian edits
+appear too: the audit says what changed outside the archivist's write paths, not who changed it.
 """
 
 from __future__ import annotations
@@ -38,9 +54,20 @@ import re
 import subprocess
 import sys
 import unicodedata
+from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
 ZONE_KEYS = ("architect_write_zones", "curator_write_zones", "designated_output_zones")
+ROLE_ZONE_KEYS = {
+    "curator": ("curator_write_zones", "designated_output_zones"),
+    "architect": ZONE_KEYS,
+}
+DEFAULT_ROLE = "curator"
+# `date modified` follows the vault's own Linter rule, so a vault-write write is stamped like an Obsidian save.
+LINTER_SETTINGS = Path(".obsidian/plugins/obsidian-linter/data.json")
+MOMENT_LETTERS = set("aAdDeEgGhHkmMnNoQsSwWxXYZ")  # letters moment.js reads as tokens; others (T) are literal
+MOMENT_TOKEN_RE = re.compile(r"\[[^\]]*\]|YYYY|MM|DD|HH|mm|ss|ZZ|Z|[A-Za-z]|.", re.S)
+CHECK_MERGE = Path(__file__).resolve().parent.parent / "skills" / "vault-curator" / "scripts" / "check_merge_preserved.py"
 DEFAULT_IGNORE_KEYS = ("date modified",)
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 HEADING_RE = re.compile(r"^(#{1,6})\s")
@@ -144,6 +171,102 @@ def in_zone(rel: str, zones: list[str]) -> bool:
         if parts[: len(zp)] == zp:
             return True
     return False
+
+
+def resolve_role(role: str | None) -> str:
+    r = role or os.environ.get("ARCHIVIST_ROLE") or DEFAULT_ROLE
+    if r not in ROLE_ZONE_KEYS:
+        raise Refused(f"unknown role {r!r}; one of {', '.join(ROLE_ZONE_KEYS)}")
+    return r
+
+
+def role_zones(cfg: dict, role: str) -> list[str]:
+    return [z for k in ROLE_ZONE_KEYS[role] for z in cfg["by_key"][k]]
+
+
+def roles_for(cfg: dict, rel: str) -> list[str]:
+    """The roles allowed to write `rel`."""
+    return [r for r in ROLE_ZONE_KEYS if in_zone(rel, role_zones(cfg, r))]
+
+
+def merge_check(cfg: dict, rel: str, before: bytes, new_text: str, merged_from: list[str]) -> None:
+    """Refuse a merge that drops or rewords text of the notes it was merged from."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("check_merge_preserved", CHECK_MERGE)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    sources = {}
+    for note in merged_from:
+        path, src_rel = resolve_note(cfg, note)
+        if src_rel == rel:
+            sources[src_rel] = before.decode("utf-8", errors="replace")
+        elif path.is_file():
+            sources[src_rel] = path.read_text(encoding="utf-8")
+        else:
+            raise Refused(f"--merged-from {src_rel} does not exist")
+    result = mod.check(new_text, sources)
+    if not result["ok"]:
+        lost = [m["line"] for m in result["missing_lines"]][:5]
+        raise Refused("merge drops source text: " + json.dumps(
+            {"missing_urls": result["missing_urls"], "missing_wikilinks": result["missing_wikilinks"],
+             "missing_lines": lost, "missing_line_count": len(result["missing_lines"])}, ensure_ascii=False))
+
+
+def timestamp_rule(root: Path) -> dict | None:
+    """Linter's yaml-timestamp `date modified` settings, or None when the vault doesn't use them."""
+    try:
+        data = json.loads((root / LINTER_SETTINGS).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    rule = (data.get("ruleConfigs") or {}).get("yaml-timestamp") or {}
+    if not (rule.get("enabled") and rule.get("date-modified")):
+        return None
+    return {"key": rule.get("date-modified-key") or "date modified", "format": rule.get("format") or "YYYY-MM-DDTHH:mm:ssZ",
+            "utc": bool(rule.get("convert-to-utc")), "folders": data.get("foldersToIgnore") or [],
+            "files": data.get("filesToIgnore") or []}
+
+
+def moment_format(fmt: str, dt: datetime) -> str | None:
+    """Render a moment.js format with the tokens Linter timestamps use; None for any other token."""
+    offset = dt.strftime("%z")
+    table = {"YYYY": "%Y", "MM": "%m", "DD": "%d", "HH": "%H", "mm": "%M", "ss": "%S"}
+    out = []
+    for tok in MOMENT_TOKEN_RE.findall(fmt):
+        if tok.startswith("["):
+            out.append(tok[1:-1])
+        elif tok in table:
+            out.append(dt.strftime(table[tok]))
+        elif tok == "Z":
+            out.append(f"{offset[:3]}:{offset[3:]}")
+        elif tok == "ZZ":
+            out.append(offset)
+        elif tok in MOMENT_LETTERS:
+            return None  # a moment token this renderer doesn't handle (ddd, MMM, Do, …): don't guess
+        else:
+            out.append(tok)
+    return "".join(out)
+
+
+def stamp_modified(root: Path, rel: str, text: str) -> tuple[str, str | None]:
+    """Set the note's `date modified` to now, in Linter's format, when its frontmatter has the key.
+    Returns (text, warning)."""
+    rule = timestamp_rule(root) if rel.endswith(".md") else None
+    if not rule or rel in rule["files"] or in_zone(rel, rule["folders"]):
+        return text, None
+    lines = text.split("\n")
+    if not lines or lines[0].strip() != "---":
+        return text, None
+    end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), None)
+    key_re = re.compile(rf"^{re.escape(rule['key'])}:(\s|$)")
+    hit = next((i for i in range(1, end or 0) if key_re.match(lines[i])), None)
+    if hit is None:
+        return text, None
+    now = datetime.now(timezone.utc) if rule["utc"] else datetime.now().astimezone()
+    value = moment_format(rule["format"], now)
+    if value is None:
+        return text, f"{rule['key']} not updated: Linter format {rule['format']!r} has tokens vault-write doesn't render"
+    lines[hit] = f"{rule['key']}: {value}"
+    return "\n".join(lines), None
 
 
 def missing_zones(cfg: dict) -> list[str]:
@@ -593,6 +716,110 @@ def snapshot(root: Path, path: Path) -> tuple[str | None, str | None]:
     return (head.stdout.strip() or None), None
 
 
+# ---------- ledger and audit ----------
+
+def ledger_path() -> Path:
+    base = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
+    return Path(base) / "archivist" / "ledger.jsonl"
+
+
+def record(root: Path, entry: dict) -> str | None:
+    """Append one write to the ledger. Returns a warning rather than raising: the write already happened."""
+    now = datetime.now(timezone.utc)
+    line = {"ts": now.timestamp(), "time": now.isoformat(timespec="seconds"), "vault": str(root), **entry}
+    try:
+        p = ledger_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with p.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(line, ensure_ascii=False) + "\n")
+    except OSError as e:
+        return f"ledger not written ({e}); `vault-write audit` will list this write"
+    return None
+
+
+def parse_since(value: str) -> float:
+    m = re.fullmatch(r"(\d+)([mhd])", value.strip())
+    if m:
+        return datetime.now().timestamp() - int(m.group(1)) * {"m": 60, "h": 3600, "d": 86400}[m.group(2)]
+    try:
+        return datetime.fromisoformat(value).timestamp()  # no offset = local time
+    except ValueError:
+        raise Refused(f"--since {value!r}: use an ISO time (2026-11-15T14:00) or a duration (30m, 2h, 1d)")
+
+
+def ledger_entries(root: Path, since: float) -> dict[str, list[dict]]:
+    """This vault's entries since `since` (with a little slack for clock rounding), by path."""
+    out: dict[str, list[dict]] = {}
+    p = ledger_path()
+    if not p.is_file():
+        return out
+    for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            e = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if e.get("vault") == str(root) and e.get("ts", 0) >= since - 5 and e.get("path"):
+            out.setdefault(nfc(e["path"]), []).append(e)
+    return out
+
+
+def changed_since(root: Path, since: float):
+    """Vault files modified since `since`. Dot-folders (.obsidian, .git, .trash, …) are Obsidian's own state."""
+    for dirpath, dirs, files in os.walk(root):
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
+        for name in files:
+            if name.startswith("."):
+                continue
+            path = Path(dirpath) / name
+            try:
+                mtime = path.stat().st_mtime
+            except OSError:
+                continue
+            if mtime >= since:
+                yield path, mtime
+
+
+def explained(entries: list[dict], data: bytes | None, ignore_keys: list[str]) -> bool:
+    """A CLI write (recorded by the guard) explains any change to its path; a vault-write write explains
+    the content it wrote, or that content after Linter restamped an ignored key."""
+    if any(e.get("via") == "obsidian" for e in entries):
+        return True
+    if data is None:
+        return False
+    h = hashes(data, ignore_keys)
+    return any(e.get("hash") == h["hash"] or e.get("stable") == h["stable"] for e in entries)
+
+
+def cmd_audit(args) -> dict:
+    cfg = load_config()
+    root: Path = cfg["root"]
+    since = parse_since(args.since)
+    entries = ledger_entries(root, since)
+    unexplained, ok = [], 0
+    for path, mtime in changed_since(root, since):
+        rel = nfc(path.relative_to(root).as_posix())
+        try:
+            data = path.read_bytes()
+        except OSError:
+            data = None
+        if explained(entries.get(rel, []), data, cfg["ignore_keys"]):
+            ok += 1
+            continue
+        reason = "changed after vault-write wrote it" if entries.get(rel) else "no ledger entry"
+        unexplained.append({"path": rel, "modified": datetime.fromtimestamp(mtime).isoformat(timespec="seconds"),
+                            "reason": reason})
+    deleted = []
+    status = git(root, "status", "--porcelain", "--no-renames")
+    if status.returncode == 0:
+        for line in status.stdout.splitlines():
+            rel = nfc(line[3:].strip().strip('"'))
+            if "D" in line[:2] and not explained(entries.get(rel, []), None, cfg["ignore_keys"]):
+                deleted.append(rel)
+    return {"ok": True, "action": "audit", "since": datetime.fromtimestamp(since).isoformat(timespec="seconds"),
+            "ledger": str(ledger_path()), "explained": ok, "unexplained": sorted(unexplained, key=lambda u: u["path"]),
+            "deleted_unexplained": sorted(deleted), "clean": not unexplained and not deleted}
+
+
 # ---------- commands ----------
 
 def read_source(src: str) -> str:
@@ -611,6 +838,7 @@ def cmd_config(args) -> dict:
     if daily:
         daily["in_zone"] = in_zone(daily["today"], cfg["zones"])
     out = {"ok": True, "action": "config", "config": cfg["config"], "vault": str(root), "vault_name": root.name, **cfg["by_key"],
+           "roles": {r: role_zones(cfg, r) for r in ROLE_ZONE_KEYS},
            "missing_zones": missing, "daily_notes": daily, "profile_drift": profile_drift(root)}
     return out
 
@@ -618,7 +846,8 @@ def cmd_config(args) -> dict:
 def cmd_stat(args) -> dict:
     cfg = load_config()
     path, rel = resolve_note(cfg, args.note)
-    out = {"ok": True, "action": "stat", "path": rel, "exists": path.is_file(), "in_zone": in_zone(rel, cfg["zones"])}
+    out = {"ok": True, "action": "stat", "path": rel, "exists": path.is_file(), "in_zone": in_zone(rel, cfg["zones"]),
+           "roles": roles_for(cfg, rel)}
     if path.is_file():
         data = path.read_bytes()
         out.update(hashes(data, cfg["ignore_keys"]))
@@ -643,19 +872,24 @@ def cmd_check(args) -> dict:
 
 
 def cmd_write(args, forced: bool) -> dict:
-    return write_note(load_config(), args.note, read_source(args.source), args.base, args.section, forced)
+    return write_note(load_config(), args.note, read_source(args.source), args.base, args.section, forced,
+                      role=args.role, merged_from=args.merged_from)
 
 
 def write_note(cfg: dict, note: str, incoming: str, base: str | None = None, section: str | None = None,
-               forced: bool = False) -> dict:
-    """The one guarded write path: zones, compare-and-swap on `base`, lint, git snapshot, atomic
-    verified write. The CLI and the curator scripts both call this. Raises Refused / LintFailed."""
+               forced: bool = False, role: str | None = None, merged_from: list[str] | None = None) -> dict:
+    """The one guarded write path: role's zones, compare-and-swap on `base`, merge check, lint, git
+    snapshot, atomic verified write. The CLI and the curator scripts both call this. Raises Refused / LintFailed."""
+    role = resolve_role(role)
     path, rel = resolve_note(cfg, note)
     warnings: list[str] = [f"zone does not exist in vault: {z} (see `vault-write config`)" for z in missing_zones(cfg)]
-    if not in_zone(rel, cfg["zones"]):
+    zones = role_zones(cfg, role)
+    if not in_zone(rel, zones):
         if not forced:
-            raise Refused(f"{rel} is outside the write zones {cfg['zones']}; use `vault-write force` (asks the user)")
-        warnings.append("outside write zones (forced)")
+            others = [r for r in roles_for(cfg, rel) if r != role]
+            hint = f"; it is a zone for: {', '.join(others)}" if others else ""
+            raise Refused(f"{rel} is outside the {role} write zones {zones}{hint}; use `vault-write force` (asks the user)")
+        warnings.append(f"outside {role} write zones (forced)")
     exists = path.is_file()
     before = path.read_bytes() if exists else b""
     h_before = hashes(before, cfg["ignore_keys"]) if exists else None
@@ -673,6 +907,11 @@ def write_note(cfg: dict, note: str, incoming: str, base: str | None = None, sec
         new_text = replace_section(before.decode("utf-8"), section, incoming)
     else:
         new_text = incoming
+    if merged_from:
+        merge_check(cfg, rel, before, new_text, merged_from)
+    new_text, stamp_warn = stamp_modified(cfg["root"], rel, new_text)
+    if stamp_warn:
+        warnings.append(stamp_warn)
     errors, lint_warn = check_content(rel, before.decode("utf-8", errors="replace"), new_text, cfg["root"])
     warnings += lint_warn
     if errors:
@@ -694,6 +933,7 @@ def write_note(cfg: dict, note: str, incoming: str, base: str | None = None, sec
     out = {
         "ok": True,
         "action": "force" if forced else "apply",
+        "role": role,
         "path": rel,
         "created": not exists,
         "hash_before": h_before["hash"] if h_before else None,
@@ -702,6 +942,10 @@ def write_note(cfg: dict, note: str, incoming: str, base: str | None = None, sec
         "snapshot": sha_snap,
         "warnings": warnings,
     }
+    if ledger_warn := record(cfg["root"], {"via": "vault-write", "action": out["action"], "role": role, "path": rel,
+                                           "hash_before": out["hash_before"], "hash": out["hash"],
+                                           "stable": hashes(new_bytes, cfg["ignore_keys"])["stable"]}):
+        warnings.append(ledger_warn)
     if sha_snap and exists:
         out["restore"] = f"git -C {json.dumps(str(cfg['root']))} checkout {sha_snap[:12]} -- {json.dumps(str(path))}"
     return out
@@ -722,6 +966,11 @@ def main(argv=None) -> int:
         w.add_argument("--from", dest="source", required=True, help="file with the new content, or - for stdin")
         w.add_argument("--base", help="hash (or stable hash, >=12 chars) from `vault-write stat`")
         w.add_argument("--section", help="replace only this heading's section, e.g. '## 13. Gaps'")
+        w.add_argument("--role", choices=list(ROLE_ZONE_KEYS), help="writer's role (default: $ARCHIVIST_ROLE, else curator)")
+        w.add_argument("--merged-from", nargs="+", metavar="NOTE",
+                       help="notes merged into this content; refused if it drops or rewords their text")
+    a = sub.add_parser("audit", help="list vault files changed since a time that no ledger entry explains")
+    a.add_argument("--since", default="1d", help="ISO time (local) or a duration: 30m, 2h, 1d (default)")
     args = ap.parse_args(argv)
     try:
         if args.cmd == "config":
@@ -730,6 +979,8 @@ def main(argv=None) -> int:
             out = cmd_stat(args)
         elif args.cmd == "check":
             out = cmd_check(args)
+        elif args.cmd == "audit":
+            out = cmd_audit(args)
         else:
             out = cmd_write(args, forced=args.cmd == "force")
         print(json.dumps(out, ensure_ascii=False))

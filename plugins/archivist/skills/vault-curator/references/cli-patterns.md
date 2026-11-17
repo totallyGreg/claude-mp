@@ -46,7 +46,7 @@ Rules for the archivist:
   - `Vault not found.` → stop: the config and Obsidian disagree.
   - `Command "…" not found` → the vault was just opened (and focused); retry once.
 - The guard hook denies CLI writes whose `vault=` is missing, misplaced (after the subcommand) or names another vault.
-- Plugin-registered commands (`quickadd:run`, `templater:…`) follow the same rules. The guard can't list them, so their callers must pass `vault=` first. Their output path is **not yet zone-checked** by the guard ([#258](https://github.com/totallyGreg/claude-mp/issues/258)): give them a target inside your zones.
+- Plugin-registered commands (`quickadd:run`, `templater:…`) follow the same rules: pass `vault=` first. The guard zone-checks `templater:create-from-template file=…` and a QuickAdd `vars.path`. A QuickAdd run with no `vars.path` asks, because the choice then decides where it writes (often the active note). The session-log `Entries` choice takes `vars.path`; always pass it.
 - Two known vaults with the same folder name are ambiguous by name. Rename one in Obsidian.
 
 ## Read the Output, Not the Exit Status
@@ -114,6 +114,8 @@ These read-only commands answer from Obsidian's index in one call. Prefer them f
 **`base:query` after editing a `.base`:** the index lags 20–30 seconds. A query right after a write returns the *previous* version's rows, and a new `.base` returns `[]` until indexed. Wait 30 seconds (or query a freshly named copy) before trusting a count, and test a filter expression as a formula column first: a filter that is always true or false, or calls a function this Bases build lacks (`.last()` on a list), returns 0 rows without an error.
 
 ## Shell Usage
+
+**In the vault, the archivist's agents run only `obsidian`, `vault-write` and the archivist's own scripts** (the guard hook, in Claude Code and Pi). Any other command is denied if it runs from a directory in the vault (including after a `cd`) or names a vault path: `cat`, `grep`, `ls`, `sed -i`, redirections, heredocs, `git -C`. Read with the Read/Grep/Glob tools instead. Also denied for the agents: `$(…)` and backticks, a shell variable the guard can't expand in a non-archivist command, and `ARCHIVIST_ROLE=` / `--role` naming another role. Piping CLI output into `jq` or a script outside the vault is fine.
 
 - **Loops: redirect stdin.** The CLI reads stdin, so inside `while read …; do obsidian …; done` it swallows the rest of the input and the loop stops after one pass. Use `obsidian … </dev/null`.
 - **Wrappers are fine.** `timeout 10 obsidian …` is still checked by the guard hook.

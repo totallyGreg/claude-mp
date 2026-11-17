@@ -2,7 +2,7 @@
 name: local-inference
 description: This skill should be used when the user says "use pi", "use the local model", "local inference", "run it on the local model", "offload this to pi", "run it locally", "local teammate", "claude on omlx", "update the local model tiers", "a new local model came out", "decide locally", "classify these", "spawn a pi teammate", "pi in a tmux pane", "use fm", "extract this receipt", "OCR this image", or when a quick constrained judgment (pick a label, yes/no, extract fields into JSON, also from an image) is needed, or when a mechanical, well-specified task (bulk reading or summarizing files or logs, first-pass triage, extracting facts from many files, exact-spec edits) can run on a local model — via Pi or via Claude Code launched on the local server — instead of spending Claude tokens. Do NOT use for root-cause debugging, design decisions, security-sensitive changes, or anything whose failure is silent — local models are wrong more often and their output must be verified.
 metadata:
-  version: "2.4.1"
+  version: "2.5.0"
 compatibility: macOS on Apple silicon; oMLX server on 127.0.0.1:8000; macOS 27+ for `fm`; pi; tmux 3.5+ for pane teammates; uv for the Python scripts
 license: MIT
 ---
@@ -12,8 +12,11 @@ license: MIT
 Delegate work to models running on this Mac, picked by task tier, not by model
 or tool. The tiers stay; the stack underneath changes as better tools arrive.
 
-**Current stack** (2026-10): the [oMLX](https://github.com/jundot/omlx) server
-serves the models and the tier profiles; two agents use them —
+**Current stack** (2026-11): the [oMLX](https://github.com/jundot/omlx) server
+serves the models and the tier profiles (`fast`/`code` through its Splash engine,
+started by oMLX itself; references/tiers.md derivation 18) from one iCloud-synced
+folder, `~/Documents/LLMs` — pinned, complete models only
+([references/model-storage.md](references/model-storage.md)); two agents use them —
 
 - **Pi** (`pi`) — a coding agent with an `omlx` provider
   (`~/.pi/agent/models.json`), run one-shot or as a pane teammate.
@@ -137,6 +140,23 @@ Install into Pi's agent dir, and after a plugin update `--check`, install, then
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/install_pi_extensions.sh [--check]
 ```
+
+## Plugin agents as Pi subagents
+
+With [pi-subagents](https://pi.dev/packages/pi-subagents) installed, a Claude Code
+plugin's `agents/*.md` can run in Pi on a local tier — re-run after the plugin changes:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/skills/local-inference/scripts/pi_agents.py <plugin-dir> [--model omlx/code] [--check]
+```
+
+It writes `~/.pi/agent/agents/<plugin>/` (same prompt and skills; Agent → `subagent`
+limited to the plugin's agents) and loads `<plugin>/pi/extensions/<agent>.ts`.
+Claude Code hooks don't run in Pi, so that extension calls them. Bash is kept only
+when it adds a guarded `bash` (the archivist's does); otherwise it is dropped.
+Run the archivist outside `pi_sandboxed.sh`, because the sandbox blocks the
+`obsidian` CLI's socket; its guard is the boundary. Set `subagents.disableBuiltins`
+in the vault's `.pi/settings.json` so no unguarded `worker` runs there.
 
 ## Writing the brief
 
