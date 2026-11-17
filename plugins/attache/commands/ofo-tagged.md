@@ -1,5 +1,6 @@
 ---
 description: Show tasks with a specific tag, grouped by project with progress
+argument-hint: [tag-name]
 allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-core/scripts/*), Bash(osascript:*)
 ---
 

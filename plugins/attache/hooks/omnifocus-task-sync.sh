@@ -7,7 +7,8 @@
 #
 # Matching strategy:
 #   1. Check .claude/omnifocus-maps/*.json for ID-based match (deterministic)
-#   2. Fall back to name search within AI Agent-tagged projects (fuzzy)
+#   2. Fall back to name search, keeping only tasks tagged "AI Agent";
+#      exactly one match is required
 #
 # Exit codes:
 #   0 — Always (never block Claude Code)
@@ -66,21 +67,25 @@ fi
 
 # ofo CLI path
 OFO="${CLAUDE_PLUGIN_ROOT}/skills/omnifocus-core/scripts/ofo"
+AGENT_TAG="AI Agent"
 
 # Strategy 2: Fall back to name search (if no mapping match)
 if [ -z "$task_id" ]; then
     search_result=$("$OFO" search "$subject" 2>/dev/null) || true
 
     if [ -n "$search_result" ]; then
-        match_count=$(echo "$search_result" | jq -r '.count // 0' 2>/dev/null)
+        # ofo search matches every project; keep only AI Agent tasks (/ofo-plan tags each one)
+        agent_ids=$(echo "$search_result" | jq -r --arg tag "$AGENT_TAG" \
+            '[.tasks[]? | select((.tags // []) | index($tag)) | .id] | .[]' 2>/dev/null)
+        match_count=$(printf '%s' "$agent_ids" | grep -c . || true)
         if [ "$match_count" = "1" ]; then
-            task_id=$(echo "$search_result" | jq -r '.tasks[0].id // empty' 2>/dev/null)
+            task_id="$agent_ids"
             log "MATCH: Found ID $task_id via name search"
         elif [ "$match_count" -gt 1 ] 2>/dev/null; then
             log "WARN: Multiple matches ($match_count) for '$subject', skipping"
             exit 0
         else
-            log "WARN: No matches for '$subject'"
+            log "WARN: No $AGENT_TAG matches for '$subject'"
             exit 0
         fi
     else
