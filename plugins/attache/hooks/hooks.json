@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/omnifocus-task-sync.sh",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/omnifocus-task-sync.sh\"",
             "timeout": 15
           }
         ]
