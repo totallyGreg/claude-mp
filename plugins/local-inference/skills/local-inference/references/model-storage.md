@@ -59,4 +59,4 @@ every Pi and Claude Code tier reference.
 | Per-Mac config isn't shared: `~/.omlx` settings, profiles, `model_settings.json`, Splash drafts in the HF cache | Set up each Mac per tiers.md; the admin API's `external_engines[].reason` names a missing draft |
 | iCloud ` 2` conflict copies if two Macs write the same model | Download a model on one Mac only; look for ` 2` files after a sync |
 | Splash re-hashes weights when file times change | One full read on the next load; seen as a slower first start |
-| Not verified: whether Keep Downloaded on the folder covers files moved in later | Rule 2's check catches it |
+| Finder shows a cloud icon on moved-in models until their upload finishes | Expected; they stay local (`dataless` count 0). Keep Downloaded on `LLMs` covers models moved in later: after the upload Finder shows the kept-downloaded icon on each (checked 2026-11-16), no per-model pin needed |
