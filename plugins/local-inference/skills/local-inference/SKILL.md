@@ -12,8 +12,9 @@ license: MIT
 Delegate work to models running on this Mac, picked by task tier, not by model
 or tool. The tiers stay; the stack underneath changes as better tools arrive.
 
-**Current stack** (2026-10): the [oMLX](https://github.com/jundot/omlx) server
-serves the models and the tier profiles; two agents use them —
+**Current stack** (2026-11): the [oMLX](https://github.com/jundot/omlx) server
+serves the models and the tier profiles (`fast`/`code` through its Splash engine,
+started by oMLX itself; references/tiers.md derivation 18); two agents use them —
 
 - **Pi** (`pi`) — a coding agent with an `omlx` provider
   (`~/.pi/agent/models.json`), run one-shot or as a pane teammate.
