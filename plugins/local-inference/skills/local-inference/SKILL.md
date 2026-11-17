@@ -14,7 +14,9 @@ or tool. The tiers stay; the stack underneath changes as better tools arrive.
 
 **Current stack** (2026-11): the [oMLX](https://github.com/jundot/omlx) server
 serves the models and the tier profiles (`fast`/`code` through its Splash engine,
-started by oMLX itself; references/tiers.md derivation 18); two agents use them —
+started by oMLX itself; references/tiers.md derivation 18) from one iCloud-synced
+folder, `~/Documents/LLMs` — pinned, complete models only
+([references/model-storage.md](references/model-storage.md)); two agents use them —
 
 - **Pi** (`pi`) — a coding agent with an `omlx` provider
   (`~/.pi/agent/models.json`), run one-shot or as a pane teammate.
