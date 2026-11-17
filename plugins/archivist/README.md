@@ -115,17 +115,7 @@ Suggested permission rules (`~/.claude/settings.json`), as a second layer:
 
 `Bash(obsidian:*)` is broad on purpose. Every CLI call starts with `obsidian vault="…"`, so narrower rules like `Bash(obsidian read:*)` no longer match, and the guard hook enforces the write rules in code. If Claude Code denies a `vault-write` or `obsidian` call, the agents print this block and stop; they never edit settings themselves.
 
-**Other harnesses (Pi, scripts):** they don't get the plugin's `PATH`. Install a shim that always runs the newest installed version:
-
-```bash
-cat > ~/bin/vault-write <<'SH'
-#!/bin/sh
-d=$(ls -d "$HOME"/.claude/plugins/cache/*/archivist/*/bin 2>/dev/null | sort -V | tail -1)
-[ -x "$d/vault-write" ] || { echo '{"ok": false, "error": "io", "detail": "archivist plugin not installed"}'; exit 1; }
-exec "$d/vault-write" "$@"
-SH
-chmod +x ~/bin/vault-write
-```
+**Other harnesses:** Pi needs nothing installed: the archivist's Pi extension (`pi/extensions/guard.ts`) puts the plugin's `bin/` on PATH for its bash tool. Other scripts call the installed copy directly, e.g. `"$(ls -d ~/.claude/plugins/cache/*/archivist/*/bin | sort -V | tail -1)/vault-write"`.
 
 claude.ai and Cowork don't install plugins with a `bin/` directory; there the archivist falls back to its previous write path.
 
@@ -176,6 +166,7 @@ Overall score: **71%** ([#160](https://github.com/totallyGreg/claude-mp/issues/1
 
 | Version | Date | Issue | Summary |
 |---------|------|-------|---------|
+| 2.7.1 | 2026-11-16 | — | README: drop the `~/bin/vault-write` shim; Pi gets `vault-write` from the archivist's Pi extension |
 | 2.7.0 | 2026-11-12 | [#258](https://github.com/totallyGreg/claude-mp/issues/258) | vault-write knows the writer's role: `--role curator\|architect` (else `$ARCHIVIST_ROLE`, else curator) checks each write against that role's zones only; curator = curator + output zones, architect = all. `stat`/`config` list the roles per path. `--merged-from` refuses a merge that drops or rewords source text (`check_merge_preserved.py`). Writes stamp `date modified` in the vault's Linter format, skipping Linter's ignored folders. Agents pass their role; profile updates go to the architect. The guard hook is role-aware: the archivist's agents reach the vault only through `obsidian`, `vault-write` and the archivist's scripts, in their own role's zones; `$(…)`, unexpandable variables and another role's `--role`/`ARCHIVIST_ROLE` are denied; `delete` asks, `delete permanent` is denied. For every caller, `templater:create-from-template file=` and QuickAdd `vars.path` are zone-checked (other QuickAdd runs ask), `move`/`rename` warn when `alwaysUpdateLinks` is off, and quoted heredoc bodies are text. In Pi, `pi/extensions/guard.ts` replaces `bash` with one that runs every command through the same guard and gives it `CLAUDE_PLUGIN_ROOT`, `bin/` on PATH and `ARCHIVIST_ROLE`; the `vault_write`/`vault_stat` Pi tools are gone (the old `vault_write` didn't pass `--role`). Session-log docs use the real QuickAdd choice `Entries` with `vars.path` (`logEntries`/`Close Log` no longer exist). `vault-write audit` lists vault changes no ledger entry explains: every vault-write write and every guarded `obsidian` CLI write is recorded in `~/.local/state/archivist/ledger.jsonl`; `/health` runs it. `tests/parity/parity.sh claude|pi` runs the same consolidation in both harnesses on a throwaway vault (merge kept, canvas outside zones refused, `sed`/heredoc bypasses denied, audit clean): passes in both. vault-architect 1.19.0 (88), vault-curator 1.24.0 (95) |
 | 2.6.5 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | vault-write blocks a raw `<placeholder>` in a note body (Obsidian renders it as an HTML tag; real HTML elements, code, autolinks and Templater pass). `noise_counts.py --list` prints every `broken_frontmatter` path. `broken_frontmatter` now matches Obsidian: YAML 1.2 (ruamel) instead of PyYAML 1.1, unrendered Templater outside templates counts; the gate accepts `----` closing and `{{x}}: y` keys. Profile instructions: names in backticks. vault-architect 1.18.3 (86), vault-curator 1.23.4 (95) |
 | 2.6.4 | 2026-11-10 | [#252](https://github.com/totallyGreg/claude-mp/issues/252) | vault-write blocks frontmatter Obsidian can't read: a quoted value not closed on its line, a value starting with `%`/`@`/backtick, a list item on the key's line, text after a closing bracket (Markdown link). Vault audit: 0 false positives over 5,300 notes. New `broken_frontmatter` noise count, using the same rules plus a YAML parse. vault-curator 1.23.3 (95) |
