@@ -796,7 +796,9 @@ Commands:
   projects review [--before <ISO>]  Active/onHold projects whose nextReviewDate ≤ before date (default now)
   project review <id> [--date <ISO>]    Mark project as reviewed (sets lastReviewDate; advances nextReviewDate)
   project create --name "..." [--folder NAME] [--sequential|--parallel] [--note] [--due] [--defer] [--review-every N <unit>]
-  project update <id> [--name|--note|--status|--folder|--root|--create-missing|--due|--defer|--sequential|--parallel|--flagged|--unflag]
+  project update <id> [--name|--note|--status|--folder|--root|--create-missing|--due|--defer|--sequential|--parallel|--flagged|--unflag|
+                    --review-every N <days|weeks|months|years>|--next-review YYYY-MM-DD]
+                                    --next-review staggers reviews (set it after the interval)
                                     Status values: active | onHold | completed | dropped
                                     --root moves the project to top level; --create-missing auto-creates a missing --folder
   system-map [flags]                Inspect or refresh the Attache System Map (per D7.2 schema v1).
@@ -1187,6 +1189,12 @@ function cmdProject(args: string[]): void {
         case '--parallel':   payload['sequential'] = false; break;
         case '--flagged':    payload['flagged'] = true; break;
         case '--unflag':     payload['flagged'] = false; break;
+        case '--review-every': {
+          // "--review-every 2 weeks" (unit: days|weeks|months|years, singular ok)
+          payload['reviewInterval'] = { steps: parseInt(args[++i] || '0', 10), unit: args[++i] || '' };
+          break;
+        }
+        case '--next-review': payload['nextReview'] = args[++i] === 'clear' ? null : args[i]; break;
         default: die('Unknown flag: ' + args[i]);
       }
     }

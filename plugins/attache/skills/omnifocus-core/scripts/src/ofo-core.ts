@@ -12,6 +12,15 @@
 
 // === SHARED HELPERS ===
 
+/**
+ * Date input from the CLI. A bare YYYY-MM-DD means local midnight; `new Date("2026-11-24")`
+ * would be UTC midnight, i.e. the evening before in US time zones.
+ */
+function parseDate(s: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(s);
+}
+
 /** "[object Task.Status: Dropped]" → "Dropped"; Omni enums stringify with their type wrapper. */
 function enumName(v: unknown): string {
   const s = String(v);
@@ -227,11 +236,11 @@ function createTask(args: OfoArgs): OfoResult {
   const t = new Task(args.name as string, location);
   if (args.note) t.note = args.note as string;
   if (args.flagged) t.flagged = true;
-  if (args.due) t.dueDate = new Date(args.due as string);
-  if (args.defer) t.deferDate = new Date(args.defer as string);
+  if (args.due) t.dueDate = parseDate(args.due as string);
+  if (args.defer) t.deferDate = parseDate(args.defer as string);
   if (args.estimate) t.estimatedMinutes = args.estimate as number;
   if (args.plannedDate !== undefined) {
-    try { t.plannedDate = args.plannedDate === null ? null : new Date(args.plannedDate as string); } catch (_) {}
+    try { t.plannedDate = args.plannedDate === null ? null : parseDate(args.plannedDate as string); } catch (_) {}
   }
   if (args.tags) {
     (args.tags as string[]).forEach(function(tagName: string) {
@@ -267,8 +276,8 @@ function updateTask(args: OfoArgs): OfoResult {
   }
   if (args.flagged !== undefined) t.flagged = args.flagged as boolean;
   if (args.sequential !== undefined) t.sequential = args.sequential as boolean;
-  if (args.due !== undefined) t.dueDate = args.due === null ? null : new Date(args.due as string);
-  if (args.defer !== undefined) t.deferDate = args.defer === null ? null : new Date(args.defer as string);
+  if (args.due !== undefined) t.dueDate = args.due === null ? null : parseDate(args.due as string);
+  if (args.defer !== undefined) t.deferDate = args.defer === null ? null : parseDate(args.defer as string);
   if (args.estimate !== undefined) t.estimatedMinutes = args.estimate as number;
   if (args.repeat === null) {
     t.repetitionRule = null;
@@ -287,7 +296,7 @@ function updateTask(args: OfoArgs): OfoResult {
     t.repetitionRule = new (Task.RepetitionRule as any)(ruleString, null, sched, anchor, catchUp);
   }
   if (args.plannedDate !== undefined) {
-    try { t.plannedDate = args.plannedDate === null ? null : new Date(args.plannedDate as string); } catch (_) {}
+    try { t.plannedDate = args.plannedDate === null ? null : parseDate(args.plannedDate as string); } catch (_) {}
   }
   if (args.project !== undefined) {
     const projName = args.project as string;
@@ -1241,8 +1250,7 @@ function listProjectsForReview(args: OfoArgs): OfoResult {
       id: p.id.primaryKey,
       name: p.name,
       folder: p.parentFolder ? p.parentFolder.name : null,
-      nextReviewDate: p.nextReviewDate.toISOString(),
-      lastReviewDate: p.lastReviewDate ? p.lastReviewDate.toISOString() : null,
+      ...reviewFields(p),
       status: String(p.status)
     });
   });
@@ -1332,13 +1340,11 @@ function createProject(args: OfoArgs): OfoResult {
   if (args['note']) p.note = args['note'] as string;
   if (args['sequential'] !== undefined) p.sequential = args['sequential'] as boolean;
   if (args['flagged']) p.flagged = true;
-  if (args['due']) p.dueDate = new Date(args['due'] as string);
-  if (args['defer']) p.deferDate = new Date(args['defer'] as string);
-  // reviewInterval: { steps: number, unit: 'days'|'weeks'|'months'|... } per Project.ReviewInterval
+  if (args['due']) p.dueDate = parseDate(args['due'] as string);
+  if (args['defer']) p.deferDate = parseDate(args['defer'] as string);
   if (args['reviewInterval']) {
-    try {
-      p.reviewInterval = args['reviewInterval'] as any;
-    } catch (_) {}
+    const err = setReviewInterval(p, args['reviewInterval']);
+    if (err) return { success: false, error: err };
   }
 
   return {
@@ -1357,6 +1363,36 @@ function createProject(args: OfoArgs): OfoResult {
  * updateProject — mutate any combination of name / note / status / folder / sequential / due / defer.
  * Status mapping documented in createProject above.
  */
+const REVIEW_UNITS = ['days', 'weeks', 'months', 'years'];
+
+/**
+ * Omni Automation's pattern: read the ReviewInterval object, change it, assign it back
+ * (assigning a plain object does nothing). Returns an error message, or null.
+ */
+function setReviewInterval(p: Project, spec: unknown): string | null {
+  const s = spec as { steps?: number; unit?: string };
+  const steps = Number(s.steps);
+  let unit = String(s.unit || '').toLowerCase();
+  if (unit && unit.charAt(unit.length - 1) !== 's') unit += 's';
+  if (!(steps > 0) || REVIEW_UNITS.indexOf(unit) === -1) {
+    return 'Invalid review interval: ' + String(s.steps) + ' ' + String(s.unit) + ' (e.g. 1 week, 2 weeks, 1 month)';
+  }
+  const ri = p.reviewInterval as any;
+  ri.steps = steps;
+  ri.unit = unit;
+  p.reviewInterval = ri;
+  return null;
+}
+
+function reviewFields(p: Project): object {
+  const ri = p.reviewInterval as any;
+  return {
+    reviewInterval: ri ? { steps: ri.steps, unit: String(ri.unit) } : null,
+    nextReviewDate: p.nextReviewDate ? p.nextReviewDate.toISOString() : null,
+    lastReviewDate: p.lastReviewDate ? p.lastReviewDate.toISOString() : null
+  };
+}
+
 function updateProject(args: OfoArgs): OfoResult {
   const id = args['id'] as string;
   if (!id) return { success: false, error: 'Missing required arg: id' };
@@ -1367,8 +1403,8 @@ function updateProject(args: OfoArgs): OfoResult {
   if (args['note'] !== undefined) p.note = args['note'] as string;
   if (args['flagged'] !== undefined) p.flagged = args['flagged'] as boolean;
   if (args['sequential'] !== undefined) p.sequential = args['sequential'] as boolean;
-  if (args['due'] !== undefined) p.dueDate = args['due'] === null ? null : new Date(args['due'] as string);
-  if (args['defer'] !== undefined) p.deferDate = args['defer'] === null ? null : new Date(args['defer'] as string);
+  if (args['due'] !== undefined) p.dueDate = args['due'] === null ? null : parseDate(args['due'] as string);
+  if (args['defer'] !== undefined) p.deferDate = args['defer'] === null ? null : parseDate(args['defer'] as string);
 
   if (args['status'] !== undefined) {
     const statusStr = String(args['status']).toLowerCase().replace(/[-_]/g, '');
@@ -1377,6 +1413,15 @@ function updateProject(args: OfoArgs): OfoResult {
     else if (statusStr === 'completed' || statusStr === 'done') p.status = Project.Status.Done;
     else if (statusStr === 'dropped') p.status = Project.Status.Dropped;
     else return { success: false, error: 'Invalid status: ' + args['status'] + ' (expected active|onHold|completed|dropped)' };
+  }
+
+  if (args['reviewInterval'] !== undefined) {
+    const err = setReviewInterval(p, args['reviewInterval']);
+    if (err) return { success: false, error: err };
+  }
+  // Set after the interval: changing the interval can recompute nextReviewDate.
+  if (args['nextReview'] !== undefined) {
+    p.nextReviewDate = args['nextReview'] === null ? null : parseDate(args['nextReview'] as string);
   }
 
   // Move to root when --root is passed, or when --folder is set to empty string.
@@ -1400,7 +1445,8 @@ function updateProject(args: OfoArgs): OfoResult {
       name: p.name,
       folder: p.parentFolder ? p.parentFolder.name : null,
       status: String(p.status),
-      sequential: p.sequential
+      sequential: p.sequential,
+      ...reviewFields(p)
     }
   };
 }

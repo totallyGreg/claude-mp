@@ -1,6 +1,6 @@
 # Attache review loop: OmniFocus review → periodic notes
 
-Status: in progress. Triage session 1 done (§ Evidence); task 0 done 2026-11-17 (attache 12.3.0, plug-in 2.20.0). Branch: `feature/attache-review-loop`.
+Status: in progress. Triage session 1 done (§ Evidence); tasks 0–3 done 2026-11-17 (attache 12.3.0, plug-in 2.21.0); task 4 next. Branch: `feature/attache-review-loop`.
 Issue: [#269](https://github.com/totallyGreg/claude-mp/issues/269). Absorbs [#268](https://github.com/totallyGreg/claude-mp/issues/268) (re-evaluating the 14 Attache actions). Part of [#186](https://github.com/totallyGreg/claude-mp/issues/186).
 Brainstorm: vault `800 Generated/820 Brainstorms/attache-omnifocus-review-loop.md` (decisions, requirements, open questions; the source for this plan).
 
@@ -53,13 +53,21 @@ Small, unblock the rest. All five shipped and tested against OmniFocus 4.10.1 (w
 - `ofo search` filters (`--project`, `--active-only`) and a `similar <name>` query for duplicate checks.
 - Drop safety: refuse (or warn) when dropping the only task of a project that would then complete.
 
-### 1. Explore the review-cadence pattern (attache + orchestrator)
-Repeating review projects (Weekly Review, Monthly Review of Finances, Update Weekly Plan, the two Monthly Review tasks) vs each project's own review interval surfacing it in the Review perspective. Try both on a handful of real projects in a triage session; recommend one pattern; record it in the brainstorm and apply it. Output decides task 4's entry point and what happens to those routines.
+### 1. Explore the review-cadence pattern (attache + orchestrator) — done 2026-11-17
+**Decided: a mix.** Each project's own review interval drives per-project review in the Review perspective; one trimmed weekly routine (~8 items) and one monthly routine (horizons, finances, tags) cover what the perspective can't (inbox zero, calendar, horizons, finances, rituals). Intervals by kind: active work weekly; personal/admin monthly; on-hold and Someday quarterly; templates and annual reviews yearly. **Stagger next-review dates** so reviews arrive a few a day, not 30 at once; clear the 84 overdue in batches (~10 per sitting), never one bulk Mark Reviewed. Findings: intervals were mostly defaults (54 projects last reviewed in one February batch); the second "Monthly Review" and "Update Weekly Plan" were self-described misfits. Changes 1–5 approved (trim Weekly Review, drop the stray Monthly Review, move Update Weekly Plan out of Begin the day, fold finances into Monthly Review); change 6 (intervals for 84 projects, staggered) needed `ofo project update --review-every / --next-review`, added in 2.21.0.
 
-### 2. Re-evaluate the 14 Attache actions (absorbs #268)
+Original question: repeating review projects (Weekly Review, Monthly Review of Finances, Update Weekly Plan, the two Monthly Review tasks) vs each project's own review interval surfacing it in the Review perspective. Try both on a handful of real projects in a triage session; recommend one pattern; record it in the brainstorm and apply it. Output decides task 4's entry point and what happens to those routines.
+
+### 2. Re-evaluate the 14 Attache actions (absorbs #268) — done 2026-11-17
+**Decided** (table on #268): Clarify Tasks → Review Assist; Weekly Review rebuilt on the Review perspective + push; Daily Review → Wrap up day; Wins Report merged into it; Stale Routine Recovery → Routine Audit; drop Project Health and Map System; keep Process Inbox (+ capture splitting), What Now, Health Check, Quick Organize, Setup, Monthly/Horizons; drop third-party Open Today's Forecast, later Completed Task Report and Help Me Estimate. **New requirement: kept actions usable as OmniFocus toolbar buttons** (icon + short label per action; verify how OmniFocus 4.10 exposes plug-in actions in the toolbar).
+
+Original scope:
 Per action: what it does (run it), FM use and 8K fit, overlap (CLI, slash commands, third-party plug-ins), keep / merge / drop. Drop rule: an action that only reproduces one click in OmniFocus's UI goes. User decides keep/merge/drop; orchestrator does the code-side analysis first. Fix the known `AGENTS.md` inventory errors in the same pass.
 
-### 3. Design the vault handoff (architect, with orchestrator)
+### 3. Design the vault handoff (architect, with orchestrator) — done 2026-11-17
+Design: vault `800 Generated/820 Brainstorms/attache-vault-handoff-design.md` (Contract section = what the plug-in implements). **Decided:** one `obsidian://quickadd?…&choice=Attache Push&value-payload={json}` link running a QuickAdd macro; the plug-in sends a kind (`wrap-up-day`, `weekly-review`, `project-status`, `inbox`) + data and knows no vault paths; idempotent marker sections; missing weekly/daily notes created from their templates (yes); project status goes to the weekly note's Stalled Projects only; click-to-log is a "Wrap up day" action. Routines are identified by **OmniFocus task id**, with the current name stored beside it for display, so renames don't split the history (decided 2026-11-17). Structural vault changes (QuickAdd choice + script, `Routines.base`, template edits, properties) need approval before task 5; verify QuickAdd `value-*` handling first.
+
+Original scope:
 - `obsidian://` mechanics: which action (`new` with append, or a plugin-provided URI), how to target a heading, how properties get written; behaviour when Obsidian is closed.
 - Note targets: weekly (`500 ♽ Cycles/530 🗓 Weeks/YYYY-Www.md`, created from its template if missing — none exist after W28), daily, project status destination (project notes vs monthly/quarterly).
 - Routine tracking schema: daily-note properties for routine completions; a Bases view that charts a week; how the weekly review reads it.
@@ -69,7 +77,9 @@ Per action: what it does (run it), FM use and 8K fit, overlap (CLI, slash comman
 Output: a design note (architect zone) + the exact URI/payload contract the plug-in implements.
 
 ### 4. Build: review assist inside OmniFocus (orchestrator)
-- **Review Assist** on the project being reviewed (entry point per task 1): one model pass over that project's tasks → vague names, missing estimates/tags, likely-done, stale, routine problems; auto-apply the safe set with an undo log; ask about the rest in one form; Mark Reviewed.
+- **Entry point (task 1):** open the next project due in the Review perspective; model summary (stalled? next action? duplicates?); offer Mark Reviewed, change interval, on hold, drop. Also runs at the end of the weekly routine.
+- **Toolbar buttons** for the kept actions (task 2).
+- **Review Assist** on the project being reviewed: one model pass over that project's tasks → vague names, missing estimates/tags, likely-done, stale, routine problems; auto-apply the safe set with an undo log; ask about the rest in one form; Mark Reviewed.
 - **Duplicate finder:** deterministic candidate pairs across all projects (normalized names, shared words), model judges only candidates.
 - **Routine audit:** repeaters missed N cycles, routines per area over a cap, due-dated habits → defer-only, frequency sanity; offer stop / reduce / convert.
 - **Learning log:** accepted / rejected / edited suggestions by type in `preferencesManager`; feeds prompts and the weekly *Review Friction*.

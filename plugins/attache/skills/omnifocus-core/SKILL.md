@@ -53,6 +53,8 @@ scripts/ofo update <id> --repeat-type FromCompletion --anchor DeferDate  # Regul
 scripts/ofo search "meeting"                 # Search active tasks by name/note
 scripts/ofo search "review" --project "Misc Financial"  # ...within one project
 scripts/ofo similar "monthly review"          # Active tasks with similar names (duplicate check); --id <id>, --min 0.5
+scripts/ofo project update <id> --review-every 2 weeks --next-review 2026-11-24  # Review interval; stagger next review dates
+# Date flags take YYYY-MM-DD as local midnight (or a full ISO timestamp)
 scripts/ofo list inbox                       # List inbox tasks
 scripts/ofo list today                       # Flagged + due today + planned today
 scripts/ofo list overdue                     # Past due date
