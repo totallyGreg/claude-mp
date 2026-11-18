@@ -12,6 +12,13 @@
 
 // === SHARED HELPERS ===
 
+/** "[object Task.Status: Dropped]" → "Dropped"; Omni enums stringify with their type wrapper. */
+function enumName(v: unknown): string {
+  const s = String(v);
+  const m = s.match(/:\s*(\w+)\]$/);
+  return m ? (m[1] ?? s) : s;
+}
+
 /**
  * normalizeTask — single canonical task shape used by getTask, searchTasks, and listTasks.
  * Eliminates field-set drift across the three query functions.
@@ -24,13 +31,7 @@ function normalizeTask(t: Task): OfoTask {
   let schedType: string | null = null;
   if (t.repetitionRule) {
     try { catchUp = t.repetitionRule.catchUpAutomatically; } catch (_) {}
-    try {
-      var st = String(t.repetitionRule.scheduleType);
-      var m = st.match(/:\s*(\w+)\]$/);
-      // noUncheckedIndexedAccess: m[1] is `string | undefined` even after a successful match.
-      // In practice this regex always populates group 1 when it matches, but type system can't prove it.
-      schedType = m ? (m[1] ?? st) : st;
-    } catch (_) {}
+    try { schedType = enumName(t.repetitionRule.scheduleType); } catch (_) {}
   }
   return {
     id: t.id.primaryKey,
@@ -50,7 +51,7 @@ function normalizeTask(t: Task): OfoTask {
     repetitionRule: t.repetitionRule ? t.repetitionRule.ruleString : null,
     repetitionCatchUp: catchUp,
     repetitionScheduleType: schedType,
-    taskStatus: String(t.taskStatus),
+    taskStatus: enumName(t.taskStatus),
   };
 }
 
@@ -191,6 +192,20 @@ function dropTask(args: OfoArgs): OfoResult {
   if (allOccurrences && !t.repetitionRule) {
     return { success: false, error: 'Task is not repeating; use without --all to drop it.' };
   }
+  // Ending the last remaining action of a project set to complete with its last
+  // action would complete the project too; refuse unless --force.
+  const proj = t.containingProject;
+  const endsTask = allOccurrences || !t.repetitionRule;
+  if (proj && endsTask && proj.completedByChildren && !args.force) {
+    const others = proj.flattenedTasks.filter(function(x: Task) {
+      return x.id.primaryKey !== t.id.primaryKey && !x.completed &&
+        x.taskStatus !== Task.Status.Completed && x.taskStatus !== Task.Status.Dropped;
+    });
+    if (others.length === 0) {
+      return { success: false, error: 'Dropping "' + t.name + '" would leave project "' + proj.name +
+        '" with no remaining actions, and it completes with its last action. Use --force to drop anyway.' };
+    }
+  }
   t.drop(allOccurrences);
   return { success: true, task: { id: t.id.primaryKey, name: t.name, dropped: true } };
 }
@@ -255,6 +270,22 @@ function updateTask(args: OfoArgs): OfoResult {
   if (args.due !== undefined) t.dueDate = args.due === null ? null : new Date(args.due as string);
   if (args.defer !== undefined) t.deferDate = args.defer === null ? null : new Date(args.defer as string);
   if (args.estimate !== undefined) t.estimatedMinutes = args.estimate as number;
+  if (args.repeat === null) {
+    t.repetitionRule = null;
+  } else if (args.repeat !== undefined || args.repeatType !== undefined || args.anchor !== undefined || args.catchUp !== undefined) {
+    const cur = t.repetitionRule;
+    const ruleString = (args.repeat as string | undefined) ?? (cur ? cur.ruleString : undefined);
+    if (!ruleString) return { success: false, error: 'Task does not repeat; give --repeat <RRULE> to add a repeat.' };
+    const sched = args.repeatType !== undefined ? Task.RepetitionScheduleType[args.repeatType as string]
+      : (cur ? cur.scheduleType : Task.RepetitionScheduleType.Regularly);
+    // A new repeat anchors to the date the task actually uses: defer when it has no due date.
+    const anchor = args.anchor !== undefined ? Task.AnchorDateKey[args.anchor as string]
+      : (cur ? cur.anchorDateKey : (t.dueDate ? Task.AnchorDateKey.DueDate : Task.AnchorDateKey.DeferDate));
+    const catchUp = args.catchUp !== undefined ? args.catchUp as boolean : (cur ? cur.catchUpAutomatically : false);
+    if (!sched) return { success: false, error: 'Unknown repeat type: ' + String(args.repeatType) + ' (Regularly | FromCompletion | None)' };
+    if (!anchor) return { success: false, error: 'Unknown anchor: ' + String(args.anchor) + ' (DeferDate | DueDate | PlannedDate)' };
+    t.repetitionRule = new (Task.RepetitionRule as any)(ruleString, null, sched, anchor, catchUp);
+  }
   if (args.plannedDate !== undefined) {
     try { t.plannedDate = args.plannedDate === null ? null : new Date(args.plannedDate as string); } catch (_) {}
   }
@@ -287,7 +318,11 @@ function updateTask(args: OfoArgs): OfoResult {
       sequential: t.sequential,
       dueDate: t.dueDate ? t.dueDate.toISOString() : null,
       deferDate: t.deferDate ? t.deferDate.toISOString() : null,
-      plannedDate: updatePlannedDate
+      plannedDate: updatePlannedDate,
+      repetitionRule: t.repetitionRule ? t.repetitionRule.ruleString : null,
+      repetitionScheduleType: t.repetitionRule ? enumName(t.repetitionRule.scheduleType) : null,
+      repetitionAnchor: t.repetitionRule ? enumName(t.repetitionRule.anchorDateKey) : null,
+      repetitionCatchUp: t.repetitionRule ? t.repetitionRule.catchUpAutomatically : null
     }
   };
 }
@@ -297,11 +332,13 @@ function updateTask(args: OfoArgs): OfoResult {
 function searchTasks(args: OfoArgs): OfoResult {
   const query = ((args.query as string) || '').toLowerCase();
   const limit = (args.limit as number) || 50;
+  const project = ((args.project as string) || '').toLowerCase();
   const results: object[] = [];
   flattenedTasks.forEach(function(t: Task) {
     if (results.length >= limit) return;
     if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
     if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
+    if (project && (!t.containingProject || t.containingProject.name.toLowerCase() !== project)) return;
     const nameMatch = t.name.toLowerCase().indexOf(query) !== -1;
     const noteMatch = t.note && t.note.toLowerCase().indexOf(query) !== -1;
     if (nameMatch || noteMatch) {
@@ -309,6 +346,50 @@ function searchTasks(args: OfoArgs): OfoResult {
     }
   });
   return { success: true, count: results.length, tasks: results };
+}
+
+// === SIMILAR ===
+
+const SIMILAR_STOPWORDS = ['the', 'and', 'for', 'with', 'from', 'into', 'about', 'your', 'my', 'a', 'an', 'to', 'of', 'in', 'on', 'at', 'or'];
+
+function nameTokens(name: string): string[] {
+  const seen: Record<string, boolean> = {};
+  return name.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(function(w) {
+    if (w.length < 2 || SIMILAR_STOPWORDS.indexOf(w) !== -1 || seen[w]) return false;
+    seen[w] = true;
+    return true;
+  });
+}
+
+/** Active tasks whose names share words with a name (or a task's name): Jaccard over word sets. */
+function findSimilar(args: OfoArgs): OfoResult {
+  let query = (args.query as string) || '';
+  let selfId: string | null = null;
+  if (args.id) {
+    const src = Task.byIdentifier(args.id as string);
+    if (!src) return { success: false, error: 'Task not found: ' + String(args.id) };
+    query = src.name;
+    selfId = src.id.primaryKey;
+  }
+  const qTokens = nameTokens(query);
+  if (qTokens.length === 0) return { success: false, error: 'Nothing to compare: the name has no words of 2+ letters.' };
+  const min = (args.min as number) || 0.5;
+  const limit = (args.limit as number) || 20;
+  const scored: { score: number; task: OfoTask }[] = [];
+  flattenedTasks.forEach(function(t: Task) {
+    if (selfId && t.id.primaryKey === selfId) return;
+    if (t.completed || t.effectivelyCompleted || t.effectivelyDropped) return;
+    if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
+    const tTokens = nameTokens(t.name);
+    if (tTokens.length === 0) return;
+    let shared = 0;
+    tTokens.forEach(function(w) { if (qTokens.indexOf(w) !== -1) shared++; });
+    const score = shared / (qTokens.length + tTokens.length - shared);
+    if (score >= min) scored.push({ score: Math.round(score * 100) / 100, task: normalizeTask(t) });
+  });
+  scored.sort(function(a, b) { return b.score - a.score; });
+  const top = scored.slice(0, limit).map(function(s) { return Object.assign({ score: s.score }, s.task); });
+  return { success: true, query: query, min: min, count: top.length, tasks: top };
 }
 
 // === LIST ===
@@ -861,6 +942,14 @@ function dumpDatabase(_args: OfoArgs): OfoResult {
 
 // === STATS ===
 
+/** Version of the installed Attache plug-in, so the CLI can warn when it lags the source. */
+function installedPluginVersion(): string | null {
+  try {
+    const p = PlugIn.find('com.totallytools.omnifocus.attache', null);
+    return p ? p.version.versionString : null;
+  } catch (_) { return null; }
+}
+
 function getStats(_args: OfoArgs): OfoResult {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -906,7 +995,8 @@ function getStats(_args: OfoArgs): OfoResult {
     activeTasks: totalActive,
     reviewOverdue: reviewOverdue,
     plannedToday: plannedToday,
-    withEstimate: withEstimate
+    withEstimate: withEstimate,
+    pluginVersion: installedPluginVersion()
   };
 }
 
@@ -1403,6 +1493,7 @@ function dispatch(args: OfoArgs): OfoResult {
     case 'ofo-tag':         return tagTask(args);
     case 'ofo-tags':        return getTags(args);
     case 'ofo-tagged':      return getTaggedTasks(args);
+    case 'ofo-similar':     return findSimilar(args);
     case 'ofo-create-batch': return createBatch(args);
     case 'ofo-dump':        return dumpDatabase(args);
     case 'ofo-stats':       return getStats(args);

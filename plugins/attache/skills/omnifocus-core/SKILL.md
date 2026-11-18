@@ -6,7 +6,7 @@ description: |
   Do NOT trigger for: "create OmniFocus plugin" (use omnifocus-generator skill), "analyze my system" or "discover my patterns" (use attache-analyst skill), pure GTD methodology questions (use gtd-coach skill).
 license: MIT
 metadata:
-  version: 11.2.1
+  version: 11.3.0
   author: totally-tools
 compatibility:
   platforms: [macos]
@@ -37,6 +37,7 @@ scripts/ofo info <id-or-omnifocus-url>       # Task/project details
 scripts/ofo complete <id-or-omnifocus-url>   # Mark task complete
 scripts/ofo drop <id-or-omnifocus-url>       # Drop single occurrence (recurrence continues)
 scripts/ofo drop <id-or-omnifocus-url> --all # Drop all occurrences (stops repeating)
+# drop refuses to end the last action of a project that completes with its last action; --force overrides
 scripts/ofo health                           # System health: inbox, overdue, flagged (single call)
 scripts/ofo create --name "Task" --project "Work" --due 2026-12-31
 scripts/ofo create --name "Subtask" --parent <id|url>  # Nest under existing task (action-group child)
@@ -47,7 +48,11 @@ scripts/ofo update <id> --note "text"                # Replace task note entirel
 scripts/ofo update <id> --note-append "text"         # Append text to existing note
 scripts/ofo update <id> --project "Project Name"     # Move task to a project
 scripts/ofo update <id> --project inbox              # Move task back to inbox
-scripts/ofo search "meeting"                 # Search by name/note
+scripts/ofo update <id> --repeat FREQ=DAILY          # Set/change repeat (keeps type, anchor, catch-up); "clear" removes it
+scripts/ofo update <id> --repeat-type FromCompletion --anchor DeferDate  # Regularly|FromCompletion|None; DeferDate|DueDate|PlannedDate
+scripts/ofo search "meeting"                 # Search active tasks by name/note
+scripts/ofo search "review" --project "Misc Financial"  # ...within one project
+scripts/ofo similar "monthly review"          # Active tasks with similar names (duplicate check); --id <id>, --min 0.5
 scripts/ofo list inbox                       # List inbox tasks
 scripts/ofo list today                       # Flagged + due today + planned today
 scripts/ofo list overdue                     # Past due date
@@ -63,7 +68,8 @@ scripts/ofo perspective-configure --name "View" --rules '[...]'  # Set perspecti
 scripts/ofo completed-today                  # Today's completions categorized by tag (JSON)
 scripts/ofo completed-today --markdown       # Same, formatted for Obsidian append
 scripts/ofo dump                             # Snapshot JSON: tasks (500 cap), projects, perspectives
-scripts/ofo stats                            # Counts: inbox/flagged/overdue/projects/tasks/reviewOverdue/plannedToday/withEstimate
+scripts/ofo stats                            # Counts: inbox/flagged/overdue/projects/tasks/reviewOverdue/plannedToday/withEstimate;
+                                             # pluginWarning when the installed Attache plug-in is older than the source
 ```
 
 **Prerequisites:** OmniFocus running + external scripts enabled. First command triggers a one-time approval dialog.

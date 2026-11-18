@@ -42,6 +42,9 @@ Pure GTD methodology coaching without OmniFocus automation.
 
 | Version | Changes |
 |---------|---------|
+| 12.3.0 | **ofo gaps from triage session 1** ([#269](https://github.com/totallyGreg/claude-mp/issues/269) task 0). `ofo update --repeat RRULE` with `--repeat-type` / `--anchor` / `--catch-up` (OmniFocus 4.7+ `RepetitionRule` constructor, probed on 4.10.1; a new repeat anchors to the defer date when there's no due date); task status prints `Dropped` instead of `[object Task.Status: Dropped]`; `ofo stats` reports the installed plug-in version and warns when it is older than the source (the 2.16-vs-CLI gap behind `Unknown action: ofo-tagged`), and any `Unknown action` error carries a rebuild hint; `ofo search --project`; new `ofo similar <name> \| --id <id>` (word-overlap duplicate check); `ofo drop` refuses to end the last action of a project that completes with its last action unless `--force`. Attache plug-in 2.20.0. |
+| 12.2.4 | Task-sync hook completes only tasks tagged "AI Agent" on its name-search fallback; `/ofo-tagged` gets `argument-hint`. |
+| 12.2.3 | Task-sync hook quotes `${CLAUDE_PLUGIN_ROOT}` (Claude Code 2.1.326 validator). |
 | 12.2.2 | **Old names removed** ([#237](https://github.com/totallyGreg/claude-mp/issues/237)): gtd-coach 1.4.1 says "attache agent" instead of `omnifocus-agent`; dropped the unused `omnifocus-agent` entry from `.agentsmith-baselines.json` (baselines are looked up by agent name, and `attache` has its own). gtd-coach 91/100 (unchanged). |
 | 12.2.1 | **Plugin generator works again** (#239). `generate_plugin.js` had been built from an old source and was never rebuilt after #167: it searched for an `omnifocus-manager` skill folder and crashed on start, lacked `--requires` (D8.5), and couldn't load `typescript`. Meanwhile the `.ts` had lost bundle-folder generation, which had been added to the `.js` alone in v4.1.0. Bundle generation is ported into the `.ts`, and the build (`package.json`, `tsconfig.json`) moves from `omnifocus-core/scripts` to `omnifocus-generator/scripts`. The type definitions are read from `omnifocus-core/typescript` (generator and `validate-plugin.sh`). Example library paths and two `loadLibrary` comments now use `omnifocus-core`. Verified: all four formats generate (bundles as folders), and the regression suite passes 3/3. |
 | 12.2.0 | **ofo CLI consistency fixes, mirrored into the Attache plugin** (#186; friction reports 98939/98959/98992/61912). All land in the shared `ofoCore` library, so the CLI and native plugin actors stay consistent. (1) `ofo perspective` now evaluates the full `archivedFilterRules` tree (tags any/all/none, availability, flagged, dates, project status, focus) with any/all/none aggregation + `--limit`; unsupported rule types are logged, not dropped. (2) `system-map` counts use enum-identity project status (was broken string match → 0 active) and available-only inbox (matches `list`/`health`), with `inInboxTotal` retained. (3) `ofo folder create|rename|move` + `project update --root`/`--create-missing`. (4) first-class `ofo tagged <tag>` (grouped by project); `/ofo-tagged` repointed off the legacy JXA path. Fixed `npm run build:plugin` **and** `npm run deploy` paths (deploy was opening a stale 2.0.0 bundle in the wrong build dir → OmniFocus offered a downgrade); tightened CONTRIBUTING impact-map footprint. omnifocus-core 11.2.0, attache-analyst 1.0.1, bundle 2.19.0. Skills 98/100. **Needs live-OmniFocus verification.** |
@@ -82,7 +85,7 @@ Pure GTD methodology coaching without OmniFocus automation.
 
 ### Current Metrics
 
-**Score: 98/100** (Excellent) — 2026-11-08
+**Score: 98/100** (Excellent) — 2026-11-17
 
 | Concs | Complx | Spec | Progr | Descr |
 |-------|--------|------|-------|-------|
@@ -92,6 +95,7 @@ Pure GTD methodology coaching without OmniFocus automation.
 
 | Version | Date | Issue | Summary | Concs | Complx | Spec | Progr | Descr | Score |
 |---------|------|-------|---------|-------|--------|------|-------|-------|-------|
+| 11.3.0 | 2026-11-17 | [#269](https://github.com/totallyGreg/claude-mp/issues/269) | `ofo update --repeat`, `ofo similar`, `search --project`, drop guard, plain status values, plug-in version check | 100 | 90 | 100 | 100 | 100 | 98 |
 | 11.2.0 | 2026-11-08 | [#239](https://github.com/totallyGreg/claude-mp/issues/239) | 11.2.1: generator build (`package.json` scripts, `tsconfig.json`) moved out to omnifocus-generator; `loadLibrary` comments name `skills/omnifocus-core/`. Score 98 (no change). | 100 | 90 | 100 | 100 | 100 | 98 |
 | 11.1.0 | 2026-06-25 | [#141](https://github.com/totallyGreg/claude-mp/issues/141) | `ofo create --parent <id>` (UUID or `omnifocus://` URL) + `ofo update <id> --sequential\|--parallel`: build action groups via CLI. Closes friction `2026-06-24-224859-71447` — replaces the 5-task-flat + tag + manual-drag + inspector-toggle workaround. `createTask` accepts `parent` (wins over `project`); `updateTask` accepts `sequential` and returns it in response. Verified live: `--parent` placed 3 children, `--sequential` flipped parent to Blocked (sequential parent blocks behind first child). | 100 | 90 | 100 | 100 | 100 | 98 |
 | 10.4.1 | 2026-04-09 | - | Doc: add missing --note (replace) to ofo update command table; --note-append already documented | 83 | 90 | 100 | 100 | 100 | 94 |

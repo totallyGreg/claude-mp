@@ -1,6 +1,6 @@
 # Attache review loop: OmniFocus review → periodic notes
 
-Status: planned 2026-11-17. Triage session 1 done (§ Evidence). Branch: `feature/attache-review-loop` (not yet created).
+Status: in progress. Triage session 1 done (§ Evidence); task 0 done 2026-11-17 (attache 12.3.0, plug-in 2.20.0). Branch: `feature/attache-review-loop`.
 Issue: [#269](https://github.com/totallyGreg/claude-mp/issues/269). Absorbs [#268](https://github.com/totallyGreg/claude-mp/issues/268) (re-evaluating the 14 Attache actions). Part of [#186](https://github.com/totallyGreg/claude-mp/issues/186).
 Brainstorm: vault `800 Generated/820 Brainstorms/attache-omnifocus-review-loop.md` (decisions, requirements, open questions; the source for this plan).
 
@@ -45,8 +45,8 @@ Success looks like:
 
 ## Tasks
 
-### 0. `ofo` gaps found in triage (orchestrator)
-Small, unblock the rest.
+### 0. `ofo` gaps found in triage (orchestrator) — done 2026-11-17
+Small, unblock the rest. All five shipped and tested against OmniFocus 4.10.1 (writes on a throwaway project, since dropped). Notes: `ofo search` already excluded completed/dropped tasks, so only `--project` was added; new projects default to *not* completing with their last action (6 of 86 active projects do), so the drop guard only fires for those.
 - `ofo update --repeat <rule>` (and schedule type): triage couldn't change "every 8 hours" → daily.
 - Task status serializes as `[object Task.Status: Dropped]`; emit plain values.
 - Installed-plug-in version check: `ofo stats` / `/ofo-health` warns when the installed `Attache.omnifocusjs` is older than the source manifest.

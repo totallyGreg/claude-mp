@@ -50,7 +50,41 @@ function pbcopy(text) {
 function pbpaste() {
     return execSync('pbpaste', { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] });
 }
+/** Source manifest version of the Attache plug-in this CLI was built with. */
+function sourcePluginVersion() {
+    try {
+        const manifest = join(__dirname, '..', '..', '..', 'attache-analyst', 'assets', 'Attache.omnifocusjs', 'manifest.json');
+        return JSON.parse(readFileSync(manifest, 'utf-8')).version ?? null;
+    }
+    catch {
+        return null;
+    }
+}
+/** -1 / 0 / 1; "2.19" equals "2.19.0". */
+function compareVersions(a, b) {
+    const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+        if (d !== 0)
+            return d < 0 ? -1 : 1;
+    }
+    return 0;
+}
+const DEPLOY_HINT = 'Rebuild and reinstall the plug-in: cd skills/omnifocus-core/scripts && npm run build && npm run deploy';
 function runAction(action, args) {
+    const result = runActionCapture(action, args);
+    if (/"Unknown action/.test(result)) {
+        try {
+            const parsed = JSON.parse(result);
+            parsed.hint = 'The installed Attache plug-in is older than this CLI. ' + DEPLOY_HINT;
+            process.stdout.write(JSON.stringify(parsed));
+            return;
+        }
+        catch { /* fall through */ }
+    }
+    process.stdout.write(result);
+}
+function runActionCapture(action, args) {
     const stubPath = join(__dirname, 'ofo-stub.js');
     let stub;
     try {
@@ -72,10 +106,8 @@ function runAction(action, args) {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         execSync('sleep 0.2');
         const result = pbpaste();
-        if (result !== '__ofo_pending__') {
-            process.stdout.write(result);
-            return;
-        }
+        if (result !== '__ofo_pending__')
+            return result;
     }
     process.stdout.write('{"success":false,"error":"Timeout waiting for OmniFocus response. Is external script execution enabled?"}');
     process.exit(1);
@@ -96,14 +128,19 @@ function cmdComplete(args) {
 }
 function cmdDrop(args) {
     if (args.length < 1)
-        die('Usage: ofo drop <id|omnifocus-url> [--all]');
+        die('Usage: ofo drop <id|omnifocus-url> [--all] [--force]');
     const id = parseOmniFocusUrl(args[0]);
     let allOccurrences = false;
+    let force = false;
     for (let i = 1; i < args.length; i++) {
         if (args[i] === '--all')
             allOccurrences = true;
+        else if (args[i] === '--force')
+            force = true;
+        else
+            die('Unknown option: ' + args[i]);
     }
-    runAction('ofo-drop', { id, allOccurrences });
+    runAction('ofo-drop', { id, allOccurrences, force });
 }
 // --- Stdin Helpers ---
 function readStdin() {
@@ -263,7 +300,7 @@ function cmdCreate(args) {
 }
 function cmdUpdate(args) {
     if (args.length < 1)
-        die('Usage: ofo update <id> [--name N] [--due D] [--flagged] [--sequential|--parallel] [--tags t1,t2] [--project P]');
+        die('Usage: ofo update <id> [--name N] [--due D] [--flagged] [--sequential|--parallel] [--tags t1,t2] [--project P] [--repeat RRULE]');
     const id = parseOmniFocusUrl(args[0]);
     const argObj = { id };
     let i = 1;
@@ -303,6 +340,25 @@ function cmdUpdate(args) {
             case '--estimate':
                 argObj.estimate = parseInt(args[++i] || '0', 10);
                 break;
+            case '--repeat': {
+                const val = args[++i] || '';
+                if (!val)
+                    die('--repeat needs an RRULE (e.g. FREQ=DAILY) or "clear"');
+                argObj.repeat = val === 'clear' ? null : val;
+                break;
+            }
+            case '--repeat-type':
+                argObj.repeatType = args[++i] || '';
+                break;
+            case '--anchor':
+                argObj.anchor = args[++i] || '';
+                break;
+            case '--catch-up':
+                argObj.catchUp = true;
+                break;
+            case '--no-catch-up':
+                argObj.catchUp = false;
+                break;
             case '--project':
                 argObj.project = args[++i] || '';
                 break;
@@ -318,10 +374,39 @@ function cmdUpdate(args) {
     runAction('ofo-update', argObj);
 }
 function cmdSearch(args) {
-    if (args.length < 1)
-        die('Usage: ofo search <query>');
-    const query = args.join(' ');
-    runAction('ofo-search', { query });
+    const usage = 'Usage: ofo search <query> [--project NAME]';
+    const payload = {};
+    const words = [];
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--project')
+            payload['project'] = args[++i] || '';
+        else
+            words.push(args[i]);
+    }
+    if (words.length === 0)
+        die(usage);
+    payload['query'] = words.join(' ');
+    runAction('ofo-search', payload);
+}
+function cmdSimilar(args) {
+    const usage = 'Usage: ofo similar <name> | --id <id|url> [--min 0.5] [--limit N]';
+    const payload = {};
+    const words = [];
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--id')
+            payload['id'] = parseOmniFocusUrl(args[++i] || '');
+        else if (args[i] === '--min')
+            payload['min'] = parseFloat(args[++i] || '0.5');
+        else if (args[i] === '--limit')
+            payload['limit'] = parseInt(args[++i] || '20', 10);
+        else
+            words.push(args[i]);
+    }
+    if (!payload['id'] && words.length === 0)
+        die(usage);
+    if (words.length)
+        payload['query'] = words.join(' ');
+    runAction('ofo-similar', payload);
 }
 function cmdList(args) {
     const filter = args[0] || 'inbox';
@@ -723,7 +808,25 @@ function cmdDump() {
     runAction('ofo-dump', {});
 }
 function cmdStats() {
-    runAction('ofo-stats', {});
+    const raw = runActionCapture('ofo-stats', {});
+    let stats;
+    try {
+        stats = JSON.parse(raw);
+    }
+    catch {
+        process.stdout.write(raw);
+        return;
+    }
+    const installed = stats['pluginVersion'];
+    const source = sourcePluginVersion();
+    if (source)
+        stats['pluginSourceVersion'] = source;
+    if (source && (!installed || compareVersions(installed, source) < 0)) {
+        // Plug-ins before 2.20.0 don't report a version at all, so a missing one is stale too.
+        stats['pluginWarning'] = 'Installed Attache plug-in ' + (installed || '(older than 2.20.0)') +
+            ' is older than source ' + source + '. ' + DEPLOY_HINT;
+    }
+    process.stdout.write(JSON.stringify(stats));
 }
 function cmdClarity(args) {
     let limit = '10';
@@ -752,10 +855,13 @@ Usage: ofo <command> [arguments]
 Commands:
   info <id|url>                     Get task or project details as JSON
   complete <id|url>                 Mark a task as complete
-  drop <id|url> [--all]            Drop single occurrence (--all stops repeating)
+  drop <id|url> [--all] [--force]  Drop single occurrence (--all stops repeating; refuses to
+                                    end a project's last action unless --force)
   create --name "..." [options]     Create a new task (also accepts stdin)
   update <id|url> [options]         Update task properties
-  search <query>                    Search tasks by name or note
+  search <query> [--project NAME]   Search active tasks by name or note
+  similar <name> | --id <id> [--min 0.5] [--limit N]
+                                    Active tasks with similar names (word overlap), for duplicates
   list <filter>                     List tasks by filter
   tag <id|url> [options]            Add/remove tags on a task
   tags                              List all tags as JSON hierarchy
@@ -764,7 +870,8 @@ Commands:
   perspective-configure [options]   Set filter rules on a perspective
   completed-today [--markdown]      Today's completions categorized by tag
   dump                              Full database snapshot (active tasks, projects, perspectives) as JSON
-  stats                             Counts: inbox, flagged, overdue, projects, tasks, reviewOverdue, plannedToday, withEstimate
+  stats                             Counts: inbox, flagged, overdue, projects, tasks, reviewOverdue, plannedToday,
+                                    withEstimate; plugin version, with a warning if the installed plug-in is stale
   clarity [--limit N]               Tasks with lowest clarity score (no estimate/tags/project); default limit 10
   stalled [--days N]                Active projects with no available next action or not modified in N days (default 14)
   health                            System health: inbox, overdue (with Catch Up metadata), flagged — single call
@@ -822,6 +929,11 @@ Update options:
   --note "Note text"        Set task note
   --estimate N              Set estimated minutes
   --planned-date YYYY-MM-DD|clear  Set or clear planned date
+  --repeat RRULE|clear      Set or clear the repeat (e.g. FREQ=DAILY, FREQ=WEEKLY;INTERVAL=2)
+  --repeat-type T           Regularly | FromCompletion | None (default: keep current)
+  --anchor A                DeferDate | DueDate | PlannedDate (default: keep current; a new
+                            repeat uses DeferDate when the task has no due date)
+  --catch-up | --no-catch-up  Skip missed occurrences when resolving
 
 Tag options:
   --add "TagName"           Add a tag (repeatable)
@@ -1294,6 +1406,9 @@ switch (command) {
         break;
     case 'tagged':
         cmdTagged(commandArgs);
+        break;
+    case 'similar':
+        cmdSimilar(commandArgs);
         break;
     case 'perspective':
         cmdPerspective(commandArgs);

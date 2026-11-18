@@ -70,6 +70,7 @@ cat >> "${BUNDLE_DIR}/Resources/ofoCore.js" << 'IIFE_FOOTER'
   lib.tagTask = tagTask;
   lib.getTags = getTags;
   lib.getTaggedTasks = getTaggedTasks;
+  lib.findSimilar = findSimilar;
   lib.createBatch = createBatch;
   lib.getPerspectiveRules = getPerspectiveRules;
   lib.dumpDatabase = dumpDatabase;
@@ -143,7 +144,7 @@ BUILT_JS="${BUNDLE_DIR}/Resources/ofoCore.js"
 # resolveConventions as helpers if added).
 EXPECTED_FNS=(
   normalizeTask getTask completeTask dropTask createTask updateTask searchTasks listTasks
-  getPerspective configurePerspective tagTask getTags getTaggedTasks createBatch
+  getPerspective configurePerspective tagTask getTags getTaggedTasks findSimilar createBatch
   getPerspectiveRules dumpDatabase getStats assessClarity stalledProjects getHealth
   listWaitingFor listSomedayMaybe listNeglectedProjects listRecentlyCompleted
   listProjectsForReview markProjectReviewed listFolders createProject updateProject
