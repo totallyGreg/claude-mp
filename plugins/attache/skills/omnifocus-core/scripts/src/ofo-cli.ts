@@ -771,6 +771,8 @@ Commands:
                                     end a project's last action unless --force)
   create --name "..." [options]     Create a new task (also accepts stdin)
   update <id|url> [options]         Update task properties
+                                    --project takes a project id or exact name (create too);
+                                    a name shared by several projects is an error
   search <query> [--project NAME]   Search active tasks by name or note
   similar <name> | --id <id> [--min 0.5] [--limit N]
                                     Active tasks with similar names (word overlap), for duplicates

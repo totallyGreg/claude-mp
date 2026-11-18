@@ -94,7 +94,7 @@ function computeStats(allTasks: Task[]): OfoStats {
 
   let activeProjects = 0, reviewOverdue = 0;
   flattenedProjects.forEach(function(p: Project) {
-    if (p.status !== Project.Status.Active) return;
+    if (effectiveStatus(p) !== Project.Status.Active) return;
     activeProjects++;
     if (p.nextReviewDate && p.nextReviewDate < todayStart) reviewOverdue++;
   });
@@ -230,8 +230,9 @@ function createTask(args: OfoArgs): OfoResult {
     if (!parentTask) return { success: false, error: 'Parent task not found: ' + args.parent };
     location = parentTask.ending;
   } else if (args.project) {
-    const proj = flattenedProjects.byName(args.project as string);
-    if (proj) location = proj.task.ending;
+    const r = resolveProject(args.project as string);
+    if (r.error) return { success: false, error: r.error };
+    location = r.project!.task.ending;
   }
   const t = new Task(args.name as string, location);
   if (args.note) t.note = args.note as string;
@@ -303,9 +304,9 @@ function updateTask(args: OfoArgs): OfoResult {
     if (projName === 'inbox' || projName === '') {
       moveTasks([t], inbox.ending);
     } else {
-      const proj = flattenedProjects.byName(projName);
-      if (!proj) return { success: false, error: 'Project not found: ' + projName };
-      moveTasks([t], proj.task.ending);
+      const r = resolveProject(projName);
+      if (r.error) return { success: false, error: r.error };
+      moveTasks([t], r.project!.task.ending);
     }
   }
   if (args.tags !== undefined) {
@@ -568,12 +569,12 @@ function evalTaskRule(t: Task, rule: any, unsupported: string[]): boolean | null
         const proj = t.containingProject;
         const s = String(v).toLowerCase().replace(/[-_ ]/g, '');
         if (s === 'stalled') {
-          matched = !!proj && proj.status === Project.Status.Active &&
+          matched = !!proj && effectiveStatus(proj) === Project.Status.Active &&
             proj.flattenedTasks.every(function(x: Task) { return x.taskStatus !== Task.Status.Available; });
-        } else if (s === 'active') matched = !!proj && proj.status === Project.Status.Active;
-        else if (s === 'onhold') matched = !!proj && proj.status === Project.Status.OnHold;
-        else if (s === 'dropped') matched = !!proj && proj.status === Project.Status.Dropped;
-        else if (s === 'completed' || s === 'done') matched = !!proj && proj.status === Project.Status.Done;
+        } else if (s === 'active') matched = !!proj && effectiveStatus(proj) === Project.Status.Active;
+        else if (s === 'onhold') matched = !!proj && effectiveStatus(proj) === Project.Status.OnHold;
+        else if (s === 'dropped') matched = !!proj && effectiveStatus(proj) === Project.Status.Dropped;
+        else if (s === 'completed' || s === 'done') matched = !!proj && effectiveStatus(proj) === Project.Status.Done;
         else return unsupported.push(key + '=' + v), null;
         break;
       }
@@ -638,7 +639,7 @@ function getPerspective(args: OfoArgs): OfoResult {
   if (isStalledProjects) {
     flattenedProjects.forEach(function(p: Project) {
       if (limit > 0 && results.length >= limit) { truncated = true; return; }
-      if (p.status !== Project.Status.Active) return;
+      if (effectiveStatus(p) !== Project.Status.Active) return;
       const remaining = p.flattenedTasks.filter(function(t: Task) {
         return t.taskStatus === Task.Status.Available || t.taskStatus === Task.Status.Blocked;
       });
@@ -919,7 +920,7 @@ function dumpDatabase(_args: OfoArgs): OfoResult {
 
   const activeProjects: object[] = [];
   flattenedProjects.forEach(function(p: Project) {
-    if (p.status !== Project.Status.Active) return;
+    if (effectiveStatus(p) !== Project.Status.Active) return;
     activeProjects.push({
       id: p.id.primaryKey,
       name: p.name,
@@ -990,7 +991,7 @@ function getStats(_args: OfoArgs): OfoResult {
   let projectCount = 0;
   let reviewOverdue = 0;
   flattenedProjects.forEach(function(p: Project) {
-    if (p.status !== Project.Status.Active) return;
+    if (effectiveStatus(p) !== Project.Status.Active) return;
     projectCount++;
     if (p.nextReviewDate && p.nextReviewDate < todayStart) reviewOverdue++;
   });
@@ -1038,7 +1039,7 @@ function stalledProjects(args: OfoArgs): OfoResult {
   const cutoff = new Date(Date.now() - daysSince * 86400000);
   const projects = flattenedProjects as Project[];
   const stalled = projects
-    .filter(function(p) { return p.status === Project.Status.Active; })
+    .filter(function(p) { return effectiveStatus(p) === Project.Status.Active; })
     .filter(function(p) {
       const hasNextAction = p.flattenedTasks.some(function(t) {
         return t.taskStatus === Task.Status.Available;
@@ -1148,7 +1149,7 @@ function listSomedayMaybe(args: OfoArgs): OfoResult {
     if (folder) {
       folder.flattenedProjects.forEach(function(p: Project) {
         if (results.length >= limit) return;
-        if (p.status !== Project.Status.Active && p.status !== Project.Status.OnHold) return;
+        if (effectiveStatus(p) !== Project.Status.Active && effectiveStatus(p) !== Project.Status.OnHold) return;
         p.flattenedTasks.forEach(function(t: Task) {
           if (results.length >= limit) return;
           if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
@@ -1176,7 +1177,7 @@ function listNeglectedProjects(args: OfoArgs): OfoResult {
   const results: object[] = [];
   flattenedProjects.forEach(function(p: Project) {
     if (results.length >= limit) return;
-    if (p.status !== Project.Status.Active) return;
+    if (effectiveStatus(p) !== Project.Status.Active) return;
     if (p.modified && p.modified >= cutoff) return;
     const ageDays = p.modified ? Math.floor((Date.now() - p.modified.getTime()) / 86400000) : null;
     results.push({
@@ -1239,13 +1240,16 @@ function listRecentlyCompleted(args: OfoArgs): OfoResult {
 function listProjectsForReview(args: OfoArgs): OfoResult {
   const beforeDateStr = args['beforeDate'] as string | undefined;
   const before = beforeDateStr ? new Date(beforeDateStr) : new Date();
-  const limit = (args['limit'] as number) || 100;
+  const limit = (args['limit'] as number) || 0;   // 0 = no limit
 
   const results: object[] = [];
+  let total = 0;
   flattenedProjects.forEach(function(p: Project) {
-    if (results.length >= limit) return;
-    if (p.status !== Project.Status.Active && p.status !== Project.Status.OnHold) return;
+    const st = effectiveStatus(p);
+    if (st !== Project.Status.Active && st !== Project.Status.OnHold) return;
     if (!p.nextReviewDate || p.nextReviewDate > before) return;
+    total++;
+    if (limit && results.length >= limit) return;
     results.push({
       id: p.id.primaryKey,
       name: p.name,
@@ -1254,7 +1258,7 @@ function listProjectsForReview(args: OfoArgs): OfoResult {
       status: String(p.status)
     });
   });
-  return { success: true, beforeDate: before.toISOString(), count: results.length, projects: results };
+  return { success: true, beforeDate: before.toISOString(), count: results.length, total: total, truncated: results.length < total, projects: results };
 }
 
 // === D6.2 — PROJECT LIFECYCLE ===
@@ -1363,6 +1367,35 @@ function createProject(args: OfoArgs): OfoResult {
  * updateProject — mutate any combination of name / note / status / folder / sequential / due / defer.
  * Status mapping documented in createProject above.
  */
+/**
+ * A project's status as OmniFocus treats it: a project inside a dropped folder is dropped,
+ * even though its own status still says Active.
+ */
+function effectiveStatus(p: Project): Project.Status {
+  for (let f = p.parentFolder; f; f = f.parent) {
+    if (f.status === Folder.Status.Dropped) return Project.Status.Dropped;
+  }
+  return p.status;
+}
+
+/**
+ * Project by id, or by exact name among projects that aren't completed or dropped.
+ * A name matching several projects is an error, never a guess (a stale repeat copy
+ * shares its name with the live project).
+ */
+function resolveProject(ref: string): { project?: Project; error?: string } {
+  const byId = Project.byIdentifier(ref);
+  if (byId) return { project: byId };
+  const matches = flattenedProjects.filter(function(p: Project) {
+    const st = effectiveStatus(p);
+    return p.name === ref && st !== Project.Status.Done && st !== Project.Status.Dropped;
+  });
+  if (matches.length === 1) return { project: matches[0] };
+  if (matches.length === 0) return { error: 'Project not found (or completed/dropped): ' + ref };
+  return { error: 'Project name "' + ref + '" matches ' + matches.length + ' projects; pass an id: ' +
+    matches.map(function(p: Project) { return p.id.primaryKey; }).join(', ') };
+}
+
 const REVIEW_UNITS = ['days', 'weeks', 'months', 'years'];
 
 /**
