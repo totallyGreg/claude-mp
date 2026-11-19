@@ -1436,6 +1436,7 @@ function updateProject(args: OfoArgs): OfoResult {
   if (args['note'] !== undefined) p.note = args['note'] as string;
   if (args['flagged'] !== undefined) p.flagged = args['flagged'] as boolean;
   if (args['sequential'] !== undefined) p.sequential = args['sequential'] as boolean;
+  if (args['singleActions'] !== undefined) p.containsSingletonActions = args['singleActions'] as boolean;
   if (args['due'] !== undefined) p.dueDate = args['due'] === null ? null : parseDate(args['due'] as string);
   if (args['defer'] !== undefined) p.deferDate = args['defer'] === null ? null : parseDate(args['defer'] as string);
 
@@ -1479,6 +1480,7 @@ function updateProject(args: OfoArgs): OfoResult {
       folder: p.parentFolder ? p.parentFolder.name : null,
       status: String(p.status),
       sequential: p.sequential,
+      singleActions: p.containsSingletonActions,
       ...reviewFields(p)
     }
   };

@@ -3,7 +3,7 @@ name: gtd-coach
 description: |
   This skill should be used when users need GTD methodology coaching on productivity, workflow, or task management systems. Triggers when user asks "create a next action", "check my GTD system", "analyze my projects", "improve my workflow", "weekly review", "inbox zero", "someday maybe", or "GTD coaching". For OmniFocus-specific automation, use the omnifocus-core skill instead.
 metadata:
-  version: 1.4.1
+  version: 1.5.0
   author: totally-tools
 license: MIT
 compatibility:
@@ -57,6 +57,8 @@ Item in inbox?
 - Creating vague tasks ("Deal with email")
 - Skipping the "Is it actionable?" question
 
+**Renaming a vague task:** start with a verb and keep the specific subject (the song, person, tool or place) word for word — "Learn to play Funeral Parade" may become "Learn Funeral Parade on bass", never "Daily Bass Drill". Leave routines' names alone: a consistent prefix (e.g. "Proceed:") is the user's convention for marking them. Suggest at most one change per task, so a task isn't both renamed and dropped.
+
 ### 3. Organize
 
 Put clarified items into the right categories:
@@ -97,6 +99,12 @@ Review your system to maintain trust and currency.
 - [ ] Review upcoming calendar (2 weeks ahead)
 - [ ] Review completed tasks — anything triggered?
 
+**Project review cadence:** not every project needs a weekly look. Set each project's review interval by how active it is — weekly for active work, every 2 weeks to monthly for background projects, quarterly or longer for dormant ones — and stagger the next review dates so reviews arrive a few a day instead of all at once. In OmniFocus this is the project's review interval and the Review perspective; Mark Reviewed advances the next date by the interval.
+
+**Finish the review, project by project.** A weekly review counts as done when each project has been looked at, not when every checklist box is ticked. Anything skipped gets one line in the review's friction notes (what was skipped and why) and the review is closed. Leaving it half done lets next week's review pile on top — one system had 19 abandoned weekly-review copies, most with boxes unticked.
+
+**Tasks untouched for a year or more** are candidates to drop or move to Someday/Maybe, not to reschedule. For a routine, choose between complete (did it), skip once (drop this occurrence) and drop the routine (it no longer earns its place).
+
 ### 5. Engage
 
 Choose what to do based on four criteria:
@@ -136,6 +144,18 @@ A **Project** is any desired outcome requiring more than one action step.
 - A clear outcome statement
 - At least one next action defined at all times
 - A place in your regular review
+
+**Signs it's an area, not a project:** no finished state ("Play More Music"), routines mixed with loose "learn X" items, no order between tasks, items idle for a year or more. Pick the shape that fits:
+
+| Shape | When |
+|-------|------|
+| **Project** | One outcome with a clear "done" |
+| **Single-action list** | An ongoing area of unrelated actions or routines |
+| **Folder** | An area that holds several distinct smaller projects |
+| **Split** | Two or more outcomes mixed in one project |
+| **Someday/Maybe** (on hold) | Nothing in it is actually being worked on |
+
+A project shaped wrong never looks finished and never looks stalled, so the review can't judge it. Fix the shape before tuning its tasks.
 
 ### Contexts
 

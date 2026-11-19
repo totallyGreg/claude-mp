@@ -22,6 +22,7 @@ This file is the **design-principles + gotchas** layer those don't cover.
 | `dailyReview` | Daily operational ritual — completed / today / overdue / coaching | Yes | Drift signal only |
 | `whatNow` | Situational Engage filter (context / time / energy → top-5 candidates) | No | Soft (pickers omitted when categories empty) |
 | `weeklyReview` | Weekly operational review — 7 scripted steps with FM coaching | Yes | None today (#189 redesign pending) |
+| `reviewAssist` | One project at a time from OmniFocus's review queue (or the selection): facts, a structure check (project / single-action list / folder / split / someday), one editable name field plus an action menu per task with ★ suggestions pre-selected, review interval and outcome; nothing applies until Done | Optional (facts only without it) | No |
 | `monthlyReview` | Horizon 2 (Areas of Focus) — per-area coaching | Yes | Hard (needs `inferredType === 'area'` folders) |
 | `horizonsReview` | Horizons 3-5 (Goals / Vision / Purpose) — quarterly reflection | Optional | No |
 | `processInbox` | Clarify-phase per-item walk (drop / complete / defer / project / clarify) | No | No |

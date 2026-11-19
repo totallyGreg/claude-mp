@@ -1,6 +1,6 @@
 {
   "skill_name": "gtd-coach",
-  "content_hash": "ff3d126a5f2435181415c587fa5620acdc6931a092874f296f6f6f26a1eb80b8",
+  "content_hash": "a05dcd78c1c02ce6de63d9f621626ea3c4d10b14274a023296d517716e3476bb",
   "score": 91,
   "metrics": {
     "conciseness": 78,
@@ -10,5 +10,5 @@
     "description_quality": 100
   },
   "tool_version": "6.13.1",
-  "date": "2026-11-09"
+  "date": "2026-11-18"
 }

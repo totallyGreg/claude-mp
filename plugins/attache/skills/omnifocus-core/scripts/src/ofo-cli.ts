@@ -799,7 +799,7 @@ Commands:
   project review <id> [--date <ISO>]    Mark project as reviewed (sets lastReviewDate; advances nextReviewDate)
   project create --name "..." [--folder NAME] [--sequential|--parallel] [--note] [--due] [--defer] [--review-every N <unit>]
   project update <id> [--name|--note|--status|--folder|--root|--create-missing|--due|--defer|--sequential|--parallel|--flagged|--unflag|
-                    --review-every N <days|weeks|months|years>|--next-review YYYY-MM-DD]
+                    --single-actions|--not-single-actions|--review-every N <days|weeks|months|years>|--next-review YYYY-MM-DD]
                                     --next-review staggers reviews (set it after the interval)
                                     Status values: active | onHold | completed | dropped
                                     --root moves the project to top level; --create-missing auto-creates a missing --folder
@@ -1189,6 +1189,8 @@ function cmdProject(args: string[]): void {
         case '--defer':      payload['defer'] = args[++i] === 'clear' ? null : args[i]; break;
         case '--sequential': payload['sequential'] = true; break;
         case '--parallel':   payload['sequential'] = false; break;
+        case '--single-actions': payload['singleActions'] = true; break;
+        case '--not-single-actions': payload['singleActions'] = false; break;
         case '--flagged':    payload['flagged'] = true; break;
         case '--unflag':     payload['flagged'] = false; break;
         case '--review-every': {

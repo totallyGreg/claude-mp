@@ -1,6 +1,6 @@
 {
   "skill_name": "attache-analyst",
-  "content_hash": "659f38063c11958abcf807f1dc161b6765000ae4a998b16bc2be78c5da3f72b5",
+  "content_hash": "27ffdf39a85ba6547c79df094353b2a7d0aa4e63b500ef16477804cdb6e73bb8",
   "score": 98,
   "metrics": {
     "conciseness": 100,
@@ -10,5 +10,5 @@
     "description_quality": 100
   },
   "tool_version": "6.13.1",
-  "date": "2026-11-17"
+  "date": "2026-11-18"
 }
