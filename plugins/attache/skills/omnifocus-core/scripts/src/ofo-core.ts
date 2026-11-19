@@ -13,6 +13,22 @@
 // === SHARED HELPERS ===
 
 /**
+ * Date input from the CLI. A bare YYYY-MM-DD means local midnight; `new Date("2026-11-24")`
+ * would be UTC midnight, i.e. the evening before in US time zones.
+ */
+function parseDate(s: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(s);
+}
+
+/** "[object Task.Status: Dropped]" → "Dropped"; Omni enums stringify with their type wrapper. */
+function enumName(v: unknown): string {
+  const s = String(v);
+  const m = s.match(/:\s*(\w+)\]$/);
+  return m ? (m[1] ?? s) : s;
+}
+
+/**
  * normalizeTask — single canonical task shape used by getTask, searchTasks, and listTasks.
  * Eliminates field-set drift across the three query functions.
  * OfoTask is declared in ofo-contract.d.ts (ambient, no import needed here).
@@ -24,13 +40,7 @@ function normalizeTask(t: Task): OfoTask {
   let schedType: string | null = null;
   if (t.repetitionRule) {
     try { catchUp = t.repetitionRule.catchUpAutomatically; } catch (_) {}
-    try {
-      var st = String(t.repetitionRule.scheduleType);
-      var m = st.match(/:\s*(\w+)\]$/);
-      // noUncheckedIndexedAccess: m[1] is `string | undefined` even after a successful match.
-      // In practice this regex always populates group 1 when it matches, but type system can't prove it.
-      schedType = m ? (m[1] ?? st) : st;
-    } catch (_) {}
+    try { schedType = enumName(t.repetitionRule.scheduleType); } catch (_) {}
   }
   return {
     id: t.id.primaryKey,
@@ -50,7 +60,7 @@ function normalizeTask(t: Task): OfoTask {
     repetitionRule: t.repetitionRule ? t.repetitionRule.ruleString : null,
     repetitionCatchUp: catchUp,
     repetitionScheduleType: schedType,
-    taskStatus: String(t.taskStatus),
+    taskStatus: enumName(t.taskStatus),
   };
 }
 
@@ -84,7 +94,7 @@ function computeStats(allTasks: Task[]): OfoStats {
 
   let activeProjects = 0, reviewOverdue = 0;
   flattenedProjects.forEach(function(p: Project) {
-    if (p.status !== Project.Status.Active) return;
+    if (effectiveStatus(p) !== Project.Status.Active) return;
     activeProjects++;
     if (p.nextReviewDate && p.nextReviewDate < todayStart) reviewOverdue++;
   });
@@ -191,6 +201,20 @@ function dropTask(args: OfoArgs): OfoResult {
   if (allOccurrences && !t.repetitionRule) {
     return { success: false, error: 'Task is not repeating; use without --all to drop it.' };
   }
+  // Ending the last remaining action of a project set to complete with its last
+  // action would complete the project too; refuse unless --force.
+  const proj = t.containingProject;
+  const endsTask = allOccurrences || !t.repetitionRule;
+  if (proj && endsTask && proj.completedByChildren && !args.force) {
+    const others = proj.flattenedTasks.filter(function(x: Task) {
+      return x.id.primaryKey !== t.id.primaryKey && !x.completed &&
+        x.taskStatus !== Task.Status.Completed && x.taskStatus !== Task.Status.Dropped;
+    });
+    if (others.length === 0) {
+      return { success: false, error: 'Dropping "' + t.name + '" would leave project "' + proj.name +
+        '" with no remaining actions, and it completes with its last action. Use --force to drop anyway.' };
+    }
+  }
   t.drop(allOccurrences);
   return { success: true, task: { id: t.id.primaryKey, name: t.name, dropped: true } };
 }
@@ -206,17 +230,18 @@ function createTask(args: OfoArgs): OfoResult {
     if (!parentTask) return { success: false, error: 'Parent task not found: ' + args.parent };
     location = parentTask.ending;
   } else if (args.project) {
-    const proj = flattenedProjects.byName(args.project as string);
-    if (proj) location = proj.task.ending;
+    const r = resolveProject(args.project as string);
+    if (r.error) return { success: false, error: r.error };
+    location = r.project!.task.ending;
   }
   const t = new Task(args.name as string, location);
   if (args.note) t.note = args.note as string;
   if (args.flagged) t.flagged = true;
-  if (args.due) t.dueDate = new Date(args.due as string);
-  if (args.defer) t.deferDate = new Date(args.defer as string);
+  if (args.due) t.dueDate = parseDate(args.due as string);
+  if (args.defer) t.deferDate = parseDate(args.defer as string);
   if (args.estimate) t.estimatedMinutes = args.estimate as number;
   if (args.plannedDate !== undefined) {
-    try { t.plannedDate = args.plannedDate === null ? null : new Date(args.plannedDate as string); } catch (_) {}
+    try { t.plannedDate = args.plannedDate === null ? null : parseDate(args.plannedDate as string); } catch (_) {}
   }
   if (args.tags) {
     (args.tags as string[]).forEach(function(tagName: string) {
@@ -252,20 +277,36 @@ function updateTask(args: OfoArgs): OfoResult {
   }
   if (args.flagged !== undefined) t.flagged = args.flagged as boolean;
   if (args.sequential !== undefined) t.sequential = args.sequential as boolean;
-  if (args.due !== undefined) t.dueDate = args.due === null ? null : new Date(args.due as string);
-  if (args.defer !== undefined) t.deferDate = args.defer === null ? null : new Date(args.defer as string);
+  if (args.due !== undefined) t.dueDate = args.due === null ? null : parseDate(args.due as string);
+  if (args.defer !== undefined) t.deferDate = args.defer === null ? null : parseDate(args.defer as string);
   if (args.estimate !== undefined) t.estimatedMinutes = args.estimate as number;
+  if (args.repeat === null) {
+    t.repetitionRule = null;
+  } else if (args.repeat !== undefined || args.repeatType !== undefined || args.anchor !== undefined || args.catchUp !== undefined) {
+    const cur = t.repetitionRule;
+    const ruleString = (args.repeat as string | undefined) ?? (cur ? cur.ruleString : undefined);
+    if (!ruleString) return { success: false, error: 'Task does not repeat; give --repeat <RRULE> to add a repeat.' };
+    const sched = args.repeatType !== undefined ? Task.RepetitionScheduleType[args.repeatType as string]
+      : (cur ? cur.scheduleType : Task.RepetitionScheduleType.Regularly);
+    // A new repeat anchors to the date the task actually uses: defer when it has no due date.
+    const anchor = args.anchor !== undefined ? Task.AnchorDateKey[args.anchor as string]
+      : (cur ? cur.anchorDateKey : (t.dueDate ? Task.AnchorDateKey.DueDate : Task.AnchorDateKey.DeferDate));
+    const catchUp = args.catchUp !== undefined ? args.catchUp as boolean : (cur ? cur.catchUpAutomatically : false);
+    if (!sched) return { success: false, error: 'Unknown repeat type: ' + String(args.repeatType) + ' (Regularly | FromCompletion | None)' };
+    if (!anchor) return { success: false, error: 'Unknown anchor: ' + String(args.anchor) + ' (DeferDate | DueDate | PlannedDate)' };
+    t.repetitionRule = new (Task.RepetitionRule as any)(ruleString, null, sched, anchor, catchUp);
+  }
   if (args.plannedDate !== undefined) {
-    try { t.plannedDate = args.plannedDate === null ? null : new Date(args.plannedDate as string); } catch (_) {}
+    try { t.plannedDate = args.plannedDate === null ? null : parseDate(args.plannedDate as string); } catch (_) {}
   }
   if (args.project !== undefined) {
     const projName = args.project as string;
     if (projName === 'inbox' || projName === '') {
       moveTasks([t], inbox.ending);
     } else {
-      const proj = flattenedProjects.byName(projName);
-      if (!proj) return { success: false, error: 'Project not found: ' + projName };
-      moveTasks([t], proj.task.ending);
+      const r = resolveProject(projName);
+      if (r.error) return { success: false, error: r.error };
+      moveTasks([t], r.project!.task.ending);
     }
   }
   if (args.tags !== undefined) {
@@ -287,7 +328,11 @@ function updateTask(args: OfoArgs): OfoResult {
       sequential: t.sequential,
       dueDate: t.dueDate ? t.dueDate.toISOString() : null,
       deferDate: t.deferDate ? t.deferDate.toISOString() : null,
-      plannedDate: updatePlannedDate
+      plannedDate: updatePlannedDate,
+      repetitionRule: t.repetitionRule ? t.repetitionRule.ruleString : null,
+      repetitionScheduleType: t.repetitionRule ? enumName(t.repetitionRule.scheduleType) : null,
+      repetitionAnchor: t.repetitionRule ? enumName(t.repetitionRule.anchorDateKey) : null,
+      repetitionCatchUp: t.repetitionRule ? t.repetitionRule.catchUpAutomatically : null
     }
   };
 }
@@ -297,11 +342,13 @@ function updateTask(args: OfoArgs): OfoResult {
 function searchTasks(args: OfoArgs): OfoResult {
   const query = ((args.query as string) || '').toLowerCase();
   const limit = (args.limit as number) || 50;
+  const project = ((args.project as string) || '').toLowerCase();
   const results: object[] = [];
   flattenedTasks.forEach(function(t: Task) {
     if (results.length >= limit) return;
     if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
     if (t.effectivelyCompleted || t.effectivelyDropped || t.completed) return;
+    if (project && (!t.containingProject || t.containingProject.name.toLowerCase() !== project)) return;
     const nameMatch = t.name.toLowerCase().indexOf(query) !== -1;
     const noteMatch = t.note && t.note.toLowerCase().indexOf(query) !== -1;
     if (nameMatch || noteMatch) {
@@ -309,6 +356,50 @@ function searchTasks(args: OfoArgs): OfoResult {
     }
   });
   return { success: true, count: results.length, tasks: results };
+}
+
+// === SIMILAR ===
+
+const SIMILAR_STOPWORDS = ['the', 'and', 'for', 'with', 'from', 'into', 'about', 'your', 'my', 'a', 'an', 'to', 'of', 'in', 'on', 'at', 'or'];
+
+function nameTokens(name: string): string[] {
+  const seen: Record<string, boolean> = {};
+  return name.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(function(w) {
+    if (w.length < 2 || SIMILAR_STOPWORDS.indexOf(w) !== -1 || seen[w]) return false;
+    seen[w] = true;
+    return true;
+  });
+}
+
+/** Active tasks whose names share words with a name (or a task's name): Jaccard over word sets. */
+function findSimilar(args: OfoArgs): OfoResult {
+  let query = (args.query as string) || '';
+  let selfId: string | null = null;
+  if (args.id) {
+    const src = Task.byIdentifier(args.id as string);
+    if (!src) return { success: false, error: 'Task not found: ' + String(args.id) };
+    query = src.name;
+    selfId = src.id.primaryKey;
+  }
+  const qTokens = nameTokens(query);
+  if (qTokens.length === 0) return { success: false, error: 'Nothing to compare: the name has no words of 2+ letters.' };
+  const min = (args.min as number) || 0.5;
+  const limit = (args.limit as number) || 20;
+  const scored: { score: number; task: OfoTask }[] = [];
+  flattenedTasks.forEach(function(t: Task) {
+    if (selfId && t.id.primaryKey === selfId) return;
+    if (t.completed || t.effectivelyCompleted || t.effectivelyDropped) return;
+    if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
+    const tTokens = nameTokens(t.name);
+    if (tTokens.length === 0) return;
+    let shared = 0;
+    tTokens.forEach(function(w) { if (qTokens.indexOf(w) !== -1) shared++; });
+    const score = shared / (qTokens.length + tTokens.length - shared);
+    if (score >= min) scored.push({ score: Math.round(score * 100) / 100, task: normalizeTask(t) });
+  });
+  scored.sort(function(a, b) { return b.score - a.score; });
+  const top = scored.slice(0, limit).map(function(s) { return Object.assign({ score: s.score }, s.task); });
+  return { success: true, query: query, min: min, count: top.length, tasks: top };
 }
 
 // === LIST ===
@@ -478,12 +569,12 @@ function evalTaskRule(t: Task, rule: any, unsupported: string[]): boolean | null
         const proj = t.containingProject;
         const s = String(v).toLowerCase().replace(/[-_ ]/g, '');
         if (s === 'stalled') {
-          matched = !!proj && proj.status === Project.Status.Active &&
+          matched = !!proj && effectiveStatus(proj) === Project.Status.Active &&
             proj.flattenedTasks.every(function(x: Task) { return x.taskStatus !== Task.Status.Available; });
-        } else if (s === 'active') matched = !!proj && proj.status === Project.Status.Active;
-        else if (s === 'onhold') matched = !!proj && proj.status === Project.Status.OnHold;
-        else if (s === 'dropped') matched = !!proj && proj.status === Project.Status.Dropped;
-        else if (s === 'completed' || s === 'done') matched = !!proj && proj.status === Project.Status.Done;
+        } else if (s === 'active') matched = !!proj && effectiveStatus(proj) === Project.Status.Active;
+        else if (s === 'onhold') matched = !!proj && effectiveStatus(proj) === Project.Status.OnHold;
+        else if (s === 'dropped') matched = !!proj && effectiveStatus(proj) === Project.Status.Dropped;
+        else if (s === 'completed' || s === 'done') matched = !!proj && effectiveStatus(proj) === Project.Status.Done;
         else return unsupported.push(key + '=' + v), null;
         break;
       }
@@ -548,7 +639,7 @@ function getPerspective(args: OfoArgs): OfoResult {
   if (isStalledProjects) {
     flattenedProjects.forEach(function(p: Project) {
       if (limit > 0 && results.length >= limit) { truncated = true; return; }
-      if (p.status !== Project.Status.Active) return;
+      if (effectiveStatus(p) !== Project.Status.Active) return;
       const remaining = p.flattenedTasks.filter(function(t: Task) {
         return t.taskStatus === Task.Status.Available || t.taskStatus === Task.Status.Blocked;
       });
@@ -829,7 +920,7 @@ function dumpDatabase(_args: OfoArgs): OfoResult {
 
   const activeProjects: object[] = [];
   flattenedProjects.forEach(function(p: Project) {
-    if (p.status !== Project.Status.Active) return;
+    if (effectiveStatus(p) !== Project.Status.Active) return;
     activeProjects.push({
       id: p.id.primaryKey,
       name: p.name,
@@ -860,6 +951,14 @@ function dumpDatabase(_args: OfoArgs): OfoResult {
 }
 
 // === STATS ===
+
+/** Version of the installed Attache plug-in, so the CLI can warn when it lags the source. */
+function installedPluginVersion(): string | null {
+  try {
+    const p = PlugIn.find('com.totallytools.omnifocus.attache', null);
+    return p ? p.version.versionString : null;
+  } catch (_) { return null; }
+}
 
 function getStats(_args: OfoArgs): OfoResult {
   const now = new Date();
@@ -892,7 +991,7 @@ function getStats(_args: OfoArgs): OfoResult {
   let projectCount = 0;
   let reviewOverdue = 0;
   flattenedProjects.forEach(function(p: Project) {
-    if (p.status !== Project.Status.Active) return;
+    if (effectiveStatus(p) !== Project.Status.Active) return;
     projectCount++;
     if (p.nextReviewDate && p.nextReviewDate < todayStart) reviewOverdue++;
   });
@@ -906,7 +1005,8 @@ function getStats(_args: OfoArgs): OfoResult {
     activeTasks: totalActive,
     reviewOverdue: reviewOverdue,
     plannedToday: plannedToday,
-    withEstimate: withEstimate
+    withEstimate: withEstimate,
+    pluginVersion: installedPluginVersion()
   };
 }
 
@@ -939,7 +1039,7 @@ function stalledProjects(args: OfoArgs): OfoResult {
   const cutoff = new Date(Date.now() - daysSince * 86400000);
   const projects = flattenedProjects as Project[];
   const stalled = projects
-    .filter(function(p) { return p.status === Project.Status.Active; })
+    .filter(function(p) { return effectiveStatus(p) === Project.Status.Active; })
     .filter(function(p) {
       const hasNextAction = p.flattenedTasks.some(function(t) {
         return t.taskStatus === Task.Status.Available;
@@ -1049,7 +1149,7 @@ function listSomedayMaybe(args: OfoArgs): OfoResult {
     if (folder) {
       folder.flattenedProjects.forEach(function(p: Project) {
         if (results.length >= limit) return;
-        if (p.status !== Project.Status.Active && p.status !== Project.Status.OnHold) return;
+        if (effectiveStatus(p) !== Project.Status.Active && effectiveStatus(p) !== Project.Status.OnHold) return;
         p.flattenedTasks.forEach(function(t: Task) {
           if (results.length >= limit) return;
           if (t.taskStatus === Task.Status.Completed || t.taskStatus === Task.Status.Dropped) return;
@@ -1077,7 +1177,7 @@ function listNeglectedProjects(args: OfoArgs): OfoResult {
   const results: object[] = [];
   flattenedProjects.forEach(function(p: Project) {
     if (results.length >= limit) return;
-    if (p.status !== Project.Status.Active) return;
+    if (effectiveStatus(p) !== Project.Status.Active) return;
     if (p.modified && p.modified >= cutoff) return;
     const ageDays = p.modified ? Math.floor((Date.now() - p.modified.getTime()) / 86400000) : null;
     results.push({
@@ -1140,23 +1240,25 @@ function listRecentlyCompleted(args: OfoArgs): OfoResult {
 function listProjectsForReview(args: OfoArgs): OfoResult {
   const beforeDateStr = args['beforeDate'] as string | undefined;
   const before = beforeDateStr ? new Date(beforeDateStr) : new Date();
-  const limit = (args['limit'] as number) || 100;
+  const limit = (args['limit'] as number) || 0;   // 0 = no limit
 
   const results: object[] = [];
+  let total = 0;
   flattenedProjects.forEach(function(p: Project) {
-    if (results.length >= limit) return;
-    if (p.status !== Project.Status.Active && p.status !== Project.Status.OnHold) return;
+    const st = effectiveStatus(p);
+    if (st !== Project.Status.Active && st !== Project.Status.OnHold) return;
     if (!p.nextReviewDate || p.nextReviewDate > before) return;
+    total++;
+    if (limit && results.length >= limit) return;
     results.push({
       id: p.id.primaryKey,
       name: p.name,
       folder: p.parentFolder ? p.parentFolder.name : null,
-      nextReviewDate: p.nextReviewDate.toISOString(),
-      lastReviewDate: p.lastReviewDate ? p.lastReviewDate.toISOString() : null,
+      ...reviewFields(p),
       status: String(p.status)
     });
   });
-  return { success: true, beforeDate: before.toISOString(), count: results.length, projects: results };
+  return { success: true, beforeDate: before.toISOString(), count: results.length, total: total, truncated: results.length < total, projects: results };
 }
 
 // === D6.2 — PROJECT LIFECYCLE ===
@@ -1242,13 +1344,11 @@ function createProject(args: OfoArgs): OfoResult {
   if (args['note']) p.note = args['note'] as string;
   if (args['sequential'] !== undefined) p.sequential = args['sequential'] as boolean;
   if (args['flagged']) p.flagged = true;
-  if (args['due']) p.dueDate = new Date(args['due'] as string);
-  if (args['defer']) p.deferDate = new Date(args['defer'] as string);
-  // reviewInterval: { steps: number, unit: 'days'|'weeks'|'months'|... } per Project.ReviewInterval
+  if (args['due']) p.dueDate = parseDate(args['due'] as string);
+  if (args['defer']) p.deferDate = parseDate(args['defer'] as string);
   if (args['reviewInterval']) {
-    try {
-      p.reviewInterval = args['reviewInterval'] as any;
-    } catch (_) {}
+    const err = setReviewInterval(p, args['reviewInterval']);
+    if (err) return { success: false, error: err };
   }
 
   return {
@@ -1267,6 +1367,65 @@ function createProject(args: OfoArgs): OfoResult {
  * updateProject — mutate any combination of name / note / status / folder / sequential / due / defer.
  * Status mapping documented in createProject above.
  */
+/**
+ * A project's status as OmniFocus treats it: a project inside a dropped folder is dropped,
+ * even though its own status still says Active.
+ */
+function effectiveStatus(p: Project): Project.Status {
+  for (let f = p.parentFolder; f; f = f.parent) {
+    if (f.status === Folder.Status.Dropped) return Project.Status.Dropped;
+  }
+  return p.status;
+}
+
+/**
+ * Project by id, or by exact name among projects that aren't completed or dropped.
+ * A name matching several projects is an error, never a guess (a stale repeat copy
+ * shares its name with the live project).
+ */
+function resolveProject(ref: string): { project?: Project; error?: string } {
+  const byId = Project.byIdentifier(ref);
+  if (byId) return { project: byId };
+  const matches = flattenedProjects.filter(function(p: Project) {
+    const st = effectiveStatus(p);
+    return p.name === ref && st !== Project.Status.Done && st !== Project.Status.Dropped;
+  });
+  if (matches.length === 1) return { project: matches[0] };
+  if (matches.length === 0) return { error: 'Project not found (or completed/dropped): ' + ref };
+  return { error: 'Project name "' + ref + '" matches ' + matches.length + ' projects; pass an id: ' +
+    matches.map(function(p: Project) { return p.id.primaryKey; }).join(', ') };
+}
+
+const REVIEW_UNITS = ['days', 'weeks', 'months', 'years'];
+
+/**
+ * Omni Automation's pattern: read the ReviewInterval object, change it, assign it back
+ * (assigning a plain object does nothing). Returns an error message, or null.
+ */
+function setReviewInterval(p: Project, spec: unknown): string | null {
+  const s = spec as { steps?: number; unit?: string };
+  const steps = Number(s.steps);
+  let unit = String(s.unit || '').toLowerCase();
+  if (unit && unit.charAt(unit.length - 1) !== 's') unit += 's';
+  if (!(steps > 0) || REVIEW_UNITS.indexOf(unit) === -1) {
+    return 'Invalid review interval: ' + String(s.steps) + ' ' + String(s.unit) + ' (e.g. 1 week, 2 weeks, 1 month)';
+  }
+  const ri = p.reviewInterval as any;
+  ri.steps = steps;
+  ri.unit = unit;
+  p.reviewInterval = ri;
+  return null;
+}
+
+function reviewFields(p: Project): object {
+  const ri = p.reviewInterval as any;
+  return {
+    reviewInterval: ri ? { steps: ri.steps, unit: String(ri.unit) } : null,
+    nextReviewDate: p.nextReviewDate ? p.nextReviewDate.toISOString() : null,
+    lastReviewDate: p.lastReviewDate ? p.lastReviewDate.toISOString() : null
+  };
+}
+
 function updateProject(args: OfoArgs): OfoResult {
   const id = args['id'] as string;
   if (!id) return { success: false, error: 'Missing required arg: id' };
@@ -1277,8 +1436,9 @@ function updateProject(args: OfoArgs): OfoResult {
   if (args['note'] !== undefined) p.note = args['note'] as string;
   if (args['flagged'] !== undefined) p.flagged = args['flagged'] as boolean;
   if (args['sequential'] !== undefined) p.sequential = args['sequential'] as boolean;
-  if (args['due'] !== undefined) p.dueDate = args['due'] === null ? null : new Date(args['due'] as string);
-  if (args['defer'] !== undefined) p.deferDate = args['defer'] === null ? null : new Date(args['defer'] as string);
+  if (args['singleActions'] !== undefined) p.containsSingletonActions = args['singleActions'] as boolean;
+  if (args['due'] !== undefined) p.dueDate = args['due'] === null ? null : parseDate(args['due'] as string);
+  if (args['defer'] !== undefined) p.deferDate = args['defer'] === null ? null : parseDate(args['defer'] as string);
 
   if (args['status'] !== undefined) {
     const statusStr = String(args['status']).toLowerCase().replace(/[-_]/g, '');
@@ -1287,6 +1447,15 @@ function updateProject(args: OfoArgs): OfoResult {
     else if (statusStr === 'completed' || statusStr === 'done') p.status = Project.Status.Done;
     else if (statusStr === 'dropped') p.status = Project.Status.Dropped;
     else return { success: false, error: 'Invalid status: ' + args['status'] + ' (expected active|onHold|completed|dropped)' };
+  }
+
+  if (args['reviewInterval'] !== undefined) {
+    const err = setReviewInterval(p, args['reviewInterval']);
+    if (err) return { success: false, error: err };
+  }
+  // Set after the interval: changing the interval can recompute nextReviewDate.
+  if (args['nextReview'] !== undefined) {
+    p.nextReviewDate = args['nextReview'] === null ? null : parseDate(args['nextReview'] as string);
   }
 
   // Move to root when --root is passed, or when --folder is set to empty string.
@@ -1310,7 +1479,9 @@ function updateProject(args: OfoArgs): OfoResult {
       name: p.name,
       folder: p.parentFolder ? p.parentFolder.name : null,
       status: String(p.status),
-      sequential: p.sequential
+      sequential: p.sequential,
+      singleActions: p.containsSingletonActions,
+      ...reviewFields(p)
     }
   };
 }
@@ -1403,6 +1574,7 @@ function dispatch(args: OfoArgs): OfoResult {
     case 'ofo-tag':         return tagTask(args);
     case 'ofo-tags':        return getTags(args);
     case 'ofo-tagged':      return getTaggedTasks(args);
+    case 'ofo-similar':     return findSimilar(args);
     case 'ofo-create-batch': return createBatch(args);
     case 'ofo-dump':        return dumpDatabase(args);
     case 'ofo-stats':       return getStats(args);

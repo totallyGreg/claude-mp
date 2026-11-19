@@ -20,6 +20,7 @@ export type OfoAction =
   | 'ofo-tag'
   | 'ofo-tags'
   | 'ofo-tagged'
+  | 'ofo-similar'
   | 'ofo-perspective'
   | 'ofo-perspective-configure'
   | 'ofo-perspective-rules'

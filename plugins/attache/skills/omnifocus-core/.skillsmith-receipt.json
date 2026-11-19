@@ -1,6 +1,6 @@
 {
   "skill_name": "omnifocus-core",
-  "content_hash": "3c073b34e8028bd25160defbaf0b4228bd98236711a462c3619890be21cce62a",
+  "content_hash": "8edd2cc0abc9a8c7a9142194f19c4b8422aed22a2b29850dbfdc134e70c2a993",
   "score": 98,
   "metrics": {
     "conciseness": 100,
@@ -9,6 +9,6 @@
     "progressive_disclosure": 100,
     "description_quality": 100
   },
-  "tool_version": "6.13.0",
-  "date": "2026-11-08"
+  "tool_version": "6.13.1",
+  "date": "2026-11-18"
 }

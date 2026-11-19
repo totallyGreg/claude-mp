@@ -70,6 +70,7 @@ cat >> "${BUNDLE_DIR}/Resources/ofoCore.js" << 'IIFE_FOOTER'
   lib.tagTask = tagTask;
   lib.getTags = getTags;
   lib.getTaggedTasks = getTaggedTasks;
+  lib.findSimilar = findSimilar;
   lib.createBatch = createBatch;
   lib.getPerspectiveRules = getPerspectiveRules;
   lib.dumpDatabase = dumpDatabase;
@@ -119,7 +120,7 @@ echo "  Attache libraries compiled (${#ATTACHE_LIBS[@]} libraries)"
 # 5. Copy Attache action scripts into bundle (actions remain JS)
 echo "  Copying Attache actions..."
 ATTACHE_ACTIONS=(
-  healthCheck dailyReview whatNow weeklyReview monthlyReview horizonsReview
+  healthCheck dailyReview whatNow weeklyReview reviewAssist monthlyReview horizonsReview
   processInbox analyzeSelected analyzeHierarchy quickOrganize
   staleRoutineRecovery completedSummary systemSetup discoverSystem
 )
@@ -143,7 +144,7 @@ BUILT_JS="${BUNDLE_DIR}/Resources/ofoCore.js"
 # resolveConventions as helpers if added).
 EXPECTED_FNS=(
   normalizeTask getTask completeTask dropTask createTask updateTask searchTasks listTasks
-  getPerspective configurePerspective tagTask getTags getTaggedTasks createBatch
+  getPerspective configurePerspective tagTask getTags getTaggedTasks findSimilar createBatch
   getPerspectiveRules dumpDatabase getStats assessClarity stalledProjects getHealth
   listWaitingFor listSomedayMaybe listNeglectedProjects listRecentlyCompleted
   listProjectsForReview markProjectReviewed listFolders createProject updateProject

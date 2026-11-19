@@ -14,7 +14,13 @@ declare namespace Task {
   interface RepetitionRule {
     catchUpAutomatically: boolean;  // OF4 only; skips past dates on resolve
     scheduleType: any;              // Task.RepetitionScheduleType (Regularly | FromCompletion | None)
+    anchorDateKey: any;             // Task.AnchorDateKey (DeferDate | DueDate | PlannedDate)
   }
+  // OF 4.7+ enums (not in the 2021 typedefs). The 4.7 constructor is
+  // new Task.RepetitionRule(ruleString, null, scheduleType, anchorDateKey, catchUp),
+  // probed on OmniFocus 4.10.1 (2026-11-17); the typedef only declares the old one.
+  const RepetitionScheduleType: any;
+  const AnchorDateKey: any;
 }
 
 interface Project {
@@ -74,6 +80,7 @@ declare type OfoAction =
   | 'ofo-tag'
   | 'ofo-tags'
   | 'ofo-tagged'
+  | 'ofo-similar'
   | 'ofo-perspective'
   | 'ofo-perspective-configure'
   | 'ofo-perspective-rules'
