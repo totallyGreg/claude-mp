@@ -82,7 +82,7 @@ Set explicit `maximumResponseTokens` on every FM call — never leave it unbound
 | Action | Budget | Rationale |
 |---|---|---|
 | `dailyReview` | 300 | Summary coaching, not analysis |
-| `weeklyReview` | 250 per step | Step-by-step; multiple calls per session |
+| `reviewAssist` | 800 | One call per project, fresh session each; prompt capped at ~14K characters |
 | `analyzeSelected` (Clarify Tasks) | 400 per task | Richer per-task analysis |
 | `analyzeHierarchy` (Project Health) | Set per-batch in `hierarchicalBatcher` | Batched; budget per batch |
 
@@ -328,6 +328,6 @@ The practical context limit is not publicly documented. Observed behavior:
 - `assets/Attache.omnifocusjs/Resources/foundationModelsUtils.js` — availability utility library
 - `assets/Attache.omnifocusjs/Resources/analyzeTasksWithAI.js` — Schema.fromJSON() example
 - `assets/Attache.omnifocusjs/Resources/dailyReview.js` — GenerationOptions, anyOf enum usage
-- `assets/Attache.omnifocusjs/Resources/weeklyReview.js` — per-call session pattern
+- `assets/Attache.omnifocusjs/Resources/reviewAssist.js` — per-call session pattern
 - `references/omni_automation_shared.md` — Alert, Form, Pasteboard, PlugIn.Library API
 - [omni-automation.com/shared/alm.html](https://www.omni-automation.com/shared/alm.html) — canonical LanguageModel API docs

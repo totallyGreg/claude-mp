@@ -21,7 +21,7 @@ This file is the **design-principles + gotchas** layer those don't cover.
 | `healthCheck` | Landing-page diagnostic — names the fix-it action for each unhealthy indicator | No | Soft (checks freshness as a signal) |
 | `dailyReview` | Daily operational ritual — completed / today / overdue / coaching | Yes | Drift signal only |
 | `whatNow` | Situational Engage filter (context / time / energy → top-5 candidates) | No | Soft (pickers omitted when categories empty) |
-| `weeklyReview` | Weekly operational review — 7 scripted steps with FM coaching | Yes | None today (#189 redesign pending) |
+| `weeklyReview` | Works through the user's own weekly-review checklist (this week's copy of a repeating project) — OmniFocus holds the progress, Attache keeps no step list. Each run: group progress, the first unticked item, and the insight matched to it by keywords (inbox, Waiting For summary + "not really waiting" / "chase first", projects due for review, stalled, past week, priorities, on hold, coming week). Open … (matching perspective, else the item's group, e.g. Get Clear), still-to-do list for the group, Mark done (ticks it), Skip for now (changes nothing). Auto-ticks only data-proven items (nothing due for review, no stalled projects). Finish: report saved to the copy's note, clipboard and `weeklyReports`; completes the copy. Rebuilt in #269 | Optional (insight, priorities) | Soft (`waitingTag`) |
 | `reviewAssist` | One project at a time from OmniFocus's review queue (or the selection): facts, a structure check (project / single-action list / folder / split / someday), one editable name field plus an action menu per task with ★ suggestions pre-selected, review interval and outcome; nothing applies until Done | Optional (facts only without it) | No |
 | `monthlyReview` | Horizon 2 (Areas of Focus) — per-area coaching | Yes | Hard (needs `inferredType === 'area'` folders) |
 | `horizonsReview` | Horizons 3-5 (Goals / Vision / Purpose) — quarterly reflection | Optional | No |
@@ -72,7 +72,7 @@ When an action needs `@waiting`, `Someday/Maybe`, a default context tag, or any 
 
 ### 3. ApplyForm helper for per-item confirmation Forms
 
-Multiple actions need "AI analyzed N items, walk the user through Apply / Skip per item." Built once as `Resources/applyForm.js` (commit `ca63d09` / v2.2.0), now consumed by `analyzeSelected`, `analyzeHierarchy` (Flag Bottlenecks), `weeklyReview` Step 3 (waiting-for).
+Multiple actions need "AI analyzed N items, walk the user through Apply / Skip per item." Built once as `Resources/applyForm.js` (commit `ca63d09` / v2.2.0), now consumed by `analyzeSelected`, `analyzeHierarchy` (Flag Bottlenecks).
 
 **API:**
 
@@ -145,7 +145,7 @@ Discovered/corrected by checking the docs rather than guessing — verify agains
 }}
 ```
 
-The codebase already uses `anyOf` + `constant` (search `weeklyReview.js` for `waiting-rec-enum`). Use enums in preference to free-text + post-filter whenever the value space is small + closed.
+The codebase already uses `anyOf` + `constant` (search `reviewAssist.js` for `review-kind-enum`). Use enums in preference to free-text + post-filter whenever the value space is small + closed.
 
 ### G2. `Task.estimatedMinutes` strictly requires Number
 

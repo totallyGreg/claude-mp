@@ -1,718 +1,563 @@
 /**
- * Weekly Review - Step-by-step GTD weekly review with Apple Foundation Models
+ * Weekly Review — your own OmniFocus checklist, with insight on each item.
  *
- * Guides user through 7 GTD horizons via sequential Alerts, with on-device
- * AI coaching at each step. User can stop at any point.
+ * Rebuilt for #269 (replaces the 7-step walk-through; #268 decision "Weekly
+ * Review rebuilt on the Review perspective + push").
  *
- * Steps:
- *   1. Get Clear (Inbox)
- *   2. Projects Sweep (stalled projects)
- *   3. Waiting For (delegated/waiting items)
- *   4. Someday/Maybe (on-hold projects not reviewed in 90+ days)
- *   5. Celebrate & Reflect (completed this week)
- *   6. Horizon Check (overdue + upcoming 7 days)
- *   7. Plan the Week (synthesis)
+ * OmniFocus is the source of truth: the steps are the open items of this
+ * week's copy of your weekly-review routine (a repeating project), in order,
+ * and progress is what's ticked there. Attache keeps no step list of its own.
  *
- * Requirements:
- * - OmniFocus 4.8+
- * - macOS 26+
- * - Apple Intelligence enabled
+ * Each run shows your groups' progress and the first unticked item, with the
+ * insight that matches it (by keywords in its name — see KINDS): inbox facts,
+ * a Waiting For summary with "not really waiting" and "chase first", projects
+ * due for review, stalled projects, the past week, three priorities, on-hold
+ * projects, the coming week. Buttons act on the checklist itself:
+ *   Open …     the matching perspective, or the item's own group (e.g. Get
+ *              Clear) when no perspective fits — work there, run again
+ *   Mark done  ticks the item
+ *   Skip       moves on to the next item for this run; changes nothing
+ * An item is ticked automatically only when the data proves it done (nothing
+ * due for review, no stalled projects).
+ *
+ * When the checklist is finished (or Finish now): the report — what changed
+ * during the review, priorities, past and coming
+ * week, unticked items, "what got in the way?" — saved to the copy's note, the clipboard and
+ * a device-local log for the weekly-note push (task 5); then the copy is
+ * completed so the routine repeats.
+ *
+ * Device-local prefs hold only caches: the routine id, when this copy's review
+ * started (for "during this review"), and model answers.
  */
 
-(() => {
-    function section(title) {
-        return `── ${title}`;
-    }
+;(() => {
+  const PREFS_ID = 'com.totallytools.omnifocus.attache'
+  const ROUTINE_KEY = 'weeklyReview_projectId'
+  const CACHE_KEY = 'weeklyReview_cache'
+  const REPORTS_KEY = 'weeklyReports'
+  const REPORTS_MAX = 8
+  const WAITING_STALE_DAYS = 14
+  const ON_HOLD_UNREVIEWED_DAYS = 90
+  const NAME_PATTERN = /weekly review/i
+  const LIST_MAX = 5
+  const TITLE_WRAP_CHARS = 100
+  const RULE = '─'.repeat(48)
+  const DAY = 86400000
+  const SYSTEM_MAP_TASK = 'Attache System Map'
 
-    // Concurrency guard — scoped to IIFE closure so it persists across perform() calls
-    let _reviewInProgress = false;
+  const DESTINATIONS = {
+    waiting: { label: 'Waiting For', custom: /waiting/i },
+    review: { label: 'Review (then Attache › Review Assist)', builtIn: 'Review' },
+    stalled: { label: 'Stalled projects', custom: /stalled/i },
+    reflection: { label: 'Past week', custom: /weekly reflection|^completed$/i },
+    active: { label: 'Active projects', custom: /projects.*active/i },
+    inactive: { label: 'On-hold projects', custom: /inactive|on.?hold/i },
+    forecast: { label: 'Forecast', builtIn: 'Forecast' }
+  }
 
-    const GTD_COACH = "You are a GTD productivity coach. Be concise and direct. Use specific GTD vocabulary. Focus on actionable recommendations.";
-    const TOTAL_STEPS = 7;
+  /**
+   * Checklist item kinds, matched in order against the item name, then
+   * "group › item". detail(f, cache) → insight text; auto(f) → true when the
+   * data proves the item done (it is then ticked).
+   */
+  const KINDS = [
+    { key: 'waiting', match: /waiting/i, dest: 'waiting', insight: true,
+      detail: (f, cache) => waitingDetail(f, cache.waiting) },
+    { key: 'stalled', match: /stalled/i, dest: 'stalled',
+      detail: f => f.stalled.length ? `Stalled (no next action): ${f.stalled.length}\n` + list(f.stalled.map(p => p.name)) +
+        '\n\nGive each a next action, put it on hold, or drop it.' : 'No stalled projects.',
+      auto: f => f.stalled.length === 0 },
+    { key: 'review', match: /review perspective|projects? for review/i, dest: 'review',
+      detail: f => f.dueForReview.length ? `Projects due for review: ${f.dueForReview.length} of ${f.activeProjects} active\n` +
+        list(f.dueForReview.map(p => p.name)) + '\n\nSelect one in Review and run Attache › Review Assist.' : 'No projects due for review.',
+      auto: f => f.dueForReview.length === 0 },
+    { key: 'someday', match: /rainy day|someday/i, dest: 'inactive',
+      detail: f => f.onHoldUnreviewed.length ? `On hold, not reviewed in ${ON_HOLD_UNREVIEWED_DAYS}+ days: ${f.onHoldUnreviewed.length}\n` +
+        list(f.onHoldUnreviewed.map(p => p.name)) + '\n\nActivate, keep on hold, or drop each.' : `Every on-hold project was reviewed in the last ${ON_HOLD_UNREVIEWED_DAYS} days.` },
+    { key: 'reflect', match: /reflect|past week/i, dest: 'reflection',
+      detail: f => pastWeek(f) },
+    { key: 'prioritize', match: /prioriti/i, dest: 'active', priorities: true,
+      detail: (f, cache) => (cache.priorities && cache.priorities.length
+        ? '💡  Priorities for the week\n' + cache.priorities.map((p, i) => `${i + 1}. ${p}`).join('\n') + '\n\n' : '') + comingWeek(f) },
+    { key: 'plan', match: /weekly plan|forecast|coming week/i, dest: 'forecast',
+      detail: f => comingWeek(f) },
+    { key: 'inbox', match: /get clear|inbox|brain dump|reminders|capture/i, dest: 'group',
+      detail: f => [
+        f.inbox ? `Inbox: ${f.inbox} item${f.inbox === 1 ? '' : 's'}, oldest ${f.inboxOldestDays} days.` : 'Inbox is empty.',
+        f.completedByProject.length ? 'Open-loop triggers — where you worked this week (any follow-ups, promises, loose ends?):\n' +
+          list(f.completedByProject.map(p => `${p.name} (${p.count} done)`)) : ''
+      ].filter(Boolean).join('\n\n') }
+  ]
 
-    /**
-     * Call Foundation Models with a shared session.
-     * Returns coaching object or null if FM fails.
-     */
-    async function getCoaching(session, prompt, schema) {
+  const action = new PlugIn.Action(async function (selection, sender) {
+    const ofoCore = this.plugIn.library('ofoCore')
+    const fmUtils = this.plugIn.library('foundationModelsUtils')
+    try {
+      const prefs = new Preferences(PREFS_ID)   // G4: construct lazily
+      const routine = await findRoutine(prefs)
+      if (!routine) return
+      const cache = loadCache(prefs, routine)
+
+      const skippedThisRun = {}   // in memory only: Skip changes nothing in OmniFocus
+      for (;;) {
+        const f = gatherFacts(ofoCore, new Date(cache.startedAt))
+        const items = checklist(routine)
+        const next = () => items.find(i => i.open && !skippedThisRun[i.task.id.primaryKey])
+        let current = next()
+
+        // Tick items the data proves done, then look again.
+        const autoTicked = []
+        while (current && current.kind && current.kind.auto && current.kind.auto(f)) {
+          const res = ofoCore.completeTask({ id: current.task.id.primaryKey })
+          if (!res.success) break
+          autoTicked.push(current.label)
+          current.open = false
+          current = next()
+        }
+        if (!current) return await finish(ofoCore, fmUtils, prefs, routine, cache)
+
+        const kind = current.kind
+        if (kind && kind.insight && !('waiting' in cache) && fmUtils.isAvailable()) {
+          try { cache.waiting = await waitingInsight(fmUtils, f) } catch (e) { cache.waiting = null; console.error('Weekly Review insight:', e) }
+          saveCache(prefs, cache)
+        }
+        if (kind && kind.priorities && !('priorities' in cache) && fmUtils.isAvailable()) {
+          try { cache.priorities = await askPriorities(fmUtils, f) } catch (e) { cache.priorities = []; console.error('Weekly Review priorities:', e) }
+          saveCache(prefs, cache)
+        }
+
+        // Where "Open" goes: the matching perspective, else the item's own group in the checklist.
+        const container = current.groupTask || current.task
+        const perspective = kind && kind.dest !== 'group' ? findPerspective(DESTINATIONS[kind.dest]) : null
+        const openLabel = perspective ? `Open ${DESTINATIONS[kind.dest].label}` : `Open ${container.name.trim()}`
+        const form = new Form()
+        const keys = ['open', 'done', 'skip', 'finish']
+        const labels = [openLabel, 'Mark done (tick it)', 'Skip for now (no change)', 'Finish the review now']
+        // @ts-ignore — 6th arg optional at runtime
+        form.addField(new Form.Field.Option('next', 'Next', keys, labels, keys[0]))
+
+        const note = String(current.task.note || '').trim()
+        const title = [
+          `${routine.name.toUpperCase()} — ${current.label.toUpperCase()}\n${RULE}`,
+          progressLines(routine, current),
+          autoTicked.length ? 'Ticked for you (the data shows they\'re done): ' + autoTicked.join('; ') : '',
+          RULE + '\n' + wrap([kind ? kind.detail(f, cache) : '', note ? '📝  ' + note : '', stillToDo(items, current)].filter(Boolean).join('\n\n') || current.label, TITLE_WRAP_CHARS)
+        ].filter(Boolean).join('\n\n')
+        let result
         try {
-            const opts = new LanguageModel.GenerationOptions();
-            opts.maximumResponseTokens = 250;
-            const response = await session.respondWithSchema(prompt, schema, opts);
-            return JSON.parse(response);
-        } catch (err) {
-            console.error("FM coaching error:", err);
-            return null;
-        }
-    }
-
-    /**
-     * Show a review step Alert.
-     * Returns true to continue, false to stop.
-     */
-    async function showStep(stepNum, title, message) {
-        const alert = new Alert(`Step ${stepNum} of ${TOTAL_STEPS}: ${title}`, message);
-        alert.addOption("Continue");
-        alert.addOption("Stop Review");
-        const choice = await alert.show();
-        return choice === 0;
-    }
-
-    const action = new PlugIn.Action(async function(selection, sender) {
-        const fmUtils = this.plugIn.library("foundationModelsUtils");
-
-        if (!fmUtils.isAvailable()) {
-            fmUtils.showUnavailableAlert();
-            return;
-        }
-
-        // Concurrency guard
-        if (_reviewInProgress) {
-            const alert = new Alert("Weekly Review", "A review is already in progress.");
-            alert.addOption("OK");
-            await alert.show();
-            return;
-        }
-
-        _reviewInProgress = true;
-
-        // Accumulate summary scalars for step 7 synthesis
-        const reviewSummary = {
-            inboxCount: 0,
-            stalledCount: 0,
-            waitingForCount: 0,
-            onHoldCount: 0,
-            completedThisWeek: 0,
-            overdueCount: 0,
-            upcomingCount: 0
-        };
-
-        try {
-            const prefsManager = this.plugIn.library("preferencesManager");
-            const hasCachedPrefs = prefsManager.hasPreferences();
-            const core = this.plugIn.library("ofoCore");
-            const metrics = this.plugIn.library("taskMetrics");
-            const projectParser = this.plugIn.library("projectParser");
-            const applyForm = this.plugIn.library("applyForm");
-
-            // Waiting For detection — uses canonical patterns from taskMetrics library
-            function isWaitingFor(task) {
-                const tagNames = task.tags.map(t => t.name.toLowerCase());
-                return tagNames.some(name =>
-                    metrics.WAITING_PATTERNS.some(pattern => name.includes(pattern))
-                );
-            }
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            // Create one FM session for the entire review (reuse across all steps)
-            const session = fmUtils.createSession(GTD_COACH);
-
-            // == Step 1: Get Clear (Inbox) ==
-            // Mirror ofoCore stats: count Available inbox tasks only (matches what OF shows in the inbox view)
-            const inboxTasks = inbox.filter(t => t.taskStatus === Task.Status.Available);
-
-            reviewSummary.inboxCount = inboxTasks.length;
-
-            let step1Message = "";
-            if (inboxTasks.length === 0) {
-                step1Message = "Inbox is empty — great job!\n\nNothing to process here.";
-            } else {
-                const oldest = inboxTasks.reduce((a, b) =>
-                    (a.added && b.added && a.added < b.added) ? a : b
-                );
-                const oldestDays = oldest.added
-                    ? Math.floor((+new Date() - +oldest.added) / (1000 * 60 * 60 * 24))
-                    : 0;
-
-                const coaching = await getCoaching(session,
-                    `GTD inbox: ${inboxTasks.length} items. Oldest is ${oldestDays} days old. Provide 2-3 concise tips for processing to zero.`,
-                    LanguageModel.Schema.fromJSON({
-                        name: "inbox-schema",
-                        properties: [
-                            {name: "strategy", description: "How to approach processing this inbox"},
-                            {name: "tips", schema: {arrayOf: {type: "string"}, maximumElements: 3}}
-                        ]
-                    })
-                );
-
-                step1Message = `${section("Inbox")} ${inboxTasks.length} items (oldest: ${oldestDays}d ago)\n\n`;
-                if (coaching) {
-                    step1Message += `Strategy: ${coaching.strategy || ""}\n`;
-                    const tips = Array.isArray(coaching.tips) ? coaching.tips : [];
-                    if (tips.length > 0) {
-                        step1Message += tips.map(t => `  · ${t}`).join('\n');
-                    }
-                } else {
-                    step1Message += "Process each item: do (2 min), delegate, defer, or drop.";
-                }
-            }
-
-            const cont1 = await showStep(1, "Get Clear — Inbox", step1Message);
-            if (!cont1) { return; }
-
-            // == Step 2: Projects Sweep (stalled) ==
-            const activeProjects = flattenedProjects
-                .filter(p => p.status === Project.Status.Active)
-                .slice(0, 50);
-            const parsedActive = projectParser.parseProjects(activeProjects, false);
-            const stalledProjects = projectParser.identifyStalledProjects(parsedActive);
-            reviewSummary.stalledCount = stalledProjects.length;
-
-            let step2Message = "";
-            if (stalledProjects.length === 0) {
-                step2Message = "No stalled projects — every active project has a next action!";
-            } else {
-                const stalledNames = stalledProjects.slice(0, 10).map(p => p.name);
-                const coaching = await getCoaching(session,
-                    `${stalledProjects.length} stalled OmniFocus projects (no next actions): ${stalledNames.join(', ')}. Suggest how to unstall each — add a next action, put on hold, or drop.`,
-                    LanguageModel.Schema.fromJSON({
-                        name: "stalled-schema",
-                        properties: [
-                            {name: "overview", description: "Brief pattern assessment"},
-                            {
-                                name: "suggestions",
-                                schema: {
-                                    arrayOf: {
-                                        name: "suggestion",
-                                        properties: [
-                                            {name: "project"},
-                                            {name: "action", schema: {name: "stall-action-enum", anyOf: [{constant: "add-next-action"}, {constant: "put-on-hold"}, {constant: "drop"}]}},
-                                            {name: "nextAction", isOptional: true}
-                                        ]
-                                    },
-                                    maximumElements: 5
-                                }
-                            }
-                        ]
-                    })
-                );
-
-                step2Message = `${section("Stalled Projects")} ${stalledProjects.length}\n\n`;
-                step2Message += stalledProjects.slice(0, 10).map(p =>
-                    `  · ${p.name}${p.folder ? ` (${p.folder})` : ""} — ${p.reason}`
-                ).join('\n');
-
-                if (coaching) {
-                    step2Message += `\n\n${coaching.overview || ""}\n`;
-                    const suggestions = Array.isArray(coaching.suggestions) ? coaching.suggestions : [];
-                    suggestions.forEach(s => {
-                        const actionLabel = {
-                            "add-next-action": "→ Add next action",
-                            "put-on-hold": "→ Put on hold",
-                            "drop": "→ Drop"
-                        }[s.action] || "→ Review";
-                        step2Message += `\n${s.project}: ${actionLabel}`;
-                        if (s.nextAction) step2Message += ` — "${s.nextAction}"`;
-                    });
-                }
-            }
-
-            const cont2 = await showStep(2, "Projects Sweep — Stalled", step2Message);
-            if (!cont2) { return; }
-
-            // == Step 3: Waiting For (delegated items) ==
-            const waitingTasks = flattenedTasks.filter(t =>
-                !t.completed && !t.dropped && isWaitingFor(t)
-            );
-            reviewSummary.waitingForCount = waitingTasks.length;
-
-            let step3Message = "";
-            if (waitingTasks.length === 0) {
-                step3Message = "No waiting-for items found.\n\nIf you have delegated work, tag those tasks with a 'waiting' tag to track them.";
-            } else {
-                const waitingNames = waitingTasks.slice(0, 10).map(t => {
-                    const age = t.modified
-                        ? Math.floor((+new Date() - +t.modified) / (1000 * 60 * 60 * 24))
-                        : null;
-                    return age !== null ? `${t.name} (${age}d)` : t.name;
-                });
-
-                const coaching = await getCoaching(session,
-                    `${waitingTasks.length} waiting-for items in OmniFocus: ${waitingNames.join(', ')}. For each, recommend: follow up, keep waiting, or drop.`,
-                    LanguageModel.Schema.fromJSON({
-                        name: "waiting-schema",
-                        properties: [
-                            {name: "overview"},
-                            {
-                                name: "actions",
-                                schema: {
-                                    arrayOf: {
-                                        name: "waiting-action",
-                                        properties: [
-                                            {name: "item"},
-                                            {name: "recommendation", schema: {name: "waiting-rec-enum", anyOf: [{constant: "follow-up"}, {constant: "keep-waiting"}, {constant: "drop"}]}}
-                                        ]
-                                    },
-                                    maximumElements: 5
-                                }
-                            }
-                        ]
-                    })
-                );
-
-                step3Message = `${section("Waiting For")} ${waitingTasks.length} items\n\n`;
-                step3Message += waitingNames.map(n => `  · ${n}`).join('\n');
-
-                if (coaching) {
-                    step3Message += `\n\n${coaching.overview || ""}\n`;
-                    const actions = Array.isArray(coaching.actions) ? coaching.actions : [];
-                    actions.forEach(a => {
-                        const label = {
-                            "follow-up": "→ Follow up",
-                            "keep-waiting": "→ Keep waiting",
-                            "drop": "→ Drop"
-                        }[a.recommendation] || "→ Review";
-                        step3Message += `\n${a.item}: ${label}`;
-                    });
-                }
-            }
-
-            const cont3 = await showStep(3, "Waiting For Review", step3Message);
-            if (!cont3) { return; }
-
-            // [P] Apply path — turn the AI's per-item follow-up/drop
-            // recommendations into actionable dispatch via ofoCore. "keep-waiting"
-            // is informational only (no dispatch); "follow-up" → flag the task so
-            // it surfaces in the next review; "drop" → ofoCore.dropTask.
-            if (waitingTasks.length > 0 && coaching && coaching.actions && applyForm) {
-                const applyableWaiting = matchWaitingActions(waitingTasks, coaching.actions);
-                if (applyableWaiting.length > 0) {
-                    await applyWaitingActions(applyableWaiting, applyForm, core);
-                }
-            }
-
-            // == Step 4: Someday/Maybe (on-hold, 90+ days) ==
-            const onHoldProjects = metrics.getOnHoldProjects();
-            reviewSummary.onHoldCount = onHoldProjects.length;
-
-            let step4Message = "";
-            if (onHoldProjects.length === 0) {
-                step4Message = "No neglected Someday/Maybe projects.\n\nAll on-hold projects have been touched in the last 90 days.";
-            } else {
-                const onHoldNames = onHoldProjects.slice(0, 8).map(p => {
-                    const age = p.lastModified
-                        ? Math.floor((+new Date() - +p.lastModified) / (1000 * 60 * 60 * 24))
-                        : null;
-                    return age ? `${p.name} (${age}d)` : p.name;
-                });
-
-                const coaching = await getCoaching(session,
-                    `${onHoldProjects.length} on-hold OmniFocus projects not reviewed in 90+ days: ${onHoldNames.join(', ')}. For each, recommend: activate, keep on hold, or archive/drop.`,
-                    LanguageModel.Schema.fromJSON({
-                        name: "someday-schema",
-                        properties: [
-                            {name: "overview"},
-                            {
-                                name: "decisions",
-                                schema: {
-                                    arrayOf: {
-                                        name: "decision",
-                                        properties: [
-                                            {name: "project"},
-                                            {name: "recommendation", schema: {name: "someday-decision-enum", anyOf: [{constant: "activate"}, {constant: "keep-on-hold"}, {constant: "archive"}]}}
-                                        ]
-                                    },
-                                    maximumElements: 5
-                                }
-                            }
-                        ]
-                    })
-                );
-
-                step4Message = `${section("Someday / Maybe")} ${onHoldProjects.length} neglected projects\n\n`;
-                step4Message += onHoldNames.map(n => `  · ${n}`).join('\n');
-
-                if (coaching) {
-                    step4Message += `\n\n${coaching.overview || ""}\n`;
-                    const decisions = Array.isArray(coaching.decisions) ? coaching.decisions : [];
-                    decisions.forEach(d => {
-                        const label = {
-                            "activate": "→ Activate",
-                            "keep-on-hold": "→ Keep",
-                            "archive": "→ Archive"
-                        }[d.recommendation] || "→ Review";
-                        step4Message += `\n${d.project}: ${label}`;
-                    });
-                }
-            }
-
-            const cont4 = await showStep(4, "Someday/Maybe Review", step4Message);
-            if (!cont4) { return; }
-
-            // == Step 5: Celebrate & Reflect (completed this week) ==
-            const completedTasks = metrics.getCompletedThisWeek();
-            reviewSummary.completedThisWeek = completedTasks.length;
-
-            let step5Message = "";
-            if (completedTasks.length === 0) {
-                step5Message = "No tasks recorded as completed this week.\n\nIf you completed work, make sure to check tasks off in OmniFocus.";
-            } else {
-                const byProject = {};
-                completedTasks.slice(0, 20).forEach(t => {
-                    const proj = t.project || "Inbox";
-                    if (!byProject[proj]) byProject[proj] = [];
-                    byProject[proj].push(t.name);
-                });
-
-                const projectList = Object.entries(byProject)
-                    .map(([proj, tasks]) => `${proj} (${tasks.length})`)
-                    .join(', ');
-
-                const coaching = await getCoaching(session,
-                    `Completed ${completedTasks.length} tasks this week across projects: ${projectList}. Celebrate wins and identify completion patterns.`,
-                    LanguageModel.Schema.fromJSON({
-                        name: "celebrate-schema",
-                        properties: [
-                            {name: "celebration", description: "Acknowledge the wins"},
-                            {name: "pattern", description: "What does the completion pattern suggest about how this person works best?"}
-                        ]
-                    })
-                );
-
-                step5Message = `${section("Completed This Week")} ${completedTasks.length} tasks\n\n`;
-                Object.entries(byProject).slice(0, 6).forEach(([proj, tasks]) => {
-                    step5Message += `  · ${proj}: ${tasks.length} task${tasks.length !== 1 ? 's' : ''}\n`;
-                });
-
-                if (coaching) {
-                    step5Message += `\n${coaching.celebration || ""}\n`;
-                    if (coaching.pattern) {
-                        step5Message += `\nPattern: ${coaching.pattern}`;
-                    }
-                }
-            }
-
-            const cont5 = await showStep(5, "Celebrate & Reflect", step5Message);
-            if (!cont5) { return; }
-
-            // == Step 6: Horizon Check (overdue + next 7 days) ==
-            const overdueTasks = metrics.getOverdueTasks(core);
-            const upcomingTasks = flattenedTasks.filter(t => {
-                if (t.completed || t.dropped) return false;
-                const due = t.dueDate;
-                if (!due) return false;
-                const sevenDays = new Date(today);
-                sevenDays.setDate(sevenDays.getDate() + 7);
-                return due >= today && due < sevenDays;
-            }).slice(0, 20);
-
-            reviewSummary.overdueCount = overdueTasks.length;
-            reviewSummary.upcomingCount = upcomingTasks.length;
-
-            let step6Message = "";
-            const hasHorizonData = overdueTasks.length > 0 || upcomingTasks.length > 0;
-
-            if (!hasHorizonData) {
-                step6Message = "No overdue tasks and no upcoming due dates in the next 7 days.\n\nYour horizon looks clear!";
-            } else {
-                const overdueList = overdueTasks.slice(0, 5).map(t => {
-                    const days = Math.floor((+new Date() - +new Date(t.dueDate)) / (1000 * 60 * 60 * 24));
-                    return `${t.name} (${days}d)`;
-                }).join(', ');
-
-                const upcomingList = upcomingTasks.slice(0, 5).map(t => t.name).join(', ');
-
-                const coaching = await getCoaching(session,
-                    `Overdue: ${overdueTasks.length} tasks${overdueTasks.length > 0 ? " including: " + overdueList : ""}. Due next 7 days: ${upcomingTasks.length} tasks${upcomingTasks.length > 0 ? " including: " + upcomingList : ""}. Advise on realistic rescheduling.`,
-                    LanguageModel.Schema.fromJSON({
-                        name: "horizon-schema",
-                        properties: [
-                            {name: "overdueAdvice", description: "What to do with overdue items", isOptional: true},
-                            {name: "weekPreview", description: "What to expect in the coming week"},
-                            {name: "rescheduleRecommendation", description: "How many overdue items to tackle this week"}
-                        ]
-                    })
-                );
-
-                step6Message = "";
-                if (overdueTasks.length > 0) {
-                    step6Message += `${section("Overdue")} ${overdueTasks.length} tasks\n`;
-                    overdueTasks.slice(0, 5).forEach(t => {
-                        const days = Math.floor((+new Date() - +new Date(t.dueDate)) / (1000 * 60 * 60 * 24));
-                        step6Message += `  · ${t.name} [${t.project || "Inbox"}] — ${days}d\n`;
-                    });
-                    if (overdueTasks.length > 5) step6Message += `  ··· and ${overdueTasks.length - 5} more\n`;
-                    step6Message += "\n";
-                }
-
-                step6Message += `${section("Due Next 7 Days")} ${upcomingTasks.length} tasks\n`;
-                upcomingTasks.slice(0, 5).forEach(t => {
-                    step6Message += `  · ${t.name}\n`;
-                });
-                if (upcomingTasks.length > 5) step6Message += `  ··· and ${upcomingTasks.length - 5} more\n`;
-
-                if (coaching) {
-                    if (coaching.overdueAdvice) step6Message += `\n${coaching.overdueAdvice}\n`;
-                    if (coaching.rescheduleRecommendation) step6Message += `\n${coaching.rescheduleRecommendation}`;
-                }
-            }
-
-            const cont6 = await showStep(6, "Horizon Check", step6Message);
-            if (!cont6) { return; }
-
-            // == Step 7: Plan the Week (synthesis) ==
-            const coaching7 = await getCoaching(session,
-                `GTD weekly review complete. System snapshot: inbox=${reviewSummary.inboxCount}, stalled projects=${reviewSummary.stalledCount}, waiting for=${reviewSummary.waitingForCount}, someday/maybe neglected=${reviewSummary.onHoldCount}, completed this week=${reviewSummary.completedThisWeek}, overdue=${reviewSummary.overdueCount}, due next 7 days=${reviewSummary.upcomingCount}. Provide top 3 weekly priorities and a system health score (1-10).`,
-                LanguageModel.Schema.fromJSON({
-                    name: "plan-schema",
-                    properties: [
-                        {
-                            name: "weeklyPriorities",
-                            schema: {
-                                arrayOf: {type: "string"},
-                                maximumElements: 3
-                            }
-                        },
-                        {name: "systemHealthScore", description: "System health 1-10 with brief reason"},
-                        {name: "keyInsight", description: "One sentence insight from this review"}
-                    ]
-                })
-            );
-
-            let step7Message = `${section("Review Summary")}\n`;
-            step7Message += `  · Inbox: ${reviewSummary.inboxCount} items\n`;
-            step7Message += `  · Stalled projects: ${reviewSummary.stalledCount}\n`;
-            step7Message += `  · Waiting for: ${reviewSummary.waitingForCount}\n`;
-            step7Message += `  · Someday/Maybe neglected: ${reviewSummary.onHoldCount}\n`;
-            step7Message += `  · Completed this week: ${reviewSummary.completedThisWeek}\n`;
-            step7Message += `  · Overdue: ${reviewSummary.overdueCount}\n`;
-            step7Message += `  · Due next 7 days: ${reviewSummary.upcomingCount}\n\n`;
-
-            if (coaching7) {
-                const priorities = Array.isArray(coaching7.weeklyPriorities) ? coaching7.weeklyPriorities : [];
-                if (priorities.length > 0) {
-                    step7Message += `${section("Top Priorities This Week")}\n`;
-                    priorities.forEach((p, i) => step7Message += `${i + 1}. ${p}\n`);
-                    step7Message += "\n";
-                }
-                if (coaching7.systemHealthScore) {
-                    step7Message += `${section("System Health")}\n${coaching7.systemHealthScore}\n\n`;
-                }
-                if (coaching7.keyInsight) {
-                    step7Message += `${coaching7.keyInsight}`;
-                }
-            }
-
-            // Cadence badges — surface "time for a monthly/horizons review"
-            // when overdue. Read timestamps written by monthlyReview /
-            // horizonsReview at their closing-step completion. Pure nudge.
-            const cadenceBadges = getCadenceBadges();
-            if (cadenceBadges.length > 0) {
-                step7Message += "\n";
-                cadenceBadges.forEach(badge => {
-                    step7Message += `\n${badge}`;
-                });
-                step7Message += "\n";
-            }
-
-            // Duration-estimate health nudge (Option C from the #186
-            // duration-estimation thread). If the System Map's derived
-            // durationModel is 'none' or 'tags', most active tasks lack
-            // native estimates — `whatNow`'s time-filter is degraded and
-            // GTD Engage criteria can't match by duration. Cross-link to
-            // Clarify Tasks (analyzeSelected already pre-fills estimates
-            // since v2.17.0 / 4a5e353+follow-up). No new action launch;
-            // user invokes Clarify Tasks themselves.
-            const durationTip = buildDurationTip();
-            if (durationTip) {
-                step7Message += `\n\n${durationTip}`;
-            }
-
-            if (!hasCachedPrefs) {
-                step7Message += `\n\nTip: Run Attache › Setup to cache your system map for richer reviews.`;
-            }
-
-            const finalAlert = new Alert("Weekly Review", step7Message);
-            finalAlert.addOption("Copy Summary");
-            finalAlert.addOption("Done");
-            const finalChoice = await finalAlert.show();
-
-            if (finalChoice === 0) {
-                Pasteboard.general.string = step7Message;
-            }
-
-        } catch (error) {
-            console.error("Weekly Review error:", error);
-            const errorAlert = new Alert("Weekly Review Error",
-                `Review failed: ${error.message}`
-            );
-            errorAlert.show();
-        } finally {
-            _reviewInProgress = false;
-        }
-    });
-
-    /**
-     * Match AI-generated waiting-for action items back to actual Task objects.
-     * The AI sees item names formatted as "name (Nd)" (with age), so we strip
-     * the "(Nd)" suffix and fall back to substring matching. Filters out
-     * "keep-waiting" (informational) and any task that's no longer
-     * actionable (completed/dropped).
-     */
-    function matchWaitingActions(tasks, actions) {
-        if (!Array.isArray(actions)) return [];
-        const taskByName = {};
-        tasks.forEach(t => { taskByName[t.name] = t; });
-
-        const matched = [];
-        const seen = {};
-        actions.forEach(a => {
-            if (!a || !a.item || !a.recommendation) return;
-            if (a.recommendation === 'keep-waiting') return;
-            if (a.recommendation !== 'follow-up' && a.recommendation !== 'drop') return;
-
-            const stripped = String(a.item).replace(/\s*\(\d+d\)\s*$/, '').trim();
-            let task = taskByName[stripped] || taskByName[a.item];
-            if (!task) {
-                for (const t of tasks) {
-                    if (String(a.item).indexOf(t.name) !== -1 || t.name.indexOf(stripped) !== -1) {
-                        task = t; break;
-                    }
-                }
-            }
-            if (!task || task.completed || task.dropped) return;
-            const key = task.id.primaryKey;
-            if (seen[key]) return;
-            seen[key] = true;
-            matched.push({ task: task, recommendation: a.recommendation });
-        });
-        return matched;
-    }
-
-    /**
-     * Walk each matched waiting-for item, show per-item confirmation Form,
-     * dispatch via ofoCore (updateTask for follow-up flag, dropTask for drop).
-     * Summary alert at the end. Mirrors the analyzeSelected / analyzeHierarchy
-     * apply-path shape for consistency across actions.
-     */
-    async function applyWaitingActions(items, applyForm, ofoCore) {
-        let applied = 0;
-        let skipped = 0;
-        const issues = [];
-
-        for (const item of items) {
-            const task = item.task;
-            const change = item.recommendation === 'follow-up'
-                ? { key: 'flag', label: 'Flag for follow-up (surfaces in next review)' }
-                : { key: 'drop', label: 'Drop this waiting-for item' };
-
-            const decision = await applyForm.confirmApply({
-                itemName: task.name,
-                title: 'Waiting-For Action',
-                confirmLabel: 'Apply',
-                changes: [change]
-            });
-
-            if (decision.cancelled || !applyForm.anyAccepted(decision)) {
-                skipped++;
-                continue;
-            }
-
-            let res = null;
-            if (decision.apply.flag) {
-                res = ofoCore.updateTask({ id: task.id.primaryKey, flagged: true });
-            } else if (decision.apply.drop) {
-                res = ofoCore.dropTask({ id: task.id.primaryKey });
-            }
-
-            if (res && !res.success) {
-                issues.push(`${task.name}: ${res.error || 'dispatch failed'}`);
-                continue;
-            }
-            applied++;
-        }
-
-        let summary = `Applied ${applied} waiting-for action${applied === 1 ? '' : 's'}.`;
-        if (skipped > 0) {
-            summary += `\nSkipped ${skipped}.`;
-        }
-        if (issues.length > 0) {
-            summary += `\n\nIssues:\n  · ${issues.join('\n  · ')}`;
-        }
-        new Alert('Waiting For — Apply Summary', summary).show();
-    }
-
-    /**
-     * Read the last-run timestamps for the upper-cadence reviews and return
-     * any badges that should surface. monthlyReview threshold is 35 days
-     * (slightly longer than 4 weeks); horizonsReview threshold is 100 days
-     * (quarterly cadence with a buffer).
-     *
-     * Inlined here AND in dailyReview.js (~30 lines duplicated). Per
-     * AGENTS.md design principle 3, extract to a shared library when a
-     * third reader emerges (likely healthCheck's missing-cadence
-     * indicators).
-     *
-     * Never throws — Preferences failures log and return empty badge list.
-     */
-    /**
-     * Read the System Map's derived durationModel + percentWithDuration
-     * signals and return a one-line tip when the user's task-estimate
-     * coverage is thin. Returns "" when coverage is healthy, when the
-     * map is missing/stale, or when the field isn't populated (quick-
-     * mode discovery omits tasks.dataQuality).
-     *
-     * Per the System Map schema (see system_map_schema.md):
-     *   durationModel === 'none'  → 0% estimate coverage
-     *   durationModel === 'tags'  → 1-9% (relies on duration tags only)
-     *   durationModel === 'mixed' → 10-49% (mixed practice)
-     *   durationModel === 'native' → 50%+ (healthy)
-     *
-     * Surface the tip for 'none' and 'tags'. 'mixed' is good-enough —
-     * don't pester the user when they're already partway there.
-     */
-    function buildDurationTip() {
-        try {
-            const candidates = flattenedTasks.filter(t => t.name === "Attache System Map");
-            if (candidates.length === 0) return "";
-            const sm = JSON.parse(candidates[0].note || "{}");
-            if (typeof sm.schemaVersion !== "number" || sm.schemaVersion < 1) return "";
-            const model = sm.durationModel;
-            if (model !== "none" && model !== "tags") return "";
-
-            const pct = sm.tasks && sm.tasks.dataQuality
-                ? sm.tasks.dataQuality.percentWithDuration
-                : null;
-            const pctText = (pct != null)
-                ? `Only ${pct}% of your active tasks have time estimates`
-                : "Most of your active tasks lack time estimates";
-            return `⏱ ${pctText}. Select 3-5 of them and run Attache › Clarify Tasks — the AI now always proposes an estimate when one is missing, and the apply-form lets you accept or adjust per task. Better estimates make ${"`What Now`"}'s time-filter more useful.`;
+          result = await form.show(title, 'Go')
         } catch (e) {
-            console.error("weeklyReview buildDurationTip:", e);
-            return "";
+          return   // G3: cancel may reject; nothing to save — OmniFocus holds the progress
         }
+        if (!result) return
+        const v = result.values
+        if (v.next === 'open') { if (perspective) openPerspective(perspective); else openTask(container); return }
+        if (v.next === 'finish') return await finish(ofoCore, fmUtils, prefs, routine, cache)
+        const id = current.task.id.primaryKey
+        if (v.next === 'skip') {
+          skippedThisRun[id] = true
+        } else {
+          const res = ofoCore.completeTask({ id })
+          if (!res.success) { new Alert('Weekly Review', res.error).show(); return }
+        }
+      }
+    } catch (err) {
+      new Alert(err.name || 'Weekly Review', err.message || String(err)).show()
+      console.error(err)
+    }
+  })
+
+  // ──────── Checklist (OmniFocus is the truth) ────────
+
+  /** Leaf items of the copy in outline order: { task, label, group, open, kind }. */
+  function checklist(routine) {
+    const out = []
+    const walk = (tasks, parent) => tasks.forEach(t => {
+      if (t.hasChildren) walk(t.children, t)
+      else {
+        const group = parent ? parent.name.trim() : null
+        const label = (group ? group + ' › ' : '') + t.name.trim()
+        out.push({ task: t, label, group, groupTask: parent, open: isOpen(t), kind: KINDS.find(k => k.match.test(t.name)) || KINDS.find(k => k.match.test(label)) || null })
+      }
+    })
+    walk(routine.task.children, null)
+    return out
+  }
+
+  /** Reminder of the rest of the current group: "Still to do in Get Clear: ○ Check Reminders — <note>" */
+  function stillToDo(items, current) {
+    if (!current.groupTask) return ''
+    const rest = items.filter(i => i.groupTask === current.groupTask && i.open && i !== current)
+    if (!rest.length) return ''
+    return `Still to do in ${current.group}:\n` + rest.map(i => {
+      const first = String(i.task.note || '').split('\n')[0].trim()
+      return '○ ' + i.task.name.trim() + (first ? ' — ' + first.slice(0, 80) : '')
+    }).join('\n')
+  }
+
+  /** "✓ Block 1 hour…", "→ Get Clear — 1 of 4", "○ Get Current — 0 of 5" */
+  function progressLines(routine, current) {
+    return routine.task.children.map(t => {
+      if (!t.hasChildren) {
+        const sym = t === current.task ? '→' : isOpen(t) ? '○' : (t.taskStatus === Task.Status.Dropped ? '–' : '✓')
+        return `${sym}  ${t.name.trim()}`
+      }
+      const leaves = t.flattenedTasks.filter(x => !x.hasChildren)
+      const closed = leaves.filter(x => !isOpen(x)).length
+      const here = leaves.some(x => x === current.task)
+      const sym = here ? '→' : closed === leaves.length ? '✓' : '○'
+      return `${sym}  ${t.name.trim()} — ${closed} of ${leaves.length}`
+    }).join('\n')
+  }
+
+  function isOpen(t) {
+    return t.taskStatus !== Task.Status.Completed && t.taskStatus !== Task.Status.Dropped
+  }
+
+  // ──────── Facts (deterministic) ────────
+
+  function gatherFacts(ofoCore, started) {
+    const now = Date.now()
+    const weekAgo = new Date(now - 7 * DAY)
+    const weekAhead = new Date(now + 7 * DAY)
+    const sm = loadSystemMap()
+    const f = {}
+
+    const inboxOpen = inbox.filter(isOpen)
+    f.inbox = inboxOpen.length
+    f.inboxOldestDays = inboxOpen.reduce((m, t) => t.added ? Math.max(m, Math.floor((now - t.added.getTime()) / DAY)) : m, 0)
+
+    f.waiting = null
+    const waitingTag = sm && sm.conventions ? sm.conventions.waitingTag : null
+    if (waitingTag) {
+      const all = ofoCore.listWaitingFor({ tag: waitingTag })
+      const stale = ofoCore.listWaitingFor({ tag: waitingTag, ageThresholdDays: WAITING_STALE_DAYS })
+      if (all.success) f.waiting = { count: all.count, stale: stale.success ? stale.tasks.map(t => ({
+        id: t.id, name: t.name, project: t.project || null, note: String(t.note || '').replace(/\s+/g, ' ').trim(),
+        days: t.modified ? Math.floor((now - Date.parse(t.modified)) / DAY) : null
+      })) : [] }
     }
 
-    function getCadenceBadges() {
-        const badges = [];
-        try {
-            const prefs = new Preferences("com.totallytools.omnifocus.attache");
-            const monthlyRaw = prefs.readString("lastReviewed_monthly");
-            if (monthlyRaw) {
-                const days = Math.floor((Date.now() - Date.parse(monthlyRaw)) / 86400000);
-                if (days > 35) {
-                    badges.push(`🗓 Time for a monthly review — last ran ${days} days ago. Run Attache › Monthly Review.`);
-                }
-            } else {
-                badges.push("🗓 You haven't run a monthly review yet. Try Attache › Monthly Review for an Areas-of-Focus check.");
-            }
-            const horizonsRaw = prefs.readString("lastReviewed_horizons");
-            if (horizonsRaw) {
-                const days = Math.floor((Date.now() - Date.parse(horizonsRaw)) / 86400000);
-                if (days > 100) {
-                    badges.push(`🌅 Time for a horizons review — last ran ${days} days ago. Run Attache › Horizons Review.`);
-                }
-            }
-        } catch (e) {
-            console.error("weeklyReview getCadenceBadges:", e);
-        }
-        return badges;
+    const due = ofoCore.listProjectsForReview({})
+    f.dueForReview = due.success ? due.projects.map(p => ({ id: p.id, name: p.name })) : []
+
+    const active = flattenedProjects.filter(p => p.status === Project.Status.Active && !inDroppedFolder(p))
+    f.activeProjects = active.length
+    f.stalled = active.filter(p => !p.containsSingletonActions && p.flattenedTasks.length > 0 && !hasNextAction(p))
+      .map(p => ({ id: p.id.primaryKey, name: p.name }))
+
+    const done = ofoCore.listRecentlyCompleted({ sinceDate: weekAgo.toISOString() })
+    const byProject = {}
+    if (done.success) done.tasks.forEach(t => { const k = t.project || 'Inbox'; byProject[k] = (byProject[k] || 0) + 1 })
+    f.completedWeek = done.success ? done.count : 0
+    f.completedByProject = Object.keys(byProject).map(k => ({ name: k, count: byProject[k] })).sort((a, b) => b.count - a.count)
+
+    const remaining = flattenedTasks.filter(t => isOpen(t) && !t.hasChildren)
+    f.overdue = remaining.filter(t => t.taskStatus === Task.Status.Overdue).map(t => t.name)
+    f.dueSoon = remaining.filter(t => t.dueDate && t.dueDate.getTime() >= now && t.dueDate <= weekAhead).map(t => t.name)
+
+    const holdCutoff = now - ON_HOLD_UNREVIEWED_DAYS * DAY
+    f.onHoldUnreviewed = flattenedProjects.filter(p => p.status === Project.Status.OnHold && !inDroppedFolder(p) &&
+      (!p.lastReviewDate || p.lastReviewDate.getTime() < holdCutoff)).map(p => ({ id: p.id.primaryKey, name: p.name }))
+
+    const since = d => d && d.getTime() >= started.getTime()
+    const changed = flattenedProjects.filter(p => p.task && since(p.task.modified))
+    f.during = {
+      reviewed: flattenedProjects.filter(p => since(p.lastReviewDate)).map(p => p.name),
+      completed: flattenedProjects.filter(p => p.status === Project.Status.Done && since(p.completionDate)).map(p => p.name),
+      dropped: flattenedProjects.filter(p => p.status === Project.Status.Dropped && since(p.dropDate)).map(p => p.name),
+      onHold: changed.filter(p => p.status === Project.Status.OnHold).map(p => p.name),
+      tasksCompleted: flattenedTasks.filter(t => since(t.completionDate)).length,
+      tasksAdded: flattenedTasks.filter(t => since(t.added)).length
     }
+    const named = {}
+    ;['reviewed', 'completed', 'dropped', 'onHold'].forEach(k => f.during[k].forEach(n => { named[n] = true }))
+    f.during.otherChanged = changed.filter(p => !named[p.name] && p.status === Project.Status.Active).map(p => p.name)
+    return f
+  }
 
-    action.validate = function(selection, sender) {
-        return Device.current.operatingSystemVersion.atLeast(new Version("26"));
-    };
+  function hasNextAction(p) {
+    return p.flattenedTasks.some(t => t.taskStatus === Task.Status.Available || t.taskStatus === Task.Status.Next)
+  }
 
-    return action;
-})();
+  function inDroppedFolder(p) {
+    for (let f = p.parentFolder; f; f = f.parent) if (f.status === Folder.Status.Dropped) return true
+    return false
+  }
+
+  function loadSystemMap() {
+    const t = flattenedTasks.find(x => x.name === SYSTEM_MAP_TASK)
+    if (!t) return null
+    try { return JSON.parse(t.note || '{}') } catch (e) { return null }
+  }
+
+  function pastWeek(f) {
+    return f.completedWeek
+      ? `${f.completedWeek} tasks completed in the last 7 days. Most in:\n` + list(f.completedByProject.map(p => `${p.name} (${p.count})`))
+      : 'Nothing completed in the last 7 days.'
+  }
+
+  function comingWeek(f) {
+    return [
+      f.overdue.length ? `Overdue: ${f.overdue.length}\n` + list(f.overdue) : 'Nothing overdue.',
+      f.dueSoon.length ? `Due in the next 7 days: ${f.dueSoon.length}\n` + list(f.dueSoon) : 'Nothing due in the next 7 days.'
+    ].join('\n')
+  }
+
+  // ──────── Waiting For: summary and recommendations ────────
+
+  /** Facts in code; the model only names "not really waiting" and "chase first". */
+  function waitingDetail(f, insight) {
+    if (!f.waiting) return 'No waiting tag in the System Map (run Attache › Setup).'
+    const stale = f.waiting.stale
+    if (!stale.length) return `Waiting For: ${f.waiting.count} items, none untouched over ${WAITING_STALE_DAYS} days.`
+    const bucket = (lo, hi) => stale.filter(t => t.days !== null && t.days >= lo && t.days < hi).length
+    const byProject = {}
+    stale.forEach(t => { const k = t.project || 'no project'; byProject[k] = (byProject[k] || 0) + 1 })
+    const top = Object.keys(byProject).sort((a, b) => byProject[b] - byProject[a]).slice(0, 4).map(k => `${k} (${byProject[k]})`)
+    const oldest = stale.slice().sort((a, b) => (b.days || 0) - (a.days || 0)).slice(0, 3)
+    const out = [
+      `📊  ${stale.length} of ${f.waiting.count} waiting items untouched over ${WAITING_STALE_DAYS} days: ` +
+        `${bucket(WAITING_STALE_DAYS, 30)} under a month, ${bucket(30, 182)} one to six months, ${bucket(182, 100000)} over six months.`,
+      'Most in: ' + top.join(', ') + '.',
+      'Oldest: ' + oldest.map(t => `${t.name} (${t.days} days)`).join('; ') + '.'
+    ]
+    if (insight) {
+      const current = {}
+      stale.forEach(t => { current[t.name] = true })
+      const pick = names => (names || []).filter(n => current[n])
+      if (insight.summary) out.push('💡  ' + insight.summary)
+      const notWaiting = pick(insight.notWaiting)
+      if (notWaiting.length) out.push(`Look like your own tasks, not waiting on anyone — consider removing the waiting tag or moving them to Someday (${notWaiting.length}):\n` + list(notWaiting))
+      const chase = pick(insight.chase)
+      if (chase.length) out.push('Chase first:\n' + list(chase))
+    }
+    return out.join('\n\n')
+  }
+
+  async function waitingInsight(fmUtils, f) {
+    const stale = (f.waiting && f.waiting.stale) || []
+    if (!stale.length) return null
+    const session = fmUtils.createSession('You are a GTD coach. A waiting-for item means someone else owes the user something. Be concise.')
+    let body = ''
+    stale.forEach((t, i) => {
+      const line = `W${i} ${t.name} [${t.project || 'no project'}; untouched ${t.days} days]` + (t.note ? ` — note: ${t.note.slice(0, 80)}` : '') + '\n'
+      if (body.length + line.length < 9000) body += line
+    })
+    const schema = LanguageModel.Schema.fromJSON({
+      name: 'waiting-insight-schema',
+      properties: [
+        { name: 'summary' },
+        { name: 'notWaiting', schema: { arrayOf: { name: 'index', schema: { type: 'integer' } }, maximumElements: 20 } },
+        { name: 'chase', schema: { arrayOf: { name: 'index', schema: { type: 'integer' } }, maximumElements: 3 } }
+      ]
+    })
+    const opts = new LanguageModel.GenerationOptions()
+    opts.maximumResponseTokens = 400
+    const prompt = 'WAITING-FOR ITEMS (W# = index):\n' + body + `
+Return:
+- summary: one or two sentences on the state of this list and what to do about it.
+- notWaiting: indexes of items that look like the user's own work (no other person, company or delivery involved), so they don't belong on a waiting list.
+- chase: up to three indexes of real waiting items most worth following up now.`
+    const raw = JSON.parse(await session.respondWithSchema(prompt, schema, opts))
+    const idx = a => (Array.isArray(a) ? a : []).map(Number).filter(i => Number.isInteger(i) && i >= 0 && i < stale.length)
+    const names = a => idx(a).map(i => stale[i].name)
+    return { summary: typeof raw.summary === 'string' ? raw.summary.trim() : '', notWaiting: names(raw.notWaiting), chase: names(raw.chase) }
+  }
+
+  async function askPriorities(fmUtils, f) {
+    const session = fmUtils.createSession('You are a GTD coach helping with a weekly review. Be concrete and brief.')
+    const facts = [
+      `Inbox ${f.inbox}; waiting ${f.waiting ? f.waiting.count : '?'} (stale: ${f.waiting ? f.waiting.stale.slice(0, 5).map(t => t.name).join('; ') : ''})`,
+      `Projects due for review ${f.dueForReview.length} of ${f.activeProjects}`,
+      `Stalled: ${f.stalled.slice(0, 10).map(p => p.name).join('; ') || 'none'}`,
+      `Completed this week ${f.completedWeek}, most in: ${f.completedByProject.slice(0, 5).map(p => p.name).join('; ')}`,
+      `Overdue: ${f.overdue.slice(0, 10).join('; ') || 'none'}`,
+      `Due next 7 days: ${f.dueSoon.slice(0, 10).join('; ') || 'none'}`
+    ].join('\n')
+    const schema = LanguageModel.Schema.fromJSON({
+      name: 'weekly-priorities-schema',
+      properties: [{ name: 'priorities', schema: { arrayOf: { name: 'priority' }, maximumElements: 3 } }]
+    })
+    const opts = new LanguageModel.GenerationOptions()
+    opts.maximumResponseTokens = 300
+    const prompt = facts + '\n\nGive at most three priorities for the coming week, each one sentence naming the specific task or project and the action. Prefer clearing stale waiting items, stalled projects and overdue work over new work.'
+    const raw = JSON.parse(await session.respondWithSchema(prompt, schema, opts))
+    return (Array.isArray(raw.priorities) ? raw.priorities : []).filter(p => typeof p === 'string' && p.trim()).map(p => p.trim()).slice(0, 3)
+  }
+
+  // ──────── Finish: report ────────
+
+  async function finish(ofoCore, fmUtils, prefs, routine, cache) {
+    const started = new Date(cache.startedAt)
+    const f = gatherFacts(ofoCore, started)
+    if (!('priorities' in cache) && fmUtils.isAvailable()) {
+      try { cache.priorities = await askPriorities(fmUtils, f) } catch (e) { cache.priorities = [] }
+    }
+    const items = checklist(routine)
+    const skipped = items.filter(i => i.task.taskStatus === Task.Status.Dropped).map(i => i.label)
+    const unticked = items.filter(i => i.open).map(i => i.label)
+    const report = buildReport(f, cache.priorities || [], started, skipped, unticked)
+
+    const form = new Form()
+    form.addField(new Form.Field.String('friction', 'What got in the way?', ''))
+    // @ts-ignore
+    form.addField(new Form.Field.Option('then', 'Then', ['complete', 'save', 'continue'],
+      [`Save report and complete ${routine.name}`, 'Save report, keep the checklist open', 'Not yet'], 'complete'))
+    let result
+    try {
+      result = await form.show(`${routine.name.toUpperCase()} — REPORT\n${RULE}\n\n` + wrap(report, TITLE_WRAP_CHARS), 'Done')
+    } catch (e) {
+      result = null
+    }
+    if (!result || result.values.then === 'continue') return
+
+    const friction = String(result.values.friction || '').trim()
+    const full = report + (friction ? '\n\n🪨  WHAT GOT IN THE WAY\n' + friction : '')
+    const saved = saveReport(prefs, ofoCore, routine, full, { f, skipped, unticked, friction, started })
+    Pasteboard.general.string = full
+    prefs.write('lastReviewed_weekly', new Date().toISOString())
+
+    let msg = 'Report copied to the clipboard' + (saved ? ` and saved in the note of ${routine.name}.` : '.')
+    if (result.values.then === 'complete') {
+      if (routine.status !== Project.Status.Done) routine.markComplete(null)
+      prefs.write(CACHE_KEY, '')
+      const next = activeRepeating().find(p => p.name === routine.name && p.id.primaryKey !== routine.id.primaryKey)
+      msg += next ? `\n\nNext weekly review: ${(next.dueDate || next.deferDate || new Date()).toLocaleDateString()}.`
+        : '\n\nNo next copy found — check the routine\'s repeat.'
+    }
+    new Alert('Weekly Review saved', msg).show()
+  }
+
+  function buildReport(f, priorities, started, skipped, unticked) {
+    const s = []
+    const d = f.during
+    const lines = [`Started ${started.toLocaleString()} · ${d.tasksCompleted} tasks completed · ${d.tasksAdded} added · ${d.reviewed.length} projects reviewed`]
+    if (d.reviewed.length) lines.push('Reviewed: ' + d.reviewed.slice(0, 12).join(', ') + (d.reviewed.length > 12 ? '…' : ''))
+    if (d.completed.length) lines.push('Completed: ' + d.completed.join(', '))
+    if (d.dropped.length) lines.push('Dropped: ' + d.dropped.join(', '))
+    if (d.onHold.length) lines.push('Put on hold or changed while on hold: ' + d.onHold.join(', '))
+    if (d.otherChanged.length) lines.push('Other projects changed: ' + d.otherChanged.slice(0, 8).join(', ') + (d.otherChanged.length > 8 ? '…' : ''))
+    s.push('🔁  DURING THIS REVIEW\n' + lines.join('\n'))
+    if (skipped.length || unticked.length) {
+      s.push('🧾  CHECKLIST\n' + skipped.map(x => '– dropped: ' + x).concat(unticked.map(x => '○ not done: ' + x)).join('\n'))
+    }
+    if (priorities.length) s.push('💡  PRIORITIES FOR THE WEEK\n' + priorities.map((p, i) => `${i + 1}. ${p}`).join('\n'))
+    s.push('🏆  PAST WEEK\n' + pastWeek(f))
+    s.push('📅  COMING WEEK\n' + comingWeek(f))
+    return s.join('\n\n')
+  }
+
+  // ──────── Routine, cache, saving ────────
+
+  async function findRoutine(prefs) {
+    const saved = prefs.readString(ROUTINE_KEY)
+    if (saved) {
+      const p = Project.byIdentifier(saved)
+      if (p && p.status === Project.Status.Active) return p
+      if (p) {
+        const live = activeRepeating().find(x => x.name === p.name)
+        if (live) { prefs.write(ROUTINE_KEY, live.id.primaryKey); return live }
+      }
+    }
+    const repeating = activeRepeating()
+    const named = repeating.filter(p => NAME_PATTERN.test(p.name))
+    if (named.length === 1) { prefs.write(ROUTINE_KEY, named[0].id.primaryKey); return named[0] }
+    const candidates = named.length ? named : repeating
+    if (!candidates.length) {
+      new Alert('Weekly Review', 'Weekly Review works through your own weekly-review checklist: a repeating project. None was found.').show()
+      return null
+    }
+    const form = new Form()
+    // @ts-ignore
+    form.addField(new Form.Field.Option('pick', 'Routine', candidates.map(p => p.id.primaryKey), candidates.map(p => p.name), candidates[0].id.primaryKey))
+    let result
+    try {
+      result = await form.show('Which repeating project is your weekly review checklist?', 'Use it')
+    } catch (e) {
+      result = null
+    }
+    if (!result) return null
+    const p = Project.byIdentifier(result.values.pick)
+    if (p) prefs.write(ROUTINE_KEY, p.id.primaryKey)
+    return p
+  }
+
+  function activeRepeating() {
+    return flattenedProjects.filter(p => p.status === Project.Status.Active && p.repetitionRule)
+  }
+
+  /** Per-copy cache: when this copy's review started, and model answers. */
+  function loadCache(prefs, routine) {
+    let c = null
+    try { c = JSON.parse(prefs.readString(CACHE_KEY) || 'null') } catch (e) { c = null }
+    if (!c || c.routineId !== routine.id.primaryKey) {
+      c = { routineId: routine.id.primaryKey, startedAt: new Date().toISOString() }
+      saveCache(prefs, c)
+    }
+    return c
+  }
+
+  function saveCache(prefs, c) {
+    prefs.write(CACHE_KEY, JSON.stringify(c))
+  }
+
+  /** Note on this week's copy + device-local log for the weekly-note push (task 5). */
+  function saveReport(prefs, ofoCore, routine, text, data) {
+    let log = []
+    try { log = JSON.parse(prefs.readString(REPORTS_KEY) || '[]') } catch (e) { log = [] }
+    log.push({ date: new Date().toISOString(), started: data.started.toISOString(), routineId: routine.id.primaryKey,
+      text, skipped: data.skipped, unticked: data.unticked, friction: data.friction, during: data.f.during })
+    prefs.write(REPORTS_KEY, JSON.stringify(log.slice(-REPORTS_MAX)))
+    const res = ofoCore.updateTask({ id: routine.task.id.primaryKey, noteAppend: `Weekly review report ${new Date().toLocaleDateString()}\n\n` + text })
+    return res.success
+  }
+
+  // ──────── Perspectives, text ────────
+
+  function findPerspective(d) {
+    if (!d) return null
+    if (d.builtIn) return Perspective.BuiltIn[d.builtIn] || null
+    return Perspective.Custom.all.find(p => d.custom.test(p.name)) || null
+  }
+
+  /** Show a checklist group (or item) in OmniFocus. */
+  function openTask(t) {
+    try {
+      URL.fromString('omnifocus:///task/' + t.id.primaryKey).open()
+    } catch (e) {
+      console.error('Weekly Review open task:', e)
+    }
+  }
+
+  function openPerspective(p) {
+    try {
+      document.windows[0].perspective = p
+    } catch (e) {
+      console.error('Weekly Review open perspective:', e)
+    }
+  }
+
+  function list(items) {
+    return items.slice(0, LIST_MAX).map(n => '· ' + n).join('\n') +
+      (items.length > LIST_MAX ? `\n· …and ${items.length - LIST_MAX} more` : '')
+  }
+
+  function wrap(text, width) {
+    return String(text).split('\n').map(line => {
+      const out = []
+      let cur = ''
+      line.split(' ').forEach(word => {
+        if (cur && (cur + ' ' + word).length > width) { out.push(cur); cur = word } else cur = cur ? cur + ' ' + word : word
+      })
+      out.push(cur)
+      return out.join('\n')
+    }).join('\n')
+  }
+
+  action.validate = function (selection, sender) {
+    return true
+  }
+
+  return action
+})()

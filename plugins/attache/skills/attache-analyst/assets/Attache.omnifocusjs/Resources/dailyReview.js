@@ -301,7 +301,7 @@ Using GTD principles, provide:
      * cadence doesn't pop a badge the moment it's overdue); horizonsReview
      * threshold is 100 days (quarterly cadence with a buffer).
      *
-     * Inlined here AND in weeklyReview.js (~30 lines duplicated). Per
+     * Inlined here AND in weeklyReview.js (a shorter copy). Per
      * AGENTS.md design principle 3, extract to a shared library when a
      * third reader emerges (likely candidate: healthCheck's missing-
      * cadence indicators, which could grow from monthly-only to a richer
